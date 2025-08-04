@@ -99,7 +99,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.states = states
         self.unweighted_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
-        # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
+        # TODO our current credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
         # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
@@ -121,7 +121,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+        if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             if not os.path.exists(self.output_dir['fs_path']):
                 os.makedirs(self.output_dir['fs_path'])
 
@@ -164,6 +164,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
+                    # Handling for polars url encoding issue (it was turning '=' into '%3D' and failing to find the files in S3)
                     upgrade_dfs.append(file_path)
                 self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
             else:
@@ -248,13 +249,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self._aggregate_failure_summaries()
 
     def _aggregate_failure_summaries(self):
-        #sinece we are generating summary of falures based on
+        #since we are generating summary of failures based on
         #each upgrade_id(in load_data()), we should aggregate
         #the summary of failures for each upgrade_id into one
 
         path = self.output_dir['fs_path']
 
-        alLines = list()
+        allLines = list()
         #find all the failure_summary files like with failure_summary_0.csv
         # failure_summary_1.csv ... failure_summary_k.csv
         for file in os.listdir(path):
@@ -262,14 +263,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 #open the file and read the content
                 with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
                     for line in f:
-                        if line not in alLines:
-                            alLines.append(line)
+                        if line not in allLines:
+                            allLines.append(line)
                  #delete the file
                 os.remove(os.path.join(path, file))
 
         #write the aggregated summary of failures to a new file
         with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
-            for line in alLines:
+            for line in allLines:
                 f.write(line)
 
     def reduce_df_memory(self, df):
@@ -334,26 +335,28 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
-            logger.info('The s3 path provided in the ComStock object initalization is invalid.')
+            logger.info('The s3 path provided in the ComStock object initialization is invalid.')
             return #skip the strip calling.
 
         s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
         bucket_name = s3_path_items[0]
         prfx = '/'.join(s3_path_items[1:])
 
+        s3_resource = boto3.resource('s3')
+
         # baseline/results_up00.parquet
         results_data_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(results_data_path):
             baseline_parquet_path = f"{prfx}/baseline/{self.results_file_name}"
             try:
-                self.s3_resource.Object(bucket_name, baseline_parquet_path).load()
+                s3_resource.Object(bucket_name, baseline_parquet_path).load()
             except botocore.exceptions.ClientError:
                 logger.error(f'Could not find results_up00.parquet at {baseline_parquet_path} in bucket {bucket_name}')
                 raise FileNotFoundError(
                     f'Missing results_up00.parquet file. Manually download and place at {results_data_path}'
                 )
             logger.info(f'Downloading {baseline_parquet_path} from the {bucket_name} bucket')
-            self.s3_resource.Object(bucket_name, baseline_parquet_path).download_file(results_data_path)
+            s3_resource.Object(bucket_name, baseline_parquet_path).download_file(results_data_path)
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
@@ -363,7 +366,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 'cannot check for results_up**.parquet files to download')
                 else:
                     upgrade_parquet_path = f'{prfx}/upgrades'
-                    resp = self.s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
+                    resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
                     for obj in list(resp):
                         obj_path = obj.key
                         obj_name = obj_path.split('/')[-1]
@@ -377,7 +380,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         results_data_path = os.path.join(self.data_dir, obj_name)
                         if not os.path.exists(results_data_path):
                             logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
-                            self.s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
+                            s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
 
         # buildstock.csv
         #1. check the file in the data_dir
@@ -388,14 +391,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_path = f"{self.s3_inpath}/buildstock_csv/buildstock.csv"
             bldstk_s3_path = f'{prfx}/buildstock_csv/buildstock.csv'
             try:
-                self.s3_resource.Object(bucket_name, bldstk_s3_path).load()
+                s3_resource.Object(bucket_name, bldstk_s3_path).load()
             except botocore.exceptions.ClientError:
                 logger.error(f'Could not find buildstock.csv at {bldstk_s3_path} in bucket {bucket_name}')
                 raise FileNotFoundError(
                     f'Missing buildstock.csv file. Manually download and place at {buildstock_csv_path}'
                 )
             logger.info(f'Downloading {bldstk_s3_path} from the {bucket_name} bucket')
-            self.s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
+            s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
 
 
         # Electric Utility Data
@@ -3257,7 +3260,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         input_lf = input_lf.with_columns(
                 (pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT)).alias(new_area_col))
 
-        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group.
+        #generate the weighted columns with conventions for Emission, Utility, Energy Enduse group.
         old_unit_to_new_unit = {
             'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
