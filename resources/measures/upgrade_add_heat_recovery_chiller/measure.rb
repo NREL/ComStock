@@ -680,7 +680,8 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 		  # var.setReportingFrequency('Timestep')
 	  # end 
     #Sizing routine for HRC
-	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
+	#ann_loads_run_dir = "#{Dir.pwd}/run/000_upgrade_add_heat_recovery_chiller/AnnualHRCLoadsRun"
+	ann_loads_run_dir = "C:/Users/aallen/Documents/ComStock/hrc_cli_test/run/000_upgrade_add_heat_recovery_chiller/AnnualHRCLoadsRun"
 	runner.registerInfo("pwd #{Dir.pwd}")
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
 	#annual_run_success = std.model_run_simulation_and_log_errors(model, "#{ann_loads_run_dir}/AR") #looks like that worked 
@@ -697,13 +698,13 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
         # return false
       # end
     end
-	# get timeseries output variable values
-    #check for sql file
-    r = model.sqlFile
-    runner.registerInfo("class of model.sqlFile is: #{r.class}")
-	r.class.methods.sort.each do |m|
-		runner.registerInfo("#{m}")
-    end
+	# # get timeseries output variable values
+    # #check for sql file
+    # r = model.sqlFile
+    # runner.registerInfo("class of model.sqlFile is: #{r.class}")
+	# r.class.methods.sort.each do |m|
+		# runner.registerInfo("#{m}")
+    # end
     if model.sqlFile.empty?
       runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
       return false
@@ -712,17 +713,17 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	sql = model.sqlFile.get #get swig error from this if check above is commented out 
 	
    # get weather file run period (as opposed to design day run period)
-    ann_env_pd = nil
-    sql.availableEnvPeriods.each do |env_pd|
-      env_type = sql.environmentType(env_pd)
-      if env_type.is_initialized && (env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod'))
-        ann_env_pd = env_pd
-      end
-    end
+    # ann_env_pd = nil
+    # sql.availableEnvPeriods.each do |env_pd|
+      # env_type = sql.environmentType(env_pd)
+      # if env_type.is_initialized && (env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod'))
+        # ann_env_pd = env_pd
+      # end
+    # end
 	
-	#update to use cooling load loop name 
-    clg_loads = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
-                                     '*')
+	# #update to use cooling load loop name 
+    # clg_loads = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
+                                     # '*')
 	
 	# #get names of HHW and CHW loops 
 	
