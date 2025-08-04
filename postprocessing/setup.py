@@ -39,10 +39,10 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.10',
     ],
     keywords='comstock postprocessing',
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     install_requires=[
         'seaborn>=0.12.0',
         'xlrd',
@@ -57,8 +57,8 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars==1.30.0',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query@feature/add_buildstock_csv'
+        'polars==1.32.0',
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
     ],
     extras_require={
         'dev': [

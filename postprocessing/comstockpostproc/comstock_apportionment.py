@@ -65,7 +65,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+        if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             if not os.path.exists(self.output_dir['fs_path']):
                 os.makedirs(self.output_dir['fs_path'])
 
