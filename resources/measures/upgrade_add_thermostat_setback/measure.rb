@@ -268,10 +268,13 @@ end
       ]
 	
 	  #Convert setback and threshold values to C 
-	  clg_setback_c = clg_setback *5/9
-	  htg_setback_c = htg_setback *5/9
-	  htg_min_c = (htg_min - 32) * 5/9
-	  clg_max_c = (clg_max - 32) * 5/9 
+	  conv_factor = fraction_as_rational = Rational(5, 9) 
+	  clg_setback_c = clg_setback.to_f * conv_factor
+	  htg_setback_c = htg_setback.to_f * conv_factor
+	  htg_min_c = (htg_min - 32).to_f * conv_factor
+	  clg_max_c = (clg_max - 32).to_f * conv_factor
+	  
+	  runner.registerInfo("clg setback #{clg_setback_c}")
 	  
 	  model.getAirLoopHVACs.each do |air_loop_hvac| #iterate thru air loops 
 	  # skip DOAS units; check sizing for all OA and for DOAS in name
