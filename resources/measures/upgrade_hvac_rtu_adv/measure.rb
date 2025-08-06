@@ -1265,20 +1265,20 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         # calculate reference capacity
         if stage == 3
           reference_capacity_w = orig_clg_coil_gross_cap
-          reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s
+          reference_airflow_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s
         else
           reference_capacity_w = orig_clg_coil_gross_cap * ratio
-          reference_capacity_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s * ratio
+          reference_airflow_m_3_per_s = orig_clg_coil_rated_airflow_m_3_per_s * ratio
         end
         if debug_verbose
           runner.registerInfo("--- stage #{stage} | reference_capacity_w = #{reference_capacity_w}")
-          runner.registerInfo("--- stage #{stage} | reference_capacity_m_3_per_s = #{reference_capacity_m_3_per_s}")
+          runner.registerInfo("--- stage #{stage} | reference_airflow_m_3_per_s = #{reference_airflow_m_3_per_s}")
         end
 
         # add speed data for each stage
         dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXVariableSpeedSpeedData.new(model)
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
-        dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(orig_clg_coil_rated_airflow_m_3_per_s)
+        dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(reference_airflow_m_3_per_s)
         dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(0.8)
         dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(runner, reference_capacity_w))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
