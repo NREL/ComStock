@@ -114,11 +114,14 @@ end
 			#handle FanVariableVolume
             if sup_fan.to_FanVariableVolume.is_initialized
 			  sup_fan = sup_fan.to_FanVariableVolume.get
-			  sup_fan.setFanPowerCoefficient1(0.040759894)
-			  sup_fan.setFanPowerCoefficient2(0.08804497)
-			  sup_fan.setFanPowerCoefficient3(-0.07292612)
-			  sup_fan.setFanPowerCoefficient4(0.943739823)
-			  #minimum speed
+			  if sup_fan.fanPowerCoefficient1 == 0.040759894 and sup_fan.fanPowerCoefficient2 == 0.08804497 and sup_fan.fanPowerCoefficient3 == -0.07292612 and sup_fan.fanPowerCoefficient4 == 0.943739823
+			     runner.registerNotApplicable("Fan curve already represents an SP reset.") 
+		      else 
+				  sup_fan.setFanPowerCoefficient1(0.040759894)
+				  sup_fan.setFanPowerCoefficient2(0.08804497)
+				  sup_fan.setFanPowerCoefficient3(-0.07292612)
+				  sup_fan.setFanPowerCoefficient4(0.943739823)
+			  end 
 			end
 	    end 
 	end 
