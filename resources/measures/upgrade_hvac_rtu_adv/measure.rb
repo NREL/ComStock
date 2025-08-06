@@ -1250,15 +1250,16 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
       new_dx_cooling_coil.setEnergyPartLoadFractionCurve(curve_table_map['high_stage'][size_category]['eir_fn_of_plr'])
-      new_dx_cooling_coil.setNominalSpeedLevel(3)
+      new_dx_cooling_coil.setNominalSpeedLevel(1)
 
       # define rated to lower stage ratios: low, medium, high stages
-      stage_ratios = [0.333, 0.666, 1.0]
+      #stage_ratios = [0.333, 0.666, 1.0]
+      stage_ratios = [1.0, 0.666, 0.333] # higher stage to lower stage
 
       # loop through stages
       stage_ratios.sort.each_with_index do |ratio, index|
         # convert index to stage number
-        stage = index + 1
+        stage = 3 - index
 
         # stage label
         stage_label = get_stage_category(runner, stage)
