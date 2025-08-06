@@ -285,13 +285,47 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # Return capacity category based on rated capacity
+  def get_capacity_category(runner, rated_capacity_w)
+    case rated_capacity_w
+    when 0..39_564.59445
+      label_curve = '0_11'
+      label_category = 'small_unit'
+    when 39_564.59446..70_337.0568
+      label_curve = '11_20'
+      label_category = 'medium_unit'
+    when 70_337.05681..Float::INFINITY
+      label_curve = '20_9999'
+      label_category = 'large_unit'
+    else
+      runner.registerError("Invalid rated capacity: #{rated_capacity_w}.")
+      return nil, nil
+    end
+    return label_curve, label_category
+  end
+
+  # Return stage category based on stage number
+  def get_stage_category(runner, stage_number)
+    case stage_number
+    when 3
+      label_stage = 'high_stage'
+    when 2
+      label_stage = 'medium_stage'
+    when 1
+      label_stage = 'low_stage'
+    else
+      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
+      return nil
+    end
+    return label_stage
+  end
 
   # Returns the curve object based on curve type, unit size, and operation stage.
   def get_curve_name(runner, type, reference_capacity, operation_stage, debug_verbose)
     # Determine prefix and suffix
     prefix_suffix_map = {
-      'fn_of_t'   => ['lookup', ''],
-      'fn_of_ff'  => ['poly',   ''],
+      'fn_of_t' => ['lookup', ''],
+      'fn_of_ff' => ['poly',   ''],
       'fn_of_plr' => ['poly',   'plr']
     }
     curve_name_prefix, curve_name_suffix = prefix_suffix_map.find { |k, _| type.include?(k) }&.last || [nil, nil]
@@ -310,21 +344,14 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
                       when 1        then 'low'
                       when 2        then 'med'
                       when 3        then 'high'
-                      end
+                       end
 
     # Determine size category
-    curve_name_size =
-      if reference_capacity < 39_564.59445
-        '0_11'
-      elsif reference_capacity < 70_337.0568
-        '11_20'
-      else
-        '20_9999'
-      end
+    curve_name_size, = get_capacity_category(rated_capacity_w)
 
     # Manual overrides
-    if curve_name_suffix != 'plr' && curve_name_size == '20_9999' && curve_name_dep_var == 'eir'
-      curve_name_stage = 'high' if %w[low med].include?(curve_name_stage)
+    if curve_name_suffix != 'plr' && curve_name_size == '20_9999' && curve_name_dep_var == 'eir' && ['low', 'med'].include?(curve_name_stage)
+      curve_name_stage = 'high'
     end
     curve_name_size = '11_20' if curve_name_suffix == 'plr' && curve_name_size == '20_9999'
 
@@ -338,26 +365,30 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   end
 
   # Returns the rated cooling COP for advanced RTU given the rated capacity (W).
-  def get_rated_cop_cooling_adv(rated_capacity_w)
+  def get_rated_cop_cooling_adv(runner, rated_capacity_w)
     intercept = nil
     coef_1 = nil
     min_cop = nil
     max_cop = nil
-    if rated_capacity_w < 39564.59445 # = 135 kBtu/hr
+    _, label_category = get_capacity_category(runner, rated_capacity_w)
+    if label_category == 'small_unit'
       intercept = 4.26
       coef_1 = -0.0000027392
       min_cop = 4.15
       max_cop = 4.26
-    elsif rated_capacity_w < 70337.0568 # = 240 kBtu/hr
+    elsif label_category == 'medium_unit'
       intercept = 4.24
       coef_1 = -0.0000057962
       min_cop = 3.83
       max_cop = 4.01
-    else
+    elsif label_category == 'large_unit'
       intercept = 3.68
       coef_1 = -1.6479e-07
       min_cop = 3.62
       max_cop = 3.67
+    else
+      runner.registerError("Invalid capacity category: #{label_category} for capacity value of #{rated_capacity_w} W.")
+      return nil
     end
     rated_cop_cooling = intercept + (coef_1 * rated_capacity_w)
     rated_cop_cooling.clamp(min_cop, max_cop)
@@ -386,9 +417,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     modifier_eir = nil
     if eir_modifier_curve_flow.to_CurveBiquadratic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction, 0)
-    elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized
-      modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
-    elsif eir_modifier_curve_flow.to_CurveQuadratic.is_initialized
+    elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized || eir_modifier_curve_flow.to_CurveQuadratic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
     else
       runner.registerError("CurveBiquadratic|CurveQuadratic|CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
@@ -396,19 +425,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
     # adjust rated COP (COP = 1 / EIR)
     original_rated_cop * (1.0 / modifier_eir)
-  end
-
-  # Returns tabular data from the SQL file for a given report/table/row/column.
-  def get_tabular_data(runner, _model, sql, report_name, report_for_string, table_name, row_name, column_name)
-    result = OpenStudio::OptionalDouble.new
-    var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
-    val = sql.execAndReturnFirstDouble(var_val_query)
-    if val.is_initialized
-      result = OpenStudio::OptionalDouble.new(val.get)
-    else
-      runner.registerError("Cannot query: #{report_name} | #{report_for_string} | #{table_name} | #{row_name} | #{column_name}")
-    end
-    result
   end
 
   # Returns the dependent variable from a TableLookup object using bilinear interpolation for two inputs.
@@ -808,14 +824,94 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
 
     # ---------------------------------------------------------
+    # pre-load curves and tables
+    # ---------------------------------------------------------
+    if debug_verbose
+      runner.registerInfo('--- gathering custom data into a variable')
+    end
+    custom_performance_map_data = combine_all_performance_curves
+
+    # curve/table mapping
+    curve_table_map = {
+      'high_stage' => {
+        'small_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_0_11_high', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_0_11_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_0_11_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_high', custom_performance_map_data, std, debug_verbose)
+        },
+        'medium_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_11_20_high', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_11_20_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_11_20_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_high', custom_performance_map_data, std, debug_verbose)
+        },
+        'large_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose), # missing (i.e., data unavailable) curve assumed
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_20_9999_high', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_20_9999_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose)
+        }
+      },
+      'medium_stage' => {
+        'small_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_0_11_med', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_0_11_med', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_0_11_med', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_med', custom_performance_map_data, std, debug_verbose)
+        },
+        'medium_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_11_20_med', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_11_20_med', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_11_20_med', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_med', custom_performance_map_data, std, debug_verbose)
+        },
+        'large_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose), # missing (i.e., data unavailable) curve assumed
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_20_9999_med', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_20_9999_med', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose), # missing (i.e., data unavailable) curve assumed
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose) # missing (i.e., data unavailable) curve assumed
+        }
+      },
+      'low_stage' => {
+        'small_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_0_11_low', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_0_11_low', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_0_11_low', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_0_11_low', custom_performance_map_data, std, debug_verbose)
+        },
+        'medium_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_11_20_low', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_11_20_low', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_11_20_low', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_low', custom_performance_map_data, std, debug_verbose)
+        },
+        'large_unit' => {
+          'eir_fn_of_plr' => model_add_curve(runner, model, 'poly_rtu_adv_eir_11_20_plr', custom_performance_map_data, std, debug_verbose), # missing (i.e., data unavailable) curve assumed
+          'capacity_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_capacity_20_9999_low', custom_performance_map_data, std, debug_verbose),
+          'capacity_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_capacity_20_9999_low', custom_performance_map_data, std, debug_verbose),
+          'eir_fn_of_t' => model_add_curve(runner, model, 'lookup_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose), # missing (i.e., data unavailable) curve assumed
+          'eir_fn_of_ff' => model_add_curve(runner, model, 'poly_rtu_adv_eir_20_9999_high', custom_performance_map_data, std, debug_verbose) # missing (i.e., data unavailable) curve assumed
+        }
+      }
+    }
+
+    # ---------------------------------------------------------
     # replace existing applicable air loops with new high-efficiency rtu air loops
     # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
-
       if debug_verbose
-        runner.registerInfo("### ----------------------------------------------------------------")
+        runner.registerInfo('### ----------------------------------------------------------------')
         runner.registerInfo("### processing air loop: #{air_loop_hvac.name} ")
-        runner.registerInfo("### ----------------------------------------------------------------")
+        runner.registerInfo('### ----------------------------------------------------------------')
       end
 
       # initialize variables before loop
@@ -831,7 +927,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
       orig_clg_coil_rated_airflow_m_3_per_s = nil
-      orig_htg_coil = nil
+      orig_htg_coil_obj_existing = nil
       supply_airflow_during_cooling = nil
       supply_airflow_during_heating = nil
 
@@ -887,9 +983,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           end
           # get the availability schedule
           supply_fan_avail_sched = supply_fan.availabilitySchedule
-          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
-          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized || supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
@@ -948,9 +1042,11 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           # get coil object if electric resistance
           if orig_htg_coil.to_CoilHeatingElectric.is_initialized
             orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
+            orig_htg_coil_obj_existing = orig_htg_coil.clone(model).to_CoilHeatingElectric.get
           # get coil object if gas
           elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
             orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
+            orig_htg_coil_obj_existing = orig_htg_coil.clone(model).to_CoilHeatingGas.get
           else
             runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
           end
@@ -966,6 +1062,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
         if debug_verbose
           runner.registerInfo("--- found unitary system object: #{air_loop_hvac.name}")
+          runner.registerInfo("--- found existing heating coil in unitary system object: #{orig_htg_coil_obj_existing.name}")
         end
 
       # get non-unitary system objects.
@@ -995,9 +1092,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
           end
           # get the availability schedule
           supply_fan_avail_sched = supply_fan.availabilitySchedule
-          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
-          elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
+          if supply_fan_avail_sched.to_ScheduleConstant.is_initialized || supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
@@ -1027,7 +1122,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # delete equipment from original loop
       equip_to_delete.each(&:remove)
       if debug_verbose
-        runner.registerInfo("--- deleting applicable equipment from the air loop")
+        runner.registerInfo('--- deleting applicable equipment from the air loop')
       end
 
       # -------------------------------------------------------
@@ -1139,20 +1234,13 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
       # -------------------------------------------------------
-      # get custom data
-      # -------------------------------------------------------
-      if debug_verbose
-        runner.registerInfo("--- gathering custom data into a variable")
-      end
-      custom_performance_map_data = combine_all_performance_curves
-
-      # -------------------------------------------------------
       # create coils: cooling
       # -------------------------------------------------------
       # define variable speed cooling coil
       if debug_verbose
-        runner.registerInfo("--- adding new variable speed cooling coil")
+        runner.registerInfo('--- adding new variable speed cooling coil')
       end
+      _, size_category = get_capacity_category(runner, orig_clg_coil_gross_cap)
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXVariableSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
       new_dx_cooling_coil.setCondenserType('AirCooled')
@@ -1164,16 +1252,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setNominalTimeforCondensatetoBeginLeavingtheCoil(1000)
       new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
-      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(
-        model_add_curve(
-          runner,
-          model,
-          get_curve_name(runner, 'eir_fn_of_plr', orig_clg_coil_gross_cap, 'rated', debug_verbose),
-          custom_performance_map_data,
-          std,
-          debug_verbose
-        )
-      )
+      new_dx_cooling_coil.setEnergyPartLoadFractionCurve(curve_table_map['high_stage'][size_category]['eir_fn_of_plr'])
 
       # define rated to lower stage ratios: low, medium, high stages
       stage_ratios = [0.333, 0.666, 1.0]
@@ -1182,6 +1261,9 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       stage_ratios.sort.each_with_index do |ratio, index|
         # convert index to stage number
         stage = index + 1
+
+        # stage label
+        stage_label = get_stage_category(runner, stage)
 
         # calculate reference capacity
         if stage == 3
@@ -1201,48 +1283,12 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
         dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(orig_clg_coil_rated_airflow_m_3_per_s)
         dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(0.8)
-        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(reference_capacity_w))
+        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(runner, reference_capacity_w))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
-        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(
-          model_add_curve(
-            runner,
-            model,
-            get_curve_name(runner, 'capacity_fn_of_t', reference_capacity_w, stage, debug_verbose),
-            custom_performance_map_data,
-            std,
-            debug_verbose
-          )
-        )
-        dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(
-          model_add_curve(
-            runner,
-            model,
-            get_curve_name(runner, 'capacity_fn_of_ff', reference_capacity_w, stage, debug_verbose),
-            custom_performance_map_data,
-            std,
-            debug_verbose
-          )
-        )
-        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(
-          model_add_curve(
-            runner,
-            model,
-            get_curve_name(runner, 'eir_fn_of_t', reference_capacity_w, stage, debug_verbose),
-            custom_performance_map_data,
-            std,
-            debug_verbose
-          )
-        )
-        dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(
-          model_add_curve(
-            runner,
-            model,
-            get_curve_name(runner, 'eir_fn_of_ff', reference_capacity_w, stage, debug_verbose),
-            custom_performance_map_data,
-            std,
-            debug_verbose
-          )
-        )
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_t'])
+        dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_ff'])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofTemperatureCurve(curve_table_map[stage_label][size_category]['eir_fn_of_t'])
+        dx_coil_speed_data.setEnergyInputRatioFunctionofAirFlowFractionCurve(curve_table_map[stage_label][size_category]['eir_fn_of_ff'])
 
         # add speed data to variable speed coil object
         new_dx_cooling_coil.addSpeed(dx_coil_speed_data)
@@ -1252,7 +1298,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # create coils: backup heating
       # -------------------------------------------------------
       if debug_verbose
-        runner.registerInfo("--- adding new backup heating coil")
+        runner.registerInfo('--- adding new backup heating coil')
       end
       # add new supplemental heating coil
       new_backup_heating_coil = nil
@@ -1275,13 +1321,14 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # unitary system update
       # -------------------------------------------------------
       if debug_verbose
-        runner.registerInfo("--- adding new unitary system")
+        runner.registerInfo('--- adding new unitary system')
+        runner.registerInfo("--- ready to re-apply existing heating coil to the new unitary system: #{orig_htg_coil_obj_existing.name}")
       end
       # add new unitary system object
       new_rtu = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_rtu.setName("#{air_loop_hvac.name} Unitary high-efficiency System")
       new_rtu.setSupplyFan(new_fan)
-      new_rtu.setHeatingCoil(orig_htg_coil)
+      new_rtu.setHeatingCoil(orig_htg_coil_obj_existing)
       new_rtu.setCoolingCoil(new_dx_cooling_coil)
       new_rtu.setSupplementalHeatingCoil(new_backup_heating_coil)
       new_rtu.addToNode(air_loop_hvac.supplyOutletNode)
@@ -1315,7 +1362,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # add dcv to air loop if dcv flag is true
       if dcv == true
         if debug_verbose
-          runner.registerInfo("--- adding DCV")
+          runner.registerInfo('--- adding DCV')
         end
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
@@ -1351,7 +1398,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("The user selected to add energy recovery to the HP-RTUs, but thermal zone #{thermal_zone.name} is a non-applicable space type for energy recovery. Any existing energy recovery will remain for consistancy, but no new energy recovery will be added.")
       else
         if debug_verbose
-          runner.registerInfo("--- adding H/ERV")
+          runner.registerInfo('--- adding H/ERV')
         end
         # remove existing ERV; these will be replaced with new ERV equipment
         erv_components.each(&:remove)
