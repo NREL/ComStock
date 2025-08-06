@@ -273,6 +273,7 @@ end
 	  htg_setback_c = htg_setback.to_f * conv_factor
 	  htg_min_c = (htg_min - 32).to_f * conv_factor
 	  clg_max_c = (clg_max - 32).to_f * conv_factor
+	  cfm_per_m3s = 2118.8799727597 
 	  
 	  runner.registerInfo("clg setback #{clg_setback_c}")
 	  
@@ -282,6 +283,21 @@ end
       if sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating && (air_loop_res?(air_loop_hvac) == false) && (air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas'))
         next
       end
+	  #Determine if optimum start applicable (airflow > 10,000 cfm)
+	  if air_loop_hvac.designSupplyAirFlowRate.is_initialized
+	     des_sup_airflow_rate = air_loop_hvac.designSupplyAirFlowRate.get
+		 runner.registerInfo("design supply airflow rate #{des_sup_airflow_rate}") 
+	  else 
+		  runner.registerInfo('sizing summary: sizing run needed')
+		  return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+		  model.applySizingValues if is_sizing_run_needed == true
+		  des_sup_airflow_rate = air_loop_hvac.designSupplyAirFlowRate.get
+		  runner.registerInfo("design supply airflow rate #{des_sup_airflow_rate}") 
+	  end 
+	  
+	  if des_sup_airflow_rate * cfm_per_m3s < 10000 and opt_start == true #Set to false if doesn't qualify for optimum start 
+	     opt_start = false 
+	  end 
 	  zones = air_loop_hvac.thermalZones
         zones.sort.each do |thermal_zone|
           no_people_obj = false # flag for not having People object associated with it
