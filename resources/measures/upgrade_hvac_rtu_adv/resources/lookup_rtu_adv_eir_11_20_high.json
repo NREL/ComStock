@@ -20,7 +20,7 @@
                     "input_unit_type_x2": "Temperature",
                     "minimum_dependent_variable_output": 0.653,
                     "maximum_dependent_variable_output": 1.741,
-                    "notes": "cooling capacity modifier function of temperatures for low stage",
+                    "notes": "cooling capacity modifier function of temperatures for ['high'] stages",
                     "data_point1": "13.89,23.89,0.7384",
                     "data_point2": "13.89,29.44,0.8669",
                     "data_point3": "13.89,35.0,1.0067",
