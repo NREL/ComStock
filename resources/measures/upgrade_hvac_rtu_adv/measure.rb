@@ -555,15 +555,15 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # skip if already heat pump RTU
       # loop throug air loop components to check for heat pump or water coils
       is_hp = false
-      is_water_coil = false
+      is_water_cooling_coil = false
       has_heating_coil = true
       air_loop_hvac.supplyComponents.each do |component|
         obj_type = component.iddObjectType.valueName.to_s
         # flag system if contains water coil; this will cause air loop to be skipped
-        is_water_coil = true if ['Coil_Heating_Water', 'Coil_Cooling_Water'].any? { |word| obj_type.include?(word) }
+        is_water_cooling_coil = true if ['Coil_Cooling_Water'].any? { |word| obj_type.include?(word) }
         # flag gas heating as true if gas coil is found in any airloop
         prim_ht_fuel_type = 'gas' if ['Gas', 'GAS', 'gas'].any? { |word| obj_type.include?(word) }
-        # check unitary systems for DX heating or water coils
+        # check unitary systems for DX heating
         if obj_type == 'OS_AirLoopHVAC_UnitarySystem'
           unitary_sys = component.to_AirLoopHVACUnitarySystem.get
 
@@ -573,9 +573,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
             # check for DX heating coil
             if ['Heating_DX'].any? { |word| htg_coil.include?(word) }
               is_hp = true
-            # check for water heating coil
-            elsif ['Water'].any? { |word| htg_coil.include?(word) }
-              is_water_coil = true
             # check for gas heating
             elsif ['Gas', 'GAS', 'gas'].any? { |word| htg_coil.include?(word) }
               prim_ht_fuel_type = 'gas'
@@ -590,7 +587,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
             # skip unless coil is water based
             next unless ['Water'].any? { |word| clg_coil.include?(word) }
 
-            is_water_coil = true
+            is_water_cooling_coil = true
           end
         # flag as hp if air loop contains a heating dx coil
         elsif ['Heating_DX'].any? { |word| obj_type.include?(word) }
@@ -616,7 +613,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # skip if evaporative cooling systems
       next if air_loop_evaporative_cooler?(air_loop_hvac)
       # skip if water heating or cooled system
-      next if is_water_coil == true
+      next if is_water_cooling_coil == true
       # skip if space is not heated and cooled
       unless OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
         next
