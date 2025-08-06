@@ -1355,19 +1355,20 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # set no load design flow rate
       new_rtu.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
-      # -------------------------------------------------------
-      # add UnitarySystemPerformanceMultispeed
-      # -------------------------------------------------------
-      unitary_system_performance_multispeed = OpenStudio::Model::UnitarySystemPerformanceMultispeed.new(model)
-      for speed in 1..stage_ratios.size
-        # safr = OpenStudio::Model::SupplyAirflowRatioField.new(1.0, stage_ratios[speed - 1])
-        safr = OpenStudio::Model::SupplyAirflowRatioField.new() # autosize option
-        unitary_system_performance_multispeed.addSupplyAirflowRatioField(safr)
-      end
-      unitary_system_performance_multispeed.setSingleModeOperation(false)
-      unitary_system_performance_multispeed.setNoLoadSupplyAirflowRateRatio(stage_ratios[-1])
-      unitary_system_performance_multispeed.setName("#{air_loop_hvac.name} USPM")
-      new_rtu.setDesignSpecificationMultispeedObject(unitary_system_performance_multispeed)
+      # # -------------------------------------------------------
+      # # add UnitarySystemPerformanceMultispeed
+      # # -------------------------------------------------------
+      # unitary_system_performance_multispeed = OpenStudio::Model::UnitarySystemPerformanceMultispeed.new(model)
+      # for speed in 1..stage_ratios.size
+      #   # safr = OpenStudio::Model::SupplyAirflowRatioField.new(1.0, stage_ratios[speed - 1]) # hard-code option
+      #   # safr = OpenStudio::Model::SupplyAirflowRatioField.new() # autosize option
+      #   safr = OpenStudio::Model::SupplyAirflowRatioField.fromCoolingRatio(stage_ratios[speed - 1])
+      #   unitary_system_performance_multispeed.addSupplyAirflowRatioField(safr)
+      # end
+      # unitary_system_performance_multispeed.setSingleModeOperation(false)
+      # unitary_system_performance_multispeed.setNoLoadSupplyAirflowRateRatio(stage_ratios[-1])
+      # unitary_system_performance_multispeed.setName("#{air_loop_hvac.name} USPM")
+      # new_rtu.setDesignSpecificationMultispeedObject(unitary_system_performance_multispeed)
 
       # -------------------------------------------------------
       # DCV update
