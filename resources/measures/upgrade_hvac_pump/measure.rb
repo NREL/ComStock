@@ -121,14 +121,14 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   end
 
   # get motor efficiency from nominal power
-  def self.estimate_motor_efficiency_pcnt(runner, nominal_power_w)
+  def self.estimate_motor_efficiency_pcnt(nominal_power_w)
     nominal_power_kw = nominal_power_w / 1000.0
 
     # Regression parameters from Python popt_fixed
-    a = 1.646
-    b = 92.259
-    c = 50.225
-    d = -0.001
+    a = 1.64644705
+    b = 92.25875553
+    c = 50.22494607
+    d = 0.00061996
 
     # Fixed breakpoint
     x0 = 5.0
@@ -137,19 +137,19 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     eff_min = 90.53
     eff_max = 95.95
 
-    if nominal_power_kW <= 0
+    if nominal_power_kw <= 0
       raise ArgumentError, "Nominal power must be greater than 0"
     end
 
-    if nominal_power_kW < x0
-      motor_efficiency_pcnt = a * Math.log(nominal_power_kW) + b
+    if nominal_power_kw < x0
+      motor_efficiency_pcnt = a * Math.log(nominal_power_kw) + b
     else
       # Compute e to ensure continuity at x0
       left_val = a * Math.log(x0) + b
       right_val = c * (1 - Math.exp(-d * x0))
       e = left_val - right_val
 
-      motor_efficiency_pcnt = c * (1 - Math.exp(-d * nominal_power_kW)) + e
+      motor_efficiency_pcnt = c * (1 - Math.exp(-d * nominal_power_kw)) + e
     end
 
     # Clip output to [90.53%, 95.95%]
@@ -158,7 +158,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   end
 
   # get part-load fraction of full load power curve
-  def self.estimate_fraction_of_full_load_power(runner)
+  def self.estimate_fraction_of_full_load_power(model)
     # Define a cubic curve with example coefficients
     curve = OpenStudio::Model::CurveCubic.new(model)
     curve.setName("Fraction of Full Load Power Curve")
