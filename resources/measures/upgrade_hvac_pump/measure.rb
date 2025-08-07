@@ -165,18 +165,23 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
   # get part-load fraction of full load power curve
   def self.curve_fraction_of_full_load_power(model)
+    # Define coefficients for the cubic curve
+    coeff_a = 0.0
+    coeff_b = 0.0
+    coeff_c = 0.1055
+    coeff_d = 0.8945
     # Define a cubic curve with example coefficients
     curve = OpenStudio::Model::CurveCubic.new(model)
     curve.setName("Fraction of Full Load Power Curve")
-    curve.setCoefficient1Constant(0.0)     # y-intercept
-    curve.setCoefficient2x(0.0)             # linear term
-    curve.setCoefficient3xPOW2(0.1055)       # quadratic term
-    curve.setCoefficient4xPOW3(0.8945)        # cubic term
+    curve.setCoefficient1Constant(coeff_a)     # y-intercept
+    curve.setCoefficient2x(coeff_b)             # linear term
+    curve.setCoefficient3xPOW2(coeff_c)       # quadratic term
+    curve.setCoefficient4xPOW3(coeff_d)        # cubic term
     curve.setMinimumValueofx(0.0)
     curve.setMaximumValueofx(1.0)
     curve.setMinimumCurveOutput(0.0)
     curve.setMaximumCurveOutput(1.0)
-    curve
+    return curve, coeff_a, coeff_b, coeff_c, coeff_d
   end
 
   # TODO: revert this back to OS Std methods (if works)
@@ -392,36 +397,56 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # pump upgrades
     # ------------------------------------------------
-    applicable_pumps.each do |pump|
-      loop = old_pump.loop
-      next if loop.nil?
+    applicable_pumps.each do |old_pump|
+
+      if debug_verbose
+        runner.registerInfo("### replacing pump: #{old_pump.name}")
+      end
 
       # Clone key parameters from the old pump
-      pump_flow_rate = old_pump.to_PumpConstantSpeed.is_initialized ? old_pump.to_PumpConstantSpeed.get.ratedFlowRate.get : old_pump.to_PumpVariableSpeed.get.ratedFlowRate.get
-      pump_head = old_pump.head.get
-      pump_name = old_pump.name.get + "_repl"
+      pump_flow_rate = old_pump.ratedFlowRate.get
+      pump_head = old_pump.ratedPumpHead
+      pump_name = old_pump.name.get + "_upgrade"
+      pump_power = old_pump.ratedPowerConsumption.get
+
+      if debug_verbose
+        runner.registerInfo("--- existing spec: pump_flow_rate = #{pump_flow_rate} m3/s")
+        runner.registerInfo("--- existing spec: pump_head = #{pump_head} Pa")
+        runner.registerInfo("--- existing spec: pump_power = #{pump_power} W")
+      end
 
       # Remove the old pump from the loop
       supply_inlet_node = old_pump.inletModelObject.get.to_Node.get
       supply_outlet_node = old_pump.outletModelObject.get.to_Node.get
       old_pump.remove
 
+      if debug_verbose
+        runner.registerInfo("--- existing spec: supply_inlet_node = #{supply_inlet_node.name}")
+        runner.registerInfo("--- existing spec: supply_outlet_node = #{supply_outlet_node.name}")
+      end
+
       # Create the new pump (choose type based on old pump)
       new_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
       new_pump.setName(pump_name)
       new_pump.setRatedFlowRate(pump_flow_rate)
-      new_pump.setRatedHead(pump_head)
-      new_pump.addToNode(supply_inlet_node) # Add pump to the loop at the same place
+      new_pump.setRatedPumpHead(pump_head)
 
-      # Apply standard motor efficiency
-      std.pump_apply_standard_minimum_motor_efficiency(new_pump)
+      # Apply motor efficiency
+      
 
-      # Apply standard part-load performance for variable speed pump
-      if new_pump.to_PumpVariableSpeed.is_initialized
-        pump_variable_speed_control_type(runner, model, new_pump, debug_verbose)
+      # Apply part-load performance for variable speed pump
+      _, coeff_a, coeff_b, coeff_c, coeff_d = UpgradeHvacPump.curve_fraction_of_full_load_power(model)
+      new_pump.setCoefficient1ofthePartLoadPerformanceCurve(coeff_a)
+      new_pump.setCoefficient2ofthePartLoadPerformanceCurve(coeff_b)
+      new_pump.setCoefficient3ofthePartLoadPerformanceCurve(coeff_c)
+      new_pump.setCoefficient4ofthePartLoadPerformanceCurve(coeff_d)
+
+      # Add new pump back to original node
+      new_pump.addToNode(supply_inlet_node)
+
+      if debug_verbose
+        runner.registerInfo("--- replaced pump '#{old_pump.name}' with new pump '#{new_pump.name}'.")
       end
-
-      runner.registerInfo("Replaced pump '#{old_pump.name}' with new pump '#{new_pump.name}'.")
     end
 
     # ------------------------------------------------
