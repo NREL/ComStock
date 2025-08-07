@@ -683,99 +683,26 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     #Sizing routine for HRC
 	runner.registerInfo("directory #{Dir.pwd}")
 	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
-	#ann_loads_run_dir = "C:/Users/aallen/Documents/ComStock/hrc_cli_test/run/000_upgrade_add_heat_recovery_chiller/AnnualHRCLoadsRun"
-	runner.registerInfo("pwd #{Dir.pwd}")
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
-	#annual_run_success = std.model_run_simulation_and_log_errors(model, "#{ann_loads_run_dir}/AR") #looks like that worked 
-    #log_messages_to_file("#{model_dir}/openstudio-standards.log", debug = false)
 	if File.exist?(ann_loads_sql_path)
       sql_path = OpenStudio::Path.new(ann_loads_sql_path)
       sql = OpenStudio::SqlFile.new(sql_path)
       model.setSqlFile(sql)
     else
-      runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
 	  std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
-	  sql_path = OpenStudio::Path.new(ann_loads_sql_path)
-      sql = OpenStudio::SqlFile.new(sql_path)
-      model.setSqlFile(sql)
+      runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
+	  # if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false #Simulation runs successfully, but gives bool error from this, 
+        # runner.registerError('Annual run failed. See errors in sizing run directory or this measure')
+        # return false
+      # end
     end
-	# # get timeseries output variable values
-    # #check for sql file
-    # r = model.sqlFile
-    # runner.registerInfo("class of model.sqlFile is: #{r.class}")
-	# r.class.methods.sort.each do |m|
-		# runner.registerInfo("#{m}")
-    # end
 
     if model.sqlFile.empty?
       runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
       return false
     end
-	
 	sql = model.sqlFile.get #get swig error from this if check above is commented out 
-	
-   # get weather file run period (as opposed to design day run period)
-    # ann_env_pd = nil
-    # sql.availableEnvPeriods.each do |env_pd|
-      # env_type = sql.environmentType(env_pd)
-      # if env_type.is_initialized && (env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod'))
-        # ann_env_pd = env_pd
-      # end
-    # end
-	
-	# #update to use cooling load loop name 
-    # clg_loads = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
-                                     # '*')
-	
-	# #get names of HHW and CHW loops 
-	
-	
-	# # add timeseries thermal loads to array
-    # chw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
-                                     # chw_loop_name)
-	# hhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
-                                     # hhw_loop)
-	# dhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
-                                     # dhw_loop)
-	#loop_loads_float = []
-	#Placeholder
-	#can probably convert other time series results into array 
-	#loop_loads = CSV.read('C:/Users/aallen/Documents/ComStock/hrc_cli_test/test_loads.csv', headers: true, converters: :numeric)
-	#line above is causing swig error 
-	# loop_loads.each do |row|
-	    # float_value = row.to_f
-        # loop_loads_float << float_value
 
-  # end
-	# #runner.registerInfo("class #{loop_loads.class}") #array 
-	# #Calculate load overlap 
-	# htg_clg_overlap = (loop_loads['Htg'] - loop_loads['Clg'])
-	# swh_clg_overlap = (loop_loads['DHW'] - loop_loads['Clg']) 
-	# swh_clg_overlap  = swh_clg_overlap.map { |val| val.abs }
-	
-	#Sort values
-	
-	#Decide if using DHW or HHW loop 
-	
-	#Start with largest value, and then increment down thru loop 
-	
-	#Calculate energy consumption
-	
-	#Get state average rates and calculate energy cost
-	
-	#Calculate capital cost
-	
-	#Select sizing 
-	
-	
-	#Set sizing of HRC
-	
-	
-									 
-									 
-	#Calculate load overlap 
-    #
-	#End sizing routine 
   end
 end
 
