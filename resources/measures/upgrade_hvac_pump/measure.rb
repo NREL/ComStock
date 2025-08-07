@@ -536,6 +536,9 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       new_pump.setCoefficient3ofthePartLoadPerformanceCurve(coeff_c)
       new_pump.setCoefficient4ofthePartLoadPerformanceCurve(coeff_d)
 
+      # TODO: once ComStock baseline gets updated with higher min flow fraction than zero,
+      # make relevant updates for variable speed pumps via setDesignMinimumFlowRateFraction
+
       # Add new pump back to original node
       new_pump.addToNode(supply_inlet_node)
 
