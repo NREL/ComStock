@@ -682,7 +682,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	  # end 
     #Sizing routine for HRC
 	runner.registerInfo("directory #{Dir.pwd}")
-	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun/run"
+	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
 	#ann_loads_run_dir = "C:/Users/aallen/Documents/ComStock/hrc_cli_test/run/000_upgrade_add_heat_recovery_chiller/AnnualHRCLoadsRun"
 	runner.registerInfo("pwd #{Dir.pwd}")
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
