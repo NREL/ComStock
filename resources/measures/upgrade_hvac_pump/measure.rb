@@ -120,6 +120,59 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     ]
   end
 
+  # get motor efficiency from nominal power
+  def self.estimate_motor_efficiency_pcnt(runner, nominal_power_w)
+    nominal_power_kw = nominal_power_w / 1000.0
+
+    # Regression parameters from Python popt_fixed
+    a = 1.646
+    b = 92.259
+    c = 50.225
+    d = -0.001
+
+    # Fixed breakpoint
+    x0 = 5.0
+
+    # Efficiency bounds (%)
+    eff_min = 90.53
+    eff_max = 95.95
+
+    if nominal_power_kW <= 0
+      raise ArgumentError, "Nominal power must be greater than 0"
+    end
+
+    if nominal_power_kW < x0
+      motor_efficiency_pcnt = a * Math.log(nominal_power_kW) + b
+    else
+      # Compute e to ensure continuity at x0
+      left_val = a * Math.log(x0) + b
+      right_val = c * (1 - Math.exp(-d * x0))
+      e = left_val - right_val
+
+      motor_efficiency_pcnt = c * (1 - Math.exp(-d * nominal_power_kW)) + e
+    end
+
+    # Clip output to [90.53%, 95.95%]
+    [[motor_efficiency_pcnt, eff_min].max, eff_max].min
+
+  end
+
+  # get part-load fraction of full load power curve
+  def self.estimate_fraction_of_full_load_power(runner)
+    # Define a cubic curve with example coefficients
+    curve = OpenStudio::Model::CurveCubic.new(model)
+    curve.setName("Fraction of Full Load Power Curve")
+    curve.setCoefficient1Constant(0.0)     # y-intercept
+    curve.setCoefficient2x(0.0)             # linear term
+    curve.setCoefficient3xPOW2(0.1055)       # quadratic term
+    curve.setCoefficient4xPOW3(0.8945)        # cubic term
+    curve.setMinimumValueofx(0.0)
+    curve.setMaximumValueofx(1.0)
+    curve.setMinimumCurveOutput(0.0)
+    curve.setMaximumCurveOutput(1.0)
+    curve
+  end
+
   # TODO: revert this back to OS Std methods (if works)
   # Determine and set type of part load control type for heating and chilled
   # note code_sections [90.1-2019_6.5.4.2]
@@ -335,7 +388,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     if upgrade_pump
       applicable_pumps.each do |pump|
         # update pump efficiencies
-        std.pump_apply_standard_minimum_motor_efficiency(pump)
+        std.pump_apply_standard_minimum_motor_efficiency_pcnt(pump)
 
         # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
         if pump.to_PumpVariableSpeed.is_initialized
