@@ -138,7 +138,7 @@ class UpgradeHvacPumpTest < Minitest::Test
       case arg.name
       when 'chw_oat_reset'
         chw_oat_reset = arguments[idx].clone
-        chw_oat_reset.setValue(false)
+        chw_oat_reset.setValue(true)
         argument_map[arg.name] = chw_oat_reset
       when 'cw_oat_reset'
         cw_oat_reset = arguments[idx].clone
@@ -169,6 +169,9 @@ class UpgradeHvacPumpTest < Minitest::Test
     pump_var_part_load_curve_coeff3_weighted_avg_before = pump_specs_var_spd_before[6]
     pump_var_part_load_curve_coeff4_weighted_avg_before = pump_specs_var_spd_before[7]
 
+    # get control specs for baseline
+    fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b = UpgradeHvacPump.control_specifications(model)
+
     # run the measure
     measure.run(model, runner, argument_map)
     result = runner.result
@@ -188,6 +191,9 @@ class UpgradeHvacPumpTest < Minitest::Test
     pump_var_part_load_curve_coeff2_weighted_avg_after = pump_specs_var_spd_after[5]
     pump_var_part_load_curve_coeff3_weighted_avg_after = pump_specs_var_spd_after[6]
     pump_var_part_load_curve_coeff4_weighted_avg_after = pump_specs_var_spd_after[7]
+
+    # get control specs for upgrade
+    fraction_chw_oat_reset_enabled_a, fraction_cw_oat_reset_enabled_a = UpgradeHvacPump.control_specifications(model)
 
     # show the output
     show_output(result)
@@ -223,6 +229,17 @@ class UpgradeHvacPumpTest < Minitest::Test
     end
     if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_v_before
       assert(false, "Pump motor efficiency got worse compared to existing variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
+    end
+
+    # check control specs
+    puts("### DEBUGGING: instance_test_name = #{instance_test_name}")
+    puts("### DEBUGGING: fraction_chw_oat_reset_enabled_b = #{fraction_chw_oat_reset_enabled_b} | fraction_chw_oat_reset_enabled_a = #{fraction_chw_oat_reset_enabled_a}")
+    puts("### DEBUGGING: fraction_cw_oat_reset_enabled_b = #{fraction_cw_oat_reset_enabled_b} | fraction_cw_oat_reset_enabled_a = #{fraction_cw_oat_reset_enabled_a}")
+    refute_equal(fraction_chw_oat_reset_enabled_b, fraction_chw_oat_reset_enabled_a)
+    if instance_test_name.include?('air_cooled')
+      assert_equal(fraction_cw_oat_reset_enabled_a, 0.0)
+    else
+      assert_equal(fraction_cw_oat_reset_enabled_a, 1.0)
     end
 
     # # save the model to test output directory

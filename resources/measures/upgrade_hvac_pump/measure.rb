@@ -212,6 +212,48 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     return p_design_w
   end
 
+  # get control specifications
+  def self.control_specifications(model)
+    # initialize variables
+    total_count_spm_chw = 0.0
+    total_count_spm_cw = 0.0
+    fraction_chw_oat_reset_enabled_sum = 0.0
+    fraction_cw_oat_reset_enabled_sum = 0.0
+
+    # get plant loops
+    plant_loops = model.getPlantLoops
+
+    # get pump specs
+    plant_loops.each do |plant_loop|
+      # get loop type
+      sizing_plant = plant_loop.sizingPlant
+      loop_type = sizing_plant.loopType
+
+      # get setpoint managers
+      spms = plant_loop.supplyOutletNode.setpointManagers
+
+      case loop_type
+      when 'Cooling'
+        # get control specifications
+        spms.each do |spm|
+          total_count_spm_chw += 1
+          fraction_chw_oat_reset_enabled_sum += 1 if spm.to_SetpointManagerOutdoorAirReset.is_initialized
+        end
+      when 'Condenser'
+        # get control specifications
+        spms.each do |spm|
+          total_count_spm_cw += 1
+          fraction_cw_oat_reset_enabled_sum += 1 if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
+        end
+      end
+    end
+
+    # calculate fractions
+    fraction_chw_oat_reset_enabled = total_count_spm_chw > 0.0 ? fraction_chw_oat_reset_enabled_sum / total_count_spm_chw : 0.0
+    fraction_cw_oat_reset_enabled = total_count_spm_cw > 0.0 ? fraction_cw_oat_reset_enabled_sum / total_count_spm_cw : 0.0
+
+    [fraction_chw_oat_reset_enabled, fraction_cw_oat_reset_enabled]
+  end
 
   # Applies the condenser water temperatures to the plant loop based on Appendix G.
   #
