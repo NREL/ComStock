@@ -183,6 +183,36 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     return curve, coeff_a, coeff_b, coeff_c, coeff_d
   end
 
+  # iteratively compute the design motor power based on flow, head, and pump efficiency.
+  def self.compute_design_motor_power(flow_m3_per_s, head_pa, eta_pump = 0.75, tolerance = 0.001, max_iter = 50)
+    raise ArgumentError, 'Flow must be > 0' if flow_m3_per_s <= 0
+    raise ArgumentError, 'Head must be > 0' if head_pa <= 0
+
+    # Initial guess: motor efficiency = 0.92 (92%)
+    motor_eff = 0.92
+    iter = 0
+    p_design_w = nil
+
+    loop do
+      # Compute P_design based on current motor efficiency
+      p_design_w = (flow_m3_per_s * head_pa) / (eta_pump * motor_eff)
+
+      # Estimate motor efficiency from power
+      motor_eff_pcnt = estimate_motor_efficiency_pcnt(p_design_w)
+      new_motor_eff = motor_eff_pcnt / 100.0
+
+      # Check for convergence
+      break if (motor_eff - new_motor_eff).abs < tolerance
+      motor_eff = new_motor_eff
+
+      iter += 1
+      break if iter >= max_iter
+    end
+
+    return p_design_w
+  end
+
+
   # Applies the condenser water temperatures to the plant loop based on Appendix G.
   #
   # hard-coding this because of https://github.com/NREL/openstudio-standards/issues/1915
@@ -405,15 +435,16 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       end
 
       # Clone key parameters from the old pump
-      pump_flow_rate = old_pump.ratedFlowRate.get
-      pump_head = old_pump.ratedPumpHead
+      pump_flow_rate_m_3_per_s = old_pump.ratedFlowRate.get
+      pump_head_pa = old_pump.ratedPumpHead
       pump_name = "#{old_pump.name.get}_upgrade"
-      pump_power = old_pump.ratedPowerConsumption.get
+      pump_power_w = old_pump.ratedPowerConsumption.get
+      pump_motor_eff = old_pump.motorEfficiency
 
       if debug_verbose
-        runner.registerInfo("--- existing spec: pump_flow_rate = #{pump_flow_rate} m3/s")
-        runner.registerInfo("--- existing spec: pump_head = #{pump_head} Pa")
-        runner.registerInfo("--- existing spec: pump_power = #{pump_power} W")
+        runner.registerInfo("--- existing spec: pump_flow_rate_m_3_per_s = #{pump_flow_rate_m_3_per_s} m3/s")
+        runner.registerInfo("--- existing spec: pump_head_pa = #{pump_head_pa} Pa")
+        runner.registerInfo("--- existing spec: pump_power_w = #{pump_power_w} W")
       end
 
       # Remove the old pump from the loop
@@ -429,10 +460,31 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       # Create the new pump (choose type based on old pump)
       new_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
       new_pump.setName(pump_name)
-      new_pump.setRatedFlowRate(pump_flow_rate)
-      new_pump.setRatedPumpHead(pump_head)
+      new_pump.setRatedFlowRate(pump_flow_rate_m_3_per_s)
+      new_pump.setRatedPumpHead(pump_head_pa)
+
+      # Apply motor power
+      pump_power_new_w = UpgradeHvacPump.compute_design_motor_power(pump_flow_rate_m_3_per_s, pump_head_pa)
+      new_pump.setRatedPowerConsumption(pump_power_new_w)
+      if pump_power_new_w > pump_power_w
+        runner.registerError("--- new pump power (#{pump_power_new_w}) is worse than existing pump power (#{pump_power_w})")
+      end
+      if debug_verbose
+        runner.registerInfo("--- pump design power | old: #{pump_power_w.round(2)} W")
+        runner.registerInfo("--- pump design power | new: #{pump_power_new_w.round(2)} W")
+      end
 
       # Apply motor efficiency
+      pump_motor_eff_new_pcnt = UpgradeHvacPump.estimate_motor_efficiency_pcnt(pump_power_new_w)
+      pump_motor_eff_new = pump_motor_eff_new_pcnt / 100.0
+      new_pump.setMotorEfficiency(pump_motor_eff_new)
+      if pump_motor_eff > pump_motor_eff_new
+        runner.registerError("--- new pump efficiency (#{pump_motor_eff_new}) is worse than existing pump efficiency (#{pump_motor_eff})")
+      end
+      if debug_verbose
+        runner.registerInfo("--- pump motor efficiency | old: #{pump_motor_eff.round(2)}")
+        runner.registerInfo("--- pump motor efficiency | new: #{pump_motor_eff_new.round(2)}")
+      end
 
       # Apply part-load performance for variable speed pump
       _, coeff_a, coeff_b, coeff_c, coeff_d = UpgradeHvacPump.curve_fraction_of_full_load_power(model)
