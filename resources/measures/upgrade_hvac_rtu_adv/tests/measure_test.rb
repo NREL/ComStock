@@ -320,7 +320,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     return model
   end
 
-  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+  def verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -361,12 +361,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # hardsize model
     model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR_after")
 
-    # get final gas heating coils
-    li_gas_htg_coils_final = model.getCoilHeatingGass
-
-    # assert gas heating coils have been removed
-    assert_equal(li_gas_htg_coils_final.size, 0)
-
     # get list of final unitary systems
     li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
 
@@ -406,61 +400,31 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       fan = system.supplyFan.get
       assert(fan.to_FanVariableVolume.is_initialized)
 
-      # ***heating***
-      # assert new unitary systems all have multispeed DX heating coils
-      htg_coil = system.heatingCoil.get
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
-
-      # assert multispeed heating coil has 4 stages
-      assert_equal(htg_coil.numberOfStages, 4)
-      htg_coil_spd4 = htg_coil.stages[3]
-
-      # assert speed 4 flowrate matches design flow rate
-      htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
-      assert_in_delta(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.get, 0.000001)
-
-      # assert flow rate reduces for lower speeds
-      htg_coil_spd3 = htg_coil.stages[2]
-      htg_coil_spd2 = htg_coil.stages[1]
-      htg_coil_spd1 = htg_coil.stages[0]
-      assert(htg_coil_spd4.ratedAirFlowRate.get > htg_coil_spd3.ratedAirFlowRate.get)
-      assert(htg_coil_spd3.ratedAirFlowRate.get > htg_coil_spd2.ratedAirFlowRate.get)
-      assert(htg_coil_spd2.ratedAirFlowRate.get > htg_coil_spd1.ratedAirFlowRate.get)
-
-      # assert capacity reduces for lower speeds
-      assert(htg_coil_spd4.grossRatedHeatingCapacity.get > htg_coil_spd3.grossRatedHeatingCapacity.get)
-      assert(htg_coil_spd3.grossRatedHeatingCapacity.get > htg_coil_spd2.grossRatedHeatingCapacity.get)
-      assert(htg_coil_spd2.grossRatedHeatingCapacity.get > htg_coil_spd1.grossRatedHeatingCapacity.get)
-
-      # assert supplemental heating coil type matches user-specified electric resistance
+      # assert supplemental heating coil availability
       sup_htg_coil = system.supplementalHeatingCoil.get
       assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
 
       # ***cooling***
-      # assert new unitary systems all have multispeed DX cooling coils
+      # assert new unitary systems all have variable DX cooling coils
       clg_coil = system.coolingCoil.get
-      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
-      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized)
+      clg_coil = clg_coil.to_CoilCoolingDXVariableSpeed.get
 
       # assert multispeed heating coil has 4 stages
-      assert_equal(clg_coil.numberOfStages, 4)
-      clg_coil_spd4 = clg_coil.stages[3]
+      assert_equal(clg_coil.numberOfStages, 3)
+      clg_coil_spd3 = clg_coil.stages[2]
 
       # assert speed 4 flowrate matches design flow rate
       clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.get, 0.000001)
+      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd3.ratedAirFlowRate.get, 0.000001)
 
       # assert flow rate reduces for lower speeds
-      clg_coil_spd3 = clg_coil.stages[2]
       clg_coil_spd2 = clg_coil.stages[1]
       clg_coil_spd1 = clg_coil.stages[0]
-      assert(clg_coil_spd4.ratedAirFlowRate.get > clg_coil_spd3.ratedAirFlowRate.get)
       assert(clg_coil_spd3.ratedAirFlowRate.get > clg_coil_spd2.ratedAirFlowRate.get)
       assert(clg_coil_spd2.ratedAirFlowRate.get > clg_coil_spd1.ratedAirFlowRate.get)
 
       # assert capacity reduces for lower speeds
-      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.get > clg_coil_spd3.grossRatedTotalCoolingCapacity.get)
       assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
       assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
     end
@@ -570,43 +534,16 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'roof'
-        roof = arguments[idx].clone
-        roof.setValue(true)
-        argument_map[arg.name] = roof
-      elsif arg.name == 'window'
-        window = arguments[idx].clone
-        window.setValue(true)
-        argument_map[arg.name] = window
+      if arg.name == 'debug_verbose'
+        debug_verbose = arguments[idx].clone
+        debug_verbose.setValue(true)
+        argument_map[arg.name] = debug_verbose
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
     
-    # check roof/window measure implementation
-    roof_measure_implemented = false
-    window_measure_implemented = false
-    test_result = JSON.parse(test_result.to_s)
-    test_result['step_values'].each do |step_value|
-
-      # check if roof measure variable is available
-      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
-        roof_measure_implemented = true
-      end
-
-      # check if window measure variable is available
-      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
-        window_measure_implemented = true
-      end
-
-    end
-    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
-    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
   end
 
   def test_380_small_office_psz_gas_coil_7A
@@ -642,7 +579,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
     end
 
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
 
     # check roof/window measure implementation
     roof_measure_implemented = false
@@ -702,7 +639,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
     end
 
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
 
     # check roof/window measure implementation
     roof_measure_implemented = false
@@ -762,7 +699,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
     end
 
-    test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
 
     # check roof/window measure implementation
     roof_measure_implemented = false
