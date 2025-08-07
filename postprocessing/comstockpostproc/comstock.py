@@ -102,8 +102,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
-        # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-        # self.s3_resource = boto3.resource('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
