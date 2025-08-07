@@ -8,6 +8,64 @@ require 'openstudio-standards'
 require_relative '../measure'
 
 class UpgradeHvacPumpTest < Minitest::Test
+
+  def setup
+    # Create a new empty OpenStudio model to pass into the method
+    @model = OpenStudio::Model::Model.new
+  end
+
+  def test_evaluate_zero
+    curve = UpgradeHvacPump.estimate_fraction_of_full_load_power(@model)
+    result = curve.evaluate(0.0)
+    assert_in_delta 0.0, result, 1e-6, "Expected curve output at x=0 to be 0"
+  end
+
+  def test_evaluate_one
+    curve = UpgradeHvacPump.estimate_fraction_of_full_load_power(@model)
+    result = curve.evaluate(1.0)
+    assert_in_delta 1.0, result, 1e-6, "Expected curve output at x=1 to be 1"
+  end
+
+  def test_output_bounds_over_range
+    # Test across input range 350W to 38800W
+    (350..38800).step(500).each do |watts|
+      eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(watts)
+      assert eff >= 90.53, "Efficiency below lower bound for #{watts} W: #{eff}"
+      assert eff <= 95.95, "Efficiency above upper bound for #{watts} W: #{eff}"
+    end
+  end
+
+  def test_low_power_value
+    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(350)
+    assert_in_delta 90.53, eff, 0.5, "Expected efficiency close to lower bound"
+  end
+
+  def test_high_power_value
+    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(38800)
+    assert_in_delta 95.95, eff, 0.5, "Expected efficiency close to upper bound"
+  end
+
+  def test_exact_breakpoint
+    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(5000)
+    assert eff >= 90.53 && eff <= 95.95, "Efficiency at breakpoint not within bounds: #{eff}"
+  end
+
+  def test_zero_input
+    assert_raises(ArgumentError) do
+      UpgradeHvacPump.estimate_motor_efficiency_pcnt(0)
+    end
+  end
+
+  def test_input_below_range_clipped
+    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(100) # 0.1 kW
+    assert_in_delta 90.53, eff, 1e-6, "Expected output to be clipped at lower bound for 100W"
+  end
+
+  def test_input_above_range_clipped
+    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(50000) # 50 kW
+    assert_in_delta 95.95, eff, 1e-6, "Expected output to be clipped at upper bound for 50000W"
+  end
+
   # supporting method: return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
