@@ -388,7 +388,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     if upgrade_pump
       applicable_pumps.each do |pump|
         # update pump efficiencies
-        std.pump_apply_standard_minimum_motor_efficiency_pcnt(pump)
+        std.pump_apply_standard_minimum_motor_efficiency(pump)
 
         # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
         if pump.to_PumpVariableSpeed.is_initialized
