@@ -393,13 +393,35 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # pump upgrades
     # ------------------------------------------------
     applicable_pumps.each do |pump|
-      # update pump efficiencies
-      std.pump_apply_standard_minimum_motor_efficiency(pump)
+      loop = old_pump.loop
+      next if loop.nil?
 
-      # update part load performance (for variable speed pumps) to be 'VSD DP Reset'
-      if pump.to_PumpVariableSpeed.is_initialized
-        pump_variable_speed_control_type(runner, model, pump, debug_verbose)
+      # Clone key parameters from the old pump
+      pump_flow_rate = old_pump.to_PumpConstantSpeed.is_initialized ? old_pump.to_PumpConstantSpeed.get.ratedFlowRate.get : old_pump.to_PumpVariableSpeed.get.ratedFlowRate.get
+      pump_head = old_pump.head.get
+      pump_name = old_pump.name.get + "_repl"
+
+      # Remove the old pump from the loop
+      supply_inlet_node = old_pump.inletModelObject.get.to_Node.get
+      supply_outlet_node = old_pump.outletModelObject.get.to_Node.get
+      old_pump.remove
+
+      # Create the new pump (choose type based on old pump)
+      new_pump = OpenStudio::Model::PumpVariableSpeed.new(model)
+      new_pump.setName(pump_name)
+      new_pump.setRatedFlowRate(pump_flow_rate)
+      new_pump.setRatedHead(pump_head)
+      new_pump.addToNode(supply_inlet_node) # Add pump to the loop at the same place
+
+      # Apply standard motor efficiency
+      std.pump_apply_standard_minimum_motor_efficiency(new_pump)
+
+      # Apply standard part-load performance for variable speed pump
+      if new_pump.to_PumpVariableSpeed.is_initialized
+        pump_variable_speed_control_type(runner, model, new_pump, debug_verbose)
       end
+
+      runner.registerInfo("Replaced pump '#{old_pump.name}' with new pump '#{new_pump.name}'.")
     end
 
     # ------------------------------------------------
