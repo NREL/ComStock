@@ -7,17 +7,17 @@ require 'openstudio-standards'
 class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "upgrade_hvac_pump"
+    return 'upgrade_hvac_pump'
   end
 
   # human readable description
   def description
-    return "This measure evaluates the replacement of pumps with variable speed high-efficiency pumps in existing water-based systems for space heating and cooling, excluding domestic water heating. High-efficiency pumps considered in the measure refer to top-tier products currently available in the U.S. market as of July 2025. The nominal efficiencies of pump motors range from 91% to 96%, depending on the motor’s horsepower, compared to ComStock pumps, which typically range from 70% to 96%."
+    return 'This measure evaluates the replacement of pumps with variable speed high-efficiency pumps in existing water-based systems for space heating and cooling, excluding domestic water heating. High-efficiency pumps considered in the measure refer to top-tier products currently available in the U.S. market as of July 2025. The nominal efficiencies of pump motors range from 91% to 96%, depending on the motor’s horsepower, compared to ComStock pumps, which typically range from 70% to 96%.'
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "Constant-speed pumps in existing buildings are replaced with variable-speed pumps featuring advanced part-load performance enabled by modern control strategies. Older variable-speed pumps are upgraded to newer models with advanced part-load efficiency through modern control technologies, such as dynamic static pressure reset. Applicable to pumps used for space heating and cooling: chiller system, boiler system, and district heating and cooling system."
+    return 'Constant-speed pumps in existing buildings are replaced with variable-speed pumps featuring advanced part-load performance enabled by modern control strategies. Older variable-speed pumps are upgraded to newer models with advanced part-load efficiency through modern control technologies, such as dynamic static pressure reset. Applicable to pumps used for space heating and cooling: chiller system, boiler system, and district heating and cooling system.'
   end
 
   # define the arguments that the user will input
@@ -62,11 +62,11 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       chw_cw_hw_pump = false
       plant_loop = pump.plantLoop.get
       plant_loop.supplyComponents.each do |sc|
-        if (sc.to_ChillerElectricEIR.is_initialized ||
-          sc.to_BoilerHotWater.is_initialized ||
-          sc.to_CoolingTowerSingleSpeed.is_initialized ||
-          sc.to_CoolingTowerTwoSpeed.is_initialized ||
-          sc.to_CoolingTowerVariableSpeed.is_initialized)
+        if sc.to_ChillerElectricEIR.is_initialized ||
+           sc.to_BoilerHotWater.is_initialized ||
+           sc.to_CoolingTowerSingleSpeed.is_initialized ||
+           sc.to_CoolingTowerTwoSpeed.is_initialized ||
+           sc.to_CoolingTowerVariableSpeed.is_initialized
           chw_cw_hw_pump = true
         end
       end
@@ -144,7 +144,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     eff_max = 95.95
 
     if nominal_power_kw <= 0
-      raise ArgumentError, "Nominal power must be greater than 0"
+      raise ArgumentError, 'Nominal power must be greater than 0'
     end
 
     if nominal_power_kw < x0
@@ -160,7 +160,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
     # Clip output to [90.53%, 95.95%]
     [[motor_efficiency_pcnt, eff_min].max, eff_max].min
-
   end
 
   # get part-load fraction of full load power curve
@@ -172,11 +171,11 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     coeff_d = 0.8945
     # Define a cubic curve with example coefficients
     curve = OpenStudio::Model::CurveCubic.new(model)
-    curve.setName("Fraction of Full Load Power Curve")
-    curve.setCoefficient1Constant(coeff_a)     # y-intercept
-    curve.setCoefficient2x(coeff_b)             # linear term
-    curve.setCoefficient3xPOW2(coeff_c)       # quadratic term
-    curve.setCoefficient4xPOW3(coeff_d)        # cubic term
+    curve.setName('Fraction of Full Load Power Curve')
+    curve.setCoefficient1Constant(coeff_a) # y-intercept
+    curve.setCoefficient2x(coeff_b) # linear term
+    curve.setCoefficient3xPOW2(coeff_c) # quadratic term
+    curve.setCoefficient4xPOW3(coeff_d) # cubic term
     curve.setMinimumValueofx(0.0)
     curve.setMaximumValueofx(1.0)
     curve.setMinimumCurveOutput(0.0)
@@ -348,7 +347,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_motor_eff_weighted_average_c = pump_specs_cst_spd_before[2]
     pump_motor_bhp_weighted_average_c = pump_specs_cst_spd_before[3]
     count_cst_spd_pump = applicable_pumps.size
-    msg_cst_spd_pump_i = "#{count_cst_spd_pump} constant speed pumps found with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
+    msg_cst_spd_pump_i = "#{count_cst_spd_pump} constant speed pumps found with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3) * 100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
     pump_specs_var_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps, pumps_var_spd, std)
     applicable_pumps = pump_specs_var_spd_before[0]
     pump_rated_flow_total_v = pump_specs_var_spd_before[1]
@@ -359,7 +358,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_var_part_load_curve_coeff3_weighted_avg = pump_specs_var_spd_before[6]
     pump_var_part_load_curve_coeff4_weighted_avg = pump_specs_var_spd_before[7]
     count_var_spd_pump = applicable_pumps.size - count_cst_spd_pump
-    msg_var_spd_pump_i = "#{count_var_spd_pump} variable speed pumps found with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
+    msg_var_spd_pump_i = "#{count_var_spd_pump} variable speed pumps found with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3) * 100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
       runner.registerInfo('### pump (used for chillers) specs before upgrade')
@@ -391,14 +390,13 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report initial condition
     # ------------------------------------------------
-    msg_initial = msg_cst_spd_pump_i + " " + msg_var_spd_pump_i
+    msg_initial = "#{msg_cst_spd_pump_i} #{msg_var_spd_pump_i}"
     runner.registerInitialCondition(msg_initial)
 
     # ------------------------------------------------
     # pump upgrades
     # ------------------------------------------------
     applicable_pumps.each do |old_pump|
-
       if debug_verbose
         runner.registerInfo("### replacing pump: #{old_pump.name}")
       end
@@ -406,7 +404,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       # Clone key parameters from the old pump
       pump_flow_rate = old_pump.ratedFlowRate.get
       pump_head = old_pump.ratedPumpHead
-      pump_name = old_pump.name.get + "_upgrade"
+      pump_name = "#{old_pump.name.get}_upgrade"
       pump_power = old_pump.ratedPowerConsumption.get
 
       if debug_verbose
@@ -432,7 +430,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       new_pump.setRatedPumpHead(pump_head)
 
       # Apply motor efficiency
-      
 
       # Apply part-load performance for variable speed pump
       _, coeff_a, coeff_b, coeff_c, coeff_d = UpgradeHvacPump.curve_fraction_of_full_load_power(model)
@@ -472,7 +469,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_motor_eff_weighted_average_c = pump_specs_cst_spd_after[2]
     pump_motor_bhp_weighted_average_c = pump_specs_cst_spd_after[3]
     count_cst_spd_pump = applicable_pumps.size
-    msg_cst_spd_pump_f = "#{count_cst_spd_pump} constant speed pumps updated with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
+    msg_cst_spd_pump_f = "#{count_cst_spd_pump} constant speed pumps updated with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3) * 100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
     pump_specs_var_spd_after = UpgradeHvacPump.pump_specifications(dummy, pumps_var_spd, std)
     applicable_pumps = pump_specs_var_spd_after[0]
     pump_rated_flow_total_v = pump_specs_var_spd_after[1]
@@ -483,7 +480,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     pump_var_part_load_curve_coeff3_weighted_avg = pump_specs_var_spd_after[6]
     pump_var_part_load_curve_coeff4_weighted_avg = pump_specs_var_spd_after[7]
     count_var_spd_pump = applicable_pumps.size - count_cst_spd_pump
-    msg_var_spd_pump_f = "#{count_var_spd_pump} variable speed pumps updated with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3)*100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
+    msg_var_spd_pump_f = "#{count_var_spd_pump} variable speed pumps updated with #{pump_rated_flow_total_v.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_v.round(3) * 100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_v.round(6)} BHP."
 
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
@@ -505,7 +502,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # report final condition
     # ------------------------------------------------
-    msg_final_condition = msg_cst_spd_pump_f + " " + msg_var_spd_pump_f
+    msg_final_condition = "#{msg_cst_spd_pump_f} #{msg_var_spd_pump_f}"
     runner.registerFinalCondition(msg_final_condition)
 
     return true
