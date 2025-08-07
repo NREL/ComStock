@@ -165,8 +165,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         continue
                     logger.info(f'Reloading data from: {file_path}')
                     # Handling for polars url encoding issue (it was turning '=' into '%3D' and failing to find the files in S3)
-                    glob_file_path = re.sub(r'upgrade=\d+', 'upgrade*', file_path)
-                    upgrade_dfs.append(glob_file_path)
+                    upgrade_dfs.append(file_path)
                 self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
             else:
                 raise FileNotFoundError(
@@ -240,9 +239,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Caching to: {file_path}')
                 self.data = self.data.select(self.reorder_columns(self.data.columns))
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
-                self.data = self.reduce_df_memory(self.data)
                 with self.output_dir['fs'].open(file_path, "wb") as f:
-                    self.data.write_parquet(f)
+                    self.data.write_parquet(f, use_pyarrow=True, pyarrow_options={"use_dictionary": False})
                 up_lazyframes.append(file_path)
 
             # Create a single LazyFrame that includes all upgrades
@@ -273,33 +271,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
             for line in allLines:
                 f.write(line)
-
-    def reduce_df_memory(self, df):
-
-        logger.info(f'Memory before reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
-        # Set dtypes to reduce in-memory size
-
-        # Float64 -> Float32
-        df = df.cast({pl.Float64: pl.Float32})
-
-        # String -> Categorical
-        for col, dt in df.schema.items():
-            # Only consider categorizing string columns
-            # because they have the biggest memory footprint
-            if not dt == pl.Utf8:
-                continue
-            # Check the first value in the column
-            first_val = df.get_column(col).head(1).to_list()[0]
-            # print(f'For {col}, first_val `{first_val}` is a {type(first_val)}')
-            # If the first value is None, don't categorize
-            if first_val is None:
-                continue
-            print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
-            df = df.with_columns(pl.col(col).cast(pl.Categorical))
-
-        logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
-
-        return df
 
     def download_data(self):
 
@@ -718,7 +689,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             fs = up_res.get_column(VERIFIED_COMP_STATUS).value_counts()
             dat = [fs.get_column('count').to_list()]
             sch = fs.get_column(VERIFIED_COMP_STATUS).to_list()
-            fs = pl.DataFrame(data=dat, schema=sch)
+            fs = pl.DataFrame(data=dat, schema=sch, orient="row")
 
             # Add upgrade ID and name to failure summary
             fs = fs.with_columns([pl.lit(upgrade_id).alias(str(self.UPGRADE_ID))])
@@ -2532,7 +2503,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elapsed_time = (collect_tend - collect_tstart).total_seconds()
         logger.info(f"Collect time for upgrade {upgrade_id}: {elapsed_time} seconds")
         alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
-        alloc_wts = self.reduce_df_memory(alloc_wts)
         logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {alloc_wts_bills_dir}')
         # Cache by state to enable faster reading
         state_pqts = []
