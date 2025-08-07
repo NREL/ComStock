@@ -158,7 +158,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   end
 
   # get part-load fraction of full load power curve
-  def self.estimate_fraction_of_full_load_power(model)
+  def self.curve_fraction_of_full_load_power(model)
     # Define a cubic curve with example coefficients
     curve = OpenStudio::Model::CurveCubic.new(model)
     curve.setName("Fraction of Full Load Power Curve")

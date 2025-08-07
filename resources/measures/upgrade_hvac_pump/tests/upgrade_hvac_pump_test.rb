@@ -15,13 +15,13 @@ class UpgradeHvacPumpTest < Minitest::Test
   end
 
   def test_evaluate_zero
-    curve = UpgradeHvacPump.estimate_fraction_of_full_load_power(@model)
+    curve = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(0.0)
     assert_in_delta 0.0, result, 1e-6, "Expected curve output at x=0 to be 0"
   end
 
   def test_evaluate_one
-    curve = UpgradeHvacPump.estimate_fraction_of_full_load_power(@model)
+    curve = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(1.0)
     assert_in_delta 1.0, result, 1e-6, "Expected curve output at x=1 to be 1"
   end
