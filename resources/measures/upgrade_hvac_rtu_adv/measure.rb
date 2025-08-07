@@ -1250,16 +1250,15 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_dx_cooling_coil.setInitialMoistureEvaporationRateDividedbySteadyStateACLatentCapacity(1.5)
       new_dx_cooling_coil.setLatentCapacityTimeConstant(45)
       new_dx_cooling_coil.setEnergyPartLoadFractionCurve(curve_table_map['high_stage'][size_category]['eir_fn_of_plr'])
-      new_dx_cooling_coil.setNominalSpeedLevel(1)
+      new_dx_cooling_coil.setNominalSpeedLevel(3)
 
       # define rated to lower stage ratios: low, medium, high stages
-      #stage_ratios = [0.333, 0.666, 1.0]
-      stage_ratios = [1.0, 0.666, 0.333] # higher stage to lower stage
+      stage_ratios = [0.333, 0.666, 1.0] # lower stage to higher stage
 
       # loop through stages
       stage_ratios.sort.each_with_index do |ratio, index|
         # convert index to stage number
-        stage = 3 - index
+        stage = index + 1
 
         # stage label
         stage_label = get_stage_category(runner, stage)
@@ -1366,7 +1365,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       #   unitary_system_performance_multispeed.addSupplyAirflowRatioField(safr)
       # end
       # unitary_system_performance_multispeed.setSingleModeOperation(false)
-      # unitary_system_performance_multispeed.setNoLoadSupplyAirflowRateRatio(stage_ratios[-1])
+      # unitary_system_performance_multispeed.setNoLoadSupplyAirflowRateRatio(stage_ratios[0])
       # unitary_system_performance_multispeed.setName("#{air_loop_hvac.name} USPM")
       # new_rtu.setDesignSpecificationMultispeedObject(unitary_system_performance_multispeed)
 
