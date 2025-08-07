@@ -437,7 +437,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       # Clone key parameters from the old pump
       pump_flow_rate_m_3_per_s = old_pump.ratedFlowRate.get
       pump_head_pa = old_pump.ratedPumpHead
-      pump_name = "#{old_pump.name.get}_upgrade"
+      original_name = old_pump.name.get
+      pump_name = original_name.gsub('constant', 'variable').gsub('Constant', 'Variable') + "_upgrade"
       pump_power_w = old_pump.ratedPowerConsumption.get
       pump_motor_eff = old_pump.motorEfficiency
 
