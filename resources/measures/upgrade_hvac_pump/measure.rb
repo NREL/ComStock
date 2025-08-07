@@ -12,12 +12,12 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return "TBD"
+    return "This measure evaluates the replacement of pumps with variable speed high-efficiency pumps in existing water-based systems for space heating and cooling, excluding domestic water heating. High-efficiency pumps considered in the measure refer to top-tier products currently available in the U.S. market as of July 2025. The nominal efficiencies of pump motors range from 91% to 96%, depending on the motor’s horsepower, compared to ComStock pumps, which typically range from 70% to 96%."
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "TBD"
+    return "Constant-speed pumps in existing buildings are replaced with variable-speed pumps featuring advanced part-load performance enabled by modern control strategies. Older variable-speed pumps are upgraded to newer models with advanced part-load efficiency through modern control technologies, such as dynamic static pressure reset. Applicable to pumps used for space heating and cooling: chiller system, boiler system, and district heating and cooling system."
   end
 
   # define the arguments that the user will input
