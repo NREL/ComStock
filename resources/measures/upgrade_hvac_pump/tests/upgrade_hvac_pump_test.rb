@@ -8,20 +8,19 @@ require 'openstudio-standards'
 require_relative '../measure'
 
 class UpgradeHvacPumpTest < Minitest::Test
-
   def setup
     # Create a new empty OpenStudio model to pass into the method
     @model = OpenStudio::Model::Model.new
   end
 
   def test_evaluate_zero
-    curve = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+    curve, _, _, _, _ = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(0.0)
     assert_in_delta 0.0, result, 1e-6, "Expected curve output at x=0 to be 0"
   end
 
   def test_evaluate_one
-    curve = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+    curve, _, _, _, _ = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(1.0)
     assert_in_delta 1.0, result, 1e-6, "Expected curve output at x=1 to be 1"
   end
@@ -133,20 +132,18 @@ class UpgradeHvacPumpTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # create hash of argument values.
-    # If the argument has a default that you want to use, you don't need it in the hash
-    args_hash = {}
-    args_hash['space_name'] = 'New Space'
-    # using defaults values from measure.rb for other arguments
-
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
       case arg.name
-      when 'upgrade_pump'
-        upgrade_pump = arguments[idx].clone
-        upgrade_pump.setValue(true)
-        argument_map[arg.name] = upgrade_pump
+      when 'chw_oat_reset'
+        chw_oat_reset = arguments[idx].clone
+        chw_oat_reset.setValue(false)
+        argument_map[arg.name] = chw_oat_reset
+      when 'cw_oat_reset'
+        cw_oat_reset = arguments[idx].clone
+        cw_oat_reset.setValue(false)
+        argument_map[arg.name] = cw_oat_reset
       when 'debug_verbose'
         debug_verbose = arguments[idx].clone
         debug_verbose.setValue(true)
@@ -221,11 +218,11 @@ class UpgradeHvacPumpTest < Minitest::Test
     assert_equal(true, coefficient_set_different)
 
     # check performance improvement
-    if pump_motor_eff_weighted_average_c_after < pump_motor_eff_weighted_average_c_before
-      assert(false, "Pump motor efficiency got worse for constant speed pump. Before: #{pump_motor_eff_weighted_average_c_before}, After: #{pump_motor_eff_weighted_average_c_after}")
+    if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_c_before
+      assert(false, "Pump motor efficiency got worse compared to existing constant speed pump. Before: #{pump_motor_eff_weighted_average_c_before}, After: #{pump_motor_eff_weighted_average_c_after}")
     end
     if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_v_before
-      assert(false, "Pump motor efficiency got worse for variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
+      assert(false, "Pump motor efficiency got worse compared to existing variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
     end
 
     # # save the model to test output directory
@@ -243,9 +240,10 @@ class UpgradeHvacPumpTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(2, arguments.size)
-    assert_equal('upgrade_pump', arguments[0].name)
-    assert_equal('debug_verbose', arguments[1].name)
+    assert_equal(3, arguments.size)
+    assert_equal('chw_oat_reset', arguments[0].name)
+    assert_equal('cw_oat_reset', arguments[1].name)
+    assert_equal('debug_verbose', arguments[2].name)
   end
 
   # test 2: check model without simulation
