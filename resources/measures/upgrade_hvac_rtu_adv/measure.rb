@@ -321,6 +321,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   end
 
   # Return sensible heat ratio based on stage
+  # SHR values averaged from rated conditions of manufacturer data
   def get_shr(runner, stage_number)
     case stage_number
     when 3
@@ -329,6 +330,22 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       return 0.7402533904615385
     when 1
       return 0.8136649204374999
+    else
+      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
+      return nil
+    end
+  end
+
+  # Return reference COP ratio based on stage
+  # ratio values averaged from rated conditions of manufacturer data
+  def get_reference_cop_ratio(runner, stage_number)
+    case stage_number
+    when 3
+      return 1.0
+    when 2
+      return 1.096739
+    when 1
+      return 1.130014
     else
       runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
       return nil
@@ -1296,7 +1313,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
         dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(reference_airflow_m_3_per_s)
         dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(get_shr(runner, stage))
-        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(runner, reference_capacity_w))
+        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(runner, reference_capacity_w) * get_reference_cop_ratio(runner, stage))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_t'])
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_ff'])
