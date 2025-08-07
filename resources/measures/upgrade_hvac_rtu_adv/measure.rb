@@ -436,27 +436,52 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
   end
 
-  # Adjusts the rated COP based on reference CFM/ton and a flow modifier curve.
-  def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w,
+  # Adjusts the rated COP based on EnergyPlus-sized airflow and a reference airflow derived from manufacturer-based CFM/ton.
+  def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, rated_capacity_w,
                                             original_rated_cop, eir_modifier_curve_flow)
-    # get reference airflow
+
+    # Determine capacity category once to avoid repeated calls
+    capacity_category = get_capacity_category(runner, rated_capacity_w)
+
+    # Assign reference CFM/ton based on capacity category
+    reference_cfm_per_ton = case capacity_category
+                            when 'small_unit'
+                              -3.0642e-03 * rated_capacity_w + 457.77
+                            when 'medium_unit'
+                              3.1376e-05 * rated_capacity_w + 353.36
+                            when 'large_unit'
+                              -2.1111e-04 * rated_capacity_w + 368.08
+                            else
+                              runner.registerError("Invalid capacity category: #{capacity_category} for capacity value of #{rated_capacity_w} W.")
+                              return nil
+                            end
+
+    # Convert reference CFM/ton to m³/s
     airflow_reference_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(reference_cfm_per_ton) * rated_capacity_w
 
-    # get flow fraction
+    # Prevent divide-by-zero
+    if airflow_reference_m_3_per_s <= 0
+      runner.registerError("Reference airflow is zero or negative (#{airflow_reference_m_3_per_s}). Cannot compute flow fraction.")
+      return nil
+    end
+
+    # Calculate flow fraction (actual/reference)
     flow_fraction = airflow_sized_m_3_per_s / airflow_reference_m_3_per_s
 
-    # calculate modifiers
+    # Evaluate the energy input ratio (EIR) modifier based on flow fraction
     modifier_eir = nil
     if eir_modifier_curve_flow.to_CurveBiquadratic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction, 0)
     elsif eir_modifier_curve_flow.to_CurveCubic.is_initialized || eir_modifier_curve_flow.to_CurveQuadratic.is_initialized
       modifier_eir = eir_modifier_curve_flow.evaluate(flow_fraction)
     else
-      runner.registerError("CurveBiquadratic|CurveQuadratic|CurveCubic are only supported at the moment for modifier_eir (function of flow fraction) calculation: eir_modifier_curve_flow = #{eir_modifier_curve_flow.name}")
+      runner.registerError("Unsupported curve type for EIR modifier: #{eir_modifier_curve_flow.name}. Must be CurveBiquadratic, CurveQuadratic, or CurveCubic.")
+      return nil
     end
 
-    # adjust rated COP (COP = 1 / EIR)
-    original_rated_cop * (1.0 / modifier_eir)
+    # Adjust rated COP (COP = 1 / EIR)
+    adjusted_cop = original_rated_cop * (1.0 / modifier_eir)
+    return adjusted_cop
   end
 
   # Returns the dependent variable from a TableLookup object using bilinear interpolation for two inputs.
@@ -1287,6 +1312,16 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       # define rated to lower stage ratios: low, medium, high stages
       stage_ratios = [0.333, 0.666, 1.0] # lower stage to higher stage
 
+      # estimate rated COP
+      rated_cop_pre_rated_airflow_adjust = get_rated_cop_cooling_adv(runner, orig_clg_coil_gross_cap)
+      rated_cop_post_rated_airflow_adjust = adjust_rated_cop_from_ref_cfm_per_ton(
+        runner,
+        orig_clg_coil_rated_airflow_m_3_per_s,
+        orig_clg_coil_gross_cap,
+        rated_cop_pre_rated_airflow_adjust,
+        curve_table_map['high_stage'][size_category]['eir_fn_of_ff']
+      )
+
       # loop through stages
       stage_ratios.sort.each_with_index do |ratio, index|
         # convert index to stage number
@@ -1313,7 +1348,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
         dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(reference_airflow_m_3_per_s)
         dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(get_shr(runner, stage))
-        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(get_rated_cop_cooling_adv(runner, reference_capacity_w) * get_reference_cop_ratio(runner, stage))
+        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(rated_cop_post_rated_airflow_adjust * get_reference_cop_ratio(runner, stage))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_t'])
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_ff'])
