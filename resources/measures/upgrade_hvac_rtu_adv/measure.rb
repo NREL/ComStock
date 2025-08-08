@@ -124,6 +124,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     combined_data
   end
 
+  # Returns the curve object based on curve type, unit size, and operation stage.
   def model_add_curve(runner, model, curve_name, standards_data_curve, std, debug_verbose)
     # Return existing curve if found
     existing_curve = (
@@ -285,73 +286,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  # Return capacity category based on rated capacity
-  def get_capacity_category(runner, rated_capacity_w)
-    case rated_capacity_w
-    when 0..39_564.59445
-      label_curve = '0_11'
-      label_category = 'small_unit'
-    when 39_564.59446..70_337.0568
-      label_curve = '11_20'
-      label_category = 'medium_unit'
-    when 70_337.05681..Float::INFINITY
-      label_curve = '20_9999'
-      label_category = 'large_unit'
-    else
-      runner.registerError("Invalid rated capacity: #{rated_capacity_w}.")
-      return nil, nil
-    end
-    return label_curve, label_category
-  end
-
-  # Return stage category based on stage number
-  def get_stage_category(runner, stage_number)
-    case stage_number
-    when 3
-      label_stage = 'high_stage'
-    when 2
-      label_stage = 'medium_stage'
-    when 1
-      label_stage = 'low_stage'
-    else
-      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
-      return nil
-    end
-    return label_stage
-  end
-
-  # Return sensible heat ratio based on stage
-  # SHR values averaged from rated conditions of manufacturer data
-  def get_shr(runner, stage_number)
-    case stage_number
-    when 3
-      return 0.7279780362307693
-    when 2
-      return 0.7402533904615385
-    when 1
-      return 0.8136649204374999
-    else
-      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
-      return nil
-    end
-  end
-
-  # Return reference COP ratio based on stage
-  # ratio values averaged from rated conditions of manufacturer data
-  def get_reference_cop_ratio(runner, stage_number)
-    case stage_number
-    when 3
-      return 1.0
-    when 2
-      return 1.096739
-    when 1
-      return 1.130014
-    else
-      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
-      return nil
-    end
-  end
-
   # Returns the curve object based on curve type, unit size, and operation stage.
   def get_curve_name(runner, type, reference_capacity, operation_stage, debug_verbose)
     # Determine prefix and suffix
@@ -379,7 +313,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
                        end
 
     # Determine size category
-    curve_name_size, = get_capacity_category(rated_capacity_w)
+    curve_name_size, = UpgradeHvacRtuAdv.get_capacity_category(rated_capacity_w)
 
     # Manual overrides
     if curve_name_suffix != 'plr' && curve_name_size == '20_9999' && curve_name_dep_var == 'eir' && ['low', 'med'].include?(curve_name_stage)
@@ -396,24 +330,117 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     curve_name
   end
 
+  # Return capacity category based on rated capacity
+  def self.get_capacity_category(runner, rated_capacity_w)
+    if rated_capacity_w <= 0
+      runner.registerError("Invalid rated capacity: #{rated_capacity_w}. Must be greater than 0.")
+      return nil, nil
+    end
+
+    case rated_capacity_w
+    when 0.00001..39_564.59445
+      label_curve = '0_11'
+      label_category = 'small_unit'
+    when 39_564.59446..70_337.0568
+      label_curve = '11_20'
+      label_category = 'medium_unit'
+    else # anything above 70,337.0568
+      label_curve = '20_9999'
+      label_category = 'large_unit'
+    end
+
+    return label_curve, label_category
+  end
+
+  # Return stage category based on stage number
+  def self.get_stage_category(runner, stage_number)
+    case stage_number
+    when 3
+      label_stage = 'high_stage'
+    when 2
+      label_stage = 'medium_stage'
+    when 1
+      label_stage = 'low_stage'
+    else
+      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
+      return nil
+    end
+    return label_stage
+  end
+
+  # Return sensible heat ratio based on stage
+  # SHR values averaged from rated conditions of manufacturer data
+  def self.get_shr(runner, stage_number)
+    case stage_number
+    when 3
+      return 0.7279780362307693
+    when 2
+      return 0.7402533904615385
+    when 1
+      return 0.8136649204374999
+    else
+      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
+      return nil
+    end
+  end
+
+  # Return reference COP ratio based on stage
+  # ratio values averaged from rated conditions of manufacturer data
+  def self.get_reference_cop_ratio(runner, stage_number)
+    case stage_number
+    when 3
+      return 1.0
+    when 2
+      return 1.096739
+    when 1
+      return 1.130014
+    else
+      runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
+      return nil
+    end
+  end
+
+  # Return rated cfm/ton value that best represents actual product
+  def self.get_rated_cfm_per_ton(runner, rated_capacity_w)
+    # Determine capacity category once to avoid repeated calls
+    _, capacity_category = UpgradeHvacRtuAdv.get_capacity_category(runner, rated_capacity_w)
+
+    # Assign reference CFM/ton based on capacity category
+    rated_cfm_per_ton = case capacity_category
+                        when 'small_unit'
+                          -3.0642e-03 * rated_capacity_w + 457.77
+                        when 'medium_unit'
+                          3.1376e-05 * rated_capacity_w + 353.36
+                        when 'large_unit'
+                          -2.1111e-04 * rated_capacity_w + 368.08
+                        else
+                          runner.registerError("Invalid capacity category: #{capacity_category} for capacity value of #{rated_capacity_w} W.")
+                          return nil
+                        end
+
+    # Cap the output between 324 and 400
+    rated_cfm_per_ton.clamp(324, 400)
+  end
+
   # Returns the rated cooling COP for advanced RTU given the rated capacity (W).
-  def get_rated_cop_cooling_adv(runner, rated_capacity_w)
+  def self.get_rated_cop_cooling_adv(runner, rated_capacity_w)
     intercept = nil
     coef_1 = nil
     min_cop = nil
     max_cop = nil
-    _, label_category = get_capacity_category(runner, rated_capacity_w)
-    if label_category == 'small_unit'
+    _, label_category = UpgradeHvacRtuAdv.get_capacity_category(runner, rated_capacity_w)
+    case label_category
+    when 'small_unit'
       intercept = 4.26
       coef_1 = -0.0000027392
       min_cop = 4.15
       max_cop = 4.26
-    elsif label_category == 'medium_unit'
+    when 'medium_unit'
       intercept = 4.24
       coef_1 = -0.0000057962
       min_cop = 3.83
       max_cop = 4.01
-    elsif label_category == 'large_unit'
+    when 'large_unit'
       intercept = 3.68
       coef_1 = -1.6479e-07
       min_cop = 3.62
@@ -440,21 +467,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, rated_capacity_w,
                                             original_rated_cop, eir_modifier_curve_flow)
 
-    # Determine capacity category once to avoid repeated calls
-    capacity_category = get_capacity_category(runner, rated_capacity_w)
-
-    # Assign reference CFM/ton based on capacity category
-    reference_cfm_per_ton = case capacity_category
-                            when 'small_unit'
-                              -3.0642e-03 * rated_capacity_w + 457.77
-                            when 'medium_unit'
-                              3.1376e-05 * rated_capacity_w + 353.36
-                            when 'large_unit'
-                              -2.1111e-04 * rated_capacity_w + 368.08
-                            else
-                              runner.registerError("Invalid capacity category: #{capacity_category} for capacity value of #{rated_capacity_w} W.")
-                              return nil
-                            end
+    reference_cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(runner, rated_capacity_w)
 
     # Convert reference CFM/ton to m³/s
     airflow_reference_m_3_per_s = cfm_per_ton_to_m_3_per_sec_watts(reference_cfm_per_ton) * rated_capacity_w
@@ -1294,7 +1307,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       if debug_verbose
         runner.registerInfo('--- adding new variable speed cooling coil')
       end
-      _, size_category = get_capacity_category(runner, orig_clg_coil_gross_cap)
+      _, size_category = UpgradeHvacRtuAdv.get_capacity_category(runner, orig_clg_coil_gross_cap)
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXVariableSpeed.new(model)
       new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
       new_dx_cooling_coil.setCondenserType('AirCooled')
@@ -1313,7 +1326,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       stage_ratios = [0.333, 0.666, 1.0] # lower stage to higher stage
 
       # estimate rated COP
-      rated_cop_pre_rated_airflow_adjust = get_rated_cop_cooling_adv(runner, orig_clg_coil_gross_cap)
+      rated_cop_pre_rated_airflow_adjust = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(runner, orig_clg_coil_gross_cap)
       rated_cop_post_rated_airflow_adjust = adjust_rated_cop_from_ref_cfm_per_ton(
         runner,
         orig_clg_coil_rated_airflow_m_3_per_s,
@@ -1328,7 +1341,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         stage = index + 1
 
         # stage label
-        stage_label = get_stage_category(runner, stage)
+        stage_label = UpgradeHvacRtuAdv.get_stage_category(runner, stage)
 
         # calculate reference capacity
         if stage == 3
@@ -1347,8 +1360,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
         dx_coil_speed_data = OpenStudio::Model::CoilCoolingDXVariableSpeedSpeedData.new(model)
         dx_coil_speed_data.setReferenceUnitGrossRatedTotalCoolingCapacity(reference_capacity_w)
         dx_coil_speed_data.setReferenceUnitRatedAirFlowRate(reference_airflow_m_3_per_s)
-        dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(get_shr(runner, stage))
-        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(rated_cop_post_rated_airflow_adjust * get_reference_cop_ratio(runner, stage))
+        dx_coil_speed_data.setReferenceUnitGrossRatedSensibleHeatRatio(UpgradeHvacRtuAdv.get_shr(runner, stage))
+        dx_coil_speed_data.setReferenceUnitGrossRatedCoolingCOP(rated_cop_post_rated_airflow_adjust * UpgradeHvacRtuAdv.get_reference_cop_ratio(runner, stage))
         dx_coil_speed_data.setRatedEvaporatorFanPowerPerVolumeFlowRate2017(773.3)
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofTemperatureCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_t'])
         dx_coil_speed_data.setTotalCoolingCapacityFunctionofAirFlowFractionCurve(curve_table_map[stage_label][size_category]['capacity_fn_of_ff'])
