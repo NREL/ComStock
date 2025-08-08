@@ -157,20 +157,20 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # create argument for parallel or series
     heating_order = OpenStudio::Measure::OSArgument::makeChoiceArgument('heating_order', heating_order_options, false, true)
-    heating_order.setDefaultValue('Parallel')
+    heating_order.setDefaultValue('Series')
     heating_order.setDisplayName('Hot water loop heat recovery ordering')
     heating_order.setDescription('Choose whether the heat recovery connection is in parallel or series with the existing hot water source object (boiler, heat pump, district heat, etc.).')
     args << heating_order
 
     # create argument for heat recovery loop temperature, if applicable
     heat_recovery_loop_temperature_f = OpenStudio::Measure::OSArgument::makeDoubleArgument('heat_recovery_loop_temperature_f', false)
-    heat_recovery_loop_temperature_f.setDefaultValue(130.0)
+    heat_recovery_loop_temperature_f.setDefaultValue(140.0)
     heat_recovery_loop_temperature_f.setDisplayName('The heat recovery loop temperature in degrees F')
     args << heat_recovery_loop_temperature_f
 
     # create argument to optionally reset hot water loop tempeatures
     reset_hot_water_loop_temperature = OpenStudio::Measure::OSArgument::makeBoolArgument('reset_hot_water_loop_temperature',false, false)
-    reset_hot_water_loop_temperature.setDefaultValue(true)
+    reset_hot_water_loop_temperature.setDefaultValue(false)
     reset_hot_water_loop_temperature.setDisplayName('Reset hot water loop temperature?')
     reset_hot_water_loop_temperature.setDescription('If true, the measure will reset the hot water loop temperature to match the heat recovery loop temperature. It WILL NOT reset demand side coil objects, which could cause simulation errors or unmet hours. If the hot water loop is connected to the heat recovery loop by a heat exchanger instead of a storage tank, the hot water loop temperature will instead be reset to the heat recovery loop temperature minus 5F.')
     args << reset_hot_water_loop_temperature
@@ -580,14 +580,24 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 			inlet_nodes << sc.to_ZoneHVACComponent.get.inletNode.get.to_Node.get ##AA confirm that this will work 
 		end 
       end
-
-      # # create the same setpoint manager after the connecting object
-      # hr_supply_outlet_stpt_manager = OpenStudio::Model::SetpointManagerScheduled.new(model, hr_temp_sch)
-      # hr_supply_outlet_stpt_manager.setName('Heat Recovery Hot Water Loop Setpoint Manager')
-      # hr_supply_outlet_stpt_manager.addToNode(inlet_nodes[0])
-
+	  
+	  runner.registerInfo("len of inlet nodes #{(inlet_nodes.length)}")
+	  runner.registerInfo("inlet node 0 #{inlet_nodes[0]}")
+	  
       # place the connecting object before the existing source object
-      hr_connecting_object.addToNode(inlet_nodes[0]) ##AA commewnted out 
+      hr_connecting_object.addToNode(inlet_nodes[0])
+	  
+	  #Assuming connecting object is water to water component
+	  hr_connecting_object_ww = hr_connecting_object.to_WaterToWaterComponent.get 
+	  outlet_node_con = hr_connecting_object_ww.demandOutletModelObject.get.to_Node.get 
+	  
+	  runner.registerInfo("outlet node #{outlet_node_con}")
+	  
+	  # # create the same setpoint manager after the connecting object
+      hr_supply_outlet_stpt_manager = OpenStudio::Model::SetpointManagerScheduled.new(model, hr_temp_sch)
+      hr_supply_outlet_stpt_manager.setName('Heat Recovery Hot Water Loop Setpoint Manager')
+      hr_supply_outlet_stpt_manager.addToNode(outlet_node_con)
+
     else
       runner.registerError("Invalid heating order type #{heating_order}.")
       return false
@@ -597,69 +607,69 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     std.rename_plant_loop_nodes(model)
 
     # add output variables
-    # if enable_output_variables
-      # heat_recovery_demand_inlet_node = model.getNodeByName('Heat Recovery Loop Demand Inlet Node').get
-      # heat_recovery_demand_inlet_node.outputVariables
-      # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Heat Recovery Loop Demand Inlet Node')
-      # var.setReportingFrequency('Timestep')
+    if enable_output_variables
+      heat_recovery_demand_inlet_node = model.getNodeByName('Heat Recovery Loop Demand Inlet Node').get
+      heat_recovery_demand_inlet_node.outputVariables
+      var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Loop Demand Inlet Node')
+      var.setReportingFrequency('Timestep')
 	  
-      # heat_recovery_demand_outlet_node = model.getNodeByName('Heat Recovery Loop Demand Outlet Node').get
-      # heat_recovery_demand_outlet_node.outputVariables
-      # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Heat Recovery Loop Demand Outlet Node')
-      # var.setReportingFrequency('Timestep')
+      heat_recovery_demand_outlet_node = model.getNodeByName('Heat Recovery Loop Demand Outlet Node').get
+      heat_recovery_demand_outlet_node.outputVariables
+      var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Loop Demand Outlet Node')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+      var.setReportingFrequency('Timestep')
 	  
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Heat Recovery Storage Water Heater Demand Inlet Water Node')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Inlet Water Node')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
-      # var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
-      # var.setKeyValue('Node 12')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Node 12')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Node 12')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Node 12')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Node 13')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Node 13')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('Chiller Evaporator Cooling Rate', model)
-      # var.setKeyValue('*')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('Chiller Evaporator Cooling Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
-      # var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
-      # var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
+      var.setReportingFrequency('Timestep')
 	  
-	  # end 
+	  end 
 	  
 	  #Add vars for sizing 
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
-      # var.setKeyValue('*')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
 	  
-	  # var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
-      # var.setKeyValue('*')
-      # var.setReportingFrequency('Timestep')
+	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
 	 
-	  # #Create hash of vars to add
+	  #Create hash of vars to add
 	  # vars = Hash.new
 	  # vars["Heat Recovery Storage Water Heater Demand Outlet Water Node"] = ["System Node Temperature", "System Node Mass Flow Rate"] #need to structure this differently or make it a hash explicitly 
 	  # vars["Heat Recovery Storage Water Heater Demand Inlet Water Node"] = "System Node Temperature"
@@ -684,18 +694,18 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	runner.registerInfo("directory #{Dir.pwd}")
 	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
-	if File.exist?(ann_loads_sql_path)
-      sql_path = OpenStudio::Path.new(ann_loads_sql_path)
-      sql = OpenStudio::SqlFile.new(sql_path)
-      model.setSqlFile(sql)
-    else
-	  std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
-      runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
+	# if File.exist?(ann_loads_sql_path)
+      # sql_path = OpenStudio::Path.new(ann_loads_sql_path)
+      # sql = OpenStudio::SqlFile.new(sql_path)
+      # model.setSqlFile(sql)
+    # else
+	  # std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
+      # runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
 	  # if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false #Simulation runs successfully, but gives bool error from this, 
         # runner.registerError('Annual run failed. See errors in sizing run directory or this measure')
         # return false
       # end
-    end
+    # end
 
     # if model.sqlFile.empty?
       # runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
@@ -703,9 +713,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # end
 	# sql = model.sqlFile.get #get swig error from this if check above is commented out 
 	return true 
-	#sql_file = OpenStudio::SqlFile.new(sql_path)
-	sql_file = runner.lastEnergyPlusSqlFile
-
+	
   end
 end
 
