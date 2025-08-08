@@ -49,6 +49,224 @@ require 'json'
 
 class UpgradeHvacRtuAdvTest < Minitest::Test
 
+  def setup
+    @runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+  end
+
+  def test_get_capacity_category
+
+    puts("### DEBUGGING: test_get_capacity_category")
+
+    # test: zero input
+    rated_capacity_w = 0
+    label_curve, label_category = UpgradeHvacRtuAdv.get_capacity_category(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: label_curve = #{label_curve}, label_category = #{label_category}")
+    assert_nil(label_curve)
+    assert_nil(label_category)
+
+    # test: small unit
+    rated_capacity_w = 30000
+    label_curve, label_category = UpgradeHvacRtuAdv.get_capacity_category(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: label_curve = #{label_curve}, label_category = #{label_category}")
+    assert_equal('0_11', label_curve)
+    assert_equal('small_unit', label_category)
+
+    # test: medium unit
+    rated_capacity_w = 60000
+    label_curve, label_category = UpgradeHvacRtuAdv.get_capacity_category(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: label_curve = #{label_curve}, label_category = #{label_category}")
+    assert_equal('11_20', label_curve)
+    assert_equal('medium_unit', label_category)
+
+    # test: large unit
+    rated_capacity_w = 120000
+    label_curve, label_category = UpgradeHvacRtuAdv.get_capacity_category(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: label_curve = #{label_curve}, label_category = #{label_category}")
+    assert_equal('20_9999', label_curve)
+    assert_equal('large_unit', label_category)
+
+  end
+
+  def test_get_stage_category
+
+    puts("### DEBUGGING: test_get_stage_category")
+
+    # test: zero input
+    stage_number = 0
+    label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
+    puts("--- DEBUGGING: label_stage = #{label_stage}")
+    assert_nil(label_stage)
+
+    # test: 1
+    stage_number = 1
+    label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
+    puts("--- DEBUGGING: label_stage = #{label_stage}")
+    assert_equal('low_stage', label_stage)
+
+    # test: 2
+    stage_number = 2
+    label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
+    puts("--- DEBUGGING: label_stage = #{label_stage}")
+    assert_equal('medium_stage', label_stage)
+
+    # test: 3
+    stage_number = 3
+    label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
+    puts("--- DEBUGGING: label_stage = #{label_stage}")
+    assert_equal('high_stage', label_stage)
+
+    # test: 4
+    stage_number = 4
+    label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
+    puts("--- DEBUGGING: label_stage = #{label_stage}")
+    assert_nil(label_stage)
+
+  end
+
+  def test_get_shr
+
+    puts("### DEBUGGING: test_get_shr")
+
+    # test: zero input
+    stage_number = 0
+    shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
+    puts("--- DEBUGGING: shr = #{shr}")
+    assert_nil(shr)
+
+    # test: 1
+    stage_number = 1
+    shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
+    puts("--- DEBUGGING: shr = #{shr}")
+    assert_in_epsilon(0.8136649204374999, shr, 0.001)
+
+    # test: 2
+    stage_number = 2
+    shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
+    puts("--- DEBUGGING: shr = #{shr}")
+    assert_in_epsilon(0.7402533904615385, shr, 0.001)
+
+    # test: 3
+    stage_number = 3
+    shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
+    puts("--- DEBUGGING: shr = #{shr}")
+    assert_in_epsilon(0.7279780362307693, shr, 0.001)
+
+    # test: 4
+    stage_number = 4
+    shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
+    puts("--- DEBUGGING: shr = #{shr}")
+    assert_nil(shr)
+
+  end
+
+  def test_get_reference_cop_ratio
+
+    puts("### DEBUGGING: test_get_reference_cop_ratio")
+
+    # test: zero input
+    stage_number = 0
+    cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
+    puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
+    assert_nil(cop_ratio)
+
+    # test: 1
+    stage_number = 1
+    cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
+    puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
+    assert_in_epsilon(1.130014, cop_ratio, 0.001)
+
+    # test: 2
+    stage_number = 2
+    cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
+    puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
+    assert_in_epsilon(1.096739, cop_ratio, 0.001)
+
+    # test: 3
+    stage_number = 3
+    cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
+    puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
+    assert_in_epsilon(1.0, cop_ratio, 0.001)
+
+    # test: 4
+    stage_number = 4
+    cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
+    puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
+    assert_nil(cop_ratio)
+
+  end
+
+  def test_get_rated_cfm_per_ton
+
+    puts("### DEBUGGING: test_get_rated_cfm_per_ton")
+
+    # test: zero input
+    rated_capacity_w = 0
+    cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
+    assert_nil(cfm_per_ton)
+
+    # test: very small
+    rated_capacity_w = 1
+    cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
+    assert_in_epsilon(400, cfm_per_ton, 0.001)
+
+    # test: small unit
+    rated_capacity_w = 30000
+    cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
+    assert_in_epsilon(365.844, cfm_per_ton, 0.001)
+
+    # test: medium unit
+    rated_capacity_w = 50000
+    cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
+    assert_in_epsilon(354.9288, cfm_per_ton, 0.001)
+
+    # test: large unit
+    rated_capacity_w = 1000000
+    cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
+    assert_in_epsilon(324, cfm_per_ton, 0.001)
+
+  end
+
+  def test_get_rated_cop_cooling_adv
+
+    puts("### DEBUGGING: test_get_rated_cop_cooling_adv")
+
+    # test: zero input
+    rated_capacity_w = 0
+    cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cop = #{cop}")
+    assert_nil(cop)
+
+    # test: very small
+    rated_capacity_w = 0.001
+    cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cop = #{cop}")
+    assert_in_epsilon(4.26, cop, 0.001)
+
+    # test: small unit
+    rated_capacity_w = 30000
+    cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cop = #{cop}")
+    assert_in_epsilon(4.177824, cop, 0.001)
+
+    # test: medium unit
+    rated_capacity_w = 50000
+    cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cop = #{cop}")
+    assert_in_epsilon(3.95019, cop, 0.001)
+
+    # test: large unit
+    rated_capacity_w = 1000000
+    cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
+    puts("--- DEBUGGING: cop = #{cop}")
+    assert_in_epsilon(3.62, cop, 0.001)
+
+  end
+
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
@@ -431,73 +649,73 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     result
   end
 
-  # ##########################################################################
-  # # Single building result examples
-  # def test_single_building_result_examples
-  #   osm_epw_pair = {
-  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
-  #   }
+  ##########################################################################
+  # Single building result examples
+  def test_single_building_result_examples
+    osm_epw_pair = {
+      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+      '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+    }
 
-  #   test_name = 'test_single_building_result_examples'
+    test_name = 'test_single_building_result_examples'
 
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
+    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
 
-  #     osm_path = model_input_path(osm_name)
-  #     epw_path = epw_input_path(epw_name)
+      osm_path = model_input_path(osm_name)
+      epw_path = epw_input_path(epw_name)
 
-  #     # Create an instance of the measure
-  #     measure = UpgradeHvacRtuAdv.new
+      # Create an instance of the measure
+      measure = UpgradeHvacRtuAdv.new
 
-  #     # Load the model; only used here for populating arguments
-  #     model = load_model(osm_path)
+      # Load the model; only used here for populating arguments
+      model = load_model(osm_path)
 
-  #     # get arguments
-  #     arguments = measure.arguments(model)
-  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+      # get arguments
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #     # populate specific argument for testing
-  #     arguments.each_with_index do |arg, idx|
-  #       temp_arg_var = arg.clone
-  #       case arg.name
-  #       when 'sizing_run'
-  #         sizing_run = arguments[idx].clone
-  #         sizing_run.setValue(true)
-  #         argument_map[arg.name] = sizing_run
-  #       when 'hprtu_scenario'
-  #         hprtu_scenario = arguments[idx].clone
-  #         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
-  #         argument_map[arg.name] = hprtu_scenario
-  #       when 'performance_oversizing_factor'
-  #         performance_oversizing_factor = arguments[idx].clone
-  #         performance_oversizing_factor.setValue(0.0)
-  #         argument_map[arg.name] = performance_oversizing_factor
-  #       when 'window'
-  #         window = arguments[idx].clone
-  #         window.setValue(true)
-  #         argument_map[arg.name] = window
-  #       when 'debug_verbose'
-  #         debug_verbose = arguments[idx].clone
-  #         debug_verbose.setValue(true)
-  #         argument_map[arg.name] = debug_verbose
-  #       else
-  #         argument_map[arg.name] = temp_arg_var
-  #       end
-  #     end
+      # populate specific argument for testing
+      arguments.each_with_index do |arg, idx|
+        temp_arg_var = arg.clone
+        case arg.name
+        when 'sizing_run'
+          sizing_run = arguments[idx].clone
+          sizing_run.setValue(true)
+          argument_map[arg.name] = sizing_run
+        when 'hprtu_scenario'
+          hprtu_scenario = arguments[idx].clone
+          hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
+          argument_map[arg.name] = hprtu_scenario
+        when 'performance_oversizing_factor'
+          performance_oversizing_factor = arguments[idx].clone
+          performance_oversizing_factor.setValue(0.0)
+          argument_map[arg.name] = performance_oversizing_factor
+        when 'window'
+          window = arguments[idx].clone
+          window.setValue(true)
+          argument_map[arg.name] = window
+        when 'debug_verbose'
+          debug_verbose = arguments[idx].clone
+          debug_verbose.setValue(true)
+          argument_map[arg.name] = debug_verbose
+        else
+          argument_map[arg.name] = temp_arg_var
+        end
+      end
 
-  #     # Don't apply the measure to the model and run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
-  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
+      # Don't apply the measure to the model and run the model
+      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+      model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
 
-  #     # Apply the measure to the model and run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
+      # Apply the measure to the model and run the model
+      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+      model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
 
-  #   end
-  # end
+    end
+  end
 
   # ##########################################################################
   # This section tests proper application of measure on fully applicable models
