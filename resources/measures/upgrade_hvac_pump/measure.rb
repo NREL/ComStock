@@ -471,6 +471,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # pump upgrades
     # ------------------------------------------------
+    applicability_power = false
+    applicability_eff = false
     applicable_pumps.each do |old_pump|
       if debug_verbose
         runner.registerInfo("### replacing pump: #{old_pump.name}")
@@ -508,9 +510,11 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
       # Apply motor power
       pump_power_new_w = UpgradeHvacPump.compute_design_motor_power(pump_flow_rate_m_3_per_s, pump_head_pa)
-      new_pump.setRatedPowerConsumption(pump_power_new_w)
       if pump_power_new_w > pump_power_w
-        runner.registerError("--- new pump power (#{pump_power_new_w}) is worse than existing pump power (#{pump_power_w})")
+        runner.registerInfo("--- new pump power (#{pump_power_new_w}) is worse than existing pump power (#{pump_power_w}). skipping power update.")
+      else
+        applicability_power = true
+        new_pump.setRatedPowerConsumption(pump_power_new_w)
       end
       if debug_verbose
         runner.registerInfo("--- pump design power | old: #{pump_power_w.round(2)} W")
@@ -520,9 +524,11 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       # Apply motor efficiency
       pump_motor_eff_new_pcnt = UpgradeHvacPump.estimate_motor_efficiency_pcnt(pump_power_new_w)
       pump_motor_eff_new = pump_motor_eff_new_pcnt / 100.0
-      new_pump.setMotorEfficiency(pump_motor_eff_new)
       if pump_motor_eff > pump_motor_eff_new
-        runner.registerError("--- new pump efficiency (#{pump_motor_eff_new}) is worse than existing pump efficiency (#{pump_motor_eff})")
+        runner.registerInfo("--- new pump efficiency (#{pump_motor_eff_new}) is worse than existing pump efficiency (#{pump_motor_eff}). skipping efficiency update.")
+      else
+        applicability_eff = true
+        new_pump.setMotorEfficiency(pump_motor_eff_new)
       end
       if debug_verbose
         runner.registerInfo("--- pump motor efficiency | old: #{pump_motor_eff.round(2)}")
@@ -545,6 +551,14 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       if debug_verbose
         runner.registerInfo("--- replaced pump '#{old_pump.name}' with new pump '#{new_pump.name}'.")
       end
+    end
+
+    # ------------------------------------------------
+    # applicability 2nd check
+    # ------------------------------------------------
+    if applicability_eff == false && applicability_power == false
+      runner.registerAsNotApplicable("existing pumps are all performing better than this measure implementation: applicability_eff= #{} | applicability_power = #{}")
+      return true
     end
 
     # ------------------------------------------------
