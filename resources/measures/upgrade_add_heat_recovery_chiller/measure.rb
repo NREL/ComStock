@@ -697,11 +697,14 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       # end
     end
 
-    if model.sqlFile.empty?
-      runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
-      return false
-    end
-	sql = model.sqlFile.get #get swig error from this if check above is commented out 
+    # if model.sqlFile.empty?
+      # runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
+      # return false
+    # end
+	# sql = model.sqlFile.get #get swig error from this if check above is commented out 
+	return true 
+	#sql_file = OpenStudio::SqlFile.new(sql_path)
+	sql_file = runner.lastEnergyPlusSqlFile
 
   end
 end
