@@ -1309,7 +1309,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
       _, size_category = UpgradeHvacRtuAdv.get_capacity_category(runner, orig_clg_coil_gross_cap)
       new_dx_cooling_coil = OpenStudio::Model::CoilCoolingDXVariableSpeed.new(model)
-      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Heat Pump Cooling Coil")
+      new_dx_cooling_coil.setName("#{air_loop_hvac.name} Adv RTU Cooling Coil")
       new_dx_cooling_coil.setCondenserType('AirCooled')
       new_dx_cooling_coil.setMinimumOutdoorDryBulbTemperatureforCompressorOperation(-25)
       new_dx_cooling_coil.setMaximumOutdoorDryBulbTemperatureforCrankcaseHeaterOperation(4.4)
