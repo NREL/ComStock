@@ -160,7 +160,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # create argument for heat recovery loop temperature, if applicable
     heat_recovery_loop_temperature_f = OpenStudio::Measure::OSArgument::makeDoubleArgument('heat_recovery_loop_temperature_f', false)
-    heat_recovery_loop_temperature_f.setDefaultValue(140.0)
+    heat_recovery_loop_temperature_f.setDefaultValue(145.0)
     heat_recovery_loop_temperature_f.setDisplayName('The heat recovery loop temperature in degrees F')
     args << heat_recovery_loop_temperature_f
 
@@ -380,7 +380,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # optionally reset the hot water plant design sizing and setpoint schedule
     if reset_hot_water_loop_temperature
-      new_hot_water_temperature_f = heat_recovery_loop_temperature_f
+      new_hot_water_temperature_f = heat_recovery_loop_temperature_f - 5 #Offset to emulate effects of heat exchanger 
       new_hot_water_temperature_c = OpenStudio.convert(new_hot_water_temperature_f, 'F', 'C').get
 
       hot_water_loop_sizing = hot_water_loop.sizingPlant
