@@ -109,11 +109,11 @@ end
 	
 	overall_sel_air_loops.sort.each do |air_loop_hvac|
        sup_fan = air_loop_hvac.supplyFan()
-	   if sup_fan.is_initialized #Replace constant speed with variable speed fan objects
+	   if sup_fan.is_initialized 
 		    sup_fan = sup_fan.get
-			#handle FanVariableVolume
             if sup_fan.to_FanVariableVolume.is_initialized
 			  sup_fan = sup_fan.to_FanVariableVolume.get
+			  #Check if fan curve coefficients already match values emulating SP reset 
 			  if sup_fan.fanPowerCoefficient1 == 0.040759894 and sup_fan.fanPowerCoefficient2 == 0.08804497 and sup_fan.fanPowerCoefficient3 == -0.07292612 and sup_fan.fanPowerCoefficient4 == 0.943739823
 			     runner.registerNotApplicable("Fan curve already represents an SP reset.") 
 		      else 
