@@ -40,13 +40,9 @@ require 'csv'
 require 'time'
 
 # TODO:
-# add sizing routine (prescriptive service water heating? 60% of simultaneous load?)
-# add storage sizing routine
-# add new performance curves for the new chiller
-# add applicability and handling for air-cooled chillers
-# include graphical documentation and directions in the docs folder of the measure
-# add more robust tests for implementation, and check timeseries results
-# add other building types in different climates for test
+# add performance curves 
+# compatability for DH objects 
+
 
 # start the measure
 class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
@@ -58,7 +54,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return 'This measure adds a heat recovery chiller and heat recovery loop to the model. The heat recovery chiller may be an existing chiller or new stand-alone heat recovery chiller. Converting an existing chiller will allow the chiller to rejected heat to the heat recovery loop in addition to the condenser loop. A new chiller will reject heat only to the heat recovery loop. The user may specify how to connect the heat recovery loop to the hot water loop, whether the heat recovery is in series or parallel with existing heating source objects, and optionally decide whether to adjust hot water loop temperatures and add output variables. The measure DOES NOT size the heat recovery chiller or heat recovery storage objects.'
+    return 'This measure adds a heat recovery chiller and heat recovery loop to the model. The heat recovery chiller may be an existing chiller or new stand-alone heat recovery chiller. Converting an existing chiller will allow the chiller to rejected heat to the heat recovery loop in addition to the condenser loop. A new chiller will reject heat only to the heat recovery loop. The user may specify how to connect the heat recovery loop to the hot water loop, whether the heat recovery is in series or parallel with existing heating source objects, and optionally decide whether to adjust hot water loop temperatures and add output variables.'
   end
 
   # human readable description of modeling approach
@@ -132,23 +128,23 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     args << existing_chiller_name
 
     # connect with a heat exchanger or storage tank
-    link_options = OpenStudio::StringVector.new
-    link_options << 'Direct'
-    link_options << 'Storage Tank'
+    # link_options = OpenStudio::StringVector.new
+    # link_options << 'Direct'
+    # link_options << 'Storage Tank'
 
     # create argument for link
-    link_option = OpenStudio::Measure::OSArgument::makeChoiceArgument('link_option', link_options, false, true)
-    link_option.setDefaultValue('Direct')
-    link_option.setDisplayName('Heat recovery loop to hot water loop connection')
-    link_option.setDescription('Choose whether to connect the heat recovery loop to the hot water loop directly, or including a storage tank.')
-    args << link_option
+    # link_option = OpenStudio::Measure::OSArgument::makeChoiceArgument('link_option', link_options, false, true)
+    # link_option.setDefaultValue('Direct')
+    # link_option.setDisplayName('Heat recovery loop to hot water loop connection')
+    # link_option.setDescription('Choose whether to connect the heat recovery loop to the hot water loop directly, or including a storage tank.')
+    # args << link_option
 
     # create argument for storage tank size
-    storage_tank_size_gal = OpenStudio::Measure::OSArgument::makeDoubleArgument('storage_tank_size_gal', false, false)
-    storage_tank_size_gal.setDefaultValue(200.0)
-    storage_tank_size_gal.setDisplayName('Heat recovery storage tank size in gallons')
-    storage_tank_size_gal.setDescription('Only applicable if using a storage tank.')
-    args << storage_tank_size_gal
+    # storage_tank_size_gal = OpenStudio::Measure::OSArgument::makeDoubleArgument('storage_tank_size_gal', false, false)
+    # storage_tank_size_gal.setDefaultValue(200.0)
+    # storage_tank_size_gal.setDisplayName('Heat recovery storage tank size in gallons')
+    # storage_tank_size_gal.setDescription('Only applicable if using a storage tank.')
+    # args << storage_tank_size_gal
 
     # create argument for parallel or series
     heating_order_options = OpenStudio::StringVector.new
@@ -170,14 +166,14 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # create argument to optionally reset hot water loop tempeatures
     reset_hot_water_loop_temperature = OpenStudio::Measure::OSArgument::makeBoolArgument('reset_hot_water_loop_temperature',false, false)
-    reset_hot_water_loop_temperature.setDefaultValue(false)
+    reset_hot_water_loop_temperature.setDefaultValue(true)
     reset_hot_water_loop_temperature.setDisplayName('Reset hot water loop temperature?')
     reset_hot_water_loop_temperature.setDescription('If true, the measure will reset the hot water loop temperature to match the heat recovery loop temperature. It WILL NOT reset demand side coil objects, which could cause simulation errors or unmet hours. If the hot water loop is connected to the heat recovery loop by a heat exchanger instead of a storage tank, the hot water loop temperature will instead be reset to the heat recovery loop temperature minus 5F.')
     args << reset_hot_water_loop_temperature
 
     # create argument to optionally reset heating coil design tempeatures
     reset_heating_coil_design_temp = OpenStudio::Measure::OSArgument::makeBoolArgument('reset_heating_coil_design_temp', false, false)
-    reset_heating_coil_design_temp.setDefaultValue(false)
+    reset_heating_coil_design_temp.setDefaultValue(true)
     reset_heating_coil_design_temp.setDisplayName('Reset heating coil design temperatures?')
     reset_heating_coil_design_temp.setDescription('If true, the measure will reset the heating coil design temperatures to match the heat recovery loop temperature.')
     args << reset_heating_coil_design_temp
@@ -205,8 +201,8 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     chiller_choice = runner.getStringArgumentValue('chiller_choice', user_arguments)
     new_chiller_size_tons = runner.getDoubleArgumentValue('new_chiller_size_tons', user_arguments)
     existing_chiller_name = runner.getStringArgumentValue('existing_chiller_name', user_arguments)
-    link_option = runner.getStringArgumentValue('link_option', user_arguments)
-    storage_tank_size_gal = runner.getDoubleArgumentValue('storage_tank_size_gal', user_arguments)
+    #link_option = runner.getStringArgumentValue('link_option', user_arguments)
+    #storage_tank_size_gal = runner.getDoubleArgumentValue('storage_tank_size_gal', user_arguments)
     heating_order = runner.getStringArgumentValue('heating_order', user_arguments)
     heat_recovery_loop_temperature_f = runner.getDoubleArgumentValue('heat_recovery_loop_temperature_f', user_arguments)
     reset_hot_water_loop_temperature = runner.getBoolArgumentValue('reset_hot_water_loop_temperature', user_arguments)
@@ -375,7 +371,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       return false
     elsif heat_recovery_loop_temperature_f < 100.0
       runner.registerWarning("Heat recovery loop temperature #{heat_recovery_loop_temperature_f} is atypical; typical ranges are 100-140F.")
-    elsif heat_recovery_loop_temperature_f > 140.0
+    elsif heat_recovery_loop_temperature_f > 150.0
       runner.registerWarning("Heat recovery loop temperature #{heat_recovery_loop_temperature_f} is atypical; typical ranges are 100-140F.")
     elsif heat_recovery_loop_temperature_f > 180.0
       runner.registerError("Heat recovery loop temperature #{heat_recovery_loop_temperature_f} is above 180F, which is outside the range of equipment considered in this measure.")
@@ -395,17 +391,32 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
                                                                                     name: "Hot Water Loop #{new_hot_water_temperature_f}F",
                                                                                     schedule_type_limit: 'Temperature')
       hw_stpt_manager = OpenStudio::Model::SetpointManagerScheduled.new(model, hw_temp_sch)
+	  # #Implement ASHRAE recommended reset; for future use 
+	  # new_high_hot_water_temperature_c = OpenStudio.convert(180, 'F', 'C').get
+	  # new_low_hot_water_temperature_c = OpenStudio.convert(150, 'F', 'C').get
+	  # low_oat_c = OpenStudio.convert(20, 'F', 'C').get
+	  # high_oat_c = OpenStudio.convert(50, 'F', 'C').get
+	  # hw_stpt_manager = OpenStudio::Model::SetpointManagerOutdoorAirReset.new(model)
+	  # hw_stpt_manager.setSetpointatOutdoorHighTemperature(new_low_hot_water_temperature_c)
+	  # hw_stpt_manager.setSetpointatOutdoorLowTemperature(new_high_hot_water_temperature_c)
+	  # hw_stpt_manager.setOutdoorHighTemperature(high_oat_c)
+	  # hw_stpt_manager.setOutdoorLowTemperature(low_oat_c)
       hw_stpt_manager.setName('Hot Water Loop Setpoint Manager')
       hw_stpt_manager.addToNode(hot_water_loop.supplyOutletNode)
-      runner.registerInfo("Reset hot water temperatures on hot water loop #{hot_water_loop.name} to #{new_hot_water_temperature_f}F.")
+      #runner.registerInfo("Reset hot water temperatures on hot water loop #{hot_water_loop.name} to #{new_hot_water_temperature_f}F.")
     end
 
     if reset_heating_coil_design_temp
      #change the water heating coils to use heat recovery loop temperature
       runner.registerWarning("Resetting hot water coil temperatures. This measure currently only changes CoilHeatingWater objects. If you have other objects on this loop, you will need to change them manually.")
       hot_water_loop.demandComponents('OS:Coil:Heating:Water'.to_IddObjectType).each do |coil|
+	    coil = coil.to_CoilHeatingWater.get
         coil.setRatedInletWaterTemperature(OpenStudio.convert(new_hot_water_temperature_f, 'F', 'C').get)
         coil.setRatedOutletWaterTemperature(OpenStudio.convert(new_hot_water_temperature_f - 20.0, 'F', 'C').get)
+		#Autosize coils for new temperatures
+		coil.autosizeUFactorTimesAreaValue
+        coil.autosizeMaximumWaterFlowRate
+        coil.autosizeRatedCapacity 
       end
     end
 
@@ -427,7 +438,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     heat_recovery_loop.addDemandBranchForComponent(heat_recovery_chiller.to_HVACComponent.get)
 
     if chiller_choice == 'Add New Chiller'
-      # something goes here.  Not sure what.  Does this work if the heat recovery loop is a condenser loop (don't use chiller heat recovery fields?). Or do we need a dummy condenser loop?
       heat_recovery_chiller_outlet_node = heat_recovery_chiller.demandOutletModelObject.get.to_Node.get
       heat_recovery_chiller_outlet_node.setName('Heat Recovery Outlet Node')
       heat_recovery_chiller.setHeatRecoveryLeavingTemperatureSetpointNode(heat_recovery_loop.demandOutletNode)
@@ -454,44 +464,43 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     hr_pump.setPumpControlType('Intermittent')
     hr_pump.addToNode(heat_recovery_loop.supplyInletNode)
 
-    if link_option == 'Direct' || link_option == 'Storage Tank'
-      # add a water heater (storage tank) to the supply side of both hot water loop and heat recovery loop
-      water_heater = OpenStudio::Model::WaterHeaterMixed.new(model)
-      water_heater.setName('Heat Recovery Storage Water Heater')
-      water_heater.setHeaterMaximumCapacity(1.0) # 1 watt capacity
-      water_heater.setHeaterFuelType('Electricity')
-      water_heater.setHeaterThermalEfficiency(1.0)
-      water_heater.setOffCycleParasiticFuelConsumptionRate(0.0)
-      water_heater.setOffCycleParasiticFuelType('Electricity')
-      water_heater.setOnCycleParasiticFuelConsumptionRate(0.0)
-      water_heater.setOnCycleParasiticFuelType('Electricity')
-      amb_temp_sch = OpenstudioStandards::Schedules.create_constant_schedule_ruleset(model,
-                                                                                     OpenStudio.convert(70.0, 'F', 'C').get,
-                                                                                     name: 'Ambient Temp Sch 70F',
-                                                                                     schedule_type_limit: 'Temperature')
-      water_heater.setAmbientTemperatureIndicator('Schedule')
-      water_heater.setAmbientTemperatureSchedule(amb_temp_sch)
+    #if link_option == 'Direct' || link_option == 'Storage Tank'
+  # add a water heater (storage tank) to the supply side of both hot water loop and heat recovery loop
+	water_heater = OpenStudio::Model::WaterHeaterMixed.new(model)
+	water_heater.setName('Heat Recovery Storage Water Heater')
+	water_heater.setHeaterMaximumCapacity(1.0) # 1 watt capacity
+	water_heater.setHeaterFuelType('Electricity')
+	water_heater.setHeaterThermalEfficiency(1.0)
+	water_heater.setOffCycleParasiticFuelConsumptionRate(0.0)
+	water_heater.setOffCycleParasiticFuelType('Electricity')
+	water_heater.setOnCycleParasiticFuelConsumptionRate(0.0)
+	water_heater.setOnCycleParasiticFuelType('Electricity')
+	amb_temp_sch = OpenstudioStandards::Schedules.create_constant_schedule_ruleset(model,
+																					 OpenStudio.convert(70.0, 'F', 'C').get,
+																					 name: 'Ambient Temp Sch 70F',
+																					 schedule_type_limit: 'Temperature')
+	water_heater.setAmbientTemperatureIndicator('Schedule')
+	water_heater.setAmbientTemperatureSchedule(amb_temp_sch)
+	# ensure water heater object does not heat above the setpoint
+	water_heater.setMaximumTemperatureLimit(heat_recovery_loop_temperature_c)
 
-      # ensure water heater object does not heat above the setpoint
-      water_heater.setMaximumTemperatureLimit(heat_recovery_loop_temperature_c)
+      # if link_option == 'Storage Tank'
+        # # check storage tank size reasonableness
+        # if storage_tank_size_gal < 0.0
+          # runner.registerError("Storage tank size #{storage_tank_size_gal} gal must be greater than zero.")
+          # return false
+        # end
+        # storage_tank_size_m3 = OpenStudio.convert(storage_tank_size_gal, 'gal', 'm^3').get
+        # water_heater.setTankVolume(storage_tank_size_m3)
+      # else
+        # water_heater.setTankVolume(0.0)
+      # end
 
-      if link_option == 'Storage Tank'
-        # check storage tank size reasonableness
-        if storage_tank_size_gal < 0.0
-          runner.registerError("Storage tank size #{storage_tank_size_gal} gal must be greater than zero.")
-          return false
-        end
-        storage_tank_size_m3 = OpenStudio.convert(storage_tank_size_gal, 'gal', 'm^3').get
-        water_heater.setTankVolume(storage_tank_size_m3)
-      else
-        water_heater.setTankVolume(0.0)
-      end
-
-      hr_connecting_object = water_heater
-    else
-      runner.registerError("Invalid connection type #{link_option} between the heat recovery loop and hot water loop.")
-      return false
-    end
+    hr_connecting_object = water_heater
+    # else
+      # runner.registerError("Invalid connection type #{link_option} between the heat recovery loop and hot water loop.")
+      # return false
+    # end
 
     # make the loop connection
     heat_recovery_loop.addSupplyBranchForComponent(hr_connecting_object)
@@ -568,7 +577,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	  #inlet_node = hot_water_loop.supplyInletNode 
       hot_water_loop.supplyComponents.each do |sc| 
         next if !hot_water_source_objects.include?(sc.iddObject.name)
-		##AA added cases below to deal with different component types 
+		#inlet_nodes << sc.to_StraightComponent.get.inletModelObject.get.to_Node.get
 		if sc.to_WaterToWaterComponent.is_initialized
 			scomponent = sc.to_WaterToWaterComponent.get 
 			inlet_nodes << sc.to_WaterToWaterComponent.get.supplyInletModelObject.get.to_Node.get #
@@ -580,24 +589,22 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 			inlet_nodes << sc.to_ZoneHVACComponent.get.inletNode.get.to_Node.get ##AA confirm that this will work 
 		end 
       end
-	  
-	  runner.registerInfo("len of inlet nodes #{(inlet_nodes.length)}")
-	  runner.registerInfo("inlet node 0 #{inlet_nodes[0]}")
+	 
+	  #For future implementation 
+	  # # create the same setpoint manager after the connecting object
+      # hr_htg_loop_stpt_manager = OpenStudio::Model::SetpointManagerScheduled.new(model, hr_temp_sch)
+      # hr_htg_loop_stpt_manager.setName('Heat Recovery Heating Loop Setpoint Manager')
+      # #hr_htg_loop_stpt_manager.addToNode(outlet_node_con)
+	  # hr_htg_loop_stpt_manager.addToNode(inlet_nodes[0])
 	  
       # place the connecting object before the existing source object
       hr_connecting_object.addToNode(inlet_nodes[0])
 	  
-	  #Assuming connecting object is water to water component
-	  hr_connecting_object_ww = hr_connecting_object.to_WaterToWaterComponent.get 
-	  outlet_node_con = hr_connecting_object_ww.demandOutletModelObject.get.to_Node.get 
+	  # #Assuming connecting object is water to water component
+	  # hr_connecting_object_ww = hr_connecting_object.to_WaterToWaterComponent.get 
+	  # outlet_node_con = hr_connecting_object.to_WaterToWaterComponent.get.demandOutletModelObject.get.to_Node.get 
 	  
-	  runner.registerInfo("outlet node #{outlet_node_con}")
-	  
-	  # # create the same setpoint manager after the connecting object
-      hr_supply_outlet_stpt_manager = OpenStudio::Model::SetpointManagerScheduled.new(model, hr_temp_sch)
-      hr_supply_outlet_stpt_manager.setName('Heat Recovery Hot Water Loop Setpoint Manager')
-      hr_supply_outlet_stpt_manager.addToNode(outlet_node_con)
-
+	  # runner.registerInfo("outlet node #{outlet_node_con}")
     else
       runner.registerError("Invalid heating order type #{heating_order}.")
       return false
@@ -605,6 +612,31 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # rename plant nodes
     std.rename_plant_loop_nodes(model)
+	
+	#Autosize plant loop after changes to heating supply temperatures. 
+    hot_water_loop.autosizeMaximumLoopFlowRate 
+    hot_water_loop.autocalculatePlantLoopVolume
+	#autosize air loops and terminal units after changes to heating supply temperatures. 
+	model.getAirLoopHVACs.each do |air_loop|
+	  air_loop.autosizeDesignSupplyAirFlowRate
+	  air_loop_sizing = air_loop.sizingSystem
+	  air_loop_sizing.autosizeCoolingDesignCapacity
+	  air_loop_sizing.autosizeHeatingDesignCapacity
+	  air_loop.supplyComponents.each do |sup_comp|
+	  if sup_comp.to_FanVariableVolume.is_initialized
+		  fan = sup_comp.to_FanVariableVolume.get
+		  fan.autosizeMaximumFlowRate
+	  end
+     end
+    air_loop.demandComponents.each do |dem_comp|
+	next unless dem_comp.to_AirTerminalSingleDuctVAVReheat.is_initialized
+
+	term = dem_comp.to_AirTerminalSingleDuctVAVReheat.get
+	term.autosizeMaximumHotWaterOrSteamFlowRate
+	term.autosizeFixedMinimumAirFlowRate
+	term.autosizeMaximumAirFlowRate
+    end
+end
 
     # add output variables
     if enable_output_variables
@@ -666,6 +698,22 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       var.setReportingFrequency('Timestep')
 	  
 	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Boiler Part Load Ratio', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Boiler Efficiency', model)
+      var.setKeyValue('*')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('Boiler Heating Rate', model)
       var.setKeyValue('*')
       var.setReportingFrequency('Timestep')
 	 
