@@ -191,6 +191,22 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # build standards object to access standards methods
     std = Standard.build('90.1-2013')
 	
+	#Check for measure applicability 
+	boilers =  model.getBoilerHotWaters.size
+	chillers = model.getChillerElectricEIRs.size 
+	
+	unless boilers >=1 and chillers >=1 
+	   runner.registerAsNotApplicable("Either no boilers or no chillers in the model; not applicable.") 
+	end 
+	
+    #subsequent check for water cooled chillers
+	
+	#Need to check if initialized? 
+	timestep = model.getTimestep
+    timesteps_per_hr = timestep.numberOfTimestepsPerHour
+	
+	
+
 	#Set parameter values for sizing
 	hrc_delta_cost = 50 #$/ton, rough estimate, to be refined. Difference in cost between standard chiller and HRC 
 	base_boiler_eff = 0.8
@@ -335,7 +351,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       end
 
       if heat_recovery_chiller.condenserType == 'AirCooled'
-        runner.registerError("Chiller named #{heat_recovery_chiller.name} is an air-cooled chiller. This measure does not support air-cooled chillers. The method works by altering the fraction going to a heat recovery loop versus a condenser loop. With no condenser loop, it won't have the node to have heat recovery. Make your air-cooled chiller a water-cooled chiller, then create a dummy condensor loop. You can set the heat recovery fraction to 1 so the condenser loop never operates.")
+        runner.registerAsNotApplicable("Chiller named #{heat_recovery_chiller.name} is an air-cooled chiller. This measure does not support air-cooled chillers. The method works by altering the fraction going to a heat recovery loop versus a condenser loop. With no condenser loop, it won't have the node to have heat recovery. Make your air-cooled chiller a water-cooled chiller, then create a dummy condensor loop. You can set the heat recovery fraction to 1 so the condenser loop never operates.")
         return false
       end
     else
@@ -789,7 +805,7 @@ end
 	
 	step_size = (max_overlap_load/10).floor
 	
-	timesteps_per_hour = 4 
+	puts timesteps_per_hr
 	
 	chiller_lifespan = 20 #years 
 	
@@ -798,11 +814,11 @@ end
 	ng_cost_factor = 13.75 #FEMP LCCA Handbook 135 Supplement for 2024, commerical NG  US average
 	
 	#Calculate estimated baseline energy cost for purpose of evaluation 
-	chw_energy_use_base = chw_loads.map { |num| num/(base_chiller_cop *timesteps_per_hour * 1000)} #energy use in kWh 
+	chw_energy_use_base = chw_loads.map { |num| num/(base_chiller_cop *timesteps_per_hr * 1000)} #energy use in kWh 
 	chw_elec_cost_base = chw_energy_use_base.map { |num| num*elec_cost} 
 	
 	# #TODO extend to other fuels 
-	hhw_energy_use_base = hhw_loads.map { |num| num/(base_boiler_eff * timesteps_per_hour * 1000)} #energy use in kWh 
+	hhw_energy_use_base = hhw_loads.map { |num| num/(base_boiler_eff * timesteps_per_hr * 1000)} #energy use in kWh 
 	hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * btu_per_kWh * gas_cost_per_btu } 
 	
 	#Sum annual costs 
@@ -829,11 +845,11 @@ end
 		# Heating loads above the HRC capacity are carried by the boiler 
 		boiler_loads_htg = hhw_loads.map { |value| value >= hrc_cap ? value - hrc_cap : 0}
 		# Calculate energy use 
-		hrc_energy_use = hrc_loads_clg.map { |num| num/(hrc_cop *timesteps_per_hour * 1000)} #HRC energy use; kWh time series 
+		hrc_energy_use = hrc_loads_clg.map { |num| num/(hrc_cop *timesteps_per_hr * 1000)} #HRC energy use; kWh time series 
 		hrc_energy_use_ann = hrc_energy_use.inject(0, :+) #kWh 
-		chiller_energy_use = chiller_loads_clg.map { |num| num/(base_chiller_cop *timesteps_per_hour * 1000)} #chiller energy use; kWh time series 
+		chiller_energy_use = chiller_loads_clg.map { |num| num/(base_chiller_cop *timesteps_per_hr * 1000)} #chiller energy use; kWh time series 
 		chiller_energy_use_ann = chiller_energy_use.inject(0, :+) #kWh 
-		boiler_energy_use = boiler_loads_htg.map { |num| num/(base_boiler_eff * timesteps_per_hour * 1000)} #kWh time series 
+		boiler_energy_use = boiler_loads_htg.map { |num| num/(base_boiler_eff * timesteps_per_hr * 1000)} #kWh time series 
 		boiler_energy_use_ann = boiler_energy_use.inject(0, :+) #kWh 
 		#Calculate energy cost
 		scen_elec_cost_ann = (chiller_energy_use_ann + hrc_energy_use_ann)*elec_cost 
