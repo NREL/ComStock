@@ -5,10 +5,10 @@
 # Upgrade_Add_Thermostat_Setback
 
 ## Description
-
+This measure implements thermostat setbacks during unoccupied periods.
 
 ## Modeler Description
-
+This measure implements thermostat setbacks during unoccupied periods.
 
 ## Measure Type
 ModelMeasure
@@ -22,7 +22,7 @@ ModelMeasure
 ### Cooling setback magnitude
 Setback magnitude in cooling.
 **Name:** clg_setback,
-**Type:** String,
+**Type:** Integer,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
@@ -31,21 +31,46 @@ Setback magnitude in cooling.
 ### Heating setback magnitude
 Setback magnitude in heating.
 **Name:** htg_setback,
-**Type:** String,
+**Type:** Integer,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
 
-### Optimum start type
-
-**Name:** opt_start_type,
-**Type:** Choice,
+### Model an optimum start different from what currently exists?
+True if yes; false if no. If false, any existing optimum starts will be preserved.
+**Name:** opt_start,
+**Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-**Choice Display Names** ["1.5 hour ramp", "3 hour ramp", "None"]
+
+### Length of optimum start.
+Length of period (in hours) over which optimum start takes place before occupancy. If previous argument is false, this option is disregarded.
+**Name:** opt_start_len,
+**Type:** Integer,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Minimum heating setpoint
+Minimum heating setpoint
+**Name:** htg_min,
+**Type:** Integer,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Maximum cooling setpoint
+Maximum cooling setpoint
+**Name:** clg_max,
+**Type:** Integer,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
 
 
 

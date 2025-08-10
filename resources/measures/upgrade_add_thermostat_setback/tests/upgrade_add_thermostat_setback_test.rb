@@ -53,7 +53,8 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
   end
 
   # applies the measure and then runs the model
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false,
+                                            model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -106,13 +107,13 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
           /October .4. Condns DB=>MCWB/
         ]
         ddy_list.each do |ddy_name_regex|
-          if d.name.get.to_s.match?(ddy_name_regex)
-            runner.registerInfo("Adding object #{d.name}")
+          next unless d.name.get.to_s.match?(ddy_name_regex)
 
-            # add the object to the existing model
-            model.addObject(d.clone)
-            break
-          end
+          runner.registerInfo("Adding object #{d.name}")
+
+          # add the object to the existing model
+          model.addObject(d.clone)
+          break
         end
       end
 
@@ -125,7 +126,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
       puts "\nAPPLYING MEASURE..."
       measure.run(model, runner, argument_map)
       result = runner.result
-      result_success = result.value.valueName == 'Success'
+      result.value.valueName
       assert_equal(expected_results, result.value.valueName)
 
       # Show the output
@@ -152,6 +153,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
     result
   end
+
   def test_number_of_arguments_and_argument_names
     # This test ensures that the current test is matched to the measure inputs
     test_name = 'test_number_of_arguments_and_argument_names'
@@ -173,6 +175,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
     assert_equal('htg_min', arguments[4].name)
     assert_equal('clg_max', arguments[5].name)
   end
+
   def test_confirm_heating_setback_change_square_wave
     # confirm that any heating setbacks are now 2F
     osm_name = '380_psz_ac_with_gas_boiler._setback_test.osm'
@@ -197,22 +200,20 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
-    
-	conv_factor = fraction_as_rational = Rational(5, 9) 
+
+    conv_factor = Rational(5, 9)
     htg_setback = 5.0
     htg_setback_c = htg_setback.to_f * conv_factor
-	
-	#Use default argument values 
+
+    # Use default argument values
 
     # run the measure
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
                                                    run_model: false)
     assert_equal('Success', result.value.valueName)
-    model = load_model(model_output_path(__method__))
+    model = load_model(model_output_path(__method__)) # keep track of differences between min and max values in schedules
 
     schedule_deltas = [] # keep track of differences between min and max values in schedules
-	
-	schedule_deltas = [] # keep track of differences between min and max values in schedules
 
 
     # Loop thru zones and look at temp setbacks
@@ -237,14 +238,14 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
         profiles = [htg_schedule.defaultDaySchedule]
         htg_schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
         profiles.sort.each do |tstat_profile|
-          #working_profile = tstat_profile.values.dup
+          # working_profile = tstat_profile.values.dup
           tstat_profile_min = tstat_profile.values.min
           tstat_profile_max = tstat_profile.values.max
           # tstat_profile.values.each_with_index do |value, i| # find minimum except for values during opt start
-            # # test values for optimum start (need to be at least the third timestep in the profile to test)
-            # if i > 3 && possible_opt_start(i, tstat_profile, tstat_profile_min) # identify if the time step could have been part of an optimum start
-              # working_profile.delete(value)
-            # end
+          # # test values for optimum start (need to be at least the third timestep in the profile to test)
+          # if i > 3 && possible_opt_start(i, tstat_profile, tstat_profile_min) # identify if the time step could have been part of an optimum start
+          # working_profile.delete(value)
+          # end
           # end
           # tstat_profile_min_adj = working_profile.min
           # tstat_profile_max_adj = working_profile.max
@@ -254,12 +255,12 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
     end
 
     # Make sure no deltas are greater than the expected setback value
-    deltas_out_of_range = schedule_deltas.any? { |x| x > htg_setback_c + 0.2 } #add a margin for unit conversion 
-	
-	
-	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
-	puts schedule_deltas
-	puts htg_setback_c 
+    deltas_out_of_range = schedule_deltas.any? { |x| x > htg_setback_c + 0.2 } # add a margin for unit conversion
+
+
+    puts("Temperature deltas in schedule match expected values: #{deltas_out_of_range == false}")
+    puts schedule_deltas
+    puts htg_setback_c
 
     assert_equal(deltas_out_of_range, false)
     true
