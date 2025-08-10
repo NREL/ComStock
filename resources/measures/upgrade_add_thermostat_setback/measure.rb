@@ -29,31 +29,37 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
 	clg_setback = OpenStudio::Measure::OSArgument.makeIntegerArgument('clg_setback', true)
     clg_setback.setDisplayName('Cooling setback magnitude')
     clg_setback.setDescription('Setback magnitude in cooling.')
+	clg_setback.setDefaultValue(5)
     args << clg_setback
 
     htg_setback = OpenStudio::Measure::OSArgument.makeIntegerArgument('htg_setback', true)
     htg_setback.setDisplayName('Heating setback magnitude')
     htg_setback.setDescription('Setback magnitude in heating.')
+	htg_setback.setDefaultValue(5)
     args << htg_setback
 	
 	opt_start = OpenStudio::Measure::OSArgument.makeBoolArgument('opt_start', true)
     opt_start.setDisplayName('Model an optimum start different from what currently exists?')
     opt_start.setDescription('True if yes; false if no. If false, any existing optimum starts will be preserved.')
+	opt_start.setDefaultValue(true) 
     args << opt_start
 	
     opt_start_len = OpenStudio::Measure::OSArgument.makeIntegerArgument('opt_start_len', true)
     opt_start_len.setDisplayName('Length of optimum start.')
+	opt_start_len.setDefaultValue(3)
     opt_start_len.setDescription('Length of period (in hours) over which optimum start takes place before occupancy. If previous argument is false, this option is disregarded.')
     args << opt_start_len
 	
 	htg_min = OpenStudio::Measure::OSArgument.makeIntegerArgument('htg_min', true)
     htg_min.setDisplayName('Minimum heating setpoint')
     htg_min.setDescription('Minimum heating setpoint')
+	htg_min.setDefaultValue(60)
     args << htg_min
 	
 	clg_max = OpenStudio::Measure::OSArgument.makeIntegerArgument('clg_max', true)
     clg_max.setDisplayName('Maximum cooling setpoint')
     clg_max.setDescription('Maximum cooling setpoint')
+	clg_max.setDefaultValue(82)
     args << clg_max
 
     return args
