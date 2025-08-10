@@ -109,7 +109,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # create argument for new heat recovery chiller size
     new_chiller_size_tons = OpenStudio::Measure::OSArgument::makeDoubleArgument('new_chiller_size_tons', false, false)
     new_chiller_size_tons.setDefaultValue(35.0)
-    new_chiller_size_tons.setDisplayName('New heat recovery chiller size in tons cooling')
+    new_chiller_size_tons.setDisplayName('Preliminary sizing for HRC. Value is updated at end of measure with optimal size.')
     new_chiller_size_tons.setDescription('Only applicable if add_new_chiller is set to true.')
     args << new_chiller_size_tons
 
@@ -126,25 +126,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     existing_chiller_name.setDisplayName('Existing Chiller to Convert')
     existing_chiller_name.setDescription('Only applicable if converting an existing chiller. Choose a chiller to convert to a heat recovery chiller. Infer from model will default to the first chiller on the selected chilled water loop.')
     args << existing_chiller_name
-
-    # connect with a heat exchanger or storage tank
-    # link_options = OpenStudio::StringVector.new
-    # link_options << 'Direct'
-    # link_options << 'Storage Tank'
-
-    # create argument for link
-    # link_option = OpenStudio::Measure::OSArgument::makeChoiceArgument('link_option', link_options, false, true)
-    # link_option.setDefaultValue('Direct')
-    # link_option.setDisplayName('Heat recovery loop to hot water loop connection')
-    # link_option.setDescription('Choose whether to connect the heat recovery loop to the hot water loop directly, or including a storage tank.')
-    # args << link_option
-
-    # create argument for storage tank size
-    # storage_tank_size_gal = OpenStudio::Measure::OSArgument::makeDoubleArgument('storage_tank_size_gal', false, false)
-    # storage_tank_size_gal.setDefaultValue(200.0)
-    # storage_tank_size_gal.setDisplayName('Heat recovery storage tank size in gallons')
-    # storage_tank_size_gal.setDescription('Only applicable if using a storage tank.')
-    # args << storage_tank_size_gal
 
     # create argument for parallel or series
     heating_order_options = OpenStudio::StringVector.new
@@ -201,8 +182,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     chiller_choice = runner.getStringArgumentValue('chiller_choice', user_arguments)
     new_chiller_size_tons = runner.getDoubleArgumentValue('new_chiller_size_tons', user_arguments)
     existing_chiller_name = runner.getStringArgumentValue('existing_chiller_name', user_arguments)
-    #link_option = runner.getStringArgumentValue('link_option', user_arguments)
-    #storage_tank_size_gal = runner.getDoubleArgumentValue('storage_tank_size_gal', user_arguments)
     heating_order = runner.getStringArgumentValue('heating_order', user_arguments)
     heat_recovery_loop_temperature_f = runner.getDoubleArgumentValue('heat_recovery_loop_temperature_f', user_arguments)
     reset_hot_water_loop_temperature = runner.getBoolArgumentValue('reset_hot_water_loop_temperature', user_arguments)
@@ -213,7 +192,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     std = Standard.build('90.1-2013')
 	
 	#Set parameter values for sizing
-	hrc_cost = 500 #$/ton, rough estimate to be refined
+	hrc_delta_cost = 50 #$/ton, rough estimate, to be refined. Difference in cost between standard chiller and HRC 
 	base_boiler_eff = 0.8
 	base_shw_eff = 0.8 
 	hrc_cop = 5.0 #to be refined based on actual equipment and part load value 
@@ -223,6 +202,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	btu_per_ft3 = 1038 #energy density of natural gas, https://www.eia.gov/tools/faqs/faq.php?id=45&t=8
 	gas_cost_per_btu = gas_cost/1000/btu_per_ft3
 	btu_per_kWh = 3412.14 
+	tons_per_watt = 0.000284345
 	
 
     # check the cooling_loop_name argument for reasonableness and assign chilled water loop
@@ -295,6 +275,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     if chiller_choice == 'Add New Chiller'
       heat_recovery_chiller = OpenStudio::Model::ChillerElectricEIR.new(model)
       heat_recovery_chiller.setName('Heat Recovery Chiller')
+	  heat_recovery_chiller.setReferenceCOP(hrc_cop) 
       chilled_water_loop.addSupplyBranchForComponent(heat_recovery_chiller)
 
       # set as air cooled as condenser loop may not exist
@@ -469,7 +450,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     hr_pump.setPumpControlType('Intermittent')
     hr_pump.addToNode(heat_recovery_loop.supplyInletNode)
 
-    #if link_option == 'Direct' || link_option == 'Storage Tank'
   # add a water heater (storage tank) to the supply side of both hot water loop and heat recovery loop
 	water_heater = OpenStudio::Model::WaterHeaterMixed.new(model)
 	water_heater.setName('Heat Recovery Storage Water Heater')
@@ -489,23 +469,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	# ensure water heater object does not heat above the setpoint
 	water_heater.setMaximumTemperatureLimit(heat_recovery_loop_temperature_c)
 
-      # if link_option == 'Storage Tank'
-        # # check storage tank size reasonableness
-        # if storage_tank_size_gal < 0.0
-          # runner.registerError("Storage tank size #{storage_tank_size_gal} gal must be greater than zero.")
-          # return false
-        # end
-        # storage_tank_size_m3 = OpenStudio.convert(storage_tank_size_gal, 'gal', 'm^3').get
-        # water_heater.setTankVolume(storage_tank_size_m3)
-      # else
-        # water_heater.setTankVolume(0.0)
-      # end
-
     hr_connecting_object = water_heater
-    # else
-      # runner.registerError("Invalid connection type #{link_option} between the heat recovery loop and hot water loop.")
-      # return false
-    # end
 
     # make the loop connection
     heat_recovery_loop.addSupplyBranchForComponent(hr_connecting_object)
@@ -823,9 +787,7 @@ end
 	
 	max_overlap_load = sorted_overlap_loads[0] #maximum value, sorted in descending order 
 	
-	step_size = 10000 #Watts
-	
-	steps = (max_overlap_load/step_size).floor
+	step_size = (max_overlap_load/10).floor
 	
 	timesteps_per_hour = 4 
 	
@@ -843,37 +805,49 @@ end
 	hhw_energy_use_base = hhw_loads.map { |num| num/(base_boiler_eff * timesteps_per_hour * 1000)} #energy use in kWh 
 	hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * btu_per_kWh * gas_cost_per_btu } 
 	
-	# Sum annual costs 
-	hhw_energy_cost_base_ann = 0 
-	index = 0 
-	while index < hhw_energy_cost_base.length
-	  hhw_energy_cost_base_ann += hhw_energy_cost_base[index]
-	  index += 1
-    end
+	#Sum annual costs 
 	
-    chw_energy_cost_base_ann = 0 
-	index = 0 
-	while index < chw_elec_cost_base.length
-	  chw_energy_cost_base_ann += chw_elec_cost_base[index]
-	  index += 1
-    end
+	hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
+ 
+	chw_energy_cost_base_ann = chw_elec_cost_base.inject(0, :+)
+
 	
-	puts ("#{elec_cost_factor.class}")
+	#Convert to life cycle cost, expressed as a present value 
+	lcc_base = hhw_energy_cost_base_ann * ng_cost_factor + chw_energy_cost_base_ann * elec_cost_factor
 	
-	#Convert to life cycle cost series
-	lcc_energy_cost_base = hhw_energy_cost_base_ann * ng_cost_factor + chw_energy_cost_base_ann * elec_cost_factor
+	puts lcc_base
 	
-	load_eval = []
+	hrc_eval = {}
 	
-	hhw_energy_use_base.first(20).inspect 
+	(1...10).each do |step|
+	    hrc_cap = step*step_size
+		# Separate out loads by equipment serving htem 
+		# Clg loads under the capacity of HRC are carried by HRC 
+		hrc_loads_clg = chw_loads.map { |value| value < hrc_cap ? value : hrc_cap }
+		# Clg loads above HRC capacity are carried by the chiller 
+		chiller_loads_clg = chw_loads.map { |value| value >= hrc_cap ? value - hrc_cap : 0 } 
+		# Heating loads above the HRC capacity are carried by the boiler 
+		boiler_loads_htg = hhw_loads.map { |value| value >= hrc_cap ? value - hrc_cap : 0}
+		# Calculate energy use 
+		hrc_energy_use = hrc_loads_clg.map { |num| num/(hrc_cop *timesteps_per_hour * 1000)} #HRC energy use; kWh time series 
+		hrc_energy_use_ann = hrc_energy_use.inject(0, :+) #kWh 
+		chiller_energy_use = chiller_loads_clg.map { |num| num/(base_chiller_cop *timesteps_per_hour * 1000)} #chiller energy use; kWh time series 
+		chiller_energy_use_ann = chiller_energy_use.inject(0, :+) #kWh 
+		boiler_energy_use = boiler_loads_htg.map { |num| num/(base_boiler_eff * timesteps_per_hour * 1000)} #kWh time series 
+		boiler_energy_use_ann = boiler_energy_use.inject(0, :+) #kWh 
+		#Calculate energy cost
+		scen_elec_cost_ann = (chiller_energy_use_ann + hrc_energy_use_ann)*elec_cost 
+        scen_gas_cost_ann = boiler_energy_use_ann*btu_per_kWh*gas_cost_per_btu
+		#Calculate capital cost 
+		hrc_cost_diff = hrc_delta_cost * tons_per_watt * hrc_cap
+		hrc_lcc = scen_gas_cost_ann*ng_cost_factor + scen_elec_cost_ann*elec_cost_factor + hrc_cost_diff
+		hrc_eval[hrc_cap] = hrc_lcc
+	end 
 	
-	# (1...steps).each do |step|
-	    # load = step*step_size
-		# res = 0
-		# load_eval << [load, chw_elec_cost_base] 
-	# end 
-	
-	# puts load_eval 
+	#Find the HRC size corresponding to the minimum life cycle cost
+	opt_hrc_size = hrc_eval.key(hrc_eval.values.min)
+	heat_recovery_chiller.setReferenceCapacity(opt_hrc_size)
+	puts hrc_eval 
 	
     return true 
   end
