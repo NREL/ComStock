@@ -52,8 +52,10 @@ class FanStaticPressureResetTest < Minitest::Test
   def report_path(test_name)
     "#{run_dir(test_name)}/reports/eplustbl.html"
   end
-   # applies the measure and then runs the model
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
+
+  # applies the measure and then runs the model
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false,
+                                            model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -106,13 +108,13 @@ class FanStaticPressureResetTest < Minitest::Test
           /October .4. Condns DB=>MCWB/
         ]
         ddy_list.each do |ddy_name_regex|
-          if d.name.get.to_s.match?(ddy_name_regex)
-            runner.registerInfo("Adding object #{d.name}")
+          next unless d.name.get.to_s.match?(ddy_name_regex)
 
-            # add the object to the existing model
-            model.addObject(d.clone)
-            break
-          end
+          runner.registerInfo("Adding object #{d.name}")
+
+          # add the object to the existing model
+          model.addObject(d.clone)
+          break
         end
       end
 
@@ -125,7 +127,7 @@ class FanStaticPressureResetTest < Minitest::Test
       puts "\nAPPLYING MEASURE..."
       measure.run(model, runner, argument_map)
       result = runner.result
-      result_success = result.value.valueName == 'Success'
+      result.value.valueName
       assert_equal(expected_results, result.value.valueName)
 
       # Show the output
@@ -153,7 +155,6 @@ class FanStaticPressureResetTest < Minitest::Test
   end
 
   def test_confirm_fan_curve_change
-  
     osm_name = 'SP_reset_measure_Test.osm'
     epw_name = 'USA_AL_Maxwell.AFB.722265_TMY3.epw'
 
@@ -162,47 +163,44 @@ class FanStaticPressureResetTest < Minitest::Test
     puts "\n######\nTEST:#{test_name}\n######\n"
 
     osm_path = model_input_path(osm_name)
-	epw_path = epw_input_path(epw_name)
+    epw_path = epw_input_path(epw_name)
 
     # Create an instance of the measure
     measure = FanStaticPressureReset.new
 
     # Load the model
     model = load_model(osm_path)
-	
-	# get arguments
+
+    # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-	
+
     # run the measure
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path,
                                                    run_model: false)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
-	
-	#Coefficients for fan curve emulating SP reset 
-	reset_coeff_1 = 0.040759894
+
+    # Coefficients for fan curve emulating SP reset
+    reset_coeff_1 = 0.040759894
     reset_coeff_2 = 0.08804497
     reset_coeff_3 = -0.07292612
     reset_coeff_4 = 0.943739823
-	
-	reset_arr = [reset_coeff_1, reset_coeff_2, reset_coeff_3, reset_coeff_4]
 
-	vs_fans = model.getFanVariableVolumes
-	
-	for fan in vs_fans
-	    fan = fan.to_FanVariableVolume.get
-		coeff_1 = fan.fanPowerCoefficient1()
-		coeff_2 = fan.fanPowerCoefficient2()
-		coeff_3 = fan.fanPowerCoefficient3()
-		coeff_4 = fan.fanPowerCoefficient4()
-		fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]
-		if fan_coeff_arr != reset_arr
-		   return false
-		end 
-	end 
-	
-	return true 
-	end 
-  
-  end 
+    reset_arr = [reset_coeff_1, reset_coeff_2, reset_coeff_3, reset_coeff_4]
+
+    vs_fans = model.getFanVariableVolumes
+
+    for fan in vs_fans
+      fan = fan.to_FanVariableVolume.get
+      coeff_1 = fan.fanPowerCoefficient1
+      coeff_2 = fan.fanPowerCoefficient2
+      coeff_3 = fan.fanPowerCoefficient3
+      coeff_4 = fan.fanPowerCoefficient4
+      fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]
+      return false if fan_coeff_arr != reset_arr
+    end
+
+    true
+  end
+end
