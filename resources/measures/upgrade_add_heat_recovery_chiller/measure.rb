@@ -218,6 +218,11 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	base_shw_eff = 0.8 
 	hrc_cop = 5.0 #to be refined based on actual equipment and part load value 
 	base_chiller_cop = 5.9 #AA TODO: look up by capacity and IPLV 
+	elec_cost = 0.01296 #$/kWh, May 2025 US commercial average
+	gas_cost = 11.76 #$/kcf May 2025 US commercial average
+	btu_per_ft3 = 1038 #energy density of natural gas, https://www.eia.gov/tools/faqs/faq.php?id=45&t=8
+	gas_cost_per_btu = gas_cost/1000/btu_per_ft3
+	btu_per_kWh = 3412.14 
 	
 
     # check the cooling_loop_name argument for reasonableness and assign chilled water loop
@@ -694,11 +699,11 @@ end
 	  #Add vars for sizing 
 	  
 	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
-      var.setKeyValue('*')
+      var.setKeyValue(chilled_water_loop.name.to_s)
       var.setReportingFrequency('Timestep')
 	  
 	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
-      var.setKeyValue('*')
+      var.setKeyValue(hot_water_loop.name.to_s)
       var.setReportingFrequency('Timestep')
 	  
 	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
@@ -741,27 +746,136 @@ end
     #Sizing routine for HRC
 	runner.registerInfo("directory #{Dir.pwd}")
 	ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
-    ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" #giving swig error
-	# if File.exist?(ann_loads_sql_path)
-      # sql_path = OpenStudio::Path.new(ann_loads_sql_path)
-      # sql = OpenStudio::SqlFile.new(sql_path)
-      # model.setSqlFile(sql)
-    # else
-	  # std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
-      # runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
-	  # if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false #Simulation runs successfully, but gives bool error from this, 
-        # runner.registerError('Annual run failed. See errors in sizing run directory or this measure')
-        # return false
-      # end
-    # end
+    ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql" 
+	if File.exist?(ann_loads_sql_path)
+      sql_path = OpenStudio::Path.new(ann_loads_sql_path)
+      sql = OpenStudio::SqlFile.new(sql_path)
+      model.setSqlFile(sql)
+    else
+	  #std.model_run_simulation_and_log_errors(model, ann_loads_run_dir)
+      runner.registerInfo('Running an annual simulation to determine thermal loads for HRC.')
+	  if std.model_run_simulation_and_log_errors(model, ann_loads_run_dir) == false 
+        runner.registerError('Annual run failed. See errors in sizing run directory or this measure')
+        return false
+      end
+    end
 
-    # if model.sqlFile.empty?
-      # runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
-      # return false
-    # end
-	# sql = model.sqlFile.get #get swig error from this if check above is commented out 
-	return true 
+    if model.sqlFile.empty?
+      runner.registerError('Model did not have an sql file; cannot get loads for sizing HRC.')
+      return false
+    end
+	sql = model.sqlFile.get 
 	
+	# get weather file run period (as opposed to design day run period)
+	ann_env_pd = nil
+    sql.availableEnvPeriods.each do |env_pd|
+      env_type = sql.environmentType(env_pd)
+      if env_type.is_initialized && (env_type.get == OpenStudio::EnvironmentType.new('WeatherRunPeriod'))
+        ann_env_pd = env_pd
+      end
+    end
+	
+	# add timeseries thermal loads to array
+    chw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Cooling Demand Rate',
+                                     chilled_water_loop.name.to_s)
+	hhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
+                                     hot_water_loop.name.to_s)
+	# dhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
+                                     # dhw_loop)
+
+	#Process results 
+    if chw_loads_ts.is_initialized
+      chw_loads = []
+      vals = chw_loads_ts.get.values
+      for i in 0..(vals.size - 1)
+        chw_loads << vals[i]
+      end
+    end
+	
+	if hhw_loads_ts.is_initialized
+       hhw_loads = []
+       vals = hhw_loads_ts.get.values
+      for i in 0..(vals.size - 1)
+        hhw_loads << vals[i]
+      end
+    end
+    
+	#Create combined array of loads 
+	combined_array = chw_loads.zip(hhw_loads)
+	
+	overlap_loads_comb = combined_array.map do |row| 
+	     overlap_load = [row[0], row[1]].min 
+		 row << overlap_load 
+	end 
+	
+	overlap_loads = combined_array.map do |row|
+	       [row[0], row[1]].min
+	end
+
+	
+	CSV.open("overlap_loads_comb.csv", "w") do |csv|
+       overlap_loads_comb.each do |row|
+           csv << row
+       end
+	end
+	
+	sorted_overlap_loads = overlap_loads.sort.reverse 
+	
+	max_overlap_load = sorted_overlap_loads[0] #maximum value, sorted in descending order 
+	
+	step_size = 10000 #Watts
+	
+	steps = (max_overlap_load/step_size).floor
+	
+	timesteps_per_hour = 4 
+	
+	chiller_lifespan = 20 #years 
+	
+	elec_cost_factor = 13.62 #FEMP LCCA Handbook 135 Supplement for 2024, commerical electricity US average
+	
+	ng_cost_factor = 13.75 #FEMP LCCA Handbook 135 Supplement for 2024, commerical NG  US average
+	
+	#Calculate estimated baseline energy cost for purpose of evaluation 
+	chw_energy_use_base = chw_loads.map { |num| num/(base_chiller_cop *timesteps_per_hour * 1000)} #energy use in kWh 
+	chw_elec_cost_base = chw_energy_use_base.map { |num| num*elec_cost} 
+	
+	# #TODO extend to other fuels 
+	hhw_energy_use_base = hhw_loads.map { |num| num/(base_boiler_eff * timesteps_per_hour * 1000)} #energy use in kWh 
+	hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * btu_per_kWh * gas_cost_per_btu } 
+	
+	# Sum annual costs 
+	hhw_energy_cost_base_ann = 0 
+	index = 0 
+	while index < hhw_energy_cost_base.length
+	  hhw_energy_cost_base_ann += hhw_energy_cost_base[index]
+	  index += 1
+    end
+	
+    chw_energy_cost_base_ann = 0 
+	index = 0 
+	while index < chw_elec_cost_base.length
+	  chw_energy_cost_base_ann += chw_elec_cost_base[index]
+	  index += 1
+    end
+	
+	puts ("#{elec_cost_factor.class}")
+	
+	#Convert to life cycle cost series
+	lcc_energy_cost_base = hhw_energy_cost_base_ann * ng_cost_factor + chw_energy_cost_base_ann * elec_cost_factor
+	
+	load_eval = []
+	
+	hhw_energy_use_base.first(20).inspect 
+	
+	# (1...steps).each do |step|
+	    # load = step*step_size
+		# res = 0
+		# load_eval << [load, chw_elec_cost_base] 
+	# end 
+	
+	# puts load_eval 
+	
+    return true 
   end
 end
 
