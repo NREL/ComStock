@@ -287,13 +287,14 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   # applies the measure and then runs the model
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
+                                            run_model: false, model: nil, apply: true, expected_results: 'Success')
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
 
     # create run directory if it does not exist
-    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -301,8 +302,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
-    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -349,7 +350,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
 
       # assert
-      assert_equal(false, model.getDesignDays.size.zero?)
+      assert_equal(false, model.getDesignDays.empty?)
     end
 
     if apply
@@ -462,7 +463,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
 
       # If x1 changes more frequently while x2 is stable, the ordering is wrong
-      assert(x2_first_changes >= x1_first_changes, 'Invalid data point order: x1 varies before x2 in some cases')
+      assert(x2_first_changes >= x1_first_changes,
+             'Invalid data point order: x1 varies before x2 in some cases')
     end
   end
 
@@ -520,7 +522,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
 
   def verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
     # set weather file but not apply measure
-    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
+    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
 
     # hardsize model
@@ -553,7 +556,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     end
 
     # set weather file and apply measure
-    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(test_name))
 
     # hardsize model
@@ -588,8 +592,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
 
     # assert outdoor air values match between initial and new system
     model.getThermalZones.sort.each do |thermal_zone|
-      assert_equal(dict_oa_sched_min_initial[thermal_zone.name.to_s], dict_oa_sched_min_final[thermal_zone.name.to_s])
-      assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f, dict_min_oa_final[thermal_zone.name.to_s].to_f, 0.001)
+      assert_equal(dict_oa_sched_min_initial[thermal_zone.name.to_s],
+                   dict_oa_sched_min_final[thermal_zone.name.to_s])
+      assert_in_epsilon(dict_min_oa_initial[thermal_zone.name.to_s].to_f,
+                        dict_min_oa_final[thermal_zone.name.to_s].to_f, 0.001)
     end
 
     # assert characteristics of new unitary systems
@@ -626,7 +632,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       # assert new unitary systems all have variable DX cooling coils
       puts('--- CHECKING: Expected cooling coil to be variable speed')
       clg_coil = system.coolingCoil.get
-      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized, 'Expected cooling coil to be variable speed')
+      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized,
+             'Expected cooling coil to be variable speed')
       clg_coil = clg_coil.to_CoilCoolingDXVariableSpeed.get
 
       # assert multispeed cooling coil has 3 speeds
@@ -637,19 +644,28 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       # assert speed 3 (highest speed) flowrate matches design flow rate
       puts('--- CHECKING: Expected speed 3 flowrate to match design flow rate')
       clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd3.referenceUnitRatedAirFlowRate, 0.000001, 'Expected speed 3 flowrate to match design flow rate')
+      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd3.referenceUnitRatedAirFlowRate, 0.000001,
+                      'Expected speed 3 flowrate to match design flow rate')
 
       # assert flow rate reduces for lower speeds
       puts('--- CHECKING: Expected flow rate to reduce for lower speeds')
       clg_coil_spd2 = clg_coil.speeds[1]
       clg_coil_spd1 = clg_coil.speeds[0]
-      assert(clg_coil_spd3.referenceUnitRatedAirFlowRate > clg_coil_spd2.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 3 and 2.')
-      assert(clg_coil_spd2.referenceUnitRatedAirFlowRate > clg_coil_spd1.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 2 and 1.')
+      assert(
+        clg_coil_spd3.referenceUnitRatedAirFlowRate > clg_coil_spd2.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 3 and 2.'
+      )
+      assert(
+        clg_coil_spd2.referenceUnitRatedAirFlowRate > clg_coil_spd1.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 2 and 1.'
+      )
 
       # assert capacity reduces for lower speeds
       puts('--- CHECKING: Expected cooling coil capacity to reduce for lower speeds')
-      assert(clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 3 and 2.')
-      assert(clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 2 and 1.')
+      assert(
+        clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 3 and 2.'
+      )
+      assert(
+        clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 2 and 1.'
+      )
     end
     result
   end
@@ -841,7 +857,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
       thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
-      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+      if thermal_zone_names_to_exclude.any? { |word| unitary_sys.name.to_s.include?(word) }
         tz_kitchens << unitary_sys
 
         # add kitchen heating coil to list
@@ -857,7 +873,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: true)
     assert_equal('Success', result.value.valueName)
     model = load_model(model_output_path(__method__))
 
@@ -869,7 +886,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     model.getAirLoopHVACUnitarySystems.sort.each do |unitary_sys|
       # skip kitchen spaces
       thermal_zone_names_to_exclude = ['Kitchen', 'kitchen', 'KITCHEN']
-      if thermal_zone_names_to_exclude.any? { |word| (unitary_sys.name.to_s).include?(word) }
+      if thermal_zone_names_to_exclude.any? { |word| unitary_sys.name.to_s.include?(word) }
         tz_kitchens_final << unitary_sys
 
         # add kitchen heating coil to list
@@ -921,7 +938,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
   # check hr=false is not changing exisiting H/ERVs
@@ -961,7 +979,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
@@ -1006,7 +1025,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path,
+                                                   epw_path, run_model: false, apply: true)
     model = load_model(model_output_path(__method__))
 
     # assert no difference in ERVs in upgrade model
