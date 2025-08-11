@@ -53,8 +53,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def test_get_capacity_category
-
-    puts("### DEBUGGING: test_get_capacity_category")
+    puts('### DEBUGGING: test_get_capacity_category')
 
     # test: zero input
     rated_capacity_w = 0
@@ -83,12 +82,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     puts("--- DEBUGGING: label_curve = #{label_curve}, label_category = #{label_category}")
     assert_equal('20_9999', label_curve)
     assert_equal('large_unit', label_category)
-
   end
 
   def test_get_stage_category
-
-    puts("### DEBUGGING: test_get_stage_category")
+    puts('### DEBUGGING: test_get_stage_category')
 
     # test: zero input
     stage_number = 0
@@ -119,12 +116,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     label_stage = UpgradeHvacRtuAdv.get_stage_category(@runner, stage_number)
     puts("--- DEBUGGING: label_stage = #{label_stage}")
     assert_nil(label_stage)
-
   end
 
   def test_get_shr
-
-    puts("### DEBUGGING: test_get_shr")
+    puts('### DEBUGGING: test_get_shr')
 
     # test: zero input
     stage_number = 0
@@ -155,12 +150,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
     puts("--- DEBUGGING: shr = #{shr}")
     assert_nil(shr)
-
   end
 
   def test_get_reference_cop_ratio
-
-    puts("### DEBUGGING: test_get_reference_cop_ratio")
+    puts('### DEBUGGING: test_get_reference_cop_ratio')
 
     # test: zero input
     stage_number = 0
@@ -191,12 +184,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     cop_ratio = UpgradeHvacRtuAdv.get_reference_cop_ratio(@runner, stage_number)
     puts("--- DEBUGGING: cop_ratio = #{cop_ratio}")
     assert_nil(cop_ratio)
-
   end
 
   def test_get_rated_cfm_per_ton
-
-    puts("### DEBUGGING: test_get_rated_cfm_per_ton")
+    puts('### DEBUGGING: test_get_rated_cfm_per_ton')
 
     # test: zero input
     rated_capacity_w = 0
@@ -227,12 +218,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     cfm_per_ton = UpgradeHvacRtuAdv.get_rated_cfm_per_ton(@runner, rated_capacity_w)
     puts("--- DEBUGGING: cfm_per_ton = #{cfm_per_ton}")
     assert_in_epsilon(324, cfm_per_ton, 0.001)
-
   end
 
   def test_get_rated_cop_cooling_adv
-
-    puts("### DEBUGGING: test_get_rated_cop_cooling_adv")
+    puts('### DEBUGGING: test_get_rated_cop_cooling_adv')
 
     # test: zero input
     rated_capacity_w = 0
@@ -263,7 +252,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     cop = UpgradeHvacRtuAdv.get_rated_cop_cooling_adv(@runner, rated_capacity_w)
     puts("--- DEBUGGING: cop = #{cop}")
     assert_in_epsilon(3.62, cop, 0.001)
-
   end
 
   def load_model(osm_path)
@@ -396,7 +384,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       'HVAC System Solver Iteration Count',
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
-      'Heating Coil Defrost Electricity Rate',
+      'Heating Coil Defrost Electricity Rate'
     ]
     out_vars.each do |out_var_name|
       ov = OpenStudio::Model::OutputVariable.new('ov', model)
@@ -486,20 +474,18 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     path_to_jsons = "#{__dir__}/../resources/*.json"
     json_files = Dir.glob(path_to_jsons)
     json_files.each do |file_path|
-      begin
-        content = File.read(file_path)
-        hash = JSON.parse(content, symbolize_names: true)
-        puts("### checking json file: #{file_path}")
+      content = File.read(file_path)
+      hash = JSON.parse(content, symbolize_names: true)
+      puts("### checking json file: #{file_path}")
 
-        # Now `hash` is your Ruby hash from JSON
-        # You can insert your test logic here
-        assert(hash[:tables], "Missing :tables key in #{file_path}")
+      # Now `hash` is your Ruby hash from JSON
+      # You can insert your test logic here
+      assert(hash[:tables], "Missing :tables key in #{file_path}")
 
-        # check lookup table format
-        data_point_ordering_check(hash)
-      rescue JSON::ParserError => e
-        flunk "JSON parsing failed for #{file_path}: #{e.message}"
-      end
+      # check lookup table format
+      data_point_ordering_check(hash)
+    rescue JSON::ParserError => e
+      flunk "JSON parsing failed for #{file_path}: #{e.message}"
     end
   end
 
@@ -813,7 +799,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   # check partially applicable model
-  def test_310_psz_ac_with_gas_coil
+  def test_310_psz_ac_with_gas_coil_partial_upgrade
     osm_name = '310_PSZ-AC with gas coil.osm'
     epw_name = 'G2001730.epw'
 
@@ -905,7 +891,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     kitchen_htg_coils_final.each do |htg_coil|
       assert(htg_coil.to_CoilHeatingGas.is_initialized)
     end
-
   end
 
   # check inapplicable model
@@ -940,7 +925,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   # check hr=false is not changing exisiting H/ERVs
-  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3a_erv_false
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
     epw_name = 'G5101530.epw'
@@ -985,7 +970,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   # check hr=true is changing exisiting H/ERVs
-  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3a_erv_true
     # this makes sure measure registers an na for non applicable model
     osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
     epw_name = 'G5101530.epw'
