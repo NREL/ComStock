@@ -682,7 +682,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       next unless air_loop_hvac.airLoopHVACOutdoorAirSystem.is_initialized
       # skip if evaporative cooling systems
       next if air_loop_evaporative_cooler?(air_loop_hvac)
-      # skip if water heating or cooled system
+      # skip if water cooling or cooled system
       next if is_water_cooling_coil == true
       # skip if space is not heated and cooled
       unless OpenstudioStandards::ThermalZone.thermal_zone_heated?(air_loop_hvac.thermalZones[0]) && OpenstudioStandards::ThermalZone.thermal_zone_cooled?(air_loop_hvac.thermalZones[0])
@@ -727,15 +727,16 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
       # get original heating coil capacity
       orig_htg_coil = unitary_sys.heatingCoil.get
-      # get coil object if electric resistance
       if orig_htg_coil.to_CoilHeatingElectric.is_initialized
         orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
-      # get coil object if gas
+        orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f if orig_htg_coil.nominalCapacity.is_initialized
       elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
         orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
-      end
-      # get either autosized or specified capacity
-      orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f if orig_htg_coil.nominalCapacity.is_initialized
+        orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f if orig_htg_coil.nominalCapacity.is_initialized
+      elsif orig_htg_coil.to_CoilHeatingWater.is_initialized
+        orig_htg_coil = orig_htg_coil.to_CoilHeatingWater.get
+        orig_htg_coil_gross_cap = orig_htg_coil.ratedCapacity.to_f if orig_htg_coil.ratedCapacity.is_initialized
+      end      
 
       # only require sizing run if required attributes have not been hardsized.
       next if oa_flow_m3_per_s.nil?
@@ -997,6 +998,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_obj_existing = nil
       supply_airflow_during_cooling = nil
       supply_airflow_during_heating = nil
+      hot_water_loop = nil
 
       # -------------------------------------------------------
       # delete existing system
@@ -1106,25 +1108,40 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
           # get original heating coil capacity
           orig_htg_coil = unitary_sys.heatingCoil.get
-          # get coil object if electric resistance
           if orig_htg_coil.to_CoilHeatingElectric.is_initialized
             orig_htg_coil = orig_htg_coil.to_CoilHeatingElectric.get
             orig_htg_coil_obj_existing = orig_htg_coil.clone(model).to_CoilHeatingElectric.get
-          # get coil object if gas
+            if orig_htg_coil.isNominalCapacityAutosized == true
+              orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
+            elsif orig_htg_coil.nominalCapacity.is_initialized
+              orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+            else
+              runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
           elsif orig_htg_coil.to_CoilHeatingGas.is_initialized
             orig_htg_coil = orig_htg_coil.to_CoilHeatingGas.get
             orig_htg_coil_obj_existing = orig_htg_coil.clone(model).to_CoilHeatingGas.get
+            if orig_htg_coil.isNominalCapacityAutosized == true
+              orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
+            elsif orig_htg_coil.nominalCapacity.is_initialized
+              orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
+            else
+              runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
+          elsif orig_htg_coil.to_CoilHeatingWater.is_initialized
+            orig_htg_coil = orig_htg_coil.to_CoilHeatingWater.get
+            hot_water_loop = orig_htg_coil.plantLoop.get
+            orig_htg_coil_obj_existing = orig_htg_coil.clone(model).to_CoilHeatingWater.get
+            if orig_htg_coil.isRatedCapacityAutosized == true
+              orig_htg_coil_gross_cap = orig_htg_coil.autosizedRatedCapacity.get
+            elsif orig_htg_coil.ratedCapacity.is_initialized
+              orig_htg_coil_gross_cap = orig_htg_coil.ratedCapacity.to_f
+            else
+              runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
+            end
           else
             runner.registerError("Heating coil for #{air_loop_hvac.name} is of an unsupported type. This measure currently supports CoilHeatingElectric and CoilHeatingGas object types.")
-          end
-          # get either autosized or specified capacity
-          if orig_htg_coil.isNominalCapacityAutosized == true
-            orig_htg_coil_gross_cap = orig_htg_coil.autosizedNominalCapacity.get
-          elsif orig_htg_coil.nominalCapacity.is_initialized
-            orig_htg_coil_gross_cap = orig_htg_coil.nominalCapacity.to_f
-          else
-            runner.registerError("Original heating coil capacity for #{air_loop_hvac.name} not found. Either it was not directly specified, or sizing run data is not available.")
-          end
+          end          
         end
 
         if debug_verbose
@@ -1380,8 +1397,8 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       end
       # add new supplemental heating coil
       new_backup_heating_coil = nil
-      # define backup heat source TODO: set capacity to equal full heating capacity
-      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
+      # define backup heat source
+      if prim_ht_fuel_type == 'electric'
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
         new_backup_heating_coil.setEfficiency(1.0)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
@@ -1396,11 +1413,21 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
       new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap)
 
       # -------------------------------------------------------
+      # add existing main heating coil back to hot water loop
+      # -------------------------------------------------------
+      if orig_htg_coil_obj_existing.class == OpenStudio::Model::CoilHeatingWater
+        if debug_verbose
+          runner.registerInfo('--- adding existing main water heating coil back to the hot water loop')
+        end
+        hot_water_loop.addDemandBranchForComponent(orig_htg_coil_obj_existing)
+      end
+
+      # -------------------------------------------------------
       # unitary system update
       # -------------------------------------------------------
       if debug_verbose
         runner.registerInfo('--- adding new unitary system')
-        runner.registerInfo("--- ready to re-apply existing heating coil to the new unitary system: #{orig_htg_coil_obj_existing.name}")
+        runner.registerInfo("--- and re-applying existing heating coil to the new unitary system: #{orig_htg_coil_obj_existing.name}")
       end
       # add new unitary system object
       new_rtu = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
