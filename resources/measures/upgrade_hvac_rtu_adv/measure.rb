@@ -510,6 +510,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
     debug_verbose = runner.getBoolArgumentValue('debug_verbose', user_arguments)
 
+    # ---------------------------------------------------------
     # build standard to use OS standards methods
     # ---------------------------------------------------------
     template = 'ComStock 90.1-2019'
