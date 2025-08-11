@@ -142,7 +142,7 @@ class UpgradeHvacPumpTest < Minitest::Test
         argument_map[arg.name] = chw_oat_reset
       when 'cw_oat_reset'
         cw_oat_reset = arguments[idx].clone
-        cw_oat_reset.setValue(false)
+        cw_oat_reset.setValue(true)
         argument_map[arg.name] = cw_oat_reset
       when 'debug_verbose'
         debug_verbose = arguments[idx].clone
