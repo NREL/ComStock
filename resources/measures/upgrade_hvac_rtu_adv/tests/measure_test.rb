@@ -1008,95 +1008,93 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
-  # #######################################
+  # check hr=false is not changing exisiting H/ERVs
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
+    # this makes sure measure registers an na for non applicable model
+    osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
+    epw_name = 'G5101530.epw'
 
-  # # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
-  # def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
-  #   # this makes sure measure registers an na for non applicable model
-  #   osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
-  #   epw_name = 'SC_Columbia_Metro_723100_12.epw'
+    puts "\n######\nTEST:#{osm_name}\n######\n"
 
-  #   puts "\n######\nTEST:#{osm_name}\n######\n"
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
 
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
+    # Create an instance of the measure
+    measure = UpgradeHvacRtuAdv.new
 
-  #   # Create an instance of the measure
-  #   measure = UpgradeHvacRtuAdv.new
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
 
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #   # get arguments
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'hr'
+        hr = arguments[idx].clone
+        hr.setValue(false)
+        argument_map[arg.name] = hr
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
 
-  #   # populate argument with specified hash value if specified
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'hprtu_scenario'
-  #       hprtu_scenario = arguments[idx].clone
-  #       hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-  #       argument_map[arg.name] = hprtu_scenario
-  #     else
-  #       argument_map[arg.name] = temp_arg_var
-  #     end
-  #   end
+    # get baseline ERVs
+    ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
-  #   # get baseline ERVs
-  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path(__method__))
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path(__method__))
+    # assert no difference in ERVs in upgrade model
+    ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+    assert_equal(ervs_baseline, ervs_upgrade, 'ERVs should not change when ERV argument is false')
+  end
 
-  #   # assert no difference in ERVs in upgrade model
-  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-  #   assert_equal(ervs_baseline, ervs_upgrade)
-  # end
+  # check hr=true is changing exisiting H/ERVs
+  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
+    # this makes sure measure registers an na for non applicable model
+    osm_name = '370_strip_mall_psz_gas_some_erv_4a.osm'
+    epw_name = 'G5101530.epw'
 
-  # # test that ERVs do no impact non-applicable building types
-  # def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A_na
-  #   # this makes sure measure registers an na for non applicable model
-  #   osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
-  #   epw_name = 'SC_Columbia_Metro_723100_12.epw'
+    puts "\n######\nTEST:#{osm_name}\n######\n"
 
-  #   puts "\n######\nTEST:#{osm_name}\n######\n"
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
 
-  #   osm_path = model_input_path(osm_name)
-  #   epw_path = epw_input_path(epw_name)
+    # Create an instance of the measure
+    measure = UpgradeHvacRtuAdv.new
 
-  #   # Create an instance of the measure
-  #   measure = UpgradeHvacRtuAdv.new
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
 
-  #   # Load the model; only used here for populating arguments
-  #   model = load_model(osm_path)
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #   # get arguments
-  #   arguments = measure.arguments(model)
-  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'hr'
+        hr = arguments[idx].clone
+        hr.setValue(true)
+        argument_map[arg.name] = hr
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
 
-  #   # populate argument with specified hash value if specified
-  #   arguments.each_with_index do |arg, idx|
-  #     temp_arg_var = arg.clone
-  #     if arg.name == 'hprtu_scenario'
-  #       hprtu_scenario = arguments[idx].clone
-  #       hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-  #       argument_map[arg.name] = hprtu_scenario
-  #     else
-  #       argument_map[arg.name] = temp_arg_var
-  #     end
-  #   end
+    # get baseline ERVs
+    ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
-  #   # get baseline ERVs
-  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    model = load_model(model_output_path(__method__))
 
-  #   # Apply the measure to the model and optionally run the model
-  #   result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-  #   model = load_model(model_output_path(__method__))
-
-  #   # assert no difference in ERVs in upgrade model
-  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-  #   assert_equal(ervs_baseline, ervs_upgrade)
-  # end
+    # assert no difference in ERVs in upgrade model
+    ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+    refute_equal(ervs_baseline, ervs_upgrade, 'ERVs should change when ERV argument is true')
+  end
 end
