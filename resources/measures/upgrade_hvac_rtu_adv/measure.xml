@@ -3,13 +3,13 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_rtu_adv</name>
   <uid>16167f07-446a-4b8e-bbf1-0fc2240decb9</uid>
-  <version_id>765430da-6848-443e-9397-3282cdc0d8e3</version_id>
-  <version_modified>2025-08-08T12:24:16Z</version_modified>
+  <version_id>d6baf893-e8b5-429b-af7f-a4998dfe809d</version_id>
+  <version_modified>2025-08-11T18:36:45Z</version_modified>
   <xml_checksum>67CFAACE</xml_checksum>
   <class_name>UpgradeHvacRtuAdv</class_name>
   <display_name>upgrade_hvac_rtu_adv</display_name>
   <description>replaces exisiting RTUs with top-of-the-line RTUs in the current (as of 7/30/2025) market. Improvements are from increased rated efficiencies, off-rated performances, and part-load performances.</description>
-  <modeler_description>The high-efficiency RTU measure is applicable to ComStock models with either gas furnace RTUs (“PSZ-AC with gas coil”) or electric resistance RTUs (“PSZ-AC with electric coil”). This analysis includes only products that meet or exceed current building energy codes while representing the highest-performing models available on the market today. If the building currently uses gas for space heating, the upgraded RTU will be equipped with a gas furnace. If the building uses electricity for space heating, the RTU will include electric resistance heating. Heat/Energy Recovery Ventilator (H/ERVs) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work. Demand Control Ventilation (DCV) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work.</modeler_description>
+  <modeler_description>•	The high-efficiency RTU measure is applicable to ComStock models with either gas furnace RTUs (“PSZ-AC with gas coil”), electric resistance RTUs (“PSZ-AC with electric coil”), gas boilers (“PSZ-AC with gas boiler”), or district heating (“PSZ-AC with district hot water”). This analysis includes only products that meet or exceed current building energy codes while representing the highest-performing models available on the market today. If the building currently uses gas for space heating, the upgraded RTU will be equipped with a gas furnace. If the building uses electricity for space heating, the RTU will include electric resistance heating. Heat/Energy Recovery Ventilator (H/ERVs) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work. Demand Control Ventilation (DCV) is included in the RTUs for this study, and the implementation and modeling will follow the approach used in previous work.</modeler_description>
   <arguments>
     <argument>
       <name>hr</name>
@@ -149,7 +149,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>BDEF893F</checksum>
+      <checksum>D09D717A</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -166,7 +166,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4B83C68A</checksum>
+      <checksum>1E4ACCAB</checksum>
     </file>
     <file>
       <filename>lookup_rtu_adv_capacity_0_11_high.json</filename>
@@ -373,16 +373,106 @@
       <checksum>2F3A7C2E</checksum>
     </file>
     <file>
-      <filename>example_model.osm</filename>
+      <filename>310_PSZ-AC with district hot water.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>53D14E69</checksum>
+      <checksum>E016168E</checksum>
+    </file>
+    <file>
+      <filename>310_PSZ-AC with electric coil.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E2A49A8C</checksum>
+    </file>
+    <file>
+      <filename>310_PSZ-AC with gas boiler.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>33AACF46</checksum>
+    </file>
+    <file>
+      <filename>310_PSZ-AC with gas coil.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C6F250CA</checksum>
+    </file>
+    <file>
+      <filename>310_PSZ-HP.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B3E0B82C</checksum>
+    </file>
+    <file>
+      <filename>370_strip_mall_psz_gas_some_erv_4a.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DDDD8102</checksum>
+    </file>
+    <file>
+      <filename>G1000030.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1F550B36</checksum>
+    </file>
+    <file>
+      <filename>G1000030.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>4E861EB6</checksum>
+    </file>
+    <file>
+      <filename>G2000050.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>04E70C9A</checksum>
+    </file>
+    <file>
+      <filename>G2000050.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D8945511</checksum>
+    </file>
+    <file>
+      <filename>G2001730.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AAF46D7D</checksum>
+    </file>
+    <file>
+      <filename>G2001730.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>CE05B881</checksum>
+    </file>
+    <file>
+      <filename>G2901890.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>8C728836</checksum>
+    </file>
+    <file>
+      <filename>G2901890.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E6FA86DF</checksum>
+    </file>
+    <file>
+      <filename>G5101530.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7CC7C379</checksum>
+    </file>
+    <file>
+      <filename>G5101530.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DA3AEA3E</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>5FFF0B7B</checksum>
+      <checksum>3D89957E</checksum>
     </file>
   </files>
 </measure>
