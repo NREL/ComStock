@@ -161,7 +161,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # enable output variables argument
     enable_output_variables = OpenStudio::Measure::OSArgument::makeBoolArgument('enable_output_variables',false, false)
-    enable_output_variables.setDefaultValue(true)
+    enable_output_variables.setDefaultValue(false)
     enable_output_variables.setDisplayName('Enable output variables?')
     args << enable_output_variables
 
@@ -484,6 +484,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	water_heater.setAmbientTemperatureSchedule(amb_temp_sch)
 	# ensure water heater object does not heat above the setpoint
 	water_heater.setMaximumTemperatureLimit(heat_recovery_loop_temperature_c)
+	water_heater.setTankVolume(100) #Setting to a high volume 
 
     hr_connecting_object = water_heater
 
