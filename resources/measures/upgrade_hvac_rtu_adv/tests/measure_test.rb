@@ -262,7 +262,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def run_dir(test_name)
-    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    # always generate test output in specially named 'output' directory so
+    # result files are not made part of the measure
     "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
@@ -287,8 +288,17 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   # applies the measure and then runs the model
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
-                                            run_model: false, model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(
+    test_name,
+    measure,
+    argument_map,
+    osm_path,
+    epw_path,
+    run_model: false,
+    model: nil,
+    apply: true,
+    expected_results: 'Success'
+  )
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -331,10 +341,14 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       ddy_model.getDesignDays.sort.each do |d|
         # grab only the ones that matter
         ddy_list = [
-          /Htg 99.6. Condns DB/, # Annual heating 99.6%
-          /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
-          /Clg .4. Condns DB=>MWB/, # Annual cooling
-          /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
+          # Annual heating 99.6%
+          /Htg 99.6. Condns DB/,
+          # Annual humidity (for cooling towers and evap coolers)
+          /Clg .4. Condns WB=>MDB/,
+          # Annual cooling
+          /Clg .4. Condns DB=>MWB/,
+          # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
+          /August .4. Condns DB=>MCWB/,
           /September .4. Condns DB=>MCWB/,
           /October .4. Condns DB=>MCWB/
         ]
@@ -503,14 +517,16 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # APPLY
     model.applySizingValues
 
-    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing UnitarySystems
+    # TODO: remove once this functionality is added to
+    # the OpenStudio C++ for hard sizing UnitarySystems
     model.getAirLoopHVACUnitarySystems.each do |unitary|
       if model.version < OpenStudio::VersionString.new('3.7.0')
         unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
         unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
       end
     end
-    # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
+    # TODO: remove once this functionality is added to
+    # the OpenStudio C++ for hard sizing Sizing:System
     model.getSizingSystems.each do |sizing_system|
       next if sizing_system.isDesignOutdoorAirFlowRateAutosized
 
@@ -604,20 +620,24 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
 
       # skip for inapplicable (not upgraded) RTUs
       if system.name.to_s.downcase.include?('kitchen')
-        puts('--- CHECKING: skipping for this RTU which was not upgraded due to space type (i.e., kitchen)')
+        puts('--- CHECKING: skipping for this RTU which was not'\
+             ' upgraded due to space type (i.e., kitchen)')
         next
       end
 
       # skip for inapplicable (not upgraded) RTUs
-      if system.name.to_s.downcase.include?('datacenter') || system.name.to_s.downcase.include?('data center')
-        puts('--- CHECKING: skipping for this RTU which was not upgraded due to space type (i.e., data center)')
+      if system.name.to_s.downcase.include?('datacenter') ||
+         system.name.to_s.downcase.include?('data center')
+        puts('--- CHECKING: skipping for this RTU which was'\
+             ' not upgraded due to space type (i.e., data center)')
         next
       end
 
       # assert new unitary systems all have variable speed fans
       puts('--- CHECKING: Expected supply fan to be variable volume')
       fan = system.supplyFan.get
-      assert(fan.to_FanVariableVolume.is_initialized, 'Expected supply fan to be variable volume')
+      assert(fan.to_FanVariableVolume.is_initialized,
+             'Expected supply fan to be variable volume')
 
       # assert supplemental heating coil availability
       puts('--- CHECKING: Expected supplemental heating coil to be available')
@@ -652,19 +672,27 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       clg_coil_spd2 = clg_coil.speeds[1]
       clg_coil_spd1 = clg_coil.speeds[0]
       assert(
-        clg_coil_spd3.referenceUnitRatedAirFlowRate > clg_coil_spd2.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 3 and 2.'
+        clg_coil_spd3.referenceUnitRatedAirFlowRate >
+          clg_coil_spd2.referenceUnitRatedAirFlowRate,
+        'Expected flow rate to reduce for lower speeds between speed 3 and 2.'
       )
       assert(
-        clg_coil_spd2.referenceUnitRatedAirFlowRate > clg_coil_spd1.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 2 and 1.'
+        clg_coil_spd2.referenceUnitRatedAirFlowRate >
+          clg_coil_spd1.referenceUnitRatedAirFlowRate,
+        'Expected flow rate to reduce for lower speeds between speed 2 and 1.'
       )
 
       # assert capacity reduces for lower speeds
       puts('--- CHECKING: Expected cooling coil capacity to reduce for lower speeds')
       assert(
-        clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 3 and 2.'
+        clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity >
+          clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity,
+        'Expected capacity to reduce for lower speeds between speed 3 and 2.'
       )
       assert(
-        clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 2 and 1.'
+        clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity >
+          clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity,
+        'Expected capacity to reduce for lower speeds between speed 2 and 1.'
       )
     end
     result
@@ -938,8 +966,16 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     end
 
     # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path,
-                                                   epw_path, run_model: false, apply: true, expected_results: 'NA')
+    result = set_weather_and_apply_measure_and_run(
+      __method__,
+      measure,
+      argument_map,
+      osm_path,
+      epw_path,
+      run_model: false,
+      apply: true,
+      expected_results: 'NA'
+    )
   end
 
   # check hr=false is not changing exisiting H/ERVs
@@ -1034,62 +1070,79 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     refute_equal(ervs_baseline, ervs_upgrade, 'ERVs should change when ERV argument is true')
   end
 
-  # # single building result examples
-  # def test_single_building_result_examples
-  #   osm_epw_pair = {
-  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
-  #   }
+  # single building result examples
+  def test_single_building_result_examples
+    osm_epw_pair = {
+      '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
+        'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw'
+      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
+      #   'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
+      #   'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
+    }
 
-  #   test_name = 'test_single_building_result_examples'
+    test_name = 'test_single_building_result_examples'
 
-  #   puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST:#{test_name}\n######\n"
 
-  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
+    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
+      osm_path = model_input_path(osm_name)
+      epw_path = epw_input_path(epw_name)
 
-  #     osm_path = model_input_path(osm_name)
-  #     epw_path = epw_input_path(epw_name)
+      # Create an instance of the measure
+      measure = UpgradeHvacRtuAdv.new
 
-  #     # Create an instance of the measure
-  #     measure = UpgradeHvacRtuAdv.new
+      # Load the model; only used here for populating arguments
+      model = load_model(osm_path)
 
-  #     # Load the model; only used here for populating arguments
-  #     model = load_model(osm_path)
+      # get arguments
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-  #     # get arguments
-  #     arguments = measure.arguments(model)
-  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+      # populate specific argument for testing
+      arguments.each_with_index do |arg, idx|
+        temp_arg_var = arg.clone
+        case arg.name
+        when 'hr'
+          hr = arguments[idx].clone
+          hr.setValue(false)
+          argument_map[arg.name] = hr
+        when 'dcv'
+          dcv = arguments[idx].clone
+          dcv.setValue(false)
+          argument_map[arg.name] = dcv
+        when 'debug_verbose'
+          debug_verbose = arguments[idx].clone
+          debug_verbose.setValue(true)
+          argument_map[arg.name] = debug_verbose
+        else
+          argument_map[arg.name] = temp_arg_var
+        end
+      end
 
-  #     # populate specific argument for testing
-  #     arguments.each_with_index do |arg, idx|
-  #       temp_arg_var = arg.clone
-  #       case arg.name
-  #       when 'hr'
-  #         hr = arguments[idx].clone
-  #         hr.setValue(false)
-  #         argument_map[arg.name] = hr
-  #       when 'dcv'
-  #         dcv = arguments[idx].clone
-  #         dcv.setValue(false)
-  #         argument_map[arg.name] = dcv
-  #       when 'debug_verbose'
-  #         debug_verbose = arguments[idx].clone
-  #         debug_verbose.setValue(true)
-  #         argument_map[arg.name] = debug_verbose
-  #       else
-  #         argument_map[arg.name] = temp_arg_var
-  #       end
-  #     end
+      # Don't apply the measure to the model and run the model
+      result = set_weather_and_apply_measure_and_run(
+        "#{test_name}_#{idx_run}_b",
+        measure,
+        argument_map,
+        osm_path,
+        epw_path,
+        run_model: true,
+        apply: false
+      )
+      model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
 
-  #     # Don't apply the measure to the model and run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
-  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
-
-  #     # Apply the measure to the model and run the model
-  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
-
-  #   end
-  # end
+      # Apply the measure to the model and run the model
+      result = set_weather_and_apply_measure_and_run(
+        "#{test_name}_#{idx_run}_u",
+        measure,
+        argument_map,
+        osm_path,
+        epw_path,
+        run_model: true,
+        apply: true
+      )
+      model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
+    end
+  end
 end
