@@ -513,10 +513,18 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # Limit the OATwb
     if design_oat_wb_f < 55
       design_oat_wb_f = 55
-      runner.registerInfo("For #{plant_loop.name}, a design OATwb of 55F will be used for sizing the cooling towers because the actual design value is below the limit in G3.1.3.11.")
+      runner.registerInfo("For #{
+        plant_loop.name
+      }, a design OATwb of 55F will"\
+      ' be used for sizing the cooling towers because the'\
+      ' actual design value is below the limit in G3.1.3.11.')
     elsif design_oat_wb_f > 90
       design_oat_wb_f = 90
-      runner.registerInfo("For #{plant_loop.name}, a design OATwb of 90F will be used for sizing the cooling towers because the actual design value is above the limit in G3.1.3.11.")
+      runner.registerInfo("For #{
+        plant_loop.name
+      }, a design OATwb of 90F will be used for sizing the"\
+        ' cooling towers because the actual design value is'\
+        ' above the limit in G3.1.3.11.')
     end
 
     # Calculate the approach
