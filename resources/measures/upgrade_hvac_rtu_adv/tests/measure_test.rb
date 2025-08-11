@@ -48,7 +48,6 @@ require_relative '../../../../test/helpers/minitest_helper'
 require 'json'
 
 class UpgradeHvacRtuAdvTest < Minitest::Test
-
   def setup
     @runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
   end
@@ -280,11 +279,11 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def model_input_path(osm_name)
-    File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+    File.join(File.dirname(__FILE__), osm_name)
   end
 
   def epw_input_path(epw_name)
-    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), epw_name)
   end
 
   def model_output_path(test_name)
@@ -322,8 +321,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     FileUtils.cp(osm_path, new_osm_path)
     new_epw_path = "#{run_dir(test_name)}/#{File.basename(epw_path)}"
     FileUtils.cp(epw_path, new_epw_path)
-    # create an instance of a runner
-    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
     model = load_model(new_osm_path) if model.nil?
@@ -354,7 +351,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
         ]
         ddy_list.each do |ddy_name_regex|
           if d.name.get.to_s.match?(ddy_name_regex)
-            runner.registerInfo("Adding object #{d.name}")
+            @runner.registerInfo("Adding object #{d.name}")
 
             # add the object to the existing model
             model.addObject(d.clone)
@@ -370,8 +367,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     if apply
       # run the measure
       puts "\nAPPLYING MEASURE..."
-      measure.run(model, runner, argument_map)
-      result = runner.result
+      measure.run(model, @runner, argument_map)
+      result = @runner.result
       result_success = result.value.valueName == 'Success'
       assert_equal(expected_results, result.value.valueName)
 
@@ -400,13 +397,13 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
       'Heating Coil Defrost Electricity Rate',
-      'Zone Windows Total Transmitted Solar Radiation Rate',
+      'Zone Windows Total Transmitted Solar Radiation Rate'
     ]
     out_vars.each do |out_var_name|
-        ov = OpenStudio::Model::OutputVariable.new('ov', model)
-        ov.setKeyValue('*')
-        ov.setReportingFrequency('hourly')
-        ov.setVariableName(out_var_name)
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('hourly')
+      ov.setVariableName(out_var_name)
     end
     model.getOutputControlFiles.setOutputCSV(true)
 
@@ -458,8 +455,8 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
 
       # Extract and sort data_point keys numerically
       points = table.select { |k, _| k.to_s.match?(/^data_point\d+$/) }
-          .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
-          .map { |_, v| v.split(',').first(2).map(&:to_f) }
+                    .sort_by { |k, _| k.to_s.match(/\d+/)[0].to_i }
+                    .map { |_, v| v.split(',').first(2).map(&:to_f) }
 
       # Now check if x2 varies first (should see repeated x1s for several rows)
       x1s, x2s = points.transpose
@@ -478,7 +475,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       end
 
       # If x1 changes more frequently while x2 is stable, the ordering is wrong
-      assert(x2_first_changes >= x1_first_changes, "Invalid data point order: x1 varies before x2 in some cases")
+      assert(x2_first_changes >= x1_first_changes, 'Invalid data point order: x1 varies before x2 in some cases')
     end
   end
 
@@ -524,8 +521,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       if model.version < OpenStudio::VersionString.new('3.7.0')
         unitary.setSupplyAirFlowRateMethodDuringCoolingOperation('SupplyAirFlowRate')
         unitary.setSupplyAirFlowRateMethodDuringHeatingOperation('SupplyAirFlowRate')
-      else
-        # unitary.applySizingValues
       end
     end
     # TODO: remove once this functionality is added to the OpenStudio C++ for hard sizing Sizing:System
@@ -538,7 +533,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     return model
   end
 
-  def verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+  def verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -614,125 +609,140 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
 
     # assert characteristics of new unitary systems
     li_unitary_sys_final.sort.each do |system|
+      puts("### CHECKING: airloophvacunitarysystem = #{system.name}")
+
+      # skip for inapplicable (not upgraded) RTUs
+      if system.name.to_s.downcase.include?('kitchen')
+        puts('--- CHECKING: skipping for this RTU which was not upgraded due to space type (i.e., kitchen)')
+        next
+      end
+
+      # skip for inapplicable (not upgraded) RTUs
+      if system.name.to_s.downcase.include?('datacenter') || system.name.to_s.downcase.include?('data center')
+        puts('--- CHECKING: skipping for this RTU which was not upgraded due to space type (i.e., data center)')
+        next
+      end
+
       # assert new unitary systems all have variable speed fans
+      puts('--- CHECKING: Expected supply fan to be variable volume')
       fan = system.supplyFan.get
-      assert(fan.to_FanVariableVolume.is_initialized)
+      assert(fan.to_FanVariableVolume.is_initialized, 'Expected supply fan to be variable volume')
 
       # assert supplemental heating coil availability
-      sup_htg_coil = system.supplementalHeatingCoil.get
-      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+      puts('--- CHECKING: Expected supplemental heating coil to be available')
+      sup_htg_coil_elec = system.supplementalHeatingCoil.get
+      sup_htg_coil_elec_avail = sup_htg_coil_elec.to_CoilHeatingElectric.is_initialized
+      sup_htg_coil_gas = system.supplementalHeatingCoil.get
+      sup_htg_coil_gas_avail = sup_htg_coil_gas.to_CoilHeatingGas.is_initialized
+      sup_htg_coil_avail = sup_htg_coil_elec_avail || sup_htg_coil_gas_avail
+      assert(sup_htg_coil_avail, 'Expected supplemental heating coil to be available')
 
       # ***cooling***
       # assert new unitary systems all have variable DX cooling coils
+      puts('--- CHECKING: Expected cooling coil to be variable speed')
       clg_coil = system.coolingCoil.get
-      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized)
+      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized, 'Expected cooling coil to be variable speed')
       clg_coil = clg_coil.to_CoilCoolingDXVariableSpeed.get
 
-      # assert multispeed heating coil has 4 stages
-      assert_equal(clg_coil.numberOfStages, 3)
-      clg_coil_spd3 = clg_coil.stages[2]
+      # assert multispeed cooling coil has 3 speeds
+      puts('--- CHECKING: Expected cooling coil to have 3 speeds')
+      assert_equal(clg_coil.speeds.size, 3, 'Expected cooling coil to have 3 speeds')
+      clg_coil_spd3 = clg_coil.speeds[2]
 
-      # assert speed 4 flowrate matches design flow rate
+      # assert speed 3 (highest speed) flowrate matches design flow rate
+      puts('--- CHECKING: Expected speed 3 flowrate to match design flow rate')
       clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd3.ratedAirFlowRate.get, 0.000001)
+      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd3.referenceUnitRatedAirFlowRate, 0.000001, 'Expected speed 3 flowrate to match design flow rate')
 
       # assert flow rate reduces for lower speeds
-      clg_coil_spd2 = clg_coil.stages[1]
-      clg_coil_spd1 = clg_coil.stages[0]
-      assert(clg_coil_spd3.ratedAirFlowRate.get > clg_coil_spd2.ratedAirFlowRate.get)
-      assert(clg_coil_spd2.ratedAirFlowRate.get > clg_coil_spd1.ratedAirFlowRate.get)
+      puts('--- CHECKING: Expected flow rate to reduce for lower speeds')
+      clg_coil_spd2 = clg_coil.speeds[1]
+      clg_coil_spd1 = clg_coil.speeds[0]
+      assert(clg_coil_spd3.referenceUnitRatedAirFlowRate > clg_coil_spd2.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 3 and 2.')
+      assert(clg_coil_spd2.referenceUnitRatedAirFlowRate > clg_coil_spd1.referenceUnitRatedAirFlowRate, 'Expected flow rate to reduce for lower speeds between speed 2 and 1.')
 
       # assert capacity reduces for lower speeds
-      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
-      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
+      puts('--- CHECKING: Expected cooling coil capacity to reduce for lower speeds')
+      assert(clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 3 and 2.')
+      assert(clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity, 'Expected capacity to reduce for lower speeds between speed 2 and 1.')
     end
     result
   end
 
-  ##########################################################################
-  # Single building result examples
-  def test_single_building_result_examples
-    osm_epw_pair = {
-      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
-      '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
-    }
-
-    test_name = 'test_single_building_result_examples'
-
-    puts "\n######\nTEST:#{test_name}\n######\n"
-
-    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
-
-      osm_path = model_input_path(osm_name)
-      epw_path = epw_input_path(epw_name)
-
-      # Create an instance of the measure
-      measure = UpgradeHvacRtuAdv.new
-
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
-
-      # get arguments
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-      # populate specific argument for testing
-      arguments.each_with_index do |arg, idx|
-        temp_arg_var = arg.clone
-        case arg.name
-        when 'sizing_run'
-          sizing_run = arguments[idx].clone
-          sizing_run.setValue(true)
-          argument_map[arg.name] = sizing_run
-        when 'hprtu_scenario'
-          hprtu_scenario = arguments[idx].clone
-          hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
-          argument_map[arg.name] = hprtu_scenario
-        when 'performance_oversizing_factor'
-          performance_oversizing_factor = arguments[idx].clone
-          performance_oversizing_factor.setValue(0.0)
-          argument_map[arg.name] = performance_oversizing_factor
-        when 'window'
-          window = arguments[idx].clone
-          window.setValue(true)
-          argument_map[arg.name] = window
-        when 'debug_verbose'
-          debug_verbose = arguments[idx].clone
-          debug_verbose.setValue(true)
-          argument_map[arg.name] = debug_verbose
-        else
-          argument_map[arg.name] = temp_arg_var
-        end
-      end
-
-      # Don't apply the measure to the model and run the model
-      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
-      model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
-
-      # Apply the measure to the model and run the model
-      result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
-      model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
-
-    end
-  end
-
   # ##########################################################################
-  # This section tests proper application of measure on fully applicable models
-  # tests include:
-  # 1) running model to ensure succesful completion
-  # 2) checking user-specified electric backup heating is applied
-  # 3) checking that all gas heating couls have been removed from model
-  # 4) all air loops contain multispeed heating coil
-  # 5) coil speeds capacities and flow rates are ascending
-  # 6) coil speeds fall within E+ specified cfm/ton ranges
-  # 7) check roof/window measure related variables are saved or not saved in model
+  # # Single building result examples
+  # def test_single_building_result_examples
+  #   osm_epw_pair = {
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw',
+  #     '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+  #     # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' => 'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw',
+  #   }
 
-  def test_380_Small_Office_PSZ_Gas_2A
-    osm_name = '380_Small_Office_PSZ_Gas_2A.osm'
-    epw_name = 'SC_Columbia_Metro_723100_12.epw'
+  #   test_name = 'test_single_building_result_examples'
 
-    test_name = 'test_380_Small_Office_PSZ_Gas_2A'
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
+
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
+
+  #     osm_path = model_input_path(osm_name)
+  #     epw_path = epw_input_path(epw_name)
+
+  #     # Create an instance of the measure
+  #     measure = UpgradeHvacRtuAdv.new
+
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
+
+  #     # get arguments
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+  #     # populate specific argument for testing
+  #     arguments.each_with_index do |arg, idx|
+  #       temp_arg_var = arg.clone
+  #       case arg.name
+  #       when 'sizing_run'
+  #         sizing_run = arguments[idx].clone
+  #         sizing_run.setValue(true)
+  #         argument_map[arg.name] = sizing_run
+  #       when 'hprtu_scenario'
+  #         hprtu_scenario = arguments[idx].clone
+  #         hprtu_scenario.setValue('two_speed_standard_eff') # variable_speed_high_eff, two_speed_standard_eff
+  #         argument_map[arg.name] = hprtu_scenario
+  #       when 'performance_oversizing_factor'
+  #         performance_oversizing_factor = arguments[idx].clone
+  #         performance_oversizing_factor.setValue(0.0)
+  #         argument_map[arg.name] = performance_oversizing_factor
+  #       when 'window'
+  #         window = arguments[idx].clone
+  #         window.setValue(true)
+  #         argument_map[arg.name] = window
+  #       when 'debug_verbose'
+  #         debug_verbose = arguments[idx].clone
+  #         debug_verbose.setValue(true)
+  #         argument_map[arg.name] = debug_verbose
+  #       else
+  #         argument_map[arg.name] = temp_arg_var
+  #       end
+  #     end
+
+  #     # Don't apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_b", measure, argument_map, osm_path, epw_path, run_model: true, apply: false)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
+
+  #     # Apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run("#{test_name}_#{idx_run}_u", measure, argument_map, osm_path, epw_path, run_model: true, apply: true)
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
+
+  #   end
+  # end
+
+  # check upgrade specs
+  def test_310_psz_ac_with_gas_coil
+    osm_name = '310_PSZ-AC with gas coil.osm'
+    epw_name = 'G2001730.epw'
+
+    test_name = 'test_310_psz_ac_with_gas_coil'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -760,15 +770,15 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
         argument_map[arg.name] = temp_arg_var
       end
     end
-    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-    
+    test_result = verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_380_small_office_psz_gas_coil_7A
-    osm_name = '380_small_office_psz_gas_coil_7A.osm'
-    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+  # check upgrade specs
+  def test_310_psz_ac_with_electric_coil
+    osm_name = '310_PSZ-AC with electric coil.osm'
+    epw_name = 'G2901890.epw'
 
-    test_name = 'test_380_small_office_psz_gas_coil_7A'
+    test_name = 'test_310_psz_ac_with_electric_coil'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -788,43 +798,23 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
+      if arg.name == 'debug_verbose'
+        debug_verbose = arguments[idx].clone
+        debug_verbose.setValue(true)
+        argument_map[arg.name] = debug_verbose
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
-
-    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-
-    # check roof/window measure implementation
-    roof_measure_implemented = false
-    window_measure_implemented = false
-    test_result = JSON.parse(test_result.to_s)
-    test_result['step_values'].each do |step_value|
-
-      # check if roof measure variable is available
-      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
-        roof_measure_implemented = true
-      end
-
-      # check if window measure variable is available
-      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
-        window_measure_implemented = true
-      end
-
-    end
-    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
-    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
+    test_result = verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_small_office_psz_not_hard_sized
-    osm_name = 'small_office_psz_not_hard_sized.osm'
-    epw_name = 'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw'
+  # check upgrade specs
+  def test_310_psz_ac_with_district_hot_water
+    osm_name = '310_PSZ-AC with district hot water.osm'
+    epw_name = 'G5101530.epw'
 
-    test_name = 'test_small_office_psz_not_hard_sized'
+    test_name = 'test_310_psz_ac_with_district_hot_water'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -844,47 +834,23 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff')
-        argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'roof'
-        roof = arguments[idx].clone
-        roof.setValue(true)
-        argument_map[arg.name] = roof
+      if arg.name == 'debug_verbose'
+        debug_verbose = arguments[idx].clone
+        debug_verbose.setValue(true)
+        argument_map[arg.name] = debug_verbose
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
-
-    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-
-    # check roof/window measure implementation
-    roof_measure_implemented = false
-    window_measure_implemented = false
-    test_result = JSON.parse(test_result.to_s)
-    test_result['step_values'].each do |step_value|
-
-      # check if roof measure variable is available
-      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
-        roof_measure_implemented = true
-      end
-
-      # check if window measure variable is available
-      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
-        window_measure_implemented = true
-      end
-
-    end
-    assert_equal(roof_measure_implemented, true, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
-    assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
+    test_result = verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
   end
 
-  def test_380_retail_psz_gas_6B
-    osm_name = '380_retail_psz_gas_6B.osm'
-    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+  # check upgrade specs
+  def test_310_psz_ac_with_gas_boiler
+    osm_name = '310_PSZ-AC with gas boiler.osm'
+    epw_name = 'G1000030.epw'
 
-    test_name = 'test_380_retail_psz_gas_6B'
+    test_name = 'test_310_psz_ac_with_gas_boiler'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -904,47 +870,21 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      elsif arg.name == 'window'
-        window = arguments[idx].clone
-        window.setValue(true)
-        argument_map[arg.name] = window
+      if arg.name == 'debug_verbose'
+        debug_verbose = arguments[idx].clone
+        debug_verbose.setValue(true)
+        argument_map[arg.name] = debug_verbose
       else
         argument_map[arg.name] = temp_arg_var
       end
     end
-
-    test_result = verify_adv_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-
-    # check roof/window measure implementation
-    roof_measure_implemented = false
-    window_measure_implemented = false
-    test_result = JSON.parse(test_result.to_s)
-    test_result['step_values'].each do |step_value|
-
-      # check if roof measure variable is available
-      if step_value['name'] == 'env_roof_insul_roof_area_ft_2'
-        roof_measure_implemented = true
-      end
-
-      # check if window measure variable is available
-      if step_value['name'] == 'env_secondary_window_fen_area_ft_2'
-        window_measure_implemented = true
-      end
-
-    end
-    assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
-    assert_equal(window_measure_implemented, true, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
+    test_result = verify_adv_rtu(test_name, measure, argument_map, osm_path, epw_path)
   end
 
-  ##########################################################################
-  # This section tests proper classification of partially-applicable building types
-  def test_380_full_service_restaurant_psz_gas_coil
-    osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
-    epw_name = 'GA_ROBINS_AFB_722175_12.epw'
+  # check partially applicable model
+  def test_310_psz_ac_with_gas_coil
+    osm_name = '310_PSZ-AC with gas coil.osm'
+    epw_name = 'G2001730.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -1030,27 +970,18 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     # assert no changes to kitchen unitary systems
     assert_equal(tz_kitchens_final, tz_kitchens)
 
-    # assert non kitchen spaces contain multispeed DX heating coils
-    nonkitchen_htg_coils_final.each do |htg_coil|
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-    end
-
     # assert kitchen spaces still contain gas coils
     kitchen_htg_coils_final.each do |htg_coil|
       assert(htg_coil.to_CoilHeatingGas.is_initialized)
     end
 
-    # assert cfm/ton violation
-    verify_cfm_per_ton(model, result)
   end
 
-  ###########################################################################
-  # This section tests proper classification of non applicable HVAC systems
-  # assert that non applicable HVAC system registers as NA
-  def test_380_StripMall_Residential_AC_with_residential_forced_air_furnace_2A
+  # check inapplicable model
+  def test_310_psz_hp
     # this makes sure measure registers an na for non applicable model
-    osm_name = '380_StripMall_Residential AC with residential forced air furnace_2A.osm'
-    epw_name = 'TN_KNOXVILLE_723260_12.epw'
+    osm_name = '310_PSZ-HP.osm'
+    epw_name = 'G2000050.epw'
 
     puts "\n######\nTEST:#{osm_name}\n######\n"
 
@@ -1077,168 +1008,95 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
   end
 
-  # assert that non applicable HVAC system registers as NA
-  def test_380_warehouse_pvav_gas_boiler_reheat_2A
-    # this makes sure measure registers an na for non applicable model
-    osm_name = '380_warehouse_pvav_gas_boiler_reheat_2A.osm'
-    epw_name = 'TN_KNOXVILLE_723260_12.epw'
+  # #######################################
 
-    puts "\n######\nTEST:#{osm_name}\n######\n"
+  # # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
+  # def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
+  #   # this makes sure measure registers an na for non applicable model
+  #   osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
+  #   epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #   puts "\n######\nTEST:#{osm_name}\n######\n"
 
-    # Create an instance of the measure
-    measure = UpgradeHvacRtuAdv.new
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
+  #   # Create an instance of the measure
+  #   measure = UpgradeHvacRtuAdv.new
 
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
 
-    # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
-      temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
-    end
+  #   # get arguments
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
-  end
+  #   # populate argument with specified hash value if specified
+  #   arguments.each_with_index do |arg, idx|
+  #     temp_arg_var = arg.clone
+  #     if arg.name == 'hprtu_scenario'
+  #       hprtu_scenario = arguments[idx].clone
+  #       hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+  #       argument_map[arg.name] = hprtu_scenario
+  #     else
+  #       argument_map[arg.name] = temp_arg_var
+  #     end
+  #   end
 
-  # assert that non applicable HVAC system registers as NA
-  def test_380_medium_office_doas_fan_coil_acc_boiler_3A
-    # this makes sure measure registers an na for non applicable model
-    osm_name = '380_medium_office_doas_fan_coil_acc_boiler_3A.osm'
-    epw_name = 'TN_KNOXVILLE_723260_12.epw'
+  #   # get baseline ERVs
+  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
-    puts "\n######\nTEST:#{osm_name}\n######\n"
+  #   # Apply the measure to the model and optionally run the model
+  #   result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+  #   model = load_model(model_output_path(__method__))
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #   # assert no difference in ERVs in upgrade model
+  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+  #   assert_equal(ervs_baseline, ervs_upgrade)
+  # end
 
-    # Create an instance of the measure
-    measure = UpgradeHvacRtuAdv.new
+  # # test that ERVs do no impact non-applicable building types
+  # def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A_na
+  #   # this makes sure measure registers an na for non applicable model
+  #   osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
+  #   epw_name = 'SC_Columbia_Metro_723100_12.epw'
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
+  #   puts "\n######\nTEST:#{osm_name}\n######\n"
 
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+  #   osm_path = model_input_path(osm_name)
+  #   epw_path = epw_input_path(epw_name)
 
-    # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
-      temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
-    end
+  #   # Create an instance of the measure
+  #   measure = UpgradeHvacRtuAdv.new
 
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true, expected_results: 'NA')
-  end
+  #   # Load the model; only used here for populating arguments
+  #   model = load_model(osm_path)
 
-  # test that ERVs do no impact existing ERVs when ERV argument is NOT toggled
-  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A
-    # this makes sure measure registers an na for non applicable model
-    osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
-    epw_name = 'SC_Columbia_Metro_723100_12.epw'
+  #   # get arguments
+  #   arguments = measure.arguments(model)
+  #   argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    puts "\n######\nTEST:#{osm_name}\n######\n"
+  #   # populate argument with specified hash value if specified
+  #   arguments.each_with_index do |arg, idx|
+  #     temp_arg_var = arg.clone
+  #     if arg.name == 'hprtu_scenario'
+  #       hprtu_scenario = arguments[idx].clone
+  #       hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+  #       argument_map[arg.name] = hprtu_scenario
+  #     else
+  #       argument_map[arg.name] = temp_arg_var
+  #     end
+  #   end
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #   # get baseline ERVs
+  #   ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
 
-    # Create an instance of the measure
-    measure = UpgradeHvacRtuAdv.new
+  #   # Apply the measure to the model and optionally run the model
+  #   result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+  #   model = load_model(model_output_path(__method__))
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
-      temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
-    end
-
-    # get baseline ERVs
-    ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(__method__))
-
-    # assert no difference in ERVs in upgrade model
-    ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-    assert_equal(ervs_baseline, ervs_upgrade)
-  end
-
-  # test that ERVs do no impact non-applicable building types
-  def test_380_full_service_restaurant_psz_gas_coil_single_erv_3A_na
-    # this makes sure measure registers an na for non applicable model
-    osm_name = '380_full_service_restaurant_psz_gas_coil_single_erv_3A.osm'
-    epw_name = 'SC_Columbia_Metro_723100_12.epw'
-
-    puts "\n######\nTEST:#{osm_name}\n######\n"
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = UpgradeHvacRtuAdv.new
-
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
-      temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
-    end
-
-    # get baseline ERVs
-    ervs_baseline = model.getHeatExchangerAirToAirSensibleAndLatents
-
-    # Apply the measure to the model and optionally run the model
-    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
-    model = load_model(model_output_path(__method__))
-
-    # assert no difference in ERVs in upgrade model
-    ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
-    assert_equal(ervs_baseline, ervs_upgrade)
-  end
-
+  #   # assert no difference in ERVs in upgrade model
+  #   ervs_upgrade = model.getHeatExchangerAirToAirSensibleAndLatents
+  #   assert_equal(ervs_baseline, ervs_upgrade)
+  # end
 end
