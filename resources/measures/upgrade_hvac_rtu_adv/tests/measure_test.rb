@@ -397,12 +397,11 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
       'Heating Coil Defrost Electricity Rate',
-      'Zone Windows Total Transmitted Solar Radiation Rate'
     ]
     out_vars.each do |out_var_name|
       ov = OpenStudio::Model::OutputVariable.new('ov', model)
       ov.setKeyValue('*')
-      ov.setReportingFrequency('hourly')
+      ov.setReportingFrequency('TimeStep')
       ov.setVariableName(out_var_name)
     end
     model.getOutputControlFiles.setOutputCSV(true)
