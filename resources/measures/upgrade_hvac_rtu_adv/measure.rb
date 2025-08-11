@@ -458,11 +458,6 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
   end
 
-  # Converts m^3/s per W to CFM/ton.
-  def m_3_per_sec_watts_to_cfm_per_ton(m_3_per_sec_watts)
-    OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
-  end
-
   # Adjusts the rated COP based on EnergyPlus-sized airflow and a reference airflow derived from manufacturer-based CFM/ton.
   def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, rated_capacity_w,
                                             original_rated_cop, eir_modifier_curve_flow)
