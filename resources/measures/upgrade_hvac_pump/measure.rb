@@ -148,14 +148,14 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     end
 
     if nominal_power_kw < x0
-      motor_efficiency_pcnt = a * Math.log(nominal_power_kw) + b
+      motor_efficiency_pcnt = (a * Math.log(nominal_power_kw)) + b
     else
       # Compute e to ensure continuity at x0
-      left_val = a * Math.log(x0) + b
+      left_val = (a * Math.log(x0)) + b
       right_val = c * (1 - Math.exp(-d * x0))
       e = left_val - right_val
 
-      motor_efficiency_pcnt = c * (1 - Math.exp(-d * nominal_power_kw)) + e
+      motor_efficiency_pcnt = (c * (1 - Math.exp(-d * nominal_power_kw))) + e
     end
 
     # Clip output to [90.53%, 95.95%]
@@ -184,7 +184,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   end
 
   # iteratively compute the design motor power based on flow, head, and pump efficiency.
-  def self.compute_design_motor_power(flow_m3_per_s, head_pa, eta_pump = 0.75, tolerance = 0.001, max_iter = 50)
+  def self.compute_design_motor_power(flow_m3_per_s, head_pa, eta_pump = 0.75, tolerance = 0.001,
+                                      max_iter = 50)
     raise ArgumentError, 'Flow must be > 0' if flow_m3_per_s <= 0
     raise ArgumentError, 'Head must be > 0' if head_pa <= 0
 
@@ -203,6 +204,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
       # Check for convergence
       break if (motor_eff - new_motor_eff).abs < tolerance
+
       motor_eff = new_motor_eff
 
       iter += 1
@@ -283,7 +285,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
           runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityIndicatingType}; cannot determine Twb.")
         end
       elsif dd.humidityConditionType == 'Wetbulb' && dd.wetBulbOrDewPointAtMaximumDryBulb.is_initialized
-        summer_oat_wbs_f << OpenStudio.convert(dd.wetBulbOrDewPointAtMaximumDryBulb.get, 'C', 'F').get
+        summer_oat_wbs_f << OpenStudio.convert(dd.wetBulbOrDewPointAtMaximumDryBulb.get, 'C',
+                                               'F').get
       else
         runner.registerInfo("For #{dd.name}, humidity is specified as #{dd.humidityConditionType}; cannot determine Twb.")
       end
@@ -394,7 +397,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
-    super(model, runner, user_arguments) # Do **NOT** remove this line
+    super # Do **NOT** remove this line
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
@@ -416,14 +419,16 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     applicable_pumps = []
     pumps_const_spd = model.getPumpConstantSpeeds
     pumps_var_spd = model.getPumpVariableSpeeds
-    pump_specs_cst_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps, pumps_const_spd, std)
+    pump_specs_cst_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps,
+                                                                    pumps_const_spd, std)
     applicable_pumps = pump_specs_cst_spd_before[0]
     pump_rated_flow_total_c = pump_specs_cst_spd_before[1]
     pump_motor_eff_weighted_average_c = pump_specs_cst_spd_before[2]
     pump_motor_bhp_weighted_average_c = pump_specs_cst_spd_before[3]
     count_cst_spd_pump = applicable_pumps.size
     msg_cst_spd_pump_i = "#{count_cst_spd_pump} constant speed pumps found with #{pump_rated_flow_total_c.round(6)} m3/s total flow, #{pump_motor_eff_weighted_average_c.round(3) * 100}% average motor efficiency, and #{pump_motor_bhp_weighted_average_c.round(6)} BHP."
-    pump_specs_var_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps, pumps_var_spd, std)
+    pump_specs_var_spd_before = UpgradeHvacPump.pump_specifications(applicable_pumps,
+                                                                    pumps_var_spd, std)
     applicable_pumps = pump_specs_var_spd_before[0]
     pump_rated_flow_total_v = pump_specs_var_spd_before[1]
     pump_motor_eff_weighted_average_v = pump_specs_var_spd_before[2]
@@ -457,7 +462,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # applicability
     # ------------------------------------------------
-    if applicable_pumps.size == 0
+    if applicable_pumps.empty?
       runner.registerAsNotApplicable('no eligible pumps are found in the model.')
       return true
     end
@@ -482,7 +487,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       pump_flow_rate_m_3_per_s = old_pump.ratedFlowRate.get
       pump_head_pa = old_pump.ratedPumpHead
       original_name = old_pump.name.get
-      pump_name = original_name.gsub('constant', 'variable').gsub('Constant', 'Variable') + "_upgrade"
+      pump_name = original_name.gsub('constant', 'variable').gsub('Constant',
+                                                                  'Variable') + '_upgrade'
       pump_power_w = old_pump.ratedPowerConsumption.get
       pump_motor_eff = old_pump.motorEfficiency
 
@@ -509,7 +515,8 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       new_pump.setRatedPumpHead(pump_head_pa)
 
       # Apply motor power
-      pump_power_new_w = UpgradeHvacPump.compute_design_motor_power(pump_flow_rate_m_3_per_s, pump_head_pa)
+      pump_power_new_w = UpgradeHvacPump.compute_design_motor_power(pump_flow_rate_m_3_per_s,
+                                                                    pump_head_pa)
       if pump_power_new_w > pump_power_w
         runner.registerInfo("--- new pump power (#{pump_power_new_w}) is worse than existing pump power (#{pump_power_w}). skipping power update.")
       else
@@ -557,7 +564,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # applicability 2nd check
     # ------------------------------------------------
     if applicability_eff == false && applicability_power == false
-      runner.registerAsNotApplicable("existing pumps are all performing better than this measure implementation: applicability_eff= #{} | applicability_power = #{}")
+      runner.registerAsNotApplicable('existing pumps are all performing better than this measure implementation: applicability_eff=  | applicability_power = ')
       return true
     end
 
@@ -568,7 +575,10 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       plant_loops = model.getPlantLoops
       plant_loops.each do |plant_loop|
         std.plant_loop_enable_supply_water_temperature_reset(plant_loop) if chw_oat_reset
-        plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop) if cw_oat_reset
+        if cw_oat_reset
+          plant_loop_apply_prm_baseline_condenser_water_temperatures(runner,
+                                                                     plant_loop)
+        end
       end
     end
 

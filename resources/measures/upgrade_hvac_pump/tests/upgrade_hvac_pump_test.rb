@@ -14,15 +14,15 @@ class UpgradeHvacPumpTest < Minitest::Test
   end
 
   def test_evaluate_zero
-    curve, _, _, _, _ = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+    curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(0.0)
-    assert_in_delta 0.0, result, 1e-6, "Expected curve output at x=0 to be 0"
+    assert_in_delta 0.0, result, 1e-6, 'Expected curve output at x=0 to be 0'
   end
 
   def test_evaluate_one
-    curve, _, _, _, _ = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+    curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
     result = curve.evaluate(1.0)
-    assert_in_delta 1.0, result, 1e-6, "Expected curve output at x=1 to be 1"
+    assert_in_delta 1.0, result, 1e-6, 'Expected curve output at x=1 to be 1'
   end
 
   def test_output_bounds_over_range
@@ -36,17 +36,17 @@ class UpgradeHvacPumpTest < Minitest::Test
 
   def test_low_power_value
     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(350)
-    assert_in_delta 90.53, eff, 0.5, "Expected efficiency close to lower bound"
+    assert_in_delta 90.53, eff, 0.5, 'Expected efficiency close to lower bound'
   end
 
   def test_high_power_value
     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(38800)
-    assert_in_delta 95.95, eff, 0.5, "Expected efficiency close to upper bound"
+    assert_in_delta 95.95, eff, 0.5, 'Expected efficiency close to upper bound'
   end
 
   def test_exact_breakpoint
     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(5000)
-    assert eff >= 90.53 && eff <= 95.95, "Efficiency at breakpoint not within bounds: #{eff}"
+    assert eff.between?(90.53, 95.95), "Efficiency at breakpoint not within bounds: #{eff}"
   end
 
   def test_zero_input
@@ -57,12 +57,12 @@ class UpgradeHvacPumpTest < Minitest::Test
 
   def test_input_below_range_clipped
     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(100) # 0.1 kW
-    assert_in_delta 90.53, eff, 1e-6, "Expected output to be clipped at lower bound for 100W"
+    assert_in_delta 90.53, eff, 1e-6, 'Expected output to be clipped at lower bound for 100W'
   end
 
   def test_input_above_range_clipped
     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(50000) # 50 kW
-    assert_in_delta 95.95, eff, 1e-6, "Expected output to be clipped at upper bound for 50000W"
+    assert_in_delta 95.95, eff, 1e-6, 'Expected output to be clipped at upper bound for 50000W'
   end
 
   # supporting method: return file paths to test models in test directory
@@ -225,10 +225,12 @@ class UpgradeHvacPumpTest < Minitest::Test
 
     # check performance improvement
     if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_c_before
-      assert(false, "Pump motor efficiency got worse compared to existing constant speed pump. Before: #{pump_motor_eff_weighted_average_c_before}, After: #{pump_motor_eff_weighted_average_c_after}")
+      assert(false,
+             "Pump motor efficiency got worse compared to existing constant speed pump. Before: #{pump_motor_eff_weighted_average_c_before}, After: #{pump_motor_eff_weighted_average_c_after}")
     end
     if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_v_before
-      assert(false, "Pump motor efficiency got worse compared to existing variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
+      assert(false,
+             "Pump motor efficiency got worse compared to existing variable speed pump. Before: #{pump_motor_eff_weighted_average_v_before}, After: #{pump_motor_eff_weighted_average_v_after}")
     end
 
     # check control specs
