@@ -241,14 +241,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
           # working_profile = tstat_profile.values.dup
           tstat_profile_min = tstat_profile.values.min
           tstat_profile_max = tstat_profile.values.max
-          # tstat_profile.values.each_with_index do |value, i| # find minimum except for values during opt start
-          # # test values for optimum start (need to be at least the third timestep in the profile to test)
-          # if i > 3 && possible_opt_start(i, tstat_profile, tstat_profile_min) # identify if the time step could have been part of an optimum start
-          # working_profile.delete(value)
-          # end
-          # end
-          # tstat_profile_min_adj = working_profile.min
-          # tstat_profile_max_adj = working_profile.max
           schedule_deltas << tstat_profile_max - tstat_profile_min # assuming that any changes in the schedule during the day represent nighttime setbacks
         end
       end
