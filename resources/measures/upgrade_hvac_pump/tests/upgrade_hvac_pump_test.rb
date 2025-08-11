@@ -221,7 +221,7 @@ class UpgradeHvacPumpTest < Minitest::Test
        (pump_var_part_load_curve_coeff4_weighted_avg_before != pump_var_part_load_curve_coeff4_weighted_avg_after)
       coefficient_set_different = true
     end
-    assert_equal(true, coefficient_set_different)
+    assert_equal(true, coefficient_set_different, "Pump part load curve coefficients did not change as expected.")
 
     # check performance improvement
     if pump_motor_eff_weighted_average_v_after < pump_motor_eff_weighted_average_c_before
@@ -239,9 +239,9 @@ class UpgradeHvacPumpTest < Minitest::Test
     puts("### DEBUGGING: fraction_cw_oat_reset_enabled_b = #{fraction_cw_oat_reset_enabled_b} | fraction_cw_oat_reset_enabled_a = #{fraction_cw_oat_reset_enabled_a}")
     refute_equal(fraction_chw_oat_reset_enabled_b, fraction_chw_oat_reset_enabled_a)
     if instance_test_name.include?('air_cooled')
-      assert_equal(fraction_cw_oat_reset_enabled_a, 0.0)
+      assert_equal(fraction_cw_oat_reset_enabled_a, 0.0, "Fraction CW OAT Reset Enabled A is not equal to 0.0")
     else
-      assert_equal(fraction_cw_oat_reset_enabled_a, 1.0)
+      assert_equal(fraction_cw_oat_reset_enabled_a, 1.0, "Fraction CW OAT Reset Enabled A is not equal to 1.0")
     end
 
     # # save the model to test output directory
