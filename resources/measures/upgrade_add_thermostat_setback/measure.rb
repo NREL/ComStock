@@ -94,13 +94,6 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
   def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start, opt_start_len)
     schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, tstat_sched)
     sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
-    # filename = 'output.csv'
-    # Open the CSV file in write mode ('w') and write the data
-    # CSV.open(filename, 'w') do |csv|
-    # schedule_annual_profile.to_a.each do |row|
-    # csv << row
-    # end
-    # end
     schedule_annual_profile_updated = OpenStudio::DoubleVector.new
     schedule_annual_profile.each_with_index do |_val, idx| # Create new profile based on occupancy
       # Find maximum value of schedule for the particular week
