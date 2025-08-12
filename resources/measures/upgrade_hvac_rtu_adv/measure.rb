@@ -33,10 +33,12 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
            ' models available on the market today. If the building currently uses gas for space'\
            ' heating, the upgraded RTU will be equipped with a gas furnace. If the building uses'\
            ' electricity for space heating, the RTU will include electric resistance heating.'\
-           ' Heat/Energy Recovery Ventilator (H/ERVs) is included in the RTUs for this study,'\
-           ' and the implementation and modeling will follow the approach used in previous work.'\
-           ' Demand Control Ventilation (DCV) is included in the RTUs for this study,'\
-           ' and the implementation and modeling will follow the approach used in previous work.'
+           ' Heat/Energy Recovery Ventilator (H/ERVs) can be included in this measure,'\
+           ' and the implementation and modeling will follow'\
+           ' the approach used in previous H/ERV work.'\
+           ' Demand Control Ventilation (DCV) can be included in this measure,'\
+           ' and the implementation and modeling will follow'\
+           ' the approach used in previous DCV work.'
   end
 
   # define the arguments that the user will input
@@ -642,6 +644,7 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     prim_ht_fuel_type = 'electric' # we assume electric unless we find a gas coil in any air loop
     is_sizing_run_needed = true
     unitary_sys = nil
+    is_sizing_run_needed = true
     model.getAirLoopHVACs.each do |air_loop_hvac|
       # skip units that are not single zone
       next if air_loop_hvac.thermalZones.length > 1
@@ -800,6 +803,16 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     end
 
     # ---------------------------------------------------------
+    # do sizing run if model is not hard-sized
+    # ---------------------------------------------------------
+    if is_sizing_run_needed == true
+      runner.registerInfo('sizing summary: sizing run needed')
+      return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
+
+      model.applySizingValues
+    end
+
+    # ---------------------------------------------------------
     # remove units with high OA fractions and night cycling
     # ---------------------------------------------------------
     # add systems with high outdoor air ratios to a list for non-applicability
@@ -903,34 +916,15 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
     # ---------------------------------------------------------
     # get model conditioned square footage for reporting
     # ---------------------------------------------------------
-    if model.building.get.conditionedFloorArea.empty?
-      runner.registerWarning('model.building.get.conditionedFloorArea() is empty;'\
-                             ' applicable floor area fraction will not be reported.')
-      # report initial condition of model
-      condition = "The building has #{
-        selected_air_loops.size
-      } applicable air loops (out of the total #{
-          model.getAirLoopHVACs.size
-        } airloops in the model) that will be replaced with high-efficiency RTUs, serving #{
-            applicable_area_m2.round(0)
-          } m2 of floor area. The remaning airloops were determined to be not applicable."
-      runner.registerInitialCondition(condition)
-    else
-      total_area_m2 = model.building.get.conditionedFloorArea.get
-      # fraction of conditioned floorspace
-      applicable_floorspace_frac = applicable_area_m2 / total_area_m2
-      # report initial condition of model
-      condition = "The building has #{
-        selected_air_loops.size
-      } applicable air loops that will be replaced with high-efficiency RTUs, representing #{
-          (applicable_floorspace_frac * 100).round(2)
-        }% of the building floor area. #{
-            condition_initial_roof
-          }. #{
-              condition_initial_window
-            }."
-      runner.registerInitialCondition(condition)
-    end
+    # report initial condition of model
+    condition = "The building has #{
+      selected_air_loops.size
+    } applicable air loops (out of the total #{
+        model.getAirLoopHVACs.size
+      } airloops in the model) that will be replaced with high-efficiency RTUs, serving #{
+          applicable_area_m2.round(0)
+        } m2 of floor area. The remaning airloops were determined to be not applicable."
+    runner.registerInitialCondition(condition)
 
     # ---------------------------------------------------------
     # applicability checks for heat recovery; building type
