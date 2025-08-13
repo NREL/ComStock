@@ -61,6 +61,55 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
   def modeler_description
     return 'This creates a new heat recovery loop that is attached to a tertiary node to an existing chiller or a new chiller. The heat recovery loop consists of the chiller and a water heater mixed object that is also connected to a hot water loop. The heat recovery loop and hot water loop are sized to the same user defined temperature setpoint as well as all hot water coils in the model.'
   end
+  def calc_LCC(htg_load, clg_load, scen, htg_type, hrc_cap, params) 
+     if scen == 'Base' 
+		chw_energy_use_base = clg_load.map { |num| num/(params["base_chiller_cop"] * params["timestep"] * 1000)} #energy use in kWh 
+		chw_elec_cost_base = chw_energy_use_base.map { |num| num * params["elec_cost"]} 
+		chw_energy_cost_base_ann = chw_elec_cost_base.inject(0, :+)
+		if htg_type == 'Fuel'
+		    hhw_energy_use_base = htg_load.map { |num| num/(params["base_boiler_eff"] * params["timestep"] * 1000)} #energy use in kWh 
+			hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * params["btu_per_kWh"] * params["gas_cost_per_btu"] } 
+			hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
+			hhw_cost_LCC = hhw_energy_cost_base_ann * params["ng_cost_factor"]
+		elsif htg_type == 'Electricity' 
+		    hhw_energy_use_base = htg_load.map { |num| num/(params["base_elec_boiler_eff"] * params["timestep"] * 1000)} #energy use in kWh 
+			hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * params["elec_cost"] } 
+			hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
+			hhw_cost_LCC = hhw_energy_cost_base_ann * params["elec_cost_factor"]
+		end 
+	    #Convert to life cycle cost, expressed as a present value 
+	    lcc = hhw_cost_LCC  + chw_energy_cost_base_ann * params["elec_cost_factor"]
+    elsif scen == 'HRC'
+		hrc_loads_clg = clg_load.map { |value| value < hrc_cap ? value : hrc_cap }
+		# Clg loads above HRC capacity are carried by the chiller 
+		chiller_loads_clg = clg_load.map { |value| value >= hrc_cap ? value - hrc_cap : 0 } 
+		# Heating loads above the HRC capacity are carried by the boiler 
+		boiler_loads_htg = htg_load.map { |value| value >= hrc_cap ? value - hrc_cap : 0}
+		# Calculate energy use 
+		hrc_energy_use = hrc_loads_clg.map { |num| num/(params["hrc_cop"] * params["timestep"] * 1000)} #HRC energy use; kWh time series 
+		hrc_energy_use_ann = hrc_energy_use.inject(0, :+) #kWh 
+		chiller_energy_use = chiller_loads_clg.map { |num| num/(params["base_chiller_cop"] * params["timestep"] * 1000)} #chiller energy use; kWh time series 
+		chiller_energy_use_ann = chiller_energy_use.inject(0, :+) #kWh 
+		if htg_type == 'Fuel'
+			boiler_energy_use = boiler_loads_htg.map { |num| num/(params["base_boiler_eff"] * params["timestep"] * 1000)} #kWh time series
+            boiler_energy_use_ann = boiler_energy_use.inject(0, :+) #kWh 
+			scen_htg_cost_ann = boiler_energy_use_ann * params["btu_per_kWh"] * params["gas_cost_per_btu"]
+			htg_cost_LCC = scen_htg_cost_ann * params["ng_cost_factor"]
+		elsif htg_type == 'Electricity' 
+		    boiler_energy_use = boiler_loads_htg.map { |num| num/(params["base_elec_boiler_eff"] * params["timestep"] * 1000)} #kWh time series
+            boiler_energy_use_ann = boiler_energy_use.inject(0, :+) #kWh 
+			scen_htg_cost_ann = boiler_energy_use_ann * params["elec_cost"]
+			htg_cost_LCC = scen_htg_cost_ann * params["elec_cost_factor"]
+		end 
+		#Calculate energy cost
+		scen_elec_cost_ann = (chiller_energy_use_ann + hrc_energy_use_ann) * params["elec_cost"]
+		#Calculate capital cost 
+		hrc_cost = params["hrc_cost_per_ton"] * params["tons_per_watt"] * hrc_cap
+		lcc = htg_cost_LCC + scen_elec_cost_ann * params["elec_cost_factor"] + hrc_cost
+	end 
+    return lcc 
+  end
+  
 
   # define the arguments that the user will input
   def arguments(model)
@@ -161,7 +210,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     # enable output variables argument
     enable_output_variables = OpenStudio::Measure::OSArgument::makeBoolArgument('enable_output_variables',false, false)
-    enable_output_variables.setDefaultValue(false)
+    enable_output_variables.setDefaultValue(true)
     enable_output_variables.setDisplayName('Enable output variables?')
     args << enable_output_variables
 
@@ -192,33 +241,39 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     std = Standard.build('90.1-2013')
 	
 	#Check for measure applicability 
-	boilers =  model.getBoilerHotWaters.size
+	boilers =  model.getBoilerHotWaters.size #need this variable later 
 	chillers = model.getChillerElectricEIRs.size 
 	
+	#TODO update for district heating 
 	unless boilers >=1 and chillers >=1 
 	   runner.registerAsNotApplicable("Either no boilers or no chillers in the model; not applicable.") 
 	end 
 	
     #subsequent check for water cooled chillers
 	
+	#Set params for LCC calcs
+	lcc_params = {}
+	
 	#Need to check if initialized? 
 	timestep = model.getTimestep
     timesteps_per_hr = timestep.numberOfTimestepsPerHour
 	
-	
+	lcc_params["timestep"] = timesteps_per_hr
 
 	#Set parameter values for sizing
-	hrc_delta_cost = 50 #$/ton, rough estimate, to be refined. Difference in cost between standard chiller and HRC 
-	base_boiler_eff = 0.8
-	base_shw_eff = 0.8 
-	hrc_cop = 5.0 #to be refined based on actual equipment and part load value 
-	base_chiller_cop = 5.9 #AA TODO: look up by capacity and IPLV 
-	elec_cost = 0.01296 #$/kWh, May 2025 US commercial average
-	gas_cost = 11.76 #$/kcf May 2025 US commercial average
+	lcc_params["hrc_cost_per_ton"] = 550 #$/ton, rough estimate, to be refined. 
+	lcc_params["base_boiler_eff"] = 0.8
+	lcc_params["hrc_cop"] = 5.0 #to be refined based on actual equipment and part load value 
+	lcc_params["base_chiller_cop"] = 5.9 #AA TODO: look up by capacity and IPLV 
+	lcc_params["elec_cost"] = 0.01296 #$/kWh, May 2025 US commercial average
+	gas_cost_per_kcf = 11.76 #$/kcf May 2025 US commercial average
 	btu_per_ft3 = 1038 #energy density of natural gas, https://www.eia.gov/tools/faqs/faq.php?id=45&t=8
-	gas_cost_per_btu = gas_cost/1000/btu_per_ft3
-	btu_per_kWh = 3412.14 
-	tons_per_watt = 0.000284345
+	lcc_params["gas_cost_per_btu"] = gas_cost_per_kcf /1000/btu_per_ft3
+	lcc_params["btu_per_kWh"] = 3412.14 
+	lcc_params["tons_per_watt"] = 0.000284345
+	lcc_params["base_elec_boiler_eff"] = 1 
+	lcc_params["elec_cost_factor"] = 13.62 #FEMP LCCA Handbook 135 Supplement for 2024, evaluated for 20 yrs, commerical electricity US average
+	lcc_params["ng_cost_factor"] = 13.75 #FEMP LCCA Handbook 135 Supplement for 2024, evaluated for 20 yrs, commerical NG  US average
 	
 
     # check the cooling_loop_name argument for reasonableness and assign chilled water loop
@@ -291,7 +346,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     if chiller_choice == 'Add New Chiller'
       heat_recovery_chiller = OpenStudio::Model::ChillerElectricEIR.new(model)
       heat_recovery_chiller.setName('Heat Recovery Chiller')
-	  heat_recovery_chiller.setReferenceCOP(hrc_cop) 
+	  heat_recovery_chiller.setReferenceCOP(lcc_params["hrc_cop"]) 
       chilled_water_loop.addSupplyBranchForComponent(heat_recovery_chiller)
 
       # set as air cooled as condenser loop may not exist
@@ -484,7 +539,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	water_heater.setAmbientTemperatureSchedule(amb_temp_sch)
 	# ensure water heater object does not heat above the setpoint
 	water_heater.setMaximumTemperatureLimit(heat_recovery_loop_temperature_c)
-	water_heater.setTankVolume(100) #Setting to a high volume 
+	water_heater.setTankVolume(0.189271) #Setting to a low volume to emulate no storage 
 
     hr_connecting_object = water_heater
 
@@ -560,10 +615,8 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     elsif heating_order == 'Series'
       # infer source object inlet node
       inlet_nodes = [] 
-	  #inlet_node = hot_water_loop.supplyInletNode 
       hot_water_loop.supplyComponents.each do |sc| 
         next if !hot_water_source_objects.include?(sc.iddObject.name)
-		#inlet_nodes << sc.to_StraightComponent.get.inletModelObject.get.to_Node.get
 		if sc.to_WaterToWaterComponent.is_initialized
 			scomponent = sc.to_WaterToWaterComponent.get 
 			inlet_nodes << sc.to_WaterToWaterComponent.get.supplyInletModelObject.get.to_Node.get #
@@ -585,12 +638,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 	  
       # place the connecting object before the existing source object
       hr_connecting_object.addToNode(inlet_nodes[0])
-	  
-	  # #Assuming connecting object is water to water component
-	  # hr_connecting_object_ww = hr_connecting_object.to_WaterToWaterComponent.get 
-	  # outlet_node_con = hr_connecting_object.to_WaterToWaterComponent.get.demandOutletModelObject.get.to_Node.get 
-	  
-	  # runner.registerInfo("outlet node #{outlet_node_con}")
+	 
     else
       runner.registerError("Invalid heating order type #{heating_order}.")
       return false
@@ -642,7 +690,6 @@ end
       var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
       var.setReportingFrequency('Timestep')
 	  
-	  
 	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
       var.setKeyValue('Heat Recovery Storage Water Heater Demand Inlet Water Node')
       var.setReportingFrequency('Timestep')
@@ -675,12 +722,25 @@ end
       var.setKeyValue('Hot Water Loop Pump Outlet Water Node')
       var.setReportingFrequency('Timestep')
 	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+      var.setKeyValue('Heat Recovery Chiller Demand Inlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Chiller Demand Inlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
+	  var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+      var.setKeyValue('Heat Recovery Chiller Demand Outlet Water Node')
+      var.setReportingFrequency('Timestep')
+	  
 	  end 
 	  
 	  #Add vars for sizing 
 	  
 	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
       var.setKeyValue(chilled_water_loop.name.to_s)
+	  var.setKeyValue("Chilled Water Loop") 
       var.setReportingFrequency('Timestep')
 	  
 	  var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Heating Demand Rate', model)
@@ -762,7 +822,7 @@ end
 	hhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
                                      hot_water_loop.name.to_s)
 	# dhw_loads_ts = sql.timeSeries(ann_env_pd, 'Timestep', 'Plant Supply Side Heating Demand Rate',
-                                     # dhw_loop)
+                                     # dhw_loop) #To be included if DHW loop integrated in the future 
 
 	#Process results 
     if chw_loads_ts.is_initialized
@@ -804,60 +864,30 @@ end
 	
 	max_overlap_load = sorted_overlap_loads[0] #maximum value, sorted in descending order 
 	
+	puts max_overlap_load
+	
 	step_size = (max_overlap_load/10).floor
 	
-	puts timesteps_per_hr
+	#Calculate estimated baseline energy cost for purpose of evaluation  
 	
-	chiller_lifespan = 20 #years 
+	htg_type = 'Fuel' 
+	#treat district heating as fuel for purposes of cost calculation 
+	#handle electric boilers 
+	if boilers >=1
+	   #if Electric
+	   #htg_type = 'Electric'
+	end 
 	
-	elec_cost_factor = 13.62 #FEMP LCCA Handbook 135 Supplement for 2024, commerical electricity US average
-	
-	ng_cost_factor = 13.75 #FEMP LCCA Handbook 135 Supplement for 2024, commerical NG  US average
-	
-	#Calculate estimated baseline energy cost for purpose of evaluation 
-	chw_energy_use_base = chw_loads.map { |num| num/(base_chiller_cop *timesteps_per_hr * 1000)} #energy use in kWh 
-	chw_elec_cost_base = chw_energy_use_base.map { |num| num*elec_cost} 
-	
-	# #TODO extend to other fuels 
-	hhw_energy_use_base = hhw_loads.map { |num| num/(base_boiler_eff * timesteps_per_hr * 1000)} #energy use in kWh 
-	hhw_energy_cost_base = hhw_energy_use_base.map { |num| num * btu_per_kWh * gas_cost_per_btu } 
-	
-	#Sum annual costs 
-	
-	hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
- 
-	chw_energy_cost_base_ann = chw_elec_cost_base.inject(0, :+)
-
-	
-	#Convert to life cycle cost, expressed as a present value 
-	lcc_base = hhw_energy_cost_base_ann * ng_cost_factor + chw_energy_cost_base_ann * elec_cost_factor
+	lcc_base = calc_LCC(hhw_loads, chw_loads, "Base", htg_type, 0, lcc_params) 
 	
 	puts lcc_base
 	
 	hrc_eval = {}
 	
+	#update this so # of steps is 10 
 	(1...10).each do |step|
 	    hrc_cap = step*step_size
-		# Separate out loads by equipment serving htem 
-		# Clg loads under the capacity of HRC are carried by HRC 
-		hrc_loads_clg = chw_loads.map { |value| value < hrc_cap ? value : hrc_cap }
-		# Clg loads above HRC capacity are carried by the chiller 
-		chiller_loads_clg = chw_loads.map { |value| value >= hrc_cap ? value - hrc_cap : 0 } 
-		# Heating loads above the HRC capacity are carried by the boiler 
-		boiler_loads_htg = hhw_loads.map { |value| value >= hrc_cap ? value - hrc_cap : 0}
-		# Calculate energy use 
-		hrc_energy_use = hrc_loads_clg.map { |num| num/(hrc_cop *timesteps_per_hr * 1000)} #HRC energy use; kWh time series 
-		hrc_energy_use_ann = hrc_energy_use.inject(0, :+) #kWh 
-		chiller_energy_use = chiller_loads_clg.map { |num| num/(base_chiller_cop *timesteps_per_hr * 1000)} #chiller energy use; kWh time series 
-		chiller_energy_use_ann = chiller_energy_use.inject(0, :+) #kWh 
-		boiler_energy_use = boiler_loads_htg.map { |num| num/(base_boiler_eff * timesteps_per_hr * 1000)} #kWh time series 
-		boiler_energy_use_ann = boiler_energy_use.inject(0, :+) #kWh 
-		#Calculate energy cost
-		scen_elec_cost_ann = (chiller_energy_use_ann + hrc_energy_use_ann)*elec_cost 
-        scen_gas_cost_ann = boiler_energy_use_ann*btu_per_kWh*gas_cost_per_btu
-		#Calculate capital cost 
-		hrc_cost_diff = hrc_delta_cost * tons_per_watt * hrc_cap
-		hrc_lcc = scen_gas_cost_ann*ng_cost_factor + scen_elec_cost_ann*elec_cost_factor + hrc_cost_diff
+		hrc_lcc = calc_LCC(hhw_loads, chw_loads, "HRC", htg_type, hrc_cap, lcc_params)
 		hrc_eval[hrc_cap] = hrc_lcc
 	end 
 	
