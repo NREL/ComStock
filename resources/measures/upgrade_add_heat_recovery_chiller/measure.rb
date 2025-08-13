@@ -68,9 +68,14 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
         clg_load.map do |num|
           num / (params['base_chiller_cop'] * params['timestep'] * 1000)
         end
+		clg_sum = clg_load.inject(0, :+) ##AA, to be removed 
+		puts ("base clg sum + #{clg_sum}") 
       chw_elec_cost_base = chw_energy_use_base.map { |num| num * params['elec_cost'] }
       chw_energy_cost_base_ann = chw_elec_cost_base.inject(0, :+)
+	  puts ("chw base cost ann #{chw_energy_cost_base_ann}") 
       if htg_type == 'Fuel'
+	    htg_sum = htg_load.inject(0, :+)
+	  	puts ("base htg sum + #{htg_sum}")
         hhw_energy_use_base = # energy use in kWh
           htg_load.map do |num|
             num / (params['base_boiler_eff'] * params['timestep'] * 1000)
@@ -79,6 +84,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
           num * params['btu_per_kWh'] * params['gas_cost_per_btu']
         end
         hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
+		puts ("hhw base cost ann #{hhw_energy_cost_base_ann}") 
         hhw_cost_LCC = hhw_energy_cost_base_ann * params['ng_cost_factor']
       elsif htg_type == 'Electricity'
         hhw_energy_use_base = # energy use in kWh
@@ -296,7 +302,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     lcc_params['base_boiler_eff'] = 0.8
     lcc_params['hrc_cop'] = 5.0 # to be refined based on actual equipment and part load value
     lcc_params['base_chiller_cop'] = 5.9 # AA TODO: look up by capacity and IPLV
-    lcc_params['elec_cost'] = 0.01296 # $/kWh, May 2025 US commercial average
+    lcc_params['elec_cost'] = 0.1296 # $/kWh, May 2025 US commercial average
     gas_cost_per_kcf = 11.76 # $/kcf May 2025 US commercial average
     btu_per_ft3 = 1038 # energy density of natural gas, https://www.eia.gov/tools/faqs/faq.php?id=45&t=8
     lcc_params['gas_cost_per_btu'] = gas_cost_per_kcf / 1000 / btu_per_ft3
