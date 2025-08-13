@@ -68,14 +68,9 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
         clg_load.map do |num|
           num / (params['base_chiller_cop'] * params['timestep'] * 1000)
         end
-		clg_sum = clg_load.inject(0, :+) ##AA, to be removed 
-		puts ("base clg sum + #{clg_sum}") 
       chw_elec_cost_base = chw_energy_use_base.map { |num| num * params['elec_cost'] }
       chw_energy_cost_base_ann = chw_elec_cost_base.inject(0, :+)
-	  puts ("chw base cost ann #{chw_energy_cost_base_ann}") 
       if htg_type == 'Fuel'
-	    htg_sum = htg_load.inject(0, :+)
-	  	puts ("base htg sum + #{htg_sum}")
         hhw_energy_use_base = # energy use in kWh
           htg_load.map do |num|
             num / (params['base_boiler_eff'] * params['timestep'] * 1000)
@@ -84,7 +79,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
           num * params['btu_per_kWh'] * params['gas_cost_per_btu']
         end
         hhw_energy_cost_base_ann = hhw_energy_cost_base.inject(0, :+)
-		puts ("hhw base cost ann #{hhw_energy_cost_base_ann}") 
         hhw_cost_LCC = hhw_energy_cost_base_ann * params['ng_cost_factor']
       elsif htg_type == 'Electricity'
         hhw_energy_use_base = # energy use in kWh
