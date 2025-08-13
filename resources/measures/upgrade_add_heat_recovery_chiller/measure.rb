@@ -39,6 +39,9 @@ require 'open3'
 require 'csv'
 require 'time'
 
+#Code written originally by Matt Dalhausen, with modifications by Amy Allen 
+#for flexibility to different water side components, and addition of sizing routine. 
+
 # TODO:
 # add performance curves
 # compatability for DH objects and electric boiler in cost calculations
