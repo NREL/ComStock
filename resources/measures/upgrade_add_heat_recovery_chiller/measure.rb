@@ -41,7 +41,8 @@ require 'time'
 
 # TODO:
 # add performance curves
-# compatability for DH objects
+# compatability for DH objects and electric boiler in cost calculations
+#getting state level average utility rates 
 
 
 # start the measure
