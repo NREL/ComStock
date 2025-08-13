@@ -293,7 +293,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     lcc_params['timestep'] = timesteps_per_hr
 
     # Set parameter values for sizing
-    lcc_params['hrc_cost_per_ton'] = 550 # $/ton, rough estimate, to be refined.
+    lcc_params['hrc_cost_per_ton'] = 780 # $/ton, from manufacturer quote 
     lcc_params['base_boiler_eff'] = 0.8
     lcc_params['hrc_cop'] = 5.0 # to be refined based on actual equipment and part load value
     lcc_params['base_chiller_cop'] = 5.9 # AA TODO: look up by capacity and IPLV
