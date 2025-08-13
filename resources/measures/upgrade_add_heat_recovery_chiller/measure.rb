@@ -885,8 +885,9 @@ end
 	hrc_eval = {}
 	
 	#update this so # of steps is 10 
-	(1...10).each do |step|
-	    hrc_cap = step*step_size
+	(1...11).each do |step|
+	    hrc_cap_init = step*step_size
+		hrc_cap = [hrc_cap_init, max_overlap_load].min #ensure not exceeding overlap load 
 		hrc_lcc = calc_LCC(hhw_loads, chw_loads, "HRC", htg_type, hrc_cap, lcc_params)
 		hrc_eval[hrc_cap] = hrc_lcc
 	end 
