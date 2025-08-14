@@ -3942,6 +3942,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'units': col_def['new_units'],
                 'field_description': col_def['field_description'],
                 'allowable_enumeration': '|'.join(col_enums),
+                'in_full_metadata_file': col_def['full_metadata'],
+                'in_basic_metadata_file': col_def['basic_metadata']
             })
 
         data_dictionary = pl.from_dicts(col_dicts)
