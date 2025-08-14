@@ -73,7 +73,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
         self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
-        self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
+        self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
@@ -102,8 +102,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
-        # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-        # self.s3_resource = boto3.resource('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
@@ -202,6 +202,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
                 self.set_column_data_types()
+                self.fix_supermarket_building_type_name()
                 self.remove_unused_as_simulated_geog_cols()
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
@@ -1257,7 +1258,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
-            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice']
+            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery']
 
         food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
 
@@ -1266,7 +1267,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
             'FullServiceRestaurant', 'Hospital', 'Outpatient',
-            'SecondarySchool', 'LargeOffice']
+            'SecondarySchool', 'LargeOffice', 'Grocery', 'SuperMarket']
 
         lodging = ['SmallHotel', 'LargeHotel']
 
@@ -1751,6 +1752,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # when determining unique in.foo values for SightGlass filters.
         self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8))
 
+    def fix_supermarket_building_type_name(self):
+        # ComStock grocery stores are noted as SuperMarket
+        self.data = self.data.with_columns(pl.col('in.comstock_building_type').replace('SuperMarket', 'Grocery'))
+
     def remove_unused_as_simulated_geog_cols(self):
         as_sim_geog_cols_to_keep = [
             self.COUNTY_ID_AS_SIM,
@@ -1983,6 +1988,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         bldg_type_groups = {
             'FullServiceRestaurant': 'Food Service',
             'QuickServiceRestaurant': 'Food Service',
+            'Grocery': 'Food Service',
             'RetailStripmall': 'Mercantile',
             'RetailStandalone': 'Mercantile',
             'SmallOffice': 'Office',
