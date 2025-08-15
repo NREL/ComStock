@@ -361,8 +361,13 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         # #modify for htg vs cooling and threshold temps
         if htg_valid
           if !no_people_obj and !has_htg_setback # align thermostat schedules with occupancy if people object present
+            clg_des_day = htg_schedule.summerDesignDaySchedule
+            htg_des_day = htg_schedule.winterDesignDaySchedule
             new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c,
                                          opt_start, opt_start_len)
+            # Keep design days the same as before
+            new_htg_sched.setWinterDesignDaySchedule(htg_des_day)
+            new_htg_sched.setSummerDesignDaySchedule(clg_des_day)
             zone_thermostat.setHeatingSchedule(new_htg_sched)
           elsif has_htg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
             runner.registerInfo("Heating setback already present for #{htg_schedule.name}")
@@ -372,8 +377,12 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         end
         if clg_valid
           if !no_people_obj and !has_clg_setback # align thermostat schedules with occupancy if people object present
+            clg_des_day = clg_schedule.summerDesignDaySchedule
+            htg_des_day = clg_schedule.winterDesignDaySchedule
             new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c,
                                          opt_start, opt_start_len)
+            new_clg_sched.setWinterDesignDaySchedule(htg_des_day)
+            new_clg_sched.setSummerDesignDaySchedule(clg_des_day)
             zone_thermostat.setCoolingSchedule(new_clg_sched)
           elsif has_clg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
             runner.registerInfo("Cooling setback already present for #{clg_schedule.name}")
