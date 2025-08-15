@@ -271,8 +271,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     htg_min_c = (htg_min - 32).to_f * conv_factor
     clg_max_c = (clg_max - 32).to_f * conv_factor
     cfm_per_m3s = 2118.8799727597
-
-    runner.registerInfo("clg setback #{clg_setback_c}")
+    zones_with_setbacks = []
+    all_zones = []
 
     model.getAirLoopHVACs.each do |air_loop_hvac| # iterate thru air loops
       # skip DOAS units; check sizing for all OA and for DOAS in name
@@ -331,6 +331,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
         end
 
+        all_zones << thermal_zone.name.to_s # Keep track of zones for later comparison to zones with setbacks
+
         clg_schedule = clg_schedule.get.to_ScheduleRuleset.get if clg_valid
 
         # check for validity later on too
@@ -343,36 +345,46 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         if htg_valid
           tstat_profiles_stats_htg = get_tstat_profiles_and_stats(htg_schedule)
           has_htg_setback = has_setback(tstat_profiles_stats_htg)
+          runner.registerInfo("zone #{thermal_zone.name} setback status htg #{has_htg_setback}")
         end
         if clg_valid
           tstat_profiles_stats_clg = get_tstat_profiles_and_stats(clg_schedule)
           has_clg_setback = has_setback(tstat_profiles_stats_clg)
+          runner.registerInfo("zone #{thermal_zone.name} setback status clg #{has_clg_setback}")
+        end
+
+        if has_htg_setback and has_clg_setback
+          zones_with_setbacks << thermal_zone.name.to_s # Keep track of zones that already have setbacks
+          next # skip zones that have setbacks for htg and clg already
         end
 
         # #modify for htg vs cooling and threshold temps
         if htg_valid
-          if !no_people_obj # align thermostat schedules with occupancy if people object present
+          if !no_people_obj and !has_htg_setback # align thermostat schedules with occupancy if people object present
             new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c,
                                          opt_start, opt_start_len)
             zone_thermostat.setHeatingSchedule(new_htg_sched)
           elsif has_htg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
-            mod_schedule_setbacks_existent(htg_schedule, 'heating', htg_setback_c, htg_min_c)
+            runner.registerInfo("Heating setback already present for #{htg_schedule.name}")
           else
             runner.registerInfo("Heating schedule #{htg_schedule.name} has no associated people objects at the zone level nor existing setbacks, cannot be modified.")
           end
         end
         if clg_valid
-          if !no_people_obj # align thermostat schedules with occupancy if people object present
+          if !no_people_obj and !has_clg_setback # align thermostat schedules with occupancy if people object present
             new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c,
                                          opt_start, opt_start_len)
             zone_thermostat.setCoolingSchedule(new_clg_sched)
           elsif has_clg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
-            mod_schedule_setbacks_existent(clg_schedule, 'cooling', clg_setback_c, clg_max_c)
+            runner.registerInfo("Cooling setback already present for #{clg_schedule.name}")
           else
             runner.registerInfo("Cooling schedule #{clg_schedule.name} has no associated people objects at the zone level nor existing setbacks, cannot be modified.")
           end
         end
       end
+    end
+    if zones_with_setbacks & all_zones == all_zones # See if the intersection of the two arrays is equal to the full zones array
+      runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks.')
     end
     true
   end
