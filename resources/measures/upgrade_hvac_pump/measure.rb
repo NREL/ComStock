@@ -777,6 +777,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
           plant_loop_apply_prm_baseline_condenser_water_temperatures(runner,
                                                                      plant_loop)
         end
+        # TODO: add outdoor temperture reset for boiler
       end
     end
 
