@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_rtu_adv</name>
   <uid>16167f07-446a-4b8e-bbf1-0fc2240decb9</uid>
-  <version_id>46c96f2a-f5a9-475f-9750-4c05c6f4b238</version_id>
-  <version_modified>2025-08-12T15:27:03Z</version_modified>
+  <version_id>8bd17159-8ca6-42a2-b554-5bc69e5043d9</version_id>
+  <version_modified>2025-08-18T11:20:09Z</version_modified>
   <xml_checksum>67CFAACE</xml_checksum>
   <class_name>UpgradeHvacRtuAdv</class_name>
   <display_name>upgrade_hvac_rtu_adv</display_name>
@@ -514,7 +514,7 @@
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AE1ED2E3</checksum>
+      <checksum>7607CFF5</checksum>
     </file>
   </files>
 </measure>
