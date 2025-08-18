@@ -20,9 +20,9 @@ ModelMeasure
 
 
 ### Add outdoor air temperature reset"\
-    " for chilled water supply temperature?
+    " for chilled/hot water supply temperature?
 
-**Name:** chw_oat_reset,
+**Name:** chw_hw_oat_reset,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,

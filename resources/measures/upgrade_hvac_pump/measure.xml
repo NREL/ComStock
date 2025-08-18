@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>d7bec703-4e13-485f-b636-0469d86b96d7</version_id>
-  <version_modified>2025-08-11T18:16:51Z</version_modified>
+  <version_id>44d7a4c0-809d-4ad5-bf72-463281f6e26e</version_id>
+  <version_modified>2025-08-18T18:21:49Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -12,9 +12,9 @@
   <modeler_description>Constant-speed pumps in existing buildings are replaced with variable-speed pumps featuring advanced part-load performance enabled by modern control strategies. Older variable-speed pumps are upgraded to newer models with advanced part-load efficiency through modern control technologies, such as dynamic static pressure reset. Applicable to pumps used for space heating and cooling: chiller system, boiler system, and district heating and cooling system.</modeler_description>
   <arguments>
     <argument>
-      <name>chw_oat_reset</name>
+      <name>chw_hw_oat_reset</name>
       <display_name>Add outdoor air temperature reset"\
-    " for chilled water supply temperature?</display_name>
+    " for chilled/hot water supply temperature?</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -202,7 +202,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>FE504285</checksum>
+      <checksum>7B3C7774</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -219,13 +219,61 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>43E697A9</checksum>
+      <checksum>7DA435A4</checksum>
+    </file>
+    <file>
+      <filename>310_vav_chiller_with_gas_boiler_reheat.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>57DE17D0</checksum>
+    </file>
+    <file>
+      <filename>380_doas_with_fan_coil_air_cooled_chiller_with_boiler.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>99F6AE6D</checksum>
+    </file>
+    <file>
+      <filename>380_doas_with_fan_coil_chiller_with_boiler.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B39CC519</checksum>
+    </file>
+    <file>
+      <filename>380_vav_air_cooled_chiller_with_gas_boiler_reheat.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0E26D000</checksum>
+    </file>
+    <file>
+      <filename>380_vav_chiller_with_gas_boiler_reheat.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>171C7463</checksum>
+    </file>
+    <file>
+      <filename>G0101010.ddy</filename>
+      <filetype>ddy</filetype>
+      <usage_type>test</usage_type>
+      <checksum>47C3AB75</checksum>
+    </file>
+    <file>
+      <filename>G0101010.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>3F1859BD</checksum>
+    </file>
+    <file>
+      <filename>NY_New_York_John_F_Ke_744860_16.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>BF4538EB</checksum>
     </file>
     <file>
       <filename>upgrade_hvac_pump_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>730FC0F1</checksum>
+      <checksum>6032E7F7</checksum>
     </file>
   </files>
 </measure>
