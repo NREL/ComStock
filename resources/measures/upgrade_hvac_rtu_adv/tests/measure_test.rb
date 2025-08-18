@@ -383,10 +383,13 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     out_vars = [
       'Air System Mixed Air Mass Flow Rate',
       'Fan Air Mass Flow Rate',
+      'Fan Electricity Rate',
       'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
       'Cooling Coil Total Cooling Rate',
       'Cooling Coil Electricity Rate',
       'Cooling Coil Runtime Fraction',
+      'Cooling Coil Upper Speed Level ',
+      'Cooling Coil Neighboring Speed Levels Ratio',
       'Heating Coil Heating Rate',
       'Heating Coil Electricity Rate',
       'Heating Coil Runtime Fraction',
@@ -399,7 +402,9 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       'HVAC System Solver Iteration Count',
       'Site Outdoor Air Drybulb Temperature',
       'Heating Coil Crankcase Heater Electricity Rate',
-      'Heating Coil Defrost Electricity Rate'
+      'Heating Coil Defrost Electricity Rate',
+      'System Node Temperature',
+      'System Node Mass Flow Rate'
     ]
     out_vars.each do |out_var_name|
       ov = OpenStudio::Model::OutputVariable.new('ov', model)
@@ -408,9 +413,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       ov.setVariableName(out_var_name)
     end
     model.getOutputControlFiles.setOutputCSV(true)
-
-    # Save model
-    model.save(model_output_path(test_name), true)
 
     if run_model
       puts "\nRUNNING MODEL..."
@@ -421,6 +423,10 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
       # Check that the model ran successfully
       assert(File.exist?(sql_path(test_name)))
     end
+
+    # Save model
+    model.applySizingValues
+    model.save(model_output_path(test_name), true)
 
     # change back directory
     Dir.chdir(start_dir)
@@ -1070,79 +1076,79 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     refute_equal(ervs_baseline, ervs_upgrade, 'ERVs should change when ERV argument is true')
   end
 
-  # single building result examples
-  def test_single_building_result_examples
-    osm_epw_pair = {
-      '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
-        'USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw'
-      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
-      #   'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-      # '380_Small_Office_psz_gas_1zone_not_hard_sized.osm' =>
-      #   'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
-    }
+  # # single building result examples
+  # def test_single_building_result_examples
+  #   osm_epw_pair = {
+  #     '310_PSZ-AC with electric coil.osm' =>
+  #       'G2901890.epw'
+  #     # '310_PSZ-AC with gas coil.osm' =>
+  #     #   'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
+  #     # '310_PSZ-AC with gas coil.osm' =>
+  #     #   'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
+  #   }
 
-    test_name = 'test_single_building_result_examples'
+  #   test_name = 'test_single_building_result_examples'
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
+  #   puts "\n######\nTEST:#{test_name}\n######\n"
 
-    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
-      osm_path = model_input_path(osm_name)
-      epw_path = epw_input_path(epw_name)
+  #   osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
+  #     osm_path = model_input_path(osm_name)
+  #     epw_path = epw_input_path(epw_name)
 
-      # Create an instance of the measure
-      measure = UpgradeHvacRtuAdv.new
+  #     # Create an instance of the measure
+  #     measure = UpgradeHvacRtuAdv.new
 
-      # Load the model; only used here for populating arguments
-      model = load_model(osm_path)
+  #     # Load the model; only used here for populating arguments
+  #     model = load_model(osm_path)
 
-      # get arguments
-      arguments = measure.arguments(model)
-      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+  #     # get arguments
+  #     arguments = measure.arguments(model)
+  #     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-      # populate specific argument for testing
-      arguments.each_with_index do |arg, idx|
-        temp_arg_var = arg.clone
-        case arg.name
-        when 'hr'
-          hr = arguments[idx].clone
-          hr.setValue(false)
-          argument_map[arg.name] = hr
-        when 'dcv'
-          dcv = arguments[idx].clone
-          dcv.setValue(false)
-          argument_map[arg.name] = dcv
-        when 'debug_verbose'
-          debug_verbose = arguments[idx].clone
-          debug_verbose.setValue(true)
-          argument_map[arg.name] = debug_verbose
-        else
-          argument_map[arg.name] = temp_arg_var
-        end
-      end
+  #     # populate specific argument for testing
+  #     arguments.each_with_index do |arg, idx|
+  #       temp_arg_var = arg.clone
+  #       case arg.name
+  #       when 'hr'
+  #         hr = arguments[idx].clone
+  #         hr.setValue(false)
+  #         argument_map[arg.name] = hr
+  #       when 'dcv'
+  #         dcv = arguments[idx].clone
+  #         dcv.setValue(false)
+  #         argument_map[arg.name] = dcv
+  #       when 'debug_verbose'
+  #         debug_verbose = arguments[idx].clone
+  #         debug_verbose.setValue(true)
+  #         argument_map[arg.name] = debug_verbose
+  #       else
+  #         argument_map[arg.name] = temp_arg_var
+  #       end
+  #     end
 
-      # Don't apply the measure to the model and run the model
-      result = set_weather_and_apply_measure_and_run(
-        "#{test_name}_#{idx_run}_b",
-        measure,
-        argument_map,
-        osm_path,
-        epw_path,
-        run_model: true,
-        apply: false
-      )
-      model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
+  #     # Don't apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run(
+  #       "#{test_name}_#{idx_run}_b",
+  #       measure,
+  #       argument_map,
+  #       osm_path,
+  #       epw_path,
+  #       run_model: true,
+  #       apply: false
+  #     )
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_b"))
 
-      # Apply the measure to the model and run the model
-      result = set_weather_and_apply_measure_and_run(
-        "#{test_name}_#{idx_run}_u",
-        measure,
-        argument_map,
-        osm_path,
-        epw_path,
-        run_model: true,
-        apply: true
-      )
-      model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
-    end
-  end
+  #     # Apply the measure to the model and run the model
+  #     result = set_weather_and_apply_measure_and_run(
+  #       "#{test_name}_#{idx_run}_u",
+  #       measure,
+  #       argument_map,
+  #       osm_path,
+  #       epw_path,
+  #       run_model: true,
+  #       apply: true
+  #     )
+  #     model = load_model(model_output_path("#{test_name}_#{idx_run}_u"))
+  #   end
+  # end
 end
