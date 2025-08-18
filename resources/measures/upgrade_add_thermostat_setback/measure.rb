@@ -53,7 +53,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     htg_min = OpenStudio::Measure::OSArgument.makeIntegerArgument('htg_min', true)
     htg_min.setDisplayName('Minimum heating setpoint')
     htg_min.setDescription('Minimum heating setpoint')
-    htg_min.setDefaultValue(60)
+    htg_min.setDefaultValue(55)
     args << htg_min
 
     clg_max = OpenStudio::Measure::OSArgument.makeIntegerArgument('clg_max', true)
