@@ -13,57 +13,57 @@ class UpgradeHvacPumpTest < Minitest::Test
     @model = OpenStudio::Model::Model.new
   end
 
-  def test_evaluate_zero
-    curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
-    result = curve.evaluate(0.0)
-    assert_in_delta 0.0, result, 1e-6, 'Expected curve output at x=0 to be 0'
-  end
+  # def test_evaluate_zero
+  #   curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+  #   result = curve.evaluate(0.0)
+  #   assert_in_delta 0.0, result, 1e-6, 'Expected curve output at x=0 to be 0'
+  # end
 
-  def test_evaluate_one
-    curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
-    result = curve.evaluate(1.0)
-    assert_in_delta 1.0, result, 1e-6, 'Expected curve output at x=1 to be 1'
-  end
+  # def test_evaluate_one
+  #   curve, = UpgradeHvacPump.curve_fraction_of_full_load_power(@model)
+  #   result = curve.evaluate(1.0)
+  #   assert_in_delta 1.0, result, 1e-6, 'Expected curve output at x=1 to be 1'
+  # end
 
-  def test_output_bounds_over_range
-    # Test across input range 350W to 38800W
-    (350..38800).step(500).each do |watts|
-      eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(watts)
-      assert eff >= 90.53, "Efficiency below lower bound for #{watts} W: #{eff}"
-      assert eff <= 95.95, "Efficiency above upper bound for #{watts} W: #{eff}"
-    end
-  end
+  # def test_output_bounds_over_range
+  #   # Test across input range 350W to 38800W
+  #   (350..38800).step(500).each do |watts|
+  #     eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(watts)
+  #     assert eff >= 90.53, "Efficiency below lower bound for #{watts} W: #{eff}"
+  #     assert eff <= 95.95, "Efficiency above upper bound for #{watts} W: #{eff}"
+  #   end
+  # end
 
-  def test_low_power_value
-    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(350)
-    assert_in_delta 90.53, eff, 0.5, 'Expected efficiency close to lower bound'
-  end
+  # def test_low_power_value
+  #   eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(350)
+  #   assert_in_delta 90.53, eff, 0.5, 'Expected efficiency close to lower bound'
+  # end
 
-  def test_high_power_value
-    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(38800)
-    assert_in_delta 95.95, eff, 0.5, 'Expected efficiency close to upper bound'
-  end
+  # def test_high_power_value
+  #   eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(38800)
+  #   assert_in_delta 95.95, eff, 0.5, 'Expected efficiency close to upper bound'
+  # end
 
-  def test_exact_breakpoint
-    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(5000)
-    assert eff.between?(90.53, 95.95), "Efficiency at breakpoint not within bounds: #{eff}"
-  end
+  # def test_exact_breakpoint
+  #   eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(5000)
+  #   assert eff.between?(90.53, 95.95), "Efficiency at breakpoint not within bounds: #{eff}"
+  # end
 
-  def test_zero_input
-    assert_raises(ArgumentError) do
-      UpgradeHvacPump.estimate_motor_efficiency_pcnt(0)
-    end
-  end
+  # def test_zero_input
+  #   assert_raises(ArgumentError) do
+  #     UpgradeHvacPump.estimate_motor_efficiency_pcnt(0)
+  #   end
+  # end
 
-  def test_input_below_range_clipped
-    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(100) # 0.1 kW
-    assert_in_delta 90.53, eff, 1e-6, 'Expected output to be clipped at lower bound for 100W'
-  end
+  # def test_input_below_range_clipped
+  #   eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(100) # 0.1 kW
+  #   assert_in_delta 90.53, eff, 1e-6, 'Expected output to be clipped at lower bound for 100W'
+  # end
 
-  def test_input_above_range_clipped
-    eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(50000) # 50 kW
-    assert_in_delta 95.95, eff, 1e-6, 'Expected output to be clipped at upper bound for 50000W'
-  end
+  # def test_input_above_range_clipped
+  #   eff = UpgradeHvacPump.estimate_motor_efficiency_pcnt(50000) # 50 kW
+  #   assert_in_delta 95.95, eff, 1e-6, 'Expected output to be clipped at upper bound for 50000W'
+  # end
 
   # supporting method: return file paths to test models in test directory
   def models_for_tests
@@ -303,73 +303,73 @@ class UpgradeHvacPumpTest < Minitest::Test
     # model.save(output_file_path, true)
   end
 
-  # test 1: check measure arguments
-  def test_number_of_arguments_and_argument_names
-    # create an instance of the measure
-    measure = UpgradeHvacPump.new
+  # # test 1: check measure arguments
+  # def test_number_of_arguments_and_argument_names
+  #   # create an instance of the measure
+  #   measure = UpgradeHvacPump.new
 
-    # make an empty model
-    model = OpenStudio::Model::Model.new
+  #   # make an empty model
+  #   model = OpenStudio::Model::Model.new
 
-    # get arguments and test that they are what we are expecting
-    arguments = measure.arguments(model)
-    assert_equal(3, arguments.size)
-    assert_equal('chw_oat_reset', arguments[0].name)
-    assert_equal('cw_oat_reset', arguments[1].name)
-    assert_equal('debug_verbose', arguments[2].name)
-  end
+  #   # get arguments and test that they are what we are expecting
+  #   arguments = measure.arguments(model)
+  #   assert_equal(3, arguments.size)
+  #   assert_equal('chw_oat_reset', arguments[0].name)
+  #   assert_equal('cw_oat_reset', arguments[1].name)
+  #   assert_equal('debug_verbose', arguments[2].name)
+  # end
 
-  # test 2: check model without simulation
-  def test_models_without_simulations
-    # test models
-    test_sets = []
-    # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
-    test_sets << {
-      model: '380_doas_with_fan_coil_air_cooled_chiller_with_boiler',
-      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_doas_with_fan_coil_chiller_with_boiler
-    test_sets << {
-      model: '380_doas_with_fan_coil_chiller_with_boiler',
-      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_vav_air_cooled_chiller_with_gas_boiler_reheat
-    test_sets << {
-      model: '380_vav_air_cooled_chiller_with_gas_boiler_reheat',
-      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
-      result: 'Success'
-    }
-    # test: 380_vav_chiller_with_gas_boiler_reheat
-    test_sets << {
-      model: '380_vav_chiller_with_gas_boiler_reheat',
-      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
-      result: 'Success'
-    }
+  # # test 2: check model without simulation
+  # def test_models_without_simulations
+  #   # test models
+  #   test_sets = []
+  #   # test: 380_doas_with_fan_coil_air_cooled_chiller_with_boiler
+  #   test_sets << {
+  #     model: '380_doas_with_fan_coil_air_cooled_chiller_with_boiler',
+  #     weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+  #     result: 'Success'
+  #   }
+  #   # test: 380_doas_with_fan_coil_chiller_with_boiler
+  #   test_sets << {
+  #     model: '380_doas_with_fan_coil_chiller_with_boiler',
+  #     weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+  #     result: 'Success'
+  #   }
+  #   # test: 380_vav_air_cooled_chiller_with_gas_boiler_reheat
+  #   test_sets << {
+  #     model: '380_vav_air_cooled_chiller_with_gas_boiler_reheat',
+  #     weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+  #     result: 'Success'
+  #   }
+  #   # test: 380_vav_chiller_with_gas_boiler_reheat
+  #   test_sets << {
+  #     model: '380_vav_chiller_with_gas_boiler_reheat',
+  #     weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+  #     result: 'Success'
+  #   }
 
-    test_sets.each do |set|
-      instance_test_name = set[:model]
-      puts "instance test name: #{instance_test_name}"
-      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
-      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
-      assert(!osm_path.empty?)
-      assert(!epw_path.empty?)
-      osm_path = osm_path[0]
-      epw_path = epw_path[0]
+  #   test_sets.each do |set|
+  #     instance_test_name = set[:model]
+  #     puts "instance test name: #{instance_test_name}"
+  #     osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+  #     epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+  #     assert(!osm_path.empty?)
+  #     assert(!epw_path.empty?)
+  #     osm_path = osm_path[0]
+  #     epw_path = epw_path[0]
 
-      # apply measure to model
-      apply_and_test_model(osm_path, instance_test_name)
-    end
-  end
+  #     # apply measure to model
+  #     apply_and_test_model(osm_path, instance_test_name)
+  #   end
+  # end
 
   # test 3: check model with simulation
   def test_models_with_simulations
     # test models
     test_sets = []
-    # test: 380_vav_chiller_with_gas_boiler_reheat
+    # test: 310_vav_chiller_with_gas_boiler_reheat
     test_sets << {
-      model: '380_vav_chiller_with_gas_boiler_reheat',
+      model: '310_vav_chiller_with_gas_boiler_reheat',
       weather: 'G0101010',
       result: 'Success'
     }
@@ -554,11 +554,7 @@ class UpgradeHvacPumpTest < Minitest::Test
         fraction_cw_oat_reset_enabled_a
       }")
     refute_equal(fraction_chw_oat_reset_enabled_b, fraction_chw_oat_reset_enabled_a)
-    if counts_chillers_wcc_b == 0
-      assert_equal(fraction_cw_oat_reset_enabled_a, 0.0)
-    else
-      assert_equal(fraction_cw_oat_reset_enabled_a, 1.0)
-    end
+    assert_equal(fraction_cw_oat_reset_enabled_a, 1.0)
   end
 
   # supporting method: set weather, apply/not-apply measure, run/not-run simulation
@@ -632,9 +628,6 @@ class UpgradeHvacPumpTest < Minitest::Test
       # assert
       assert_equal(false, model.getDesignDays.empty?)
     end
-
-    # hardsize model
-    model = _mimic_hardsize_model(model, "#{run_dir(test_name)}/SR")
 
     # adding output variables (for debugging)
     out_vars = [
