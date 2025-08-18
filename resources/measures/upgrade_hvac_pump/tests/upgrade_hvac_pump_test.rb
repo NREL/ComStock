@@ -370,7 +370,7 @@ class UpgradeHvacPumpTest < Minitest::Test
     # test: 380_vav_chiller_with_gas_boiler_reheat
     test_sets << {
       model: '380_vav_chiller_with_gas_boiler_reheat',
-      weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', # weather file does not matter with current tests
+      weather: 'G0101010', # weather file does not matter with current tests
       result: 'Success'
     }
 
