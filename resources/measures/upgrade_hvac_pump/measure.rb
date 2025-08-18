@@ -46,7 +46,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     cw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('cw_oat_reset', true)
     cw_oat_reset.setDisplayName('Add outdoor air temperature reset"\
     " for condenser water temperature?')
-    cw_oat_reset.setDefaultValue(true)
+    cw_oat_reset.setDefaultValue(false)
     args << cw_oat_reset
 
     # print out details?

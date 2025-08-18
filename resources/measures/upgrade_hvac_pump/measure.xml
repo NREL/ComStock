@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>44d7a4c0-809d-4ad5-bf72-463281f6e26e</version_id>
-  <version_modified>2025-08-18T18:21:49Z</version_modified>
+  <version_id>a9a75112-5f4e-4839-b6d0-a8a79086481d</version_id>
+  <version_modified>2025-08-18T19:53:00Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -37,7 +37,7 @@
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -219,7 +219,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>7DA435A4</checksum>
+      <checksum>4C8FCF6D</checksum>
     </file>
     <file>
       <filename>310_vav_chiller_with_gas_boiler_reheat.osm</filename>
@@ -273,7 +273,7 @@
       <filename>upgrade_hvac_pump_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>6032E7F7</checksum>
+      <checksum>CF68A6C5</checksum>
     </file>
   </files>
 </measure>
