@@ -600,7 +600,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
         } BHP."
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo('### pump (used for chillers) specs before upgrade')
+      runner.registerInfo('### pump specs before upgrade')
       runner.registerInfo("### pump_rated_flow_total_c = #{
         pump_rated_flow_total_c.round(6)
       }")
@@ -820,7 +820,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
     if debug_verbose
       runner.registerInfo('### ------------------------------------------------------')
-      runner.registerInfo('### pump (used for chillers) specs after upgrade')
+      runner.registerInfo('### pump specs after upgrade')
       runner.registerInfo("### pump_rated_flow_total_c = #{
         pump_rated_flow_total_c.round(6)
       }")
