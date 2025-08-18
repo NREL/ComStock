@@ -774,13 +774,18 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("### control updates")
       end
       plant_loops = model.getPlantLoops
+      # loop through each plant loop
       plant_loops.each do |plant_loop|
         if debug_verbose
           runner.registerInfo("--- updating plant loop: '#{
             plant_loop.name
           }'")
         end
-        std.plant_loop_enable_supply_water_temperature_reset(plant_loop) if chw_hw_oat_reset
+        # enabling outdoor reset for chilled and hot water loops
+        if chw_hw_oat_reset
+          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
+        end
+        # applying condenser water temperatures to the plant loop based on Appendix G.
         if cw_oat_reset
           plant_loop_apply_prm_baseline_condenser_water_temperatures(
             runner,
