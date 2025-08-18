@@ -17,6 +17,13 @@
     <preference name='ui.shelf.height' value='26' />
   </preferences>
   <datasources>
+    <datasource hasconnection='false' inline='true' name='Parameters' version='18.1'>
+      <aliases enabled='yes' />
+      <column caption='Parameter 1' datatype='real' name='[Parameter 1]' param-domain-type='range' role='measure' type='quantitative' value='109900.0'>
+        <calculation class='tableau' formula='109900.0' />
+        <range granularity='54950.0' max='274750.0' min='54950.0' />
+      </column>
+    </datasource>
     <datasource caption='ComStock wide' inline='true' name='federated.020ulz91f07uqr149eaou01h1rte' version='18.1'>
       <connection class='federated'>
         <named-connections>
@@ -16487,6 +16494,9 @@
       <column caption='cooling setpoint min F' datatype='real' name='[Calculation_799388975945379841]' role='measure' type='quantitative'>
         <calculation class='tableau' formula='[out.params.average_cooling_setpoint_min..c]*(9/5)+32' />
       </column>
+      <column caption='Size Bin' datatype='string' name='[Calculation_799388976003977223]' role='dimension' type='nominal'>
+        <calculation class='tableau' formula='// Bin labels for [in.sqft..ft2]&#13;&#10;IF ISNULL([in.sqft..ft2]) THEN &quot;Unknown&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 1000 THEN &quot;≤ 1,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 5000 THEN &quot;1,001–5,000&quot;        // added to avoid a gap&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 10000 THEN &quot;5,001–10,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 25000 THEN &quot;10,001–25,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 50000 THEN &quot;25,001–50,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 100000 THEN &quot;50,001–100,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 200000 THEN &quot;100,001–200,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 500000 THEN &quot;200,001–500,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 1000000 THEN &quot;500,001–1,000,000&quot;&#13;&#10;ELSE &quot;Over 1,000,000&quot;&#13;&#10;END' />
+      </column>
       <column caption='ComStock wide.csv' datatype='table' name='[__tableau_internal_object_id__].[ComStock wide.csv_B3372DBD1FBA41E5A93DB66A5CF2893E]' role='measure' type='quantitative' />
       <column caption='Applicability' datatype='integer' name='[applicability]' role='dimension' type='ordinal' />
       <column caption='heating setpoint max F' datatype='real' name='[cooling setpoint min F (copy)_799388975948742659]' role='measure' type='quantitative'>
@@ -16527,6 +16537,13 @@
       <column caption='In.Purchase Input Responsibility' datatype='string' name='[in.purchase_input_responsibility]' role='dimension' type='nominal' />
       <column caption='In.Rotation..Degrees' datatype='integer' name='[in.rotation..degrees]' role='measure' type='quantitative' />
       <column caption='In.Service Water Heating Fuel' datatype='string' name='[in.service_water_heating_fuel]' role='dimension' type='nominal' />
+      <column aggregation='None' caption='in.sqft..ft2 (bin)' datatype='integer' name='[in.sqft..ft2 (bin)]' role='dimension' type='ordinal'>
+        <calculation class='bin' decimals='0' formula='[in.sqft..ft2]' peg='0' size-parameter='[Parameters].[Parameter 1]' />
+      </column>
+      <column datatype='string' name='[in.sqft..ft2 (group)]' role='dimension' type='nominal'>
+        <calculation class='categorical-bin' column='[in.sqft..ft2]' new-bin='true' />
+      </column>
+      <column datatype='real' name='[in.sqft..ft2]' role='measure' type='quantitative' />
       <column datatype='string' name='[in.state]' role='dimension' semantic-role='[State].[Name]' type='nominal' />
       <column caption='In.State Name' datatype='string' name='[in.state_name]' role='dimension' semantic-role='[State].[Name]' type='nominal' />
       <column caption='In.Upgrade Name' datatype='string' name='[in.upgrade_name]' role='dimension' type='nominal' />
@@ -16539,10 +16556,58 @@
       <column caption='In.Weighted.Floor Area..Ft2' datatype='real' name='[in.weighted.floor_area..ft2]' role='measure' type='quantitative' />
       <column caption='In.Year Built' datatype='integer' name='[in.year_built]' role='measure' type='quantitative' />
       <column caption='Weight' datatype='real' name='[weight]' role='measure' type='quantitative' />
+      <column-instance column='[in.comstock_building_type]' derivation='None' name='[none:in.comstock_building_type:nk]' pivot='key' type='nominal' />
       <column-instance column='[in.interior_lighting_generation]' derivation='None' name='[none:in.interior_lighting_generation:nk]' pivot='key' type='nominal' />
       <layout dim-ordering='alphabetic' measure-ordering='alphabetic' show-structure='true' />
       <style>
         <style-rule element='mark'>
+          <encoding attr='color' field='[none:in.comstock_building_type:nk]' type='palette'>
+            <map to='#499894'>
+              <bucket>&quot;QuickServiceRestaurant&quot;</bucket>
+            </map>
+            <map to='#4e79a7'>
+              <bucket>&quot;FullServiceRestaurant&quot;</bucket>
+            </map>
+            <map to='#59a14f'>
+              <bucket>&quot;LargeOffice&quot;</bucket>
+            </map>
+            <map to='#79706e'>
+              <bucket>&quot;SmallHotel&quot;</bucket>
+            </map>
+            <map to='#86bcb6'>
+              <bucket>&quot;RetailStandalone&quot;</bucket>
+            </map>
+            <map to='#8cd17d'>
+              <bucket>&quot;MediumOffice&quot;</bucket>
+            </map>
+            <map to='#a0cbe8'>
+              <bucket>&quot;Grocery&quot;</bucket>
+            </map>
+            <map to='#b6992d'>
+              <bucket>&quot;Outpatient&quot;</bucket>
+            </map>
+            <map to='#bab0ac'>
+              <bucket>&quot;SmallOffice&quot;</bucket>
+            </map>
+            <map to='#d37295'>
+              <bucket>&quot;Warehouse&quot;</bucket>
+            </map>
+            <map to='#e15759'>
+              <bucket>&quot;RetailStripmall&quot;</bucket>
+            </map>
+            <map to='#f1ce63'>
+              <bucket>&quot;PrimarySchool&quot;</bucket>
+            </map>
+            <map to='#f28e2b'>
+              <bucket>&quot;Hospital&quot;</bucket>
+            </map>
+            <map to='#ff9d9a'>
+              <bucket>&quot;SecondarySchool&quot;</bucket>
+            </map>
+            <map to='#ffbe7d'>
+              <bucket>&quot;LargeHotel&quot;</bucket>
+            </map>
+          </encoding>
           <encoding attr='color' field='[none:in.interior_lighting_generation:nk]' type='palette'>
             <map to='#4e79a7'>
               <bucket>&quot;gen1_t12_incandescent&quot;</bucket>
@@ -16570,6 +16635,7 @@
         <field-sort-custom-order field='upgrade' />
         <field-sort-custom-order field='weight' />
         <field-sort-custom-order field='in.sqft..ft2' />
+        <field-sort-custom-order field='Calculation_799388976003977223' />
         <field-sort-custom-order field='calc.weighted.sqft..ft2' />
         <field-sort-custom-order field='in.upgrade_name' />
         <field-sort-custom-order field='applicability' />
@@ -17828,6 +17894,12 @@
         <field-sort-custom-order field=':Measure Names' />
         <field-sort-custom-order field='Multiple Values' />
       </field-sort-info>
+      <datasource-dependencies datasource='Parameters'>
+        <column caption='Parameter 1' datatype='real' name='[Parameter 1]' param-domain-type='range' role='measure' type='quantitative' value='109900.0'>
+          <calculation class='tableau' formula='109900.0' />
+          <range granularity='54950.0' max='274750.0' min='54950.0' />
+        </column>
+      </datasource-dependencies>
       <object-graph>
         <objects>
           <object caption='ComStock wide.csv' id='ComStock wide.csv_B3372DBD1FBA41E5A93DB66A5CF2893E'>
@@ -19094,6 +19166,81 @@
     </datasource>
   </datasources>
   <worksheets>
+    <worksheet name='area_dist'>
+      <layout-options>
+        <title>
+          <formatted-text>
+            <run>Service Water Heating Fuel by Heating Fuel and Building Type</run>
+          </formatted-text>
+        </title>
+      </layout-options>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='ComStock wide' name='federated.020ulz91f07uqr149eaou01h1rte' />
+          </datasources>
+          <datasource-dependencies datasource='federated.020ulz91f07uqr149eaou01h1rte'>
+            <column caption='Size Bin' datatype='string' name='[Calculation_799388976003977223]' role='dimension' type='nominal'>
+              <calculation class='tableau' formula='// Bin labels for [in.sqft..ft2]&#13;&#10;IF ISNULL([in.sqft..ft2]) THEN &quot;Unknown&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 1000 THEN &quot;≤ 1,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 5000 THEN &quot;1,001–5,000&quot;        // added to avoid a gap&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 10000 THEN &quot;5,001–10,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 25000 THEN &quot;10,001–25,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 50000 THEN &quot;25,001–50,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 100000 THEN &quot;50,001–100,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 200000 THEN &quot;100,001–200,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 500000 THEN &quot;200,001–500,000&quot;&#13;&#10;ELSEIF [in.sqft..ft2] &lt;= 1000000 THEN &quot;500,001–1,000,000&quot;&#13;&#10;ELSE &quot;Over 1,000,000&quot;&#13;&#10;END' />
+            </column>
+            <column datatype='real' name='[calc.weighted.sqft..ft2]' role='measure' type='quantitative' />
+            <column caption='In.Comstock Building Type' datatype='string' name='[in.comstock_building_type]' role='dimension' type='nominal' />
+            <column caption='In.Ownership Type' datatype='string' name='[in.ownership_type]' role='dimension' type='nominal' />
+            <column datatype='real' name='[in.sqft..ft2]' role='measure' type='quantitative' />
+            <column-instance column='[Calculation_799388976003977223]' derivation='None' name='[none:Calculation_799388976003977223:nk]' pivot='key' type='nominal' />
+            <column-instance column='[in.comstock_building_type]' derivation='None' name='[none:in.comstock_building_type:nk]' pivot='key' type='nominal' />
+            <column-instance column='[in.ownership_type]' derivation='None' name='[none:in.ownership_type:nk]' pivot='key' type='nominal' />
+            <column-instance column='[calc.weighted.sqft..ft2]' derivation='Sum' name='[pcto:sum:calc.weighted.sqft..ft2:qk:10]' pivot='key' type='quantitative'>
+              <table-calc ordering-field='[federated.020ulz91f07uqr149eaou01h1rte].[Calculation_799388976003977223]' ordering-type='Field' type='PctTotal' />
+            </column-instance>
+          </datasource-dependencies>
+          <filter class='categorical' column='[federated.020ulz91f07uqr149eaou01h1rte].[none:in.ownership_type:nk]'>
+            <groupfilter function='member' level='[none:in.ownership_type:nk]' member='&quot;leased&quot;' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+          </filter>
+          <slices>
+            <column>[federated.020ulz91f07uqr149eaou01h1rte].[none:in.ownership_type:nk]</column>
+          </slices>
+          <aggregation value='true' />
+        </view>
+        <style>
+          <style-rule element='axis'>
+            <format attr='title' class='0' field='[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]' scope='cols' value='% of Building Stock' />
+          </style-rule>
+          <style-rule element='cell'>
+            <format attr='text-format' field='[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]' value='p0%' />
+            <format attr='text-orientation' field='[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]' value='0' />
+            <format attr='text-orientation' data-class='subtotal' field='[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]' value='0' />
+            <format attr='text-orientation' data-class='total' field='[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]' value='0' />
+          </style-rule>
+          <style-rule element='field-labels-decoration'>
+            <format attr='wrap' value='on' />
+          </style-rule>
+          <style-rule element='label'>
+            <format attr='text-orientation' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:in.comstock_building_type:nk]' value='0' />
+          </style-rule>
+          <style-rule element='refboxplot'>
+            <format attr='fill-color' id='refline1' value='#ff0000d9' />
+            <format attr='palette' id='refline1' value='bp_red' />
+            <format attr='opacity' id='refline1' value='255' />
+            <format attr='boxplot-style' id='refline1' value='modern' />
+            <format attr='fill-color' id='refline0' value='#f0f0f0d9' />
+            <format attr='palette' id='refline0' value='bp_red' />
+            <format attr='opacity' id='refline0' value='255' />
+          </style-rule>
+        </style>
+        <panes>
+          <pane selection-relaxation-option='selection-relaxation-allow'>
+            <view>
+              <breakdown value='auto' />
+            </view>
+            <mark class='Automatic' />
+          </pane>
+        </panes>
+        <rows>([federated.020ulz91f07uqr149eaou01h1rte].[none:in.comstock_building_type:nk] / [federated.020ulz91f07uqr149eaou01h1rte].[none:Calculation_799388976003977223:nk])</rows>
+        <cols>[federated.020ulz91f07uqr149eaou01h1rte].[pcto:sum:calc.weighted.sqft..ft2:qk:10]</cols>
+      </table>
+      <simple-id uuid='{5B561A0E-2046-400C-B953-E844377C1BAA}' />
+    </worksheet>
     <worksheet name='cooling_setpoints'>
       <layout-options>
         <title>
@@ -19123,8 +19270,12 @@
             <format attr='title' class='0' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:Calculation_799388975945379841:qk]' scope='cols' value='Cooling Setpoint (F)' />
             <encoding attr='space' class='0' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:Calculation_799388975945379841:qk]' field-type='quantitative' max='82.0' min='67.031446555252927' range-type='fixed' scope='cols' type='space' />
           </style-rule>
+          <style-rule element='cell'>
+            <format attr='text-format' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:Calculation_799388975945379841:qk]' value='n#,##0;-#,##0' />
+          </style-rule>
           <style-rule element='label'>
             <format attr='text-orientation' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:in.comstock_building_type:nk]' value='0' />
+            <format attr='text-format' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:Calculation_799388975945379841:qk]' value='n#,##0;-#,##0' />
           </style-rule>
           <style-rule element='refboxplot'>
             <format attr='fill-color' id='refline0' value='#f0f0f0d9' />
@@ -19187,7 +19338,7 @@
         </view>
         <style>
           <style-rule element='axis'>
-            <format attr='title' class='0' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:heating setpoint min F (copy)_799388975949553669:qk]' scope='cols' value='Heating Setback (F)' />
+            <format attr='title' class='0' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:heating setpoint min F (copy)_799388975949553669:qk]' scope='cols' value='Heating Setback Delta (F)' />
           </style-rule>
           <style-rule element='label'>
             <format attr='text-orientation' field='[federated.020ulz91f07uqr149eaou01h1rte].[none:in.comstock_building_type:nk]' value='0' />
@@ -19274,7 +19425,7 @@
             <encodings>
               <lod column='[federated.020ulz91f07uqr149eaou01h1rte].[none:in.comstock_building_type:nk]' />
             </encodings>
-            <reference-line axis-column='[federated.020ulz91f07uqr149eaou01h1rte].[none:cooling setpoint min F (copy)_799388975948742659:qk]' boxplot-mark-exclusion='false' boxplot-whisker-type='standard' enable-instant-analytics='true' formula='average' id='refline1' label-type='none' probability='95' scope='per-cell' symmetric='false' value-column='[federated.020ulz91f07uqr149eaou01h1rte].[none:cooling setpoint min F (copy)_799388975948742659:qk]' z-order='2' />
+            <reference-line axis-column='[federated.020ulz91f07uqr149eaou01h1rte].[none:cooling setpoint min F (copy)_799388975948742659:qk]' boxplot-mark-exclusion='false' boxplot-whisker-type='standard' enable-instant-analytics='true' formula='average' id='refline1' label-type='none' probability='95' scope='per-cell' symmetric='false' value-column='[federated.020ulz91f07uqr149eaou01h1rte].[none:cooling setpoint min F (copy)_799388975948742659:qk]' z-order='1' />
             <style>
               <style-rule element='mark'>
                 <format attr='size' value='0.25' />
@@ -19877,7 +20028,7 @@
       <simple-id uuid='{50EE5E1B-7DD6-49D1-ADED-A516DAA5C794}' />
     </worksheet>
   </worksheets>
-  <windows film-mode='true' source-height='30'>
+  <windows film-mode='true' source-height='44'>
     <window class='worksheet' name='weighted_floor_area_by_energy_code_and_wall_type'>
       <cards>
         <edge name='left'>
@@ -20096,9 +20247,12 @@
           </strip>
         </edge>
       </cards>
+      <viewpoint>
+        <zoom type='entire-view' />
+      </viewpoint>
       <simple-id uuid='{2C3BB51F-3A05-42A2-BAF3-F70884ECECB0}' />
     </window>
-    <window class='worksheet' maximized='true' name='heating_setpoints'>
+    <window class='worksheet' name='heating_setpoints'>
       <cards>
         <edge name='left'>
           <strip size='160'>
@@ -20116,6 +20270,9 @@
           </strip>
         </edge>
       </cards>
+      <viewpoint>
+        <zoom type='entire-view' />
+      </viewpoint>
       <simple-id uuid='{9178E1CD-25C0-423F-B4D1-A666EB4D37AC}' />
     </window>
     <window class='worksheet' name='heating_setbacks'>
@@ -20140,6 +20297,26 @@
         <zoom type='fit-height' />
       </viewpoint>
       <simple-id uuid='{D48E8B61-DFEC-428F-9114-5EA7A08DEF2B}' />
+    </window>
+    <window class='worksheet' maximized='true' name='area_dist'>
+      <cards>
+        <edge name='left'>
+          <strip size='160'>
+            <card type='pages' />
+            <card type='filters' />
+            <card type='marks' />
+          </strip>
+        </edge>
+        <edge name='top'>
+          <strip size='2147483647'>
+            <card type='columns' />
+          </strip>
+          <strip size='2147483647'>
+            <card type='rows' />
+          </strip>
+        </edge>
+      </cards>
+      <simple-id uuid='{6158851C-7AD7-402C-9B20-41D5EE17E824}' />
     </window>
   </windows>
 </workbook>
