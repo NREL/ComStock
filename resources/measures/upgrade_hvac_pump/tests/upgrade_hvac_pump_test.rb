@@ -370,7 +370,7 @@ class UpgradeHvacPumpTest < Minitest::Test
     # test: 380_vav_chiller_with_gas_boiler_reheat
     test_sets << {
       model: '380_vav_chiller_with_gas_boiler_reheat',
-      weather: 'G0101010', # weather file does not matter with current tests
+      weather: 'G0101010',
       result: 'Success'
     }
 
@@ -427,8 +427,10 @@ class UpgradeHvacPumpTest < Minitest::Test
     end
 
     # Don't apply the measure to the model and run the model: baseline model
-    result = set_weather_and_apply_measure_and_run("#{test_name}_b", measure, argument_map,
-                                                   osm_path, epw_path, run_model: true, apply: false)
+    result = set_weather_and_apply_measure_and_run(
+      "#{test_name}_b", measure, argument_map,
+      osm_path, epw_path, run_model: true, apply: false
+    )
     model = load_model(model_output_path("#{test_name}_b"))
 
     # get pump specs for baseline
@@ -448,7 +450,8 @@ class UpgradeHvacPumpTest < Minitest::Test
     pump_var_part_load_curve_coeff4_weighted_avg_before = pump_specs_var_spd_before[7]
 
     # get control specs for baseline
-    fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b = UpgradeHvacPump.control_specifications(model)
+    fraction_chw_oat_reset_enabled_b, fraction_cw_oat_reset_enabled_b =
+      UpgradeHvacPump.control_specifications(model)
 
     # Apply the measure to the model and run the model: upgrade model
     result = set_weather_and_apply_measure_and_run("#{test_name}_u", measure, argument_map,
@@ -472,7 +475,8 @@ class UpgradeHvacPumpTest < Minitest::Test
     pump_var_part_load_curve_coeff4_weighted_avg_after = pump_specs_var_spd_after[7]
 
     # get control specs for upgrade
-    fraction_chw_oat_reset_enabled_a, fraction_cw_oat_reset_enabled_a = UpgradeHvacPump.control_specifications(model)
+    fraction_chw_oat_reset_enabled_a, fraction_cw_oat_reset_enabled_a =
+      UpgradeHvacPump.control_specifications(model)
 
     # show the output
     show_output(result)
@@ -485,26 +489,70 @@ class UpgradeHvacPumpTest < Minitest::Test
     refute_empty(result.stepFinalCondition)
 
     # check chilled water system specs
-    puts("### DEBUGGING: pump_motor_eff_weighted_average_c_before = #{pump_motor_eff_weighted_average_c_before} | pump_motor_eff_weighted_average_c_after = #{pump_motor_eff_weighted_average_c_after}")
-    puts("### DEBUGGING: pump_motor_bhp_weighted_average_c_before = #{pump_motor_bhp_weighted_average_c_before} | pump_motor_bhp_weighted_average_c_after = #{pump_motor_bhp_weighted_average_c_after}")
-    puts("### DEBUGGING: pump_motor_eff_weighted_average_v_before = #{pump_motor_eff_weighted_average_v_before} | pump_motor_eff_weighted_average_v_after = #{pump_motor_eff_weighted_average_v_after}")
-    puts("### DEBUGGING: pump_motor_bhp_weighted_average_v_before = #{pump_motor_bhp_weighted_average_v_before} | pump_motor_bhp_weighted_average_v_after = #{pump_motor_bhp_weighted_average_v_after}")
-    puts("### DEBUGGING: pump part load curve coeffi 1 = #{pump_var_part_load_curve_coeff1_weighted_avg_before} | coeff1_a = #{pump_var_part_load_curve_coeff1_weighted_avg_after}")
-    puts("### DEBUGGING: pump part load curve coeffi 2 = #{pump_var_part_load_curve_coeff2_weighted_avg_before} | coeff2_a = #{pump_var_part_load_curve_coeff2_weighted_avg_after}")
-    puts("### DEBUGGING: pump part load curve coeffi 3 = #{pump_var_part_load_curve_coeff3_weighted_avg_before} | coeff3_a = #{pump_var_part_load_curve_coeff3_weighted_avg_after}")
-    puts("### DEBUGGING: pump part load curve coeffi 4 = #{pump_var_part_load_curve_coeff4_weighted_avg_before} | coeff4_a = #{pump_var_part_load_curve_coeff4_weighted_avg_after}")
+    puts("### DEBUGGING: pump_motor_eff_weighted_average_c_before = #{
+      pump_motor_eff_weighted_average_c_before
+    } | pump_motor_eff_weighted_average_c_after = #{
+        pump_motor_eff_weighted_average_c_after
+      }")
+    puts("### DEBUGGING: pump_motor_bhp_weighted_average_c_before = #{
+      pump_motor_bhp_weighted_average_c_before
+    } | pump_motor_bhp_weighted_average_c_after = #{
+        pump_motor_bhp_weighted_average_c_after
+      }")
+    puts("### DEBUGGING: pump_motor_eff_weighted_average_v_before = #{
+      pump_motor_eff_weighted_average_v_before
+    } | pump_motor_eff_weighted_average_v_after = #{
+      pump_motor_eff_weighted_average_v_after
+    }")
+    puts("### DEBUGGING: pump_motor_bhp_weighted_average_v_before = #{
+      pump_motor_bhp_weighted_average_v_before
+    } | pump_motor_bhp_weighted_average_v_after = #{
+        pump_motor_bhp_weighted_average_v_after
+      }")
+    puts("### DEBUGGING: pump part load curve coeffi 1 = #{
+      pump_var_part_load_curve_coeff1_weighted_avg_before
+    } | coeff1_a = #{
+        pump_var_part_load_curve_coeff1_weighted_avg_after
+      }")
+    puts("### DEBUGGING: pump part load curve coeffi 2 = #{
+      pump_var_part_load_curve_coeff2_weighted_avg_before
+    } | coeff2_a = #{
+        pump_var_part_load_curve_coeff2_weighted_avg_after
+      }")
+    puts("### DEBUGGING: pump part load curve coeffi 3 = #{
+      pump_var_part_load_curve_coeff3_weighted_avg_before
+    } | coeff3_a = #{
+      pump_var_part_load_curve_coeff3_weighted_avg_after
+    }")
+    puts("### DEBUGGING: pump part load curve coeffi 4 = #{
+      pump_var_part_load_curve_coeff4_weighted_avg_before
+    } | coeff4_a = #{
+      pump_var_part_load_curve_coeff4_weighted_avg_after
+    }")
     coefficient_set_different = false
-    if (pump_var_part_load_curve_coeff1_weighted_avg_before != pump_var_part_load_curve_coeff1_weighted_avg_after) ||
-       (pump_var_part_load_curve_coeff2_weighted_avg_before != pump_var_part_load_curve_coeff2_weighted_avg_after) ||
-       (pump_var_part_load_curve_coeff3_weighted_avg_before != pump_var_part_load_curve_coeff3_weighted_avg_after) ||
-       (pump_var_part_load_curve_coeff4_weighted_avg_before != pump_var_part_load_curve_coeff4_weighted_avg_after)
+    if (pump_var_part_load_curve_coeff1_weighted_avg_before !=
+        pump_var_part_load_curve_coeff1_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff2_weighted_avg_before !=
+        pump_var_part_load_curve_coeff2_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff3_weighted_avg_before !=
+        pump_var_part_load_curve_coeff3_weighted_avg_after) ||
+       (pump_var_part_load_curve_coeff4_weighted_avg_before !=
+        pump_var_part_load_curve_coeff4_weighted_avg_after)
       coefficient_set_different = true
     end
     assert_equal(true, coefficient_set_different)
 
     # check control specs
-    puts("### DEBUGGING: fraction_chw_oat_reset_enabled_b = #{fraction_chw_oat_reset_enabled_b} | fraction_chw_oat_reset_enabled_a = #{fraction_chw_oat_reset_enabled_a}")
-    puts("### DEBUGGING: fraction_cw_oat_reset_enabled_b = #{fraction_cw_oat_reset_enabled_b} | fraction_cw_oat_reset_enabled_a = #{fraction_cw_oat_reset_enabled_a}")
+    puts("### DEBUGGING: fraction_chw_oat_reset_enabled_b = #{
+      fraction_chw_oat_reset_enabled_b
+    } | fraction_chw_oat_reset_enabled_a = #{
+        fraction_chw_oat_reset_enabled_a
+      }")
+    puts("### DEBUGGING: fraction_cw_oat_reset_enabled_b = #{
+      fraction_cw_oat_reset_enabled_b
+    } | fraction_cw_oat_reset_enabled_a = #{
+        fraction_cw_oat_reset_enabled_a
+      }")
     refute_equal(fraction_chw_oat_reset_enabled_b, fraction_chw_oat_reset_enabled_a)
     if counts_chillers_wcc_b == 0
       assert_equal(fraction_cw_oat_reset_enabled_a, 0.0)
@@ -514,8 +562,10 @@ class UpgradeHvacPumpTest < Minitest::Test
   end
 
   # supporting method: set weather, apply/not-apply measure, run/not-run simulation
-  def set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
-                                            run_model: false, model: nil, apply: true, expected_results: 'Success')
+  def set_weather_and_apply_measure_and_run(
+    test_name, measure, argument_map, osm_path, epw_path,
+    run_model: false, model: nil, apply: true, expected_results: 'Success'
+  )
     assert(File.exist?(osm_path))
     assert(File.exist?(epw_path))
     ddy_path = "#{epw_path.gsub('.epw', '')}.ddy"
@@ -564,7 +614,7 @@ class UpgradeHvacPumpTest < Minitest::Test
           /Htg 99.6. Condns DB/, # Annual heating 99.6%
           /Clg .4. Condns WB=>MDB/, # Annual humidity (for cooling towers and evap coolers)
           /Clg .4. Condns DB=>MWB/, # Annual cooling
-          /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (to handle solar-gain-driven cooling)
+          /August .4. Condns DB=>MCWB/, # Monthly cooling DB=>MCWB (for solar-gain-driven cooling)
           /September .4. Condns DB=>MCWB/,
           /October .4. Condns DB=>MCWB/
         ]
