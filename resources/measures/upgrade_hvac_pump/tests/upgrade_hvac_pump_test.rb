@@ -589,10 +589,6 @@ class UpgradeHvacPumpTest < Minitest::Test
     # adding output variables (for debugging)
     out_vars = [
       'Site Outdoor Air Drybulb Temperature',
-      'Chiller Cycling Ratio',
-      'Chiller Electricity Rate',
-      'Chiller Evaporator Outlet Temperature',
-      'Chiller COP',
       'Pump Electricity Rate',
       'Pump Mass Flow Rate',
       'Pump Outlet Temperature',
