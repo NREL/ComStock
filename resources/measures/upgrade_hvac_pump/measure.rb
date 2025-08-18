@@ -769,31 +769,36 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # ------------------------------------------------
     # control upgrades
     # ------------------------------------------------
-    if chw_hw_oat_reset || cw_oat_reset
+    # Enable supply water temperature reset for chilled/hot water loops
+    if chw_hw_oat_reset
       if debug_verbose
-        runner.registerInfo("### control updates")
+        runner.registerInfo("### enabling CHW/HW supply water temperature reset")
       end
-      plant_loops = model.getPlantLoops
-      # loop through each plant loop
-      plant_loops.each do |plant_loop|
+
+      model.getPlantLoops.each do |plant_loop|
         if debug_verbose
-          runner.registerInfo("--- updating plant loop: '#{
-            plant_loop.name
-          }'")
+          runner.registerInfo("--- updating plant loop for CHW/HW reset: '#{plant_loop.name}'")
         end
-        # enabling outdoor reset for chilled and hot water loops
-        if chw_hw_oat_reset
-          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
-        end
-        # applying condenser water temperatures to the plant loop based on Appendix G.
-        if cw_oat_reset
-          plant_loop_apply_prm_baseline_condenser_water_temperatures(
-            runner,
-            plant_loop
-          )
-        end
+
+        std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
       end
     end
+
+    # Apply condenser water temperature reset based on Appendix G
+    if cw_oat_reset
+      if debug_verbose
+        runner.registerInfo("### applying condenser water temperature reset (CW)")
+      end
+
+      model.getPlantLoops.each do |plant_loop|
+        if debug_verbose
+          runner.registerInfo("--- updating plant loop for CW reset: '#{plant_loop.name}'")
+        end
+
+        plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
+      end
+    end
+
 
     # ------------------------------------------------
     # get pump specifications after upgrade
