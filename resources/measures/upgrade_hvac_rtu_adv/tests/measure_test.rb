@@ -1081,10 +1081,6 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   #   osm_epw_pair = {
   #     '310_PSZ-AC with electric coil.osm' =>
   #       'G2901890.epw'
-  #     # '310_PSZ-AC with gas coil.osm' =>
-  #     #   'USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw',
-  #     # '310_PSZ-AC with gas coil.osm' =>
-  #     #   'USA_HI_Honolulu.Intl.AP.911820_TMY3.epw'
   #   }
 
   #   test_name = 'test_single_building_result_examples'
