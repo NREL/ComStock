@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
   <uid>5aa9a6e4-0f3d-44f7-bf50-97686603a657</uid>
-  <version_id>3c532db9-b27d-48ad-b54b-fe68b6e3f6bb</version_id>
-  <version_modified>2025-07-15T22:20:44Z</version_modified>
+  <version_id>973d2182-f554-462e-a707-2ad4869857f9</version_id>
+  <version_modified>2025-08-18T21:53:57Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
@@ -187,7 +187,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B50C9BCB</checksum>
+      <checksum>D5582192</checksum>
     </file>
     <file>
       <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
@@ -313,7 +313,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>54137CEF</checksum>
+      <checksum>864886A9</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shift_test.rb</filename>

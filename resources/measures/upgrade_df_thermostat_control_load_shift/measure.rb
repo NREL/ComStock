@@ -489,28 +489,28 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     ############################################
     puts('### ============================================================')
     puts('### Applicability check...')
-    applicable_building_types = [
-      # "Hotel",
-      'SmallOffice',
-      'small_office',
-      'OfS',
-      'MediumOffice',
-      'medium_office',
-      'LargeOffice',
-      'large_office',
-      'OfL',
-      'Office',
-      'Warehouse',
-      'warehouse',
-      'SUn',
-      'PrimarySchool',
-      'primary_school',
-      'EPr',
-      'SecondarySchool',
-      'secondary_school',
-      'ESe'
-    ]
-    return true unless isapplicable_buildingtype(model, runner, applicable_building_types)
+    # applicable_building_types = [
+    #   # "Hotel",
+    #   'SmallOffice',
+    #   'small_office',
+    #   'OfS',
+    #   'MediumOffice',
+    #   'medium_office',
+    #   'LargeOffice',
+    #   'large_office',
+    #   'OfL',
+    #   'Office',
+    #   'Warehouse',
+    #   'warehouse',
+    #   'SUn',
+    #   'PrimarySchool',
+    #   'primary_school',
+    #   'EPr',
+    #   'SecondarySchool',
+    #   'secondary_school',
+    #   'ESe'
+    # ]
+    # return true unless isapplicable_buildingtype(model, runner, applicable_building_types)
 
     puts('--- building type applicability passed')
     applicable_clg_thermostats, applicable_htg_thermostats, nts = applicable_thermostats(model)
@@ -611,11 +611,12 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       puts('### Grid predictive schedule...')
       prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr = 1,
                                                   peak_window_strategy, rebound_len = 0, prepeak_len, season = 'all')
+      
+      peak_schedule_compressor = make_peak_schedule_interval(model, prepeak_schedule, 'Peak Schedule for Compressor Adjustment')
+      puts "peak schedule compressor = #{peak_schedule_compressor}"
     else
       runner.registerError('Not supported objective.')
     end
-    # puts("--- prepeak_schedule = #{prepeak_schedule}")
-    puts("--- prepeak_schedule.size = #{prepeak_schedule.size}")
 
     ############################################
     # Update thermostat setpoint schedule
@@ -626,8 +627,9 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     unless applicable_clg_thermostats.empty?
       puts('### Creating cooling setpoint adjustment schedule...')
       clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment = -sp_adjustment)
+      puts "cooling setpoint adjustment values = #{clgsp_adjustment_values}"
       # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
-      puts("--- clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
+      # puts("--- clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
       puts('### Updating thermostat cooling setpoint schedule...')
       nts_clg = assign_clgsch_to_thermostats(model, applicable_clg_thermostats, runner, clgsp_adjustment_values)
     end

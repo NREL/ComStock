@@ -178,6 +178,26 @@ Apply thermostat setback during grid peak period?
 **Model Dependent:** false
 
 
+### Amount in deg F by which temperatures are set back during grid peak periods. Done only if setback_during_peak is set to true.
+
+**Name:** peak_setback_value,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+
+### Limit max compressor speed?
+Apply a limit on maximum compressor speed during grid peak periods? A selection of 0% means no change to compressor operation. A selection of 15% or 40% means the max compressor speed will be reduced by that amount during peak periods (determined by Cambium).
+**Name:** compressor_reduction_during_peak,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+**Choice Display Names** ["0%", "15%", "40%"]
+
+
 
 
 
