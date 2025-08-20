@@ -99,7 +99,7 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       end
     when 'RetailStripmall', 'StripMall', 'Warehouse', 'QuickServiceRestaurant', 'FullServiceRestaurant', 'RtS', 'RSD', 'RFF', 'SCn', 'SUn', 'WRf'
       nist_building_type = 'RetailStripmall'
-    when 'RetailStandalone', 'SuperMarket', 'RtL', 'Rt3'
+    when 'RetailStandalone', 'SuperMarket', 'RtL', 'Rt3', 'Gro'
       nist_building_type = 'RetailStandalone'
     when 'PrimarySchool', 'EPr'
       nist_building_type = 'PrimarySchool'
