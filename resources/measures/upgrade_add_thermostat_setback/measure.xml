@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_thermostat_setback</name>
   <uid>5f19c384-dbef-4747-90b7-f7500d315bd8</uid>
-  <version_id>45c7d425-c59a-439b-ad3e-b409bb62e3ff</version_id>
-  <version_modified>2025-08-08T15:34:12Z</version_modified>
+  <version_id>91407a33-0d0f-4894-9560-8af975f85de1</version_id>
+  <version_modified>2025-08-15T17:22:30Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>UpgradeAddThermostatSetback</class_name>
   <display_name>Upgrade_Add_Thermostat_Setback</display_name>
@@ -18,6 +18,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>5</default_value>
     </argument>
     <argument>
       <name>htg_setback</name>
@@ -26,6 +27,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>5</default_value>
     </argument>
     <argument>
       <name>opt_start</name>
@@ -34,6 +36,7 @@
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -52,6 +55,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>3</default_value>
     </argument>
     <argument>
       <name>htg_min</name>
@@ -60,6 +64,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>60</default_value>
     </argument>
     <argument>
       <name>clg_max</name>
@@ -68,6 +73,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>82</default_value>
     </argument>
   </arguments>
   <outputs />
@@ -141,7 +147,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1F0EAD84</checksum>
+      <checksum>CF9A648F</checksum>
     </file>
     <file>
       <filename>sched_methods.rb</filename>
@@ -159,7 +165,7 @@
       <filename>upgrade_add_thermostat_setback_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>81D90C09</checksum>
+      <checksum>88063E80</checksum>
     </file>
   </files>
 </measure>

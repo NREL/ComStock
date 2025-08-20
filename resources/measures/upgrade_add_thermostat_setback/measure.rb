@@ -65,6 +65,18 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     args
   end
 
+  def air_loop_res?(air_loop_hvac)
+    is_res_system = true
+    air_loop_hvac.supplyComponents.each do |component|
+      obj_type = component.iddObjectType.valueName.to_s
+      case obj_type
+      when 'OS_AirLoopHVAC_OutdoorAirSystem'
+        is_res_system = false
+      end
+    end
+    is_res_system
+  end
+
   def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
     if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) &&
@@ -76,7 +88,11 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
   def hours_to_occ(_runner, sch_zone_occ_annual_profile, idx)
     remaining_values = sch_zone_occ_annual_profile.to_a[(idx + 1)..]
     next_occ_index = remaining_values.index(1) # find index of next occupied timestep
-    next_occ_index + 1 # reindexed in new array
+    if next_occ_index.nil?
+      900 # high value
+    else
+      next_occ_index + 1 # reindexed in new array
+    end
   end
 
   def valid_tstat_schedule(sched, type, zone)
@@ -231,6 +247,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     clg_max = runner.getIntegerArgumentValue('clg_max', user_arguments)
     htg_min = runner.getIntegerArgumentValue('htg_min', user_arguments)
 
+    std = Standard.build('90.1-2013') # build standard
+
     space_types_no_setback = [
       # 'Kitchen',
       # 'kitchen',
@@ -289,7 +307,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         runner.registerInfo('sizing summary: sizing run needed')
         return false if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
 
-        model.applySizingValues if is_sizing_run_needed == true
+        model.applySizingValues
         des_sup_airflow_rate = air_loop_hvac.designSupplyAirFlowRate.get
         runner.registerInfo("design supply airflow rate #{des_sup_airflow_rate}")
       end
