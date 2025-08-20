@@ -340,6 +340,14 @@ Add refrigeration cases and walkins model
 **Required:** true,
 **Model Dependent:** false
 
+### Refrigeration Technology Level
+The refrigeration technology level used for refrigerated cases, walkins, compressors, and systems.
+**Name:** refrigeration_template,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 ### Modify weekday hours of operation
 Modify the weekday hours of operation in the model.
 **Name:** modify_wkdy_op_hrs,
