@@ -2492,7 +2492,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
 
         alloc_wts = alloc_wts.with_columns(
-            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS]
+            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS + [self.UTIL_ELEC_BILL_NUM_BILLS]]
         )
 
         # Create combined utility column for mean electricity rate
@@ -2519,7 +2519,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate weighted number of bills TODO: do we want this?
         alloc_wts = alloc_wts.with_columns(
             pl.col(self.UTIL_ELEC_BILL_NUM_BILLS)
-              .cast(pl.Int32)
+              .cast(pl.Int32) 
               .mul(pl.col(self.BLDG_WEIGHT))
               .alias(self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS))
         )
