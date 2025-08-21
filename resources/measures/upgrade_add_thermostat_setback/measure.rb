@@ -291,6 +291,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     cfm_per_m3s = 2118.8799727597
     zones_with_setbacks = []
     all_zones = []
+    zones_modified = []
 
     model.getAirLoopHVACs.each do |air_loop_hvac| # iterate thru air loops
       # skip DOAS units; check sizing for all OA and for DOAS in name
@@ -387,6 +388,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
             new_htg_sched.setWinterDesignDaySchedule(htg_des_day)
             new_htg_sched.setSummerDesignDaySchedule(clg_des_day)
             zone_thermostat.setHeatingSchedule(new_htg_sched)
+            zones_modified << thermal_zone.name.to_s
           elsif has_htg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
             runner.registerInfo("Heating setback already present for #{htg_schedule.name}")
           else
@@ -402,6 +404,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
             new_clg_sched.setWinterDesignDaySchedule(htg_des_day)
             new_clg_sched.setSummerDesignDaySchedule(clg_des_day)
             zone_thermostat.setCoolingSchedule(new_clg_sched)
+            zones_modified << thermal_zone.name.to_s
           elsif has_clg_setback # if no people object, but has existing setbacks, align new setbacks with that schedule
             runner.registerInfo("Cooling setback already present for #{clg_schedule.name}")
           else
@@ -410,8 +413,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         end
       end
     end
-    if zones_with_setbacks & all_zones == all_zones # See if the intersection of the two arrays is equal to the full zones array
-      runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks.')
+    if zones_with_setbacks & all_zones == all_zones or zones_modified.empty? # See if the intersection of the two arrays is equal to the full zones array, or if there have been no zones modified
+      runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks or have no people objects.')
     end
     true
   end
