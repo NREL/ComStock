@@ -90,6 +90,11 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
     # Create a hash for air loops
     overall_sel_air_loops = []
 
+    # Coefficients of fan curve with "good" static pressure reset
+    sp_reset_fan_coeff = [0.040759894, 0.08804497, -0.07292612, 0.943739823]
+    # allowable tolerance for comparison
+    e = [0.01, 0.01, 0.01, 0.01]
+
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas')) || air_loop_doas?(air_loop_hvac)
         next
@@ -117,8 +122,15 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
       next unless sup_fan.to_FanVariableVolume.is_initialized
 
       sup_fan = sup_fan.to_FanVariableVolume.get
+
+      existing_coeff = [sup_fan.fanPowerCoefficient1.get, sup_fan.fanPowerCoefficient2.get,
+                        sup_fan.fanPowerCoefficient3.get, sup_fan.fanPowerCoefficient4.get]
+
+      diff = sp_reset_fan_coeff.zip(existing_coeff).map { |a, b| a - b }
+
+
       # Check if fan curve coefficients already match values emulating SP reset
-      if sup_fan.fanPowerCoefficient1 == 0.040759894 and sup_fan.fanPowerCoefficient2 == 0.08804497 and sup_fan.fanPowerCoefficient3 == -0.07292612 and sup_fan.fanPowerCoefficient4 == 0.943739823
+      if diff.map(&:abs).zip(e).all? { |a, b| a < b } # difference less than the tolerance
         runner.registerAsNotApplicable('Fan curve already represents an SP reset.')
       else
         sup_fan.setFanPowerCoefficient1(0.040759894)
