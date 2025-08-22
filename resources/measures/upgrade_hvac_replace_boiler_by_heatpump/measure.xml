@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>replace_boiler_with_heat_pump</name>
-  <uid>e5661219-4641-4140-8c83-a9d602e45ca7</uid>
-  <version_id>7c7fe317-e331-43d6-bb99-a84212d66f94</version_id>
-  <version_modified>2025-07-23T23:00:38Z</version_modified>
+  <uid>61fa8734-6ce3-45b5-b3db-131da45ff3c2</uid>
+  <version_id>3c5cd8a3-ed53-418a-b9b1-b02f132d4b19</version_id>
+  <version_modified>2025-07-30T14:20:48Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>ReplaceBoilerWithHeatPump</class_name>
   <display_name>replace_boiler_by_heatpump</display_name>
@@ -14,7 +14,6 @@
     <argument>
       <name>keep_setpoint</name>
       <display_name>Keep existing hot water loop setpoint?</display_name>
-      <description></description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -61,7 +60,6 @@
     <argument>
       <name>sizing_method</name>
       <display_name>Select heat pump water heater sizing method</display_name>
-      <description></description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -98,7 +96,6 @@
     <argument>
       <name>hp_des_cap</name>
       <display_name>Rated ASHP heating capacity per unit [kW]</display_name>
-      <description></description>
       <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -107,7 +104,6 @@
     <argument>
       <name>bu_type</name>
       <display_name>Select backup heater</display_name>
-      <description></description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -126,7 +122,6 @@
     <argument>
       <name>hpwh_cutoff_T</name>
       <display_name>Set the heat pump cutoff temperature [F]</display_name>
-      <description></description>
       <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -135,7 +130,6 @@
     <argument>
       <name>hpwh_Design_OAT</name>
       <display_name>Set the heat pump design outdoor air temperature to base the performance data [F]</display_name>
-      <description></description>
       <type>Double</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
