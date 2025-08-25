@@ -292,6 +292,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     zones_with_setbacks = []
     all_zones = []
     zones_modified = []
+    zones_cons_occ = []
 
     model.getAirLoopHVACs.each do |air_loop_hvac| # iterate thru air loops
       # skip DOAS units; check sizing for all OA and for DOAS in name
@@ -359,6 +360,14 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         sch_zone_occ = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(
           [thermal_zone], occupied_percentage_threshold: 0.05
         )
+        sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sch_zone_occ)
+
+        if sch_zone_occ_annual_profile.min > 0 # zone is consistently occupied
+          zones_cons_occ << thermal_zone.name.to_s
+          next
+        end
+
+        runner.registerInfo("class of sched #{sch_zone_occ_annual_profile.class.name}")
 
         # Determine if setbacks present
         if htg_valid
@@ -413,8 +422,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         end
       end
     end
-    if zones_with_setbacks & all_zones == all_zones or zones_modified.empty? # See if the intersection of the two arrays is equal to the full zones array, or if there have been no zones modified
-      runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks or have no people objects.')
+    if zones_with_setbacks & all_zones == all_zones or zones_modified.empty? or zones_cons_occ & all_zones == all_zones # See if the intersection of the two arrays is equal to the full zones array, or if there have been no zones modified
+      runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks or have no people objects, or have no unoccupied periods.')
     end
     true
   end
