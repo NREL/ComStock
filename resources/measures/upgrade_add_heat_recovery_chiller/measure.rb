@@ -281,8 +281,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     dh = model.getDistrictHeatings.size
     htg_plant_obj = boilers + dh
 
-    # TODO: update for district heating
-    if chillers < 1 || htg_plant_obj < 1
+    if (chillers < 1) || (htg_plant_obj < 1)
       runner.registerAsNotApplicable('Either no boilers or no chillers in the model; not applicable.')
       return true
     end
