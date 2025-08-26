@@ -283,6 +283,6 @@ RtL,Kitchen,kitchen_without_dishwashing
 RtS,RetailSales,retail
 RtS,StockRoom,warehouse_fine_storage
 SCn,WarehouseCond,warehouse_bulk_storage
-Scn,WarehouseCond,office_open
+Scn,OfficeGeneral,office_open
 SUn,WarehouseUnCond,warehouse_bulk_storage
 SUn,OfficeGeneral,office_open
