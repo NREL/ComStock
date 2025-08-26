@@ -278,9 +278,12 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # Check for measure applicability
     boilers =  model.getBoilerHotWaters.size # need this variable later
     chillers = model.getChillerElectricEIRs.size
+	
+	runner.registerInfo("chillers #{chillers}")
+	runner.registerInfo("boilers #{boilers}")
 
     # TODO: update for district heating
-    unless boilers >= 1 and chillers >= 1
+    unless (boilers >= 1) and (chillers >= 1)
       runner.registerAsNotApplicable('Either no boilers or no chillers in the model; not applicable.')
     end
 
@@ -398,7 +401,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       end
 
       if existing_condenser_loop.nil?
-        runner.registerError('Existing condenser loop not found in the model. This measure requires an existing chiller in the model to share a condenser loop if selecting a new heat recovery chiller.')
+        runner.registerAsNotApplicable('Existing condenser loop not found in the model. This measure requires an existing chiller in the model to share a condenser loop if selecting a new heat recovery chiller.')
         return false
       end
 
