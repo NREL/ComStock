@@ -34,6 +34,7 @@ class NamingMixin():
     COMP_STATUS = 'completed_status'
     DIVISION = 'Division'
     MONTH = 'Month'
+    UTIL_ID = 'in.electric_utility_eia_code'
 
     # As-simulated geography variables
     TRACT_ID_AS_SIM = 'in.as_simulated_nhgis_tract_gisjoin'

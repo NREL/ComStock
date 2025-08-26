@@ -81,10 +81,10 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             logger.debug(c)
 
         assert isinstance(self.data, pd.DataFrame)
-        logger.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
-        #Convert columns with name in self.FLR_AREA or weight to numeric
+        #Convert columns with name in self.FLR_AREA or weight to numeric 
         numeric_patterns = [
             self.FLR_AREA,
             self.BLDG_WEIGHT,
@@ -94,7 +94,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'sqft',
             'intensity'
         ]
-
+ 
         for col in self.data.columns:
             if any(pattern in col for pattern in numeric_patterns):
                 try:
@@ -105,7 +105,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
-
+        
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -293,8 +293,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 if not col in self.data:
                     logger.warning(f'Missing energy column {col}, will not be included in {new_col_name}')
                     continue
-                self.data[col] = self.data[col].replace('Not Applicable', np.nan)
-                self.data[col] = self.data[col].replace('Not applicable', np.nan)
+                self.data[col] = self.data[col].replace('Not Applicable', str(np.nan))
+                self.data[col] = self.data[col].replace('Not applicable', str(np.nan))
                 self.data[col] = self.data[col].astype('float64')
                 found_cols.append(col)
             new_col_dict = {}
@@ -307,8 +307,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             if not col in self.data:
                 continue
             # Ensure the energy column is numeric then create weighted column
-            self.data[col] = self.data[col].replace('Not Applicable', np.nan)
-            self.data[col] = self.data[col].replace('Not applicable', np.nan)
+            self.data[col] = self.data[col].replace('Not Applicable', str(np.nan))
+            self.data[col] = self.data[col].replace('Not applicable', str(np.nan))
             self.data[col] = self.data[col].astype('float64')
             new_col = self.col_name_to_weighted(col, self.weighted_energy_units)
 
@@ -348,7 +348,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 self.data[bill_col] = np.nan
             # Divide bill by area to create intensity
             per_area_col = self.col_name_to_area_intensity(bill_col)
-            self.data[bill_col] = self.data[bill_col].replace('Not applicable', np.nan)
+            self.data[bill_col] = self.data[bill_col].replace('Not applicable', str(np.nan))
             self.data[bill_col] = self.data[bill_col].astype('float64')
             self.data[per_area_col] = self.data[bill_col] / self.data[self.FLR_AREA]
 
