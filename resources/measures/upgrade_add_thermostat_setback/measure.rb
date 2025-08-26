@@ -424,6 +424,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
     if (zones_with_setbacks & all_zones == all_zones) || zones_modified.empty? || (zones_cons_occ & all_zones == all_zones) # See if the intersection of the two arrays is equal to the full zones array, or if there have been no zones modified
       runner.registerAsNotApplicable('Measure not applicable; all zones already have setbacks or have no people objects, or have no unoccupied periods.')
+      return true
     end
     true
   end
