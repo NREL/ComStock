@@ -39,8 +39,8 @@ require 'open3'
 require 'csv'
 require 'time'
 
-#Code written originally by Matt Dalhausen, with modifications by Amy Allen 
-#for flexibility to different water side components, and addition of sizing routine. 
+# Code written originally by Matt Dalhausen, with modifications by Amy Allen
+# for flexibility to different water side components, and addition of sizing routine.
 
 # TODO:
 # add performance curves
@@ -278,13 +278,13 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # Check for measure applicability
     boilers =  model.getBoilerHotWaters.size # need this variable later
     chillers = model.getChillerElectricEIRs.size
-	
-	runner.registerInfo("chillers #{chillers}")
-	runner.registerInfo("boilers #{boilers}")
+    dh = model.getDistrictHeatings.size
+    htg_plant_obj = boilers + dh
 
     # TODO: update for district heating
-    unless (boilers >= 1) and (chillers >= 1)
+    if chillers < 1 || htg_plant_obj < 1
       runner.registerAsNotApplicable('Either no boilers or no chillers in the model; not applicable.')
+      return true
     end
 
     # subsequent check for water cooled chillers
@@ -402,7 +402,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
       if existing_condenser_loop.nil?
         runner.registerAsNotApplicable('Existing condenser loop not found in the model. This measure requires an existing chiller in the model to share a condenser loop if selecting a new heat recovery chiller.')
-        return false
+        return true
       end
 
       existing_condenser_loop.addDemandBranchForComponent(heat_recovery_chiller)
@@ -443,7 +443,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
       if heat_recovery_chiller.condenserType == 'AirCooled'
         runner.registerAsNotApplicable("Chiller named #{heat_recovery_chiller.name} is an air-cooled chiller. This measure does not support air-cooled chillers. The method works by altering the fraction going to a heat recovery loop versus a condenser loop. With no condenser loop, it won't have the node to have heat recovery. Make your air-cooled chiller a water-cooled chiller, then create a dummy condensor loop. You can set the heat recovery fraction to 1 so the condenser loop never operates.")
-        return false
+        return true
       end
     else
       runner.registerError("Invalid chiller_choice argument #{chiller_choice}.")
@@ -613,7 +613,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       'OS:WaterHeater:Mixed',
       'OS:WaterHeater:Stratified',
       'OS:WaterHeater:HeatPump',
-      'OS:DistrictHeating',
+      'OS:DistrictHeating:Water', # #AA updated
       'OS:HeatPump:WaterToWater:EquationFit:Heating',
       'OS:HeatPump:PlantLoop:EIR:Heating',
       'OS:SolarCollector:FlatPlate:Water',
@@ -822,7 +822,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     # var.setReportingFrequency('Timestep')
     # end
     # Sizing routine for HRC
-    runner.registerInfo("directory #{Dir.pwd}")
     ann_loads_run_dir = "#{Dir.pwd}/AnnualHRCLoadsRun"
     ann_loads_sql_path = "#{ann_loads_run_dir}/run/eplusout.sql"
     if File.exist?(ann_loads_sql_path)
