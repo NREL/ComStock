@@ -3,6 +3,12 @@ require 'minitest/reporters'
 require 'parallel'
 require 'rubocop/rake_task'
 
+# generate the xml reports from tests.
+Minitest::Reporters.use! [
+  Minitest::Reporters::DefaultReporter.new,
+  Minitest::Reporters::JUnitReporter.new('test/reports')
+]
+
 desc 'Run measure tests'
 namespace :unit_tests do
   desc 'Run all measure tests'

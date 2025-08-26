@@ -2,9 +2,9 @@
 <measure>
   <schema_version>3.1</schema_version>
   <name>utility_bills</name>
-  <uid>2a3442c1-944d-4e91-9e11-11e0cf368c64</uid>
-  <version_id>a0333834-1c03-43a7-aed2-9f401e81e01b</version_id>
-  <version_modified>2024-11-12T18:33:53Z</version_modified>
+  <uid>eba532c2-efac-41fe-b7cb-b4538bb02c32</uid>
+  <version_id>def15f36-f28b-4111-aa1c-5cef548860fd</version_id>
+  <version_modified>2025-07-16T21:43:37Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>UtilityBills</class_name>
   <display_name>Utility Bills</display_name>
@@ -33,13 +33,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EB001E86</checksum>
+      <checksum>0008674F</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
       <filetype>py</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9C7309A3</checksum>
+      <checksum>F638C0D3</checksum>
     </file>
     <file>
       <filename>eia_com_elec_avg_yrly_rate_increase.json</filename>
@@ -63810,16 +63810,34 @@
       <checksum>44BC4CEF</checksum>
     </file>
     <file>
+      <filename>sampling_region_to_tracts.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>DC447719</checksum>
+    </file>
+    <file>
+      <filename>state_abbrev_to_fips.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>48EEC65F</checksum>
+    </file>
+    <file>
       <filename>tract_to_elec_util.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
       <checksum>DC03F74A</checksum>
     </file>
     <file>
+      <filename>tract_to_elec_util_v2.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D491E87F</checksum>
+    </file>
+    <file>
       <filename>1004_SmallHotel_a.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>3F796846</checksum>
+      <checksum>902CE207</checksum>
     </file>
     <file>
       <filename>USA_CO_Golden-NREL.724666_TMY3.ddy</filename>
@@ -63849,7 +63867,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>9E51273B</checksum>
+      <checksum>36A381D3</checksum>
     </file>
   </files>
 </measure>

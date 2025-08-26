@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 class UnitsMixin():
     class UNIT:
@@ -21,7 +21,7 @@ class UnitsMixin():
 
         class MASS:
             CO2E_MMT = 'co2e_mmt'
-        
+
         class DIMLESS:
             PERCENT = 'percent'
             PERCENT_SYMBOL = '%'
@@ -51,7 +51,9 @@ class UnitsMixin():
         'w_per_m2_to_w_per_ft2': (1.0/10.763910416709722),
         'co2e_kg_to_co2e_mmt': (0.000000001),
         'co2e_kg_to_co2e_metric_ton': 0.001,
-        'usd_to_billion_usd': 0.000000001
+        'usd_to_billion_usd': 0.000000001,
+        'kw_to_gw': 0.000001,
+        'percent_to_percent': 1,
     }
 
     def conv_fact(self, from_unit, to_unit):

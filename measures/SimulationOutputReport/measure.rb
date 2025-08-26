@@ -1,10 +1,10 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
 
 # start the measure
-class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
+class SimulationOutputReport < OpenStudio::Measure::ReportingMeasure
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
@@ -16,19 +16,24 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
   end
 
   # define the arguments that the user will input
-  def arguments(_model = nil)
-    OpenStudio::Ruleset::OSArgumentVector.new
+  def arguments(model = nil)
+    args = OpenStudio::Measure::OSArgumentVector.new
+    # this measure does not require any user arguments, return an empty list
+    return args
   end
 
   def outputs
     buildstock_outputs = ['total_site_energy_mbtu',
                           'total_site_electricity_kwh',
                           'total_site_natural_gas_therm',
+                          'total_site_fuel_oil_mbtu',
+                          'total_site_propane_mbtu',
                           'total_site_district_cooling_therm',
                           'total_site_district_heating_therm',
                           'total_site_other_fuel_mbtu',
                           'net_site_energy_mbtu', # Incorporates PV
                           'net_site_electricity_kwh', # Incorporates PV
+                          'purchased_site_electricity_kwh', # Incorporates PV, but no negatives
                           'electricity_heating_kwh',
                           'electricity_cooling_kwh',
                           'electricity_interior_lighting_kwh',
@@ -48,12 +53,21 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
                           'natural_gas_interior_equipment_therm',
                           'natural_gas_water_systems_therm',
                           'natural_gas_generators_therm',
+                          'fuel_oil_heating_mbtu',
+                          'fuel_oil_interior_equipment_mbtu',
+                          'fuel_oil_water_systems_mbtu',
+                          'fuel_oil_generators_mbtu',
+                          'propane_heating_mbtu',
+                          'propane_interior_equipment_mbtu',
+                          'propane_water_systems_mbtu',
+                          'propane_generators_mbtu',
                           'district_cooling_cooling_therm',
                           'district_heating_heating_therm',
                           'district_heating_water_systems_therm',
                           'other_fuel_heating_mbtu',
                           'other_fuel_interior_equipment_mbtu',
                           'other_fuel_water_systems_mbtu',
+                          'other_fuel_generators_mbtu',
                           'hours_heating_setpoint_not_met',
                           'hours_cooling_setpoint_not_met',
                           'hvac_cooling_capacity_w',
@@ -66,6 +80,44 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
       result << OpenStudio::Measure::OSOutput.makeDoubleOutput(output)
     end
     result
+  end
+
+  def get_value_from_runner_past_results(runner, key_lookup, measure_name, error_if_missing=true)
+    key_lookup = OpenStudio::toUnderscoreCase(key_lookup)
+    success_value = OpenStudio::StepResult.new("Success")
+    runner.workflow.workflowSteps.each do |step|
+        next if not step.result.is_initialized
+        step_result = step.result.get
+        next if not step_result.measureName.is_initialized
+        next if step_result.measureName.get != measure_name
+        next if step_result.value != success_value
+        step_result.stepValues.each do |step_value|
+            next if step_value.name != key_lookup
+            return step_value.valueAsString
+        end
+    end
+    if error_if_missing
+        register_error("Could not find past value for '#{key_lookup}'.", runner)
+    end
+    return nil
+  end
+
+  def get_multi_measure_upgrade_applicability_from_runner_past_results(runner)
+      applics = []
+      success_value = OpenStudio::StepResult.new("Success")
+      runner.workflow.workflowSteps.each do |step|
+          next if not step.result.is_initialized
+          step_result = step.result.get
+          next if not step_result.measureName.is_initialized
+          next if step_result.measureName.get != 'apply_upgrade'
+          next if step_result.value != success_value
+          step_result.stepValues.each do |step_value|
+              next unless step_value.name.include?('_applicable')
+              applics << {'name' => step_value.name, 'applicable' => step_value.valueAsBoolean}
+          end
+      end
+
+      return applics
   end
 
   # define what happens when the measure is run
@@ -91,11 +143,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     sql_file = sql_file.get
     model.setSqlFile(sql_file)
 
-    # Load buildstock_file
-    resources_dir = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'resources'))
-    buildstock_file = File.join(resources_dir, 'buildstock.rb')
-    require File.join(File.dirname(buildstock_file), File.basename(buildstock_file, File.extname(buildstock_file)))
-
+    # set units
     total_site_units = 'MBtu'
     elec_site_units = 'kWh'
     gas_site_units = 'therm'
@@ -104,8 +152,12 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     other_fuel_site_units = 'MBtu'
 
     # Get PV electricity produced
-    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    #pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Total On-Site Electric Sources' AND ColumnName='Electricity' AND Units='GJ'"
+    pv_query = "SELECT -1*Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityProduced:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
     pv_val = sql_file.execAndReturnFirstDouble(pv_query)
+    #purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='AnnualBuildingUtilityPerformanceSummary' AND ReportForString='Entire Facility' AND TableName='Electric Loads Satisfied' AND RowName='Electricity Coming From Utility' AND ColumnName='Electricity' AND Units='GJ'"
+    purchased_electricity_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName='EnergyMeters' AND ReportForString='Entire Facility' AND TableName='Annual and Peak Values - Electricity' AND RowName='ElectricityPurchased:Facility' AND ColumnName='Electricity Annual Value' AND Units='GJ'"
+    purchased_electricity = sql_file.execAndReturnFirstDouble(purchased_electricity_query)
 
     # TOTAL
     report_sim_output(runner, 'total_site_energy_mbtu', [sql_file.totalSiteEnergy], 'GJ', total_site_units)
@@ -114,6 +166,7 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     # ELECTRICITY
     report_sim_output(runner, 'total_site_electricity_kwh', [sql_file.electricityTotalEndUses], 'GJ', elec_site_units)
     report_sim_output(runner, 'net_site_electricity_kwh', [sql_file.electricityTotalEndUses, pv_val], 'GJ', elec_site_units)
+    report_sim_output(runner, 'purchased_site_electricity_kwh', [purchased_electricity], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_heating_kwh', [sql_file.electricityHeating], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_cooling_kwh', [sql_file.electricityCooling], 'GJ', elec_site_units)
     report_sim_output(runner, 'electricity_interior_lighting_kwh', [sql_file.electricityInteriorLighting], 'GJ', elec_site_units)
@@ -142,6 +195,20 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'natural_gas_water_systems_therm', [sql_file.naturalGasWaterSystems], 'GJ', gas_site_units)
     report_sim_output(runner, 'natural_gas_generators_therm', [sql_file.naturalGasGenerators], 'GJ', gas_site_units)
 
+    # FUEL OIL NO2
+    report_sim_output(runner, 'total_site_fuel_oil_mbtu', [sql_file.fuelOilNo2TotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_heating_mbtu', [sql_file.fuelOilNo2Heating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_interior_equipment_mbtu', [sql_file.fuelOilNo2InteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_water_systems_mbtu', [sql_file.fuelOilNo2WaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'fuel_oil_generators_mbtu', [sql_file.fuelOilNo2Generators], 'GJ', other_fuel_site_units)
+
+    # PROPANE
+    report_sim_output(runner, 'total_site_propane_mbtu', [sql_file.propaneTotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_heating_mbtu', [sql_file.propaneHeating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_interior_equipment_mbtu', [sql_file.propaneInteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_water_systems_mbtu', [sql_file.propaneWaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'propane_generators_mbtu', [sql_file.propaneGenerators], 'GJ', other_fuel_site_units)
+
     # DISTRICT COOLING
     report_sim_output(runner, 'total_site_district_cooling_therm', [sql_file.districtCoolingTotalEndUses], 'GJ', district_cooling_site_units)
     report_sim_output(runner, 'district_cooling_cooling_therm', [sql_file.districtCoolingCooling], 'GJ', district_cooling_site_units)
@@ -151,32 +218,12 @@ class SimulationOutputReport < OpenStudio::Ruleset::ReportingUserScript
     report_sim_output(runner, 'district_heating_heating_therm', [sql_file.districtHeatingHeating], 'GJ', district_heating_site_units)
     report_sim_output(runner, 'district_heating_water_systems_therm', [sql_file.districtHeatingWaterSystems], 'GJ', district_heating_site_units)
 
-    # OTHER FUEL (Propane and FuelOil#2 fall into this category)
-    # Sum all other fuels for each end use
-    end_uses = {
-      'Total End Uses' => [],
-      'Heating' => [],
-      'Interior Equipment' => [],
-      'Water Systems' => []
-    }
-    other_fuels = ['Gasoline', 'Diesel', 'Coal', 'Fuel Oil No 1', 'Fuel Oil No 2', 'Propane', 'Other Fuel 1', 'Other Fuel 2']
-    end_uses.each_key do |end_use|
-      other_fuels.each do |fuel|
-        # TODO: replace with built-in OS queries once https://github.com/NREL/OpenStudio/issues/4705 is fixed
-        q = "SELECT Value
-          FROM TabularDataWithStrings WHERE (reportname = 'AnnualBuildingUtilityPerformanceSummary')
-          AND (ReportForString = 'Entire Facility')
-          AND (TableName = 'End Uses'  )
-          AND (ColumnName ='#{fuel}')
-          AND (RowName ='#{end_use}')
-          AND (Units = 'GJ')"
-        end_uses[end_use] << sql_file.execAndReturnFirstDouble(q)
-      end
-    end
-    report_sim_output(runner, 'total_site_other_fuel_mbtu', end_uses['Total End Uses'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_heating_mbtu', end_uses['Heating'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', end_uses['Interior Equipment'], 'GJ', other_fuel_site_units)
-    report_sim_output(runner, 'other_fuel_water_systems_mbtu', end_uses['Water Systems'], 'GJ', other_fuel_site_units)
+    # OTHER FUELS (Gasoline, Diesel, Coal, Fuel Oil No1, Other Fuel 1, Other Fuel 2)
+    report_sim_output(runner, 'total_site_other_fuel_mbtu', [sql_file.gasolineTotalEndUses, sql_file.dieselTotalEndUses, sql_file.coalTotalEndUses, sql_file.fuelOilNo1TotalEndUses, sql_file.otherFuel1TotalEndUses, sql_file.otherFuel2TotalEndUses], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_heating_mbtu', [sql_file.gasolineHeating, sql_file.dieselHeating, sql_file.coalHeating, sql_file.fuelOilNo1Heating, sql_file.otherFuel1Heating, sql_file.otherFuel2Heating], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_interior_equipment_mbtu', [sql_file.gasolineInteriorEquipment, sql_file.dieselInteriorEquipment, sql_file.coalInteriorEquipment, sql_file.fuelOilNo1InteriorEquipment, sql_file.otherFuel1InteriorEquipment, sql_file.otherFuel2InteriorEquipment], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_water_systems_mbtu', [sql_file.gasolineWaterSystems, sql_file.dieselWaterSystems, sql_file.coalWaterSystems, sql_file.fuelOilNo1WaterSystems, sql_file.otherFuel1WaterSystems, sql_file.otherFuel2WaterSystems], 'GJ', other_fuel_site_units)
+    report_sim_output(runner, 'other_fuel_generators_mbtu', [sql_file.gasolineGenerators, sql_file.dieselGenerators, sql_file.coalGenerators, sql_file.fuelOilNo1Generators, sql_file.otherFuel1Generators, sql_file.otherFuel2Generators], 'GJ', other_fuel_site_units)
 
     # LOADS NOT MET
     report_sim_output(runner, 'hours_heating_setpoint_not_met', [sql_file.hoursHeatingSetpointNotMet], nil, nil)

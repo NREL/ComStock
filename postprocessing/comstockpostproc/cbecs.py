@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 
@@ -15,6 +15,8 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
 logger = logging.getLogger(__name__)
 
+# Use future pandas behavior, which we handled by casting column type after .replace() calls
+pd.set_option('future.no_silent_downcasting', True)
 
 class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
     def __init__(self, cbecs_year, truth_data_version, color_hex=NamingMixin.COLOR_CBECS_2012, weighted_energy_units='tbtu', weighted_utility_units='billion_usd', reload_from_csv=False):
@@ -54,7 +56,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.download_data()
         if reload_from_csv:
             file_name = f'CBECS wide.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
@@ -72,6 +74,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.add_energy_rate_columns()
             # Calculate weighted area and energy consumption columns
             self.add_weighted_area_and_energy_columns()
+            self.add_primary_system_type_column()
 
         logger.debug('\nCBECS columns after adding all data')
         for c in self.data.columns:
@@ -126,7 +129,14 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-    
+
+        # CBECS HVAC to Comstock System Type Mapping table
+        file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+        file_path = os.path.join(self.truth_data_dir, file_name)
+        if not os.path.exists(file_path):
+            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
+            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
+
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -226,7 +236,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual major fuel consumption (thous Btu)': self.ANN_TOT_ENGY_KBTU,
             'Annual electricity consumption (thous Btu)': self.ANN_TOT_ELEC_KBTU,
             'Annual natural gas consumption (thous Btu)': self.ANN_TOT_GAS_KBTU,
-            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_OTHFUEL_KBTU,
+            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_FUELOIL_KBTU,
+            'Annual propane consumption (thous Btu)': self.ANN_TOT_PROPANE_KBTU,
             'Annual district heat consumption (thous Btu)': self.ANN_TOT_DISTHTG_KBTU,
             # End use energy - electricity
             'Electricity heating use (thous Btu)': self.ANN_ELEC_HEAT_KBTU,
@@ -239,14 +250,16 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Natural gas heating use (thous Btu)': self.ANN_GAS_HEAT_KBTU,
             'Natural gas cooling use (thous Btu)': self.ANN_GAS_COOL_KBTU,
             'Natural gas water heating use (thous Btu)': self.ANN_GAS_SWH_KBTU,
+            # End use energy - propane
+            'Propane heating use (thous Btu)': self.ANN_PROPANE_HEAT_KBTU,
+            'Propane water heating use (thous Btu)': self.ANN_PROPANE_SWH_KBTU,
+            # End use energy - fuel oil
+            'Fuel oil heating use (thous Btu)': self.ANN_FUELOIL_HEAT_KBTU,
+            'Fuel oil water heating use (thous Btu)': self.ANN_FUELOIL_SWH_KBTU,
             # End use energy - district heating
             'District heat heating use (thous Btu)': self.ANN_DISTHTG_HEAT_KBTU,
             'District heat cooling use (thous Btu)': self.ANN_DISTHTG_COOL_KBTU,
             'District heat water heating use (thous Btu)': self.ANN_DISTHTG_SWH_KBTU,
-            # End use energy - other fuels (sum of propane and fuel oil)
-            'Fuel oil heating use (thous Btu)': self.ANN_OTHER_HEAT_KBTU,
-            'Fuel oil cooling use (thous Btu)': self.ANN_OTHER_COOL_KBTU,
-            'Fuel oil water heating use (thous Btu)': self.ANN_OTHER_SWH_KBTU,
             # Utility bills
             'Annual electricity expenditures ($)': self.UTIL_BILL_ELEC,
             'Annual natural gas expenditures ($)': self.UTIL_BILL_GAS,
@@ -264,12 +277,15 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             # End use energy - natural gas interior equipment
             [['Natural gas cooking use (thous Btu)',
             'Natural gas miscellaneous use (thous Btu)'], self.ANN_GAS_INTEQUIP_KBTU],
-            # End use energy - district heating interior equipment
-            [['District heat cooking use (thous Btu)',
-            'District heat miscellaneous use (thous Btu)'], self.ANN_DISTHTG_INTEQUIP_KBTU],
+            # End use energy - propane interior equipment
+            [['Propane cooking use (thous Btu)',
+            'Propane miscellaneous use (thous Btu)'], self.ANN_PROPANE_INTEQUIP_KBTU],
             # End use energy - fuel oil interior equipment
             [['Fuel oil cooking use (thous Btu)',
-            'Fuel oil miscellaneous use (thous Btu)'], self.ANN_OTHER_INTEQUIP_KBTU]
+            'Fuel oil miscellaneous use (thous Btu)'], self.ANN_FUELOIL_INTEQUIP_KBTU],
+            # End use energy - district heating interior equipment
+            [['District heat cooking use (thous Btu)',
+            'District heat miscellaneous use (thous Btu)'], self.ANN_DISTHTG_INTEQUIP_KBTU]
         ]
         for cols, new_col_name in combo_cols:
             found_cols = []
@@ -499,6 +515,29 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             conv_fact = self.conv_fact(old_units, new_units)
             new_col_dict[new_col] = self.data[col] * self.data[self.BLDG_WEIGHT] * conv_fact
         self.data = pd.concat([self.data, pd.DataFrame(new_col_dict)], axis=1)
+
+    def add_primary_system_type_column(self):
+         # CBECS HVAC Data
+         file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+         file_path = os.path.join(self.truth_data_dir, file_name)
+
+         # Check if file exists
+         if not os.path.exists(file_path):
+             print(f"File {file_name} does not exist. Skipping...")
+             return
+
+         # Read CSV file into a DataFrame
+         hvac_df = pd.read_csv(file_path)
+
+         # Select 'PUBID' and 'cstock_sys_type' columns
+         hvac_df = hvac_df[['PUBID', 'cstock_sys_type']]
+
+         # Rename 'PUBID' to 'bldg_id'
+         hvac_df = hvac_df.rename(columns={'PUBID': 'bldg_id'})
+         hvac_df = hvac_df.rename(columns={'cstock_sys_type':'in.hvac_system_type'})
+
+         # Merge HVAC data with existing data
+         self.data = pd.merge(self.data, hvac_df, on='bldg_id', how='left')
 
     def export_to_csv_wide(self):
         # Exports comstock data to CSV in wide format

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import re
 import csv
@@ -29,9 +29,10 @@ def main(path, selecting_run=None):
     count = 0
     for logpath, log in __extract_running_log(path):
         informationLines = cleanup_original_log(log)
-
+        # print(logpath)
         #logpath example: ./up00/bldg0000001/out.osw
-        if logpath.split("/")[1] not in selecting_run:
+        if selecting_run and not any(dir in selecting_run for dir in os.path.split(logpath)[0].split(os.sep)):
+            logger.info(f"Skipping log path: {logpath} as it is not in the selected runs: {selecting_run}.")
             continue
 
         count += 1
@@ -105,6 +106,17 @@ def _generate_printable_log(nestedLog: dict) -> dict:
         'measure_state': 'total',
         'time': nestedLog.get("total_time")
     }]
+
+    temp.append({
+        'upgrade_id': upgrade_id,
+        'building_id': building_id,
+        'type': 'simulation',
+        'measure_dir': 'run',
+        'workflow_substate': 'energyplus',
+        'name': 'simulation',
+        'measure_state': 'total',
+        'time': nestedLog.get("sim_time")
+    })
 
     for tuple in nestedLog.get("step_info"):
 
@@ -182,7 +194,6 @@ def _generate_printable_log(nestedLog: dict) -> dict:
             measure_datum['time'] = measure_total - sizing_total
             temp.append(measure_datum)
     res['log_detail'] = temp
-
     return res
 
 def cleanup_original_log(originalLog: dict) -> dict:
@@ -208,6 +219,7 @@ def cleanup_original_log(originalLog: dict) -> dict:
 
     res["total_time"] = __compute_delta([originalLog.get("started_at") , originalLog.get("completed_at")])
     res['step_info'] = __cleanup_step_logs(originalLog.get("steps", []))
+    res['sim_time'] = __extract_simulation_seconds(originalLog.get("eplusout_err", ""))
     res['id'] = originalLog['id']
     return res
 
@@ -283,6 +295,23 @@ def __build_namedtuple_from_log(step_log: list) -> list:
                     tuple[1] = delta
     return queue
 
+def __extract_simulation_seconds(err_log: str) -> float:
+    """
+    Extracts the simulation seconds from the error log.
+
+    Args:
+        err_log (str): The error log string.
+
+    Returns:
+        float: The extracted simulation seconds.
+    """
+    match = re.search(r'Elapsed Time=(\d)+hr\s+(\d)+min\s+([\d.]+)sec', err_log)
+    if not match:
+        logger.debug('No elapsed time found in the error log.')
+        return None
+    hours, minutes, seconds = map(float, match.groups())
+    total_seconds = hours * 3600 + minutes * 60 + seconds
+    return total_seconds
 
 def __flatten_dict(d, parent_key='', sep='.'):
     items = []
@@ -308,7 +337,7 @@ def generatingReport(nestedLog: dict, path: str):
     if not os.path.exists(summaryPath):
         os.makedirs(summaryPath)
 
-    path = path.replace('.', '_').replace('/', '_').replace('tar.gz', "")
+    path = os.path.basename(path).replace('.', '_').replace('/', '_').replace('tar.gz', "")
     summaryFullPath = summaryPath + "/" + "reporting_{}.csv".format(path)
     with open(summaryFullPath, mode='a', newline="") as file:
         writer = csv.DictWriter(file, fieldnames=field_names)
@@ -323,7 +352,9 @@ def aggregate_csv(path: str):
     After all the csv are generated, aggregate the csvs from each run.
     """
     summaryPath = os.path.join(os.path.dirname(path), PROFILING_SUMMARY_DIR)
-    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w') as fout:
+    if not os.path.exists(summaryPath):
+        os.makedirs(summaryPath)
+    with open(summaryPath + '/' + 'aggregate_profiling.csv', 'w', newline='') as fout:
         wout = csv.writer(fout, delimiter=',')
         interesting_files = glob.glob(summaryPath + "/" + "*tar_gz.csv")
         h = True

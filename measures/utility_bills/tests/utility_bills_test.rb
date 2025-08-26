@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -82,21 +82,26 @@ class UtilityBillsTest < Minitest::Test
     return true
   end
 
+  def get_utility_for_tract(tract)
+    tract_to_elec_util_path = File.join(File.dirname(__FILE__), '..', 'resources', 'tract_to_elec_util_v2.csv')
+    tract_to_elec_util = {}
+    CSV.foreach(tract_to_elec_util_path) do |row|
+      tract_to_elec_util[row[0]] = row[1]
+    end
+    return tract_to_elec_util[tract]
+  end
+
   # create test files if they do not exist when the test first runs
-  def setup_test(test_name, idf_output_requests, census_tract, state_abbrev, start_year, model_in_path, epw_path = epw_path_default)
+  def setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbrev, start_year, model_in_path, epw_path = epw_path_default)
     FileUtils.mkdir_p(run_dir(test_name))
 
     assert(File.exist?(run_dir(test_name)))
 
-
     FileUtils.rm_f(report_path(test_name))
-
 
     assert(File.exist?(model_in_path))
 
-
     FileUtils.rm_f(model_out_path(test_name))
-
 
     # convert output requests to OSM for testing, OS App and PAT will add these to the E+ Idf
     workspace = OpenStudio::Workspace.new('Draft'.to_StrictnessLevel, 'EnergyPlus'.to_IddFileType)
@@ -109,6 +114,7 @@ class UtilityBillsTest < Minitest::Test
     assert(!model.empty?)
     model = model.get
     model.addObjects(request_model.objects)
+    model.getBuilding.additionalProperties.setFeature('sampling_region', sampling_region)
     model.getBuilding.additionalProperties.setFeature('nhgis_tract_gisjoin', census_tract)
     model.getBuilding.additionalProperties.setFeature('state_abbreviation', state_abbrev)
     model.getYearDescription.setCalendarYear(start_year)
@@ -123,87 +129,14 @@ class UtilityBillsTest < Minitest::Test
     run_test_simulation(test_name, epw_path)
   end
 
-  # Test when the building is in a tract with no EIA utility ID assigned
-  def test_sm_hotel_no_utility_for_tract
-    test_name = 'sm_hotel_no_urdb_rates'
-    model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
-    # This census tract has no EIA utility ID assigned
-    census_tract = 'G0100470957000'
-    state_abbreviation = 'AL'
-    year = 1999
-
-    # create an instance of the measure
-    measure = UtilityBills.new
-
-    # create an instance of a runner
-    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-
-    # get arguments
-    arguments = measure.arguments
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # get the energyplus output requests, this will be done automatically by OS App and PAT
-    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
-
-    # mimic the process of running this measure in OS App or PAT
-    epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
-
-    assert(File.exist?(model_out_path(test_name)))
-    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
-
-    # Set up runner, this will happen automatically when measure is run in PAT or OpenStudio
-    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
-    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
-    runner.setLastEpwFilePath('')
-    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
-
-    # Temporarily change directory to the run directory and run the measure
-    start_dir = Dir.pwd
-    begin
-      Dir.chdir(run_dir(test_name))
-      # run the measure
-      measure.run(runner, argument_map)
-      result = runner.result
-      show_output(result)
-      assert_equal('Success', result.value.valueName)
-    ensure
-      Dir.chdir(start_dir)
-    end
-
-    # Check that electric bills are being calculated
-    puts '***Machine-Readable Attributes**'
-    rvs = {}
-    result.stepValues.each do |value|
-      name_val = JSON.parse(value.string)
-      rvs[name_val['name']] = name_val['value']
-    end
-    assert(rvs.key?('electricity_rate_1_name'))
-    assert(rvs.key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.key?('electricity_bill_mean_dollars'))
-
-    # Check that the statistics make sense (all should match b/c using the EIA rate only)
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_mean_dollars'])
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
-    assert_equal(rvs['electricity_bill_number_of_rates'], 1)
-
-    # Check for a warning about missing utility
-    found_warn = false
-    result.stepWarnings.each do |msg|
-      found_warn = true if msg.include?('No electric utility for census tract')
-    end
-    assert(found_warn)
-  end
-
   # Test when the building is assigned a utility with no rates from URDB
   def test_sm_hotel_no_urdb_rates
     test_name = 'sm_hotel_no_urdb_rates'
     model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
     # This census tract is assigned to EIA utility 17683,
     # which has no valid rates in URDB
-    census_tract = 'G2800630950100'
+    sampling_region = '0'
+    census_tract = 'G2800630950101'
     state_abbreviation = 'MS'
     year = 1999
 
@@ -223,7 +156,7 @@ class UtilityBillsTest < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
+    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -254,20 +187,23 @@ class UtilityBillsTest < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.key?('electricity_rate_1_name'))
-    assert(rvs.key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.key?('electricity_bill_mean_dollars'))
 
-    # Check that the statistics make sense (all should match b/c using the EIA rate only)
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_mean_dollars'])
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_median_dollars'])
-    assert_equal(rvs['electricity_bill_min_dollars'], rvs['electricity_bill_max_dollars'])
-    assert_equal(rvs['electricity_bill_number_of_rates'], 1)
+    elec_util_from_file = get_utility_for_tract(census_tract)
+    # check that utility is found
+    assert(elec_util_from_file)
+
+    # check that nothing is found for this tract in bill results
+    utility_id_regexp = /\|([^:]+)/
+    refute_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
+
+    # check that state average result has value
+    state_avg_regexp = /\|([^:]+)/
+    assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
 
     # Check for a warning about no rates found
     found_warn = false
     result.stepWarnings.each do |msg|
-      found_warn = true if msg.include?('No URDB electric rates found for EIA utility')
+      found_warn = true if msg.include?("No URDB electric rates found for EIA utility #{elec_util_from_file}")
     end
     assert(found_warn)
   end
@@ -278,6 +214,7 @@ class UtilityBillsTest < Minitest::Test
     model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
     # Set census tract: G0600010400200 which matches
     # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
+    sampling_region = '101'
     census_tract = 'G0600010400200'
     state_abbreviation = 'CA'
     year = 1999
@@ -298,7 +235,7 @@ class UtilityBillsTest < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
+    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -329,16 +266,129 @@ class UtilityBillsTest < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.key?('electricity_rate_1_name'))
-    assert(rvs.key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.key?('electricity_bill_mean_dollars'))
 
-    # Check that the statistics make sense
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_number_of_rates'] > 2)
+    elec_util_from_file = get_utility_for_tract(census_tract)
+    # check that utility is found
+    assert(elec_util_from_file)
+
+    # check that something is found for this tract in bill results
+    utility_id_regexp = /\|([^:]+)/
+    assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
+
+    # Parse the string
+    keys_stats = [
+      'eia_id', 'total_min_value', 'total_min_key', 'total_max_value', 'total_max_key',
+      'total_median_low_value', 'total_median_low_key', 'total_median_high_value', 'total_median_high_key',
+      'total_mean_value', 'dc_flat_min_value', 'dc_flat_min_key', 'dc_flat_max_value', 'dc_flat_max_key',
+      'dc_flat_median_low_value', 'dc_flat_median_low_key', 'dc_flat_median_high_value', 'dc_flat_median_high_key',
+      'dc_flat_mean_value', 'dc_tou_min_value', 'dc_tou_min_key', 'dc_tou_max_value', 'dc_tou_max_key',
+      'dc_tou_median_low_value', 'dc_tou_median_low_key', 'dc_tou_median_high_value', 'dc_tou_median_high_key',
+      'dc_tou_mean_value', 'ec_min_value', 'ec_min_key', 'ec_max_value', 'ec_max_key',
+      'ec_median_low_value', 'ec_median_low_key', 'ec_median_high_value', 'ec_median_high_key',
+      'ec_mean_value', 'fixed_min_value', 'fixed_min_key', 'fixed_max_value', 'fixed_max_key',
+      'fixed_median_low_value', 'fixed_median_low_key', 'fixed_median_high_value', 'fixed_median_high_key',
+      'fixed_mean_value', 'total_bill_counts'
+    ]
+    bill_vals_stats = rvs['electricity_utility_bill_results'].split('|').reject(&:empty?).map do |stat_set|
+      values = stat_set.split(':')
+      keys_stats.zip(values).to_h
+    end
+
+    # Check reasonableness of statistics
+    bill_vals_stats.each do |bill_val|
+      assert_equal(47, bill_val.size)
+
+      assert(bill_val['total_max_value'].to_i > bill_val['total_min_value'].to_i)
+      assert(bill_val['total_min_value'].to_i <= bill_val['total_median_low_value'].to_i)
+      assert(bill_val['total_min_value'].to_i <= bill_val['total_median_high_value'].to_i)
+      assert(bill_val['total_min_value'].to_i <= bill_val['total_mean_value'].to_i)
+      assert(bill_val['total_max_value'].to_i >= bill_val['total_median_low_value'].to_i)
+      assert(bill_val['total_max_value'].to_i >= bill_val['total_median_high_value'].to_i)
+      assert(bill_val['total_max_value'].to_i >= bill_val['total_mean_value'].to_i)
+
+      assert(bill_val['dc_flat_max_value'].to_i >= bill_val['dc_flat_min_value'].to_i)
+      assert(bill_val['dc_flat_min_value'].to_i <= bill_val['dc_flat_median_low_value'].to_i)
+      assert(bill_val['dc_flat_min_value'].to_i <= bill_val['dc_flat_median_high_value'].to_i)
+      assert(bill_val['dc_flat_min_value'].to_i <= bill_val['dc_flat_mean_value'].to_i)
+      assert(bill_val['dc_flat_max_value'].to_i >= bill_val['dc_flat_median_low_value'].to_i)
+      assert(bill_val['dc_flat_max_value'].to_i >= bill_val['dc_flat_median_high_value'].to_i)
+      assert(bill_val['dc_flat_max_value'].to_i >= bill_val['dc_flat_mean_value'].to_i)
+
+      assert(bill_val['dc_tou_max_value'].to_i >= bill_val['dc_tou_min_value'].to_i)
+      assert(bill_val['dc_tou_min_value'].to_i <= bill_val['dc_tou_median_low_value'].to_i)
+      assert(bill_val['dc_tou_min_value'].to_i <= bill_val['dc_tou_median_high_value'].to_i)
+      assert(bill_val['dc_tou_min_value'].to_i <= bill_val['dc_tou_mean_value'].to_i)
+      assert(bill_val['dc_tou_max_value'].to_i >= bill_val['dc_tou_median_low_value'].to_i)
+      assert(bill_val['dc_tou_max_value'].to_i >= bill_val['dc_tou_median_high_value'].to_i)
+      assert(bill_val['dc_tou_max_value'].to_i >= bill_val['dc_tou_mean_value'].to_i)
+
+      assert(bill_val['ec_max_value'].to_i >= bill_val['ec_min_value'].to_i)
+      assert(bill_val['ec_min_value'].to_i <= bill_val['ec_median_low_value'].to_i)
+      assert(bill_val['ec_min_value'].to_i <= bill_val['ec_median_high_value'].to_i)
+      assert(bill_val['ec_min_value'].to_i <= bill_val['ec_mean_value'].to_i)
+      assert(bill_val['ec_max_value'].to_i >= bill_val['ec_median_low_value'].to_i)
+      assert(bill_val['ec_max_value'].to_i >= bill_val['ec_median_high_value'].to_i)
+      assert(bill_val['ec_max_value'].to_i >= bill_val['ec_mean_value'].to_i)
+
+      assert(bill_val['fixed_max_value'].to_i >= bill_val['fixed_min_value'].to_i)
+      assert(bill_val['fixed_min_value'].to_i <= bill_val['fixed_median_low_value'].to_i)
+      assert(bill_val['fixed_min_value'].to_i <= bill_val['fixed_median_high_value'].to_i)
+      assert(bill_val['fixed_min_value'].to_i <= bill_val['fixed_mean_value'].to_i)
+      assert(bill_val['fixed_max_value'].to_i >= bill_val['fixed_median_low_value'].to_i)
+      assert(bill_val['fixed_max_value'].to_i >= bill_val['fixed_median_high_value'].to_i)
+      assert(bill_val['fixed_max_value'].to_i >= bill_val['fixed_mean_value'].to_i)
+    end
+
+    # spot checks against hard-coded values
+    hard_coded_rates = [
+      {
+        'eia_id' => '14328',
+        'type' => 'total',
+        'statistics' => 'min',
+        'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4
+        'value' => 120886
+      },
+      {
+        'eia_id' => '207',
+        'type' => 'dc_flat',
+        'statistics' => 'max',
+        'key' => '53fb58cc5257a334346c0e60', # https://apps.openei.org/USURDB/rate/view/53fb58cc5257a334346c0e60#2__Demand
+        'value' => 16587 # 24% (2014 to 2022) increase from hand calculated 13377
+      },
+      {
+        'eia_id' => '14328',
+        'type' => 'dc_tou',
+        'statistics' => 'min',
+        'key' => '5cef09e25457a3f767f60fe4', # https://apps.openei.org/USURDB/rate/view/5cef09e25457a3f767f60fe4#2__Demand
+        'value' => 16988 # 9% (2019 to 2022) increase from hand calculated 15585
+      },
+      {
+        'eia_id' => '207',
+        'type' => 'ec',
+        'statistics' => 'max',
+        'key' => '53fb55435257a335346c0e61', # https://apps.openei.org/USURDB/rate/view/53fb55435257a335346c0e61#3__Energy
+        'value' => 139194 # 24% (2014 to 2022) increase from hand calculated 112253
+      },
+      {
+        'eia_id' => '207',
+        'type' => 'fixed',
+        'statistics' => 'min',
+        'key' => '53fb57595257a352326c0e61', # https://apps.openei.org/IURDB/rate/view/53fb57595257a352326c0e61#4__Fixed_Charges
+        'value' => 74 # 24% (2014 to 2022) increase from hand calculated 60
+      }
+    ]
+    hard_coded_rates.each do |test_set|
+      constructed_key = "#{test_set['type']}_#{test_set['statistics']}_value"
+      bill_vals_stats.each do |stats_eia|
+        next if stats_eia['eia_id'] != test_set['eia_id']
+
+        assert_equal(test_set['value'], stats_eia[constructed_key].to_i, "Expected value for #{test_set['type']} with key #{test_set['key']} to be #{test_set['value']} but got #{stats_eia[constructed_key]}")
+      end
+    end
+
+    # check that state average result has value
+    state_avg_regexp = /\|([^:]+)/
+    assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
 
     # Check that more than one rates are applicable
     num_appl_rates = 0
@@ -357,6 +407,7 @@ class UtilityBillsTest < Minitest::Test
     model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
     # Set census tract: G0600010400200 which matches
     # utility ID: 14328 (Pacific Gas & Electric Co.) with lots of rates
+    sampling_region = '101'
     census_tract = 'G0600010400200'
     state_abbreviation = 'CA'
     year = 2018
@@ -377,7 +428,7 @@ class UtilityBillsTest < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
+    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -408,16 +459,44 @@ class UtilityBillsTest < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.key?('electricity_rate_1_name'))
-    assert(rvs.key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.key?('electricity_bill_mean_dollars'))
 
-    # Check that the statistics make sense
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_number_of_rates'] > 2)
+    elec_util_from_file = get_utility_for_tract(census_tract)
+    # check that utility is found
+    assert(elec_util_from_file)
+
+    # check that something is found for this tract in bill results
+    utility_id_regexp = /\|([^:]+)/
+    assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
+
+    # check that all results are populated with min, max, mean, med, num
+    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|/"
+    bill_vals = rvs['electricity_utility_bill_results'].match(results_regexp).captures.map(&:to_i)
+    assert_equal(10, bill_vals.size)
+    keys = [
+      'min_dollars',
+      'min_label',
+      'max_dollars',
+      'max_label',
+      'median_low_dollars',
+      'median_low_label',
+      'median_high_dollars',
+      'median_high_label',
+      'mean_dollars',
+      'num_rates'
+    ]
+    results_hash = keys.zip(bill_vals).to_h
+
+    assert(results_hash['max_dollars'] > results_hash['min_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_high_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['mean_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_low_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_high_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['mean_dollars'])
+
+    # check that state average result has value
+    state_avg_regexp = /\|([^:]+)/
+    assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
 
     # Check that more than one rates are applicable
     # and that there is no message about shifting the timeseries to Monday start
@@ -438,6 +517,7 @@ class UtilityBillsTest < Minitest::Test
     model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
     # Set census tract: G0900110693300 which matches
     # utility ID: 2089 (Bozrah Light & Power Company) with lots of rates
+    sampling_region = '10'
     census_tract = 'G0900110693300'
     state_abbreviation = 'CT'
     year = 1999
@@ -458,7 +538,7 @@ class UtilityBillsTest < Minitest::Test
 
     # mimic the process of running this measure in OS App or PAT
     epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, census_tract, state_abbreviation, year, model_in_path)
+    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
 
     assert(File.exist?(model_out_path(test_name)))
     assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
@@ -489,16 +569,44 @@ class UtilityBillsTest < Minitest::Test
       name_val = JSON.parse(value.string)
       rvs[name_val['name']] = name_val['value']
     end
-    assert(rvs.key?('electricity_rate_1_name'))
-    assert(rvs.key?('electricity_rate_1_bill_dollars'))
-    assert(rvs.key?('electricity_bill_mean_dollars'))
 
-    # Check that the statistics make sense
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_min_dollars'] < rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_mean_dollars'])
-    assert(rvs['electricity_bill_max_dollars'] > rvs['electricity_bill_median_dollars'])
-    assert(rvs['electricity_bill_number_of_rates'] > 2)
+    elec_util_from_file = get_utility_for_tract(census_tract)
+    # check that utility is found
+    assert(elec_util_from_file)
+
+    # check that something is found for this tract in bill results
+    utility_id_regexp = /\|([^:]+)/
+    assert_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
+
+    # check that all results are populated with min, max, mean, med, num
+    results_regexp = "/\|#{elec_util_from_file}:(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?):(.+?)\|/"
+    bill_vals = rvs['electricity_utility_bill_results'].match(results_regexp).captures.map(&:to_i)
+    assert_equal(10, bill_vals.size)
+    keys = [
+      'min_dollars',
+      'min_label',
+      'max_dollars',
+      'max_label',
+      'median_low_dollars',
+      'median_low_label',
+      'median_high_dollars',
+      'median_high_label',
+      'mean_dollars',
+      'num_rates'
+    ]
+    results_hash = keys.zip(bill_vals).to_h
+
+    assert(results_hash['max_dollars'] > results_hash['min_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_low_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['median_high_dollars'])
+    assert(results_hash['min_dollars'] <= results_hash['mean_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_low_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['median_high_dollars'])
+    assert(results_hash['max_dollars'] >= results_hash['mean_dollars'])
+
+    # check that state average result has value
+    state_avg_regexp = /\|([^:]+)/
+    assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
 
     # Check that more than one rates are applicable
     # and messages about shifting the timeseries to Monday start

@@ -1,17 +1,88 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <error>Failed to infer measure name from 'C:/Users/mdahlhau/Documents/GitHub/NREL/comstock/resources/measures/upgrade_hvac_packaged_gshp/measure.rb'</error>
   <name>add_packaged_gshp</name>
   <uid>8a5eb1ff-89e5-4fca-9ea3-398ae357bfc7</uid>
-  <version_id>957330cd-495a-4cc0-8eba-7034acb9bdd4</version_id>
-  <version_modified>2024-06-20T18:58:45Z</version_modified>
+  <version_id>01d2fc98-e49b-4025-9e55-98847bb02bc1</version_id>
+  <version_modified>2025-07-23T23:00:37Z</version_modified>
   <xml_checksum>5E2576E4</xml_checksum>
   <class_name>AddPackagedGSHP</class_name>
   <display_name>add_packaged_gshp</display_name>
   <description>This measure replaces packaged single zone systems with a packaged water-to-air ground source heat pump system.</description>
   <modeler_description>This measure identifies all packaged single zone systems in the model and replaces them with a packaged water-to-air ground source heat pump system.</modeler_description>
   <arguments>
+    <argument>
+      <name>walls</name>
+      <display_name>Upgrade Wall Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>roof</name>
+      <display_name>Upgrade Roof Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>windows</name>
+      <display_name>Upgrade to New Windows?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>lighting</name>
+      <display_name>Upgrade to LED Lighting?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
     <argument>
       <name>dcv</name>
       <display_name>Add Demand Control Ventilation?</display_name>
@@ -92,7 +163,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>01DF739F</checksum>
+      <checksum>6073C23B</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -115,7 +186,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>37FAA78F</checksum>
+      <checksum>E36A6B60</checksum>
     </file>
     <file>
       <filename>Ground Loop Heat Pump Performance Data.xlsx</filename>
@@ -190,10 +261,16 @@
       <checksum>998238A3</checksum>
     </file>
     <file>
+      <filename>call_other_measures.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>6DB7A0DA</checksum>
+    </file>
+    <file>
       <filename>performance_curves.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A9B749E5</checksum>
+      <checksum>790EE322</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -205,7 +282,7 @@
       <filename>packaged_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>D3ACCF4A</checksum>
+      <checksum>5D195106</checksum>
     </file>
   </files>
 </measure>

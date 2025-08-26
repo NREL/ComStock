@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 """
 This script reads a CSV of hourly kWh and a JSON utility rate in URDB format
 and calculates the annual electricity bill.
@@ -56,8 +60,15 @@ try:
 
     ur.execute() # Run the utility rate module
 
-    out = {'total_utility_bill_dollars': int(round(ur.Outputs.elec_cost_without_system_year1, 0)),
-           'average_rate_dollars_per_kwh': round(ur.Outputs.elec_cost_without_system_year1 / sum(hourly_kwh), 2)}
+    out = {
+       'total_utility_bill_dollars': int(round(ur.Outputs.elec_cost_without_system_year1, 0)),
+       'average_rate_dollars_per_kwh': round(ur.Outputs.elec_cost_without_system_year1 / sum(hourly_kwh), 2),
+       'charge_wo_sys_dc_fixed': int(round(ur.Outputs.charge_wo_sys_dc_fixed[1],0)),
+       'charge_wo_sys_dc_tou': int(round(ur.Outputs.charge_wo_sys_dc_tou[1],0)),
+       'charge_wo_sys_ec': int(round(ur.Outputs.charge_wo_sys_ec[1],0)),
+       'charge_wo_sys_fixed_ym': int(round(sum(ur.Outputs.charge_wo_sys_fixed_ym[1]),0))
+       }    
+
     print(json.dumps(out))
 except:
     msg = f'PySAM error calculating bills with rate {args.kwhpath}'

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'csv'
@@ -381,23 +381,35 @@ end
 # Find the openstudio-geb gem measures directory, if installed
 def openstudio_geb_gem_measures_dir(runner)
     geb_gem_measures_dir = nil
-    custom_gems_dir = File.absolute_path(File.join(File.dirname(__FILE__), "..", "..", ".custom_gems"))
-    runner.registerInfo("custom_gems_dir: #{custom_gems_dir}")
-    unless Dir.exist?(custom_gems_dir)
-      return geb_gem_measures_dir
-    end
 
-    runner.registerInfo("custom_gems_dir exists!")
-    dir_to_glob = File.join(custom_gems_dir, "ruby", "3.2.0", "bundler", "gems","*")
-    runner.registerInfo("Searching for GEB gem in #{dir_to_glob}")
-    Dir.glob(File.join(custom_gems_dir, "ruby", "3.2.0", "bundler", "gems","*")).each do |gem_dir|
-        next unless File.directory?(gem_dir)
-        runner.registerInfo("Found gem: #{gem_dir}")
-        next unless gem_dir.include?('Openstudio-GEB-gem')
-        geb_gem_measures_dir = File.join(gem_dir, 'lib', 'measures')
-        check_file_exists(geb_gem_measures_dir, runner)
-        runner.registerInfo("Using openstudio-geb measures from: #{geb_gem_measures_dir}")
-        break
+    # Define places to look for GEB gem
+    possible_gem_dirs = []
+    # Look first in comstock/.custom_gems
+    # This is where the gems are installed when doing a local buildstockbatch run
+    possible_gem_dirs << File.absolute_path(File.join(File.dirname(__FILE__), "..", "..", ".custom_gems"))
+    # Look next in /var/oscli/gems
+    # This is where the gems are installed inside the apptainer/docker image
+    possible_gem_dirs << '/var/oscli/gems'
+
+    # Look for the GEB gem
+    possible_gem_dirs.each do |gem_dir|
+        runner.registerInfo("Looking for gems in: #{gem_dir}")
+        unless Dir.exist?(gem_dir)
+            runner.registerInfo("#{gem_dir} does not exist")
+            next
+        end
+        runner.registerInfo("#{gem_dir} exists!")
+        dir_to_glob = File.join(gem_dir, "ruby", "3.2.0", "bundler", "gems","*")
+        runner.registerInfo("Searching for GEB gem in #{dir_to_glob}")
+        Dir.glob(File.join(gem_dir, "ruby", "3.2.0", "bundler", "gems","*")).each do |gem_dir|
+            next unless File.directory?(gem_dir)
+            runner.registerInfo("Found gem: #{gem_dir}")
+            next unless gem_dir.include?('Openstudio-GEB-gem')
+            geb_gem_measures_dir = File.join(gem_dir, 'lib', 'measures')
+            check_file_exists(geb_gem_measures_dir, runner)
+            runner.registerInfo("Using openstudio-geb measures from: #{geb_gem_measures_dir}")
+            break
+        end
     end
 
     return geb_gem_measures_dir
@@ -406,4 +418,5 @@ end
 class Version
     ComStock_Version = '0.0.1' # Version of ComStock
     BuildStockBatch_Version = '2023.10.0' # Minimum required version of BuildStockBatch
+    WorkflowGenerator_Version = '2024.07.18'
 end

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -43,12 +43,12 @@ require 'openstudio-standards'
 class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
-    return "Roof Insulation AEDG"
+    return 'Roof Insulation AEDG'
   end
 
   # human readable description
   def description
-    return "Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal"
+    return 'Roof Insulation is defined as sky facing horizontal surfaces, or surfaces sloped within 60 degrees of sky facing horizontal'
   end
 
   # human readable description of modeling approach
@@ -75,20 +75,17 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     # set limit for minimum insulation in IP units -- this is used to limit input and for inferring insulation layer in construction
     min_exp_r_val_ip = 1.0
 
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2019'
-    std = Standard.build(template)
     # get climate zone to set target_r_val_ip
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # apply target R-value by climate zone
-    if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("CEC15")
+    if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('CEC15')
       target_r_val_ip = 21
-    elsif climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("ASHRAE 169-2013-3")
+    elsif climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('ASHRAE 169-2013-3')
       target_r_val_ip = 26
-    elsif climate_zone.include?("ASHRAE 169-2013-4") || climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("ASHRAE 169-2013-6") || climate_zone.include?("CEC16")
+    elsif climate_zone.include?('ASHRAE 169-2013-4') || climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('ASHRAE 169-2013-6') || climate_zone.include?('CEC16')
       target_r_val_ip = 33
-    elsif climate_zone.include?("ASHRAE 169-2013-7") || climate_zone.include?("ASHRAE 169-2013-8")
+    elsif climate_zone.include?('ASHRAE 169-2013-7') || climate_zone.include?('ASHRAE 169-2013-8')
       target_r_val_ip = 37
     else # all DEER climate zones except 15 and 16
       target_r_val_ip = 26
@@ -102,10 +99,8 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     # Find all roofs and get a list of their constructions
     roof_constructions = []
     model.getSurfaces.each do |surface|
-      if surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'RoofCeiling'
-        if surface.construction.is_initialized
-          roof_constructions << surface.construction.get
-        end
+      if surface.outsideBoundaryCondition == 'Outdoors' && surface.surfaceType == 'RoofCeiling' && surface.construction.is_initialized
+        roof_constructions << surface.construction.get
       end
     end
 
@@ -115,13 +110,14 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     ext_surf_const_names = []
     roof_resist = []
     model.getSurfaces.each do |surface|
-      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') #which are outdoor roofs
+      next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'RoofCeiling') # which are outdoor roofs
+
       ext_surfs << surface
       roof_const = surface.construction.get
       # only add construction if it hasn't been added yet
       ext_surf_consts << roof_const.to_Construction.get unless ext_surf_const_names.include?(roof_const.name.to_s)
       ext_surf_const_names << roof_const.name.to_s
-      roof_resist << 1 / roof_const.thermalConductance.to_f
+      roof_resist << (1 / roof_const.thermalConductance.to_f)
     end
 
     # hashes to track constructions and materials made by the measure, to avoid duplicates
@@ -140,20 +136,20 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
       no_mass_matls = matls_in_const.select { |m| m['nomass'] == true }
 
       # measure will select the no-mass material with the highest R-value as the insulation layer -- if no no-mass materials are present, the measure will select the material with the highest R-value per inch
-      if !no_mass_matls.empty?
-        r_vals = no_mass_matls.map { |m| m['r_val'] } #
-        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max }
-      else
+      if no_mass_matls.empty?
         r_val_per_thick_vals = matls_in_const.map { |m| m['r_val'] / m['mat'].thickness }
         max_matl_hash = matls_in_const.select { |m| m['index'] == r_val_per_thick_vals.index(r_val_per_thick_vals.max) }
         r_vals = matls_in_const.map { |m| m['r_val'] }
+      else
+        r_vals = no_mass_matls.map { |m| m['r_val'] }
+        max_matl_hash = no_mass_matls.select { |m| m['r_val'] >= r_vals.max }
       end
       max_r_val_matl = max_matl_hash[0]['matl']
       max_r_val_matl_idx = max_matl_hash[0]['index']
       # check to make sure assumed insulation layer is between reasonable bounds
       if max_r_val_matl.to_OpaqueMaterial.get.thermalResistance <= OpenStudio.convert(min_exp_r_val_ip, 'ft^2*h*R/Btu', 'm^2*K/W').get
         runner.registerWarning("Construction '#{ext_surf_const.name}' does not appear to have an insulation layer and was not altered")
-      elsif (max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si)
+      elsif max_r_val_matl.to_OpaqueMaterial.get.thermalResistance >= target_r_val_si
         runner.registerInfo("The insulation layer of construction #{ext_surf_const.name} exceeds the requested R-value and was not altered")
       else
 
@@ -171,11 +167,11 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
         final_const = ext_surf_const.clone(model).to_Construction.get
         # get r-value
         final_const_r_si = 1 / final_const.thermalConductance.to_f
-        final_const_r_ip = OpenStudio.convert(final_const_r_si, 'm^2*K/W' , 'ft^2*h*R/Btu').get
+        final_const_r_ip = OpenStudio.convert(final_const_r_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
         # determine required r-value of XPS insulation to bring roof up to target
         xps_target_r_val_si = target_r_val_si - final_const_r_si
-        target_r_val_ip = OpenStudio.convert(target_r_val_si, 'm^2*K/W' , 'ft^2*h*R/Btu').get
-        xps_target_r_val_ip = OpenStudio.convert(xps_target_r_val_si, 'm^2*K/W' , 'ft^2*h*R/Btu').get
+        target_r_val_ip = OpenStudio.convert(target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
+        xps_target_r_val_ip = OpenStudio.convert(xps_target_r_val_si, 'm^2*K/W', 'ft^2*h*R/Btu').get
         # Calculate the thickness required to meet the desired R-Value
         reqd_thickness_si = xps_target_r_val_si * ins_layer_xps.thermalConductivity
         reqd_thickness_ip = OpenStudio.convert(reqd_thickness_si, 'm', 'in').get
@@ -212,7 +208,7 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
 
     # register as not applicable if
     if final_consts.empty?
-      runner.registerAsNotApplicable("No applicable roofs were found.")
+      runner.registerAsNotApplicable('No applicable roofs were found.')
       return true
     end
 
@@ -300,8 +296,8 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
 
     # nothing will be done if there are no exterior surfaces
     if ext_surfs.empty?
-     runner.registerAsNotApplicable('The building has no roofs.')
-     return true
+      runner.registerAsNotApplicable('The building has no roofs.')
+      return true
     end
 
     # report strings for initial condition
@@ -309,17 +305,16 @@ class EnvRoofInsulAedg < OpenStudio::Measure::ModelMeasure
     ext_surf_consts.uniq.each do |ext_surf_const|
       # unit conversion of roof insulation from SI units (m2-K/W) to IP units (ft2-h-R/Btu)
       init_r_val_ip = OpenStudio.convert(1 / ext_surf_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      init_str << "#{ext_surf_const.name} (R-#{(format '%.1f', init_r_val_ip)})"
+      init_str << "#{ext_surf_const.name} (R-#{format '%.1f', init_r_val_ip})"
     end
 
     # report strings for final condition, not all roof constructions, but only new ones made -- if roof didn't have insulation and was not altered we don't want to show it
     final_str = []
     area_changed_si = 0
     final_consts.uniq.each do |final_const|
-
       # unit conversion of roof insulation from SI units (M^2*K/W) to IP units (ft^2*h*R/Btu)
       final_r_val_ip = OpenStudio.convert(1.0 / final_const.thermalConductance.to_f, 'm^2*K/W', 'ft^2*h*R/Btu').get
-      final_str << "#{final_const.name} (R-#{(format '%.1f', final_r_val_ip)})"
+      final_str << "#{final_const.name} (R-#{format '%.1f', final_r_val_ip})"
       area_changed_si += final_const.getNetArea
     end
 

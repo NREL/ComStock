@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -72,22 +72,19 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    # build standard to use OS standards methods
-    template = 'ComStock 90.1-2013'
-    std = Standard.build(template)
     # get climate zone to set target_r_val_ip
     climate_zone = OpenstudioStandards::Weather.model_get_climate_zone(model)
 
     # apply target R-value by climate zone
-    if climate_zone.include?("ASHRAE 169-2013-1") || climate_zone.include?("ASHRAE 169-2013-2") || climate_zone.include?("CEC15")
+    if climate_zone.include?('ASHRAE 169-2013-1') || climate_zone.include?('ASHRAE 169-2013-2') || climate_zone.include?('CEC15')
       target_r_val_ip = 13.0
-    elsif climate_zone.include?("ASHRAE 169-2013-3") || climate_zone.include?("ASHRAE 169-2013-4")
+    elsif climate_zone.include?('ASHRAE 169-2013-3') || climate_zone.include?('ASHRAE 169-2013-4')
       target_r_val_ip = 16.0
-    elsif climate_zone.include?("ASHRAE 169-2013-5") || climate_zone.include?("CEC16")
+    elsif climate_zone.include?('ASHRAE 169-2013-5') || climate_zone.include?('CEC16')
       target_r_val_ip = 19.0
-    elsif climate_zone.include?("ASHRAE 169-2013-6") || climate_zone.include?("ASHRAE 169-2013-7")
+    elsif climate_zone.include?('ASHRAE 169-2013-6') || climate_zone.include?('ASHRAE 169-2013-7')
       target_r_val_ip = 21.0
-    elsif climate_zone.include?("ASHRAE 169-2013-8")
+    elsif climate_zone.include?('ASHRAE 169-2013-8')
       target_r_val_ip = 29.0
     else # all DEER climate zones except 15 and 16
       target_r_val_ip = 16.0
@@ -129,6 +126,7 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
     model.getSurfaces.each do |surface|
       next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
       next if surface.construction.empty?
+
       wall_constructions << surface.construction.get
     end
 
@@ -211,6 +209,7 @@ class ExteriorWallInsulation < OpenStudio::Measure::ModelMeasure
     model.getSurfaces.each do |surface|
       next unless (surface.outsideBoundaryCondition == 'Outdoors') && (surface.surfaceType == 'Wall')
       next if surface.construction.empty?
+
       wall_construction = surface.construction.get
       wall_construction_plus_ins = old_to_new_construction_map[wall_construction]
       surface.setConstruction(wall_construction_plus_ins)

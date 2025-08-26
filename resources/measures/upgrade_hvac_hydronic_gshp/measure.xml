@@ -3,13 +3,13 @@
   <schema_version>3.1</schema_version>
   <name>hvac_hydronic_gshp</name>
   <uid>adf35b50-ba8d-416a-b6a2-b23a9ef8df0e</uid>
-  <version_id>4c88930f-5148-406a-a358-5eafff04c028</version_id>
-  <version_modified>2024-06-20T18:58:45Z</version_modified>
+  <version_id>59ab33f7-18ec-43ec-ad69-630e248244a3</version_id>
+  <version_modified>2025-07-23T23:00:37Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
   <class_name>HVACHydronicGSHP</class_name>
   <display_name>Replace Boiler and Chiller with Hydronic GSHP</display_name>
-  <description>This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. </description>
-  <modeler_description>This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.</modeler_description>
+  <description>This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. </description>
+  <modeler_description>This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.</modeler_description>
   <arguments>
     <argument>
       <name>keep_setpoint</name>
@@ -98,6 +98,78 @@
       <model_dependent>false</model_dependent>
       <default_value>2.85</default_value>
     </argument>
+    <argument>
+      <name>walls</name>
+      <display_name>Upgrade Wall Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>roof</name>
+      <display_name>Upgrade Roof Insulation?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>windows</name>
+      <display_name>Upgrade to New Windows?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>lighting</name>
+      <display_name>Upgrade to LED Lighting?</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
   </arguments>
   <outputs />
   <provenances />
@@ -152,7 +224,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>5630B2E3</checksum>
+      <checksum>FCAB1A2A</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -169,7 +241,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>978DCAB5</checksum>
+      <checksum>D5FE538E</checksum>
     </file>
     <file>
       <filename>Carrier_30WG_90kW_clg.csv</filename>
@@ -196,16 +268,22 @@
       <checksum>2D839C82</checksum>
     </file>
     <file>
+      <filename>call_other_measures.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>BFFFAEAC</checksum>
+    </file>
+    <file>
       <filename>performance_curves.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>160082B9</checksum>
+      <checksum>A6E1B667</checksum>
     </file>
     <file>
       <filename>hydronic_gthp_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AC78E80B</checksum>
+      <checksum>110BE189</checksum>
     </file>
   </files>
 </measure>

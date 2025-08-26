@@ -42,18 +42,17 @@ require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
 require 'open3'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 
 class HydronicGTHPTest < Minitest::Test
-
   def setup
     # Check that the test is being run in an environment that has the GHEdesigner package
-    command = "ghedesigner --help"
+    command = 'ghedesigner --help'
     begin
-      stdout_str, stderr_str, status = Open3.capture3(command)
-    rescue
+      Open3.capture3(command)
+    rescue StandardError
       msg = 'GHEDesigner python package not found in this test environment, pip install GHEDesigner and retry'
       raise LoadError.new msg
     end
@@ -62,50 +61,47 @@ class HydronicGTHPTest < Minitest::Test
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(__dir__, '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(__dir__, '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    rd = File.absolute_path(File.join(__dir__, 'output', "#{test_name}"))
+    rd = File.absolute_path(File.join(__dir__, 'output', test_name.to_s))
     puts "caller: #{caller[0]} run_dir(#{test_name}) = #{rd}"
-    return File.absolute_path(File.join(__dir__, 'output', "#{test_name}"))
+    File.absolute_path(File.join(__dir__, 'output', test_name.to_s))
   end
 
   def model_input_path(osm_name)
-    return File.absolute_path(File.join(__dir__, '../../../tests/models', osm_name))
+    File.absolute_path(File.join(__dir__, '../../../tests/models', osm_name))
   end
 
   def epw_input_path(epw_name)
-    return File.absolute_path(File.join(__dir__, '../../../tests/weather', epw_name))
+    File.absolute_path(File.join(__dir__, '../../../tests/weather', epw_name))
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def sql_path(test_name)
-    return "#{run_dir(test_name)}/run/eplusout.sql"
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
   end
 
   def populate_argument_map(measure, osm_path, args_hash)
@@ -117,13 +113,11 @@ class HydronicGTHPTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
+      assert(temp_arg_var.setValue(args_hash[arg.name])) if args_hash.key?(arg.name)
       argument_map[arg.name] = temp_arg_var
     end
 
-    return argument_map
+    argument_map
   end
 
   # Runs the model, applies the measure, reruns the model, and checks that
@@ -133,9 +127,7 @@ class HydronicGTHPTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -143,9 +135,7 @@ class HydronicGTHPTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
 
     # copy the osm and epw to the test directory
     puts File.basename(osm_path)
@@ -161,9 +151,7 @@ class HydronicGTHPTest < Minitest::Test
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 
     # load the test model
-    if model.nil?
-      model = load_model(new_osm_path)
-    end
+    model = load_model(new_osm_path) if model.nil?
 
     # set model weather file
     epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
@@ -173,7 +161,7 @@ class HydronicGTHPTest < Minitest::Test
     # If the sql file from the sizing run exists, assign
     # it to the model for faster test runtime
     siz_sql_path = "#{run_dir(test_name)}/AnnualGHELoadsRun/run/eplusout.sql"
-	puts "size_sql_path = #{siz_sql_path}"
+    puts "size_sql_path = #{siz_sql_path}"
     if File.exist?(siz_sql_path)
       puts('Reloading sql file from sizing run to speed testing')
       sql_path = OpenStudio::Path.new(siz_sql_path)
@@ -203,7 +191,7 @@ class HydronicGTHPTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_number_of_arguments_and_argument_names
@@ -215,7 +203,7 @@ class HydronicGTHPTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(7, arguments.size)
+    assert_equal(11, arguments.size)
   end
 
   # test all applicable system types
@@ -228,7 +216,7 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
   def test_pvav_gas_boiler_reheat
@@ -240,7 +228,7 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
   def test_vav_air_cooled_chiller_with_gas_boiler_reheat
@@ -252,7 +240,7 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
   def test_vav_chiller_pfp_boxes
@@ -264,7 +252,7 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
   def test_doas_fan_coil_air_cooled_chiller_boiler
@@ -276,7 +264,7 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 
   # test non-applicable system types
@@ -289,6 +277,6 @@ class HydronicGTHPTest < Minitest::Test
     args_hash = {}
     argument_map = populate_argument_map(measure, osm_path, args_hash)
     # Apply the measure and check if before/after results are identical
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
+    apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: true)
   end
 end

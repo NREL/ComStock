@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def main():
     # ComStock run
     comstock = cspp.ComStock(
-        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
+        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
         comstock_run_name='sampling_lighting_11079_1',  # Name of the run on S3
         comstock_run_version='sampling_lighting_11079_1',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
@@ -41,7 +41,8 @@ def main():
     # Stock Estimation for Apportionment:
     stock_estimate = cspp.Apportion(
         stock_estimation_version='2024R2',  # Only updated when a new stock estimate is published
-        truth_data_version='v01'  # Typically don't change this
+        truth_data_version='v01',  # Typically don't change this
+        reload_from_cache=False # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
     )
 
     # CBECS
@@ -57,16 +58,23 @@ def main():
     # Scale ComStock run to CBECS 2018 AND remove non-ComStock buildings from CBECS
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
 
-    # Add weighted area energy savings columns to ComStock data explictly
-    comstock.data = comstock.add_weighted_area_energy_savings_columns(comstock.data)
+    # Define the geographic partitions to export
+    geo_exports = [
+       {'geo_top_dir': 'national_by_state',
+           'partition_cols': {},
+           'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+           'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+           'file_types': ['csv'], # other options:'parquet'
+       },
+    ]
+    # export metadata files
+    comstock.export_metadata_and_annual_results(geo_exports)
+
     # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
     # cbecs.export_to_csv_wide()  # May comment this out after run once
 
     # Export CBECS and ComStock data to wide and long formats for Tableau and to skip processing later
     # cbecs.export_to_csv_wide()  # May comment this out after run once
-    # comstock.create_national_aggregation()
-    # comstock.create_geospatially_resolved_aggregations(comstock.STATE_ID, pretty_geo_col_name='state_id')
-    # comstock.create_geospatially_resolved_aggregations(comstock.COUNTY_ID, pretty_geo_col_name='county_id')
     # TODO Long is def not working as expected anymore...
     # comstock.export_to_csv_long()  # Long format useful for stacking end uses and fuels
 

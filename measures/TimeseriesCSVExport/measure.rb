@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # see the URL below for information on how to write OpenStudio measures
@@ -50,6 +50,9 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
 
   def fuel_types
     ['Electricity',
+     'ElectricityNet',
+     'ElectricityPurchased',
+     'ElectricityProduced',
      'NaturalGas',
      'DistrictCooling',
      'DistrictHeatingWater',
@@ -124,6 +127,7 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('HeatRejection:Water [gal]', 'heat_rejection_gal')
     new_line = new_line.gsub('Humidification:Electricity [kWh]', 'electricity_humidification_kwh')
     new_line = new_line.gsub('Generators:Electricity [kWh]', 'electricity_generators_kwh')
+    new_line = new_line.gsub('ElectricityProduced:Facility [neg_kWh]', 'electricity_pv_kwh')
     new_line = new_line.gsub('WaterSystems:Electricity [kWh]', 'electricity_water_systems_kwh')
     new_line = new_line.gsub('WaterSystems:NaturalGas [kBtu]', 'gas_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:DistrictHeatingWater [kBtu]', 'districtheating_water_systems_kbtu')
@@ -131,6 +135,8 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     new_line = new_line.gsub('WaterSystems:FuelOilNo2 [kBtu]', 'fueloil_water_systems_kbtu')
     new_line = new_line.gsub('WaterSystems:Water [gal]', 'water_systems_gal')
     new_line = new_line.gsub('Electricity:Facility [kWh]', 'total_site_electricity_kwh')
+    new_line = new_line.gsub('ElectricityNet:Facility [kWh]', 'total_net_site_electricity_kwh')
+    new_line = new_line.gsub('ElectricityPurchased:Facility [kWh]', 'total_purchased_site_electricity_kwh')
     new_line = new_line.gsub('DistrictCooling:Facility [kBtu]', 'total_site_districtcooling_kbtu')
     new_line = new_line.gsub('DistrictHeatingWater:Facility [kBtu]', 'total_site_districtheating_kbtu')
     new_line = new_line.gsub('NaturalGas:Facility [kBtu]', 'total_site_gas_kbtu')
@@ -233,6 +239,9 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
       result << OpenStudio::IdfObject.load("Output:Meter,#{subcat},#{reporting_frequency};").get
     end
 
+    # add outputs for PV
+    #result << OpenStudio::IdfObject.load("Output:Meter,#{subcat},#{reporting_frequency};").get
+
     # Request the output for each variable
     if inc_output_variables
       runner.registerInfo('Requesting Output Variables')
@@ -287,6 +296,10 @@ class TimeseriesCSVExport < OpenStudio::Measure::ReportingMeasure
     # Write the file that defines the unit conversions
     convert_txt_path = File.join(run_dir, 'convert.txt')
     File.open(convert_txt_path, 'w') do |f|
+      # PV
+      f.puts('!PV Negative Conversion')
+      f.puts('conv,J,neg_kWh,-2.777778E-07,0')
+      f.puts('vari,ElectricityProduced:Facility,J,neg_kWh')
       # electricity
       f.puts('!Electricity')
       f.puts('conv,J,kWh,2.777778E-07,0')

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # OpenStudio base image (https://hub.docker.com/r/nrel/openstudio/tags)
@@ -14,6 +14,7 @@ RUN curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.gi
   curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
   update-ca-certificates
 
+  
 # Install custom gems
 ENV BUNDLE_WITHOUT=
 RUN bundle config set git.allow_insecure true \
@@ -39,6 +40,10 @@ ENV OPENSTUDIO_VERSION=3.8.0
 COPY --from=os-base /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/ /usr/local/openstudio-${OPENSTUDIO_VERSION}${OPENSTUDIO_VERSION_EXT}/
 COPY --from=os-base /var/oscli/ /var/oscli/
 
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
             libdbus-glib-1-2 \
             libglu1 \
@@ -50,18 +55,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             libglib2.0-dev \
             wget \
             build-essential \
+            curl \
+            ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tgz --no-check-certificate && \
-    tar xzf Python-3.8.8.tgz && \
-    cd Python-3.8.8 && \
-    ./configure --enable-optimizations && \
-    make altinstall && \
-    rm -rf Python-3.8.8 && \
-    rm -rf Python-3.8.8.tgz
+RUN mkdir -p /usr/local/share/ca-certificates && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
+    update-ca-certificates
 
-RUN python3.8 -m pip install GHEDesigner==1.0
-RUN python3.8 -m pip install NREL-PySAM==4.2.0
+
+RUN apt-get update && apt-get install -y \
+    software-properties-common tzdata && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.11 python3.11-dev python3.11-distutils curl && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.11 get-pip.py && \
+    rm get-pip.py
+
+RUN apt-get update && apt-get install -y git
+RUN python3.11 -m pip install --upgrade pip
+RUN python3.11 -m pip install git+https://github.com/betsrg/GHEDesigner.git@0436e75834255327fbc33372d2e230c5a7a50a49
+RUN python3.11 -m pip install "numpy<2"
+RUN python3.11 -m pip install NREL-PySAM==4.2.0
 
 RUN ghedesigner --help
 
