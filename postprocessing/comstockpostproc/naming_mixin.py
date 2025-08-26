@@ -534,7 +534,8 @@ class NamingMixin():
         ANN_TOT_NET_ENGY_KBTU,
         ANN_TOT_NET_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]
@@ -543,7 +544,8 @@ class NamingMixin():
     COLS_PURCHASED_ANN_ENGY = [
         ANN_PURCHASED_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]

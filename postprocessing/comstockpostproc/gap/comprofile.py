@@ -17,15 +17,15 @@ logger = logging.getLogger(__name__)
 class CommercialProfile(NamingMixin, S3UtilitiesMixin):
     def __init__(self, truth_data_version='v01', reload_from_saved=True, save_processed=True, comstock_version='amy2018_r1_2025', allocation_method='EIA'):
         """
-        A class to query commercial hourly electricity demand profiles from ComStock, allocated to Balaancing Authority. 
+        A class to query commercial hourly electricity demand profiles from ComStock, allocated to Balaancing Authority.
 
         Args:
             truth_data_version (String): The version of truth data. 'v01'
             reload_from_saved (Bool): reload from processed data if available
             save_processed (Bool): Flag to save out processed files
             comstock_version (String): The version of ComStock to query
-            allocation_method (String): ['EIA', 'BAGeo'] the method to allocate commercial state-level profiles to BA-level. 
-        
+            allocation_method (String): ['EIA', 'BAGeo'] the method to allocate commercial state-level profiles to BA-level.
+
         """
 
         self.truth_data_version = truth_data_version
@@ -47,7 +47,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             self.metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
             self.full_metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
             self.timeseries_db = f'comstock_{self.comstock_version}_by_state_vu'
-        elif self.comstock_version == 'amy2018_r1_2025':
+        elif self.comstock_version == 'amy2018_r2_2025':
             self.metadata_db = f'comstock_{self.comstock_version}_md_agg_by_state_parquet'
             self.full_metadata_db = f'comstock_{self.comstock_version}_md_by_state_and_county_parquet'
             self.timeseries_db = f'comstock_{self.comstock_version}_ts_by_state'
@@ -99,7 +99,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             "t1"."bldg_id" = "t2"."bldg_id"
         where
             "t1"."upgrade" = 0 and
-            "t2"."upgrade" = 0 
+            "t2"."upgrade" = 0
             {new_sampling_string if self.new_sampling else ""}
         group by
             case
@@ -120,7 +120,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         df.to_parquet(os.path.join(self.truth_data_dir, self.comstock_profiles_filename))
 
         return df
-    
+
     def comstock_hourly_by_state(self):
         """
         Loads ComStock results from existing truth data file or by querying S3
@@ -132,11 +132,11 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             com_load = pd.read_parquet(local_path)
         else:
             com_load = self.comstock_elec_hourly()
-        
+
         com_load.set_index('rounded_hour', inplace=True)
 
         return com_load
-    
+
     def comstock_total_by_utility(self):
         run = BuildStockQuery(workgroup='eulp',
                               db_name='buildstock_sdr',
@@ -148,14 +148,14 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
                               db_schema='comstock_oedi',
                               buildstock_type='comstock',
                               skip_reports=True)
-        
+
         if self.new_sampling:
             col_name = "\"t1\".\"out.electricity.total.energy_consumption..kwh\""
         else:
             col_name = "\"t1\".\"out.electricity.total.energy_consumption\""
 
         query = f"""
-        select 
+        select
             sum({col_name} * "t1"."weight") as "total_electricity",
             "t1"."state" as "state",
             "t1"."out.utility_bills.electricity_utility_eia_id" as "utility_id"
@@ -175,7 +175,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         # df.to_parquet(os.path.join(self.truth_data_dir, self.comstock_total_filename))
 
         return df
-    
+
     def comstock_total_by_tract_and_utility(self):
 
         local_filename = f'comstock_{self.comstock_version}_total_elec_by_tract_and_utility.parquet'
@@ -195,7 +195,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
                                 db_schema='comstock_oedi',
                                 buildstock_type='comstock',
                                 skip_reports=True)
-            
+
             if self.new_sampling:
                 col_name = "\"t1\".\"out.electricity.total.energy_consumption..kwh\""
                 add_select = ""
@@ -204,9 +204,9 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
                 col_name = "\"t1\".\"out.electricity.total.energy_consumption\""
                 add_select = ", \"t1\".\"out.utility_bills.electricity_utility_eia_id\" as \"in.electric_utility_eia_code\""
                 add_group = ", \"t1\".\"out.utility_bills.electricity_utility_eia_id\""
-        
+
             query = f"""
-            select 
+            select
                 sum({col_name} * "t1"."weight") as "total_electricity",
                 "t1"."in.nhgis_tract_gisjoin" as "in.nhgis_tract_gisjoin"
                 {add_select}
@@ -226,7 +226,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             df.to_parquet(os.path.join(self.truth_data_dir, local_filename))
 
         return df
-    
+
     def state_fips_to_state_abbrv(self):
         df = self.read_delimited_truth_data_file_from_S3(s3_file_path= f'truth_data/{self.truth_data_version}/national_state2020.txt',
                                                          delimiter= '|',
@@ -234,7 +234,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
                                                                'usecols': ['STATEFP', 'STATE'],
                                                                'index_col': 'STATEFP'})
         return df
-    
+
     def tract_utility_ba_map(self):
         """
         returns a mapping of tract, utility ID, and BA Code
@@ -264,7 +264,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
 
             df = df.loc[part_mask & owner_mask & num_mask]
             return df
-        
+
         def filter_short(df):
             na_mask = df['Total Customers'].notna()
             df = df.loc[na_mask]
@@ -275,9 +275,9 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
 
         short = filter_short(short)
         short = short[cols]
-        
+
         meters = meters[cols]
-        
+
         util_ba_map = pd.merge(sales, short, how='outer')
         # drop NBSO
         util_ba_map = util_ba_map[util_ba_map['BA Code'] != 'NBSO']
@@ -294,7 +294,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         tract_utility_ba_map = pd.merge(tract_to_util_map, util_ba_map[[self.UTIL_ID, self.STATE_ABBRV, 'BA Code']], how='left', on=[self.UTIL_ID, self.STATE_ABBRV])
 
         return tract_utility_ba_map
-    
+
 
     def com_ba_profiles_from_eia(self):
         """
@@ -317,10 +317,10 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         tract_utility_ba_map = self.tract_utility_ba_map()
 
         # merge state_abbrev and BA code into comstock by tract
-        com_by_tract = pd.merge(com_by_tract, tract_utility_ba_map, how='left', on=self.TRACT_ID) 
+        com_by_tract = pd.merge(com_by_tract, tract_utility_ba_map, how='left', on=self.TRACT_ID)
 
         com_by_state_ba = com_by_tract.groupby([self.STATE_ABBRV,'BA Code'])['total_electricity'].sum().to_frame()
-        
+
         # calculate state ba fractions
         com_by_ba = com_by_tract.groupby(self.STATE_ABBRV)['total_electricity'].sum().to_frame()
         com_state_ba_fracs = com_by_state_ba.divide(com_by_ba, level=0)
@@ -336,7 +336,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         for idx, row in com_state_ba_fracs.iterrows():
             if idx[0] in com_hourly_by_state.columns:
                 com_ba_state_profiles_data[idx] = com_hourly_by_state[idx[0]].mul(row['total_electricity_fraction'])
-        
+
         com_ba_state_profiles = pd.DataFrame(com_ba_state_profiles_data)
 
         # convert from kWh to MWh
@@ -346,12 +346,12 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
 
         if self.save_processed:
             com_ba_profiles.to_parquet(processed_path)
-    
+
         return com_ba_profiles
 
     def com_ba_profiles_from_ba_geography(self):
         """
-        Apportions ComStock state profiles to Balancing Authority by dividing state total load by fraction of total commercial building area found in each territory from 
+        Apportions ComStock state profiles to Balancing Authority by dividing state total load by fraction of total commercial building area found in each territory from
         Structures dataset. This assumes that commercial-coded structure areas are equally proportional to electricity use nationwide (in each state).
         """
 
@@ -364,7 +364,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
                 return df
             else:
                 logger.info(f'No processed data found for {processed_filename}. Processing from truth data.')
-            
+
         # load comstock profiles
         com_hourly_by_state = self.comstock_hourly_by_state()
 
@@ -403,12 +403,12 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         com_ba_state_profiles_data = {}
         for idx, row in com_ba_areas.iterrows():
             com_ba_state_profiles_data[idx] = com_hourly_by_state[idx[0]].mul(row['area_frac'])
-        
+
         com_ba_state_profiles = pd.DataFrame(com_ba_state_profiles_data)
 
         # convert from kWh to MWh
         com_ba_state_profiles = com_ba_state_profiles / 1e3
-        
+
         com_ba_profiles = com_ba_state_profiles.T.groupby(level=1).sum().T
 
         if self.save_processed:
