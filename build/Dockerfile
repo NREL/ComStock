@@ -65,14 +65,24 @@ RUN mkdir -p /usr/local/share/ca-certificates && \
     update-ca-certificates
 
 
-RUN apt-get update && apt-get install -y \
-    software-properties-common tzdata && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        software-properties-common \
+        tzdata \
+        gnupg \
+        lsb-release \
+        ca-certificates \
+        curl && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.11 python3.11-dev python3.11-distutils curl && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-dev \
+        python3.11-distutils && \
     curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.11 get-pip.py && \
-    rm get-pip.py
+    rm get-pip.py && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install -y git
 RUN python3.11 -m pip install --upgrade pip
