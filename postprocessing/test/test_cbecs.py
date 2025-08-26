@@ -45,7 +45,8 @@ def test_cbecs_2012(caplog):
         [cbecs.ANN_TOT_ELEC_KBTU, cbecs.COLS_ELEC_ENDUSE],  # Total electricity vs. sum of end uses
         [cbecs.ANN_TOT_ENGY_KBTU, [cbecs.ANN_TOT_ELEC_KBTU,  # Total energy vs. sum of all fuels
                                         cbecs.ANN_TOT_GAS_KBTU,
-                                        cbecs.ANN_TOT_OTHFUEL_KBTU,
+                                        cbecs.ANN_TOT_FUELOIL_KBTU,
+                                        cbecs.ANN_TOT_PROPANE_KBTU,
                                         cbecs.ANN_TOT_DISTHTG_KBTU,
                                         cbecs.ANN_TOT_DISTCLG_KBTU]]
     ]
@@ -103,7 +104,8 @@ def test_cbecs_2018(caplog):
         [cbecs.ANN_TOT_ELEC_KBTU, cbecs.COLS_ELEC_ENDUSE],  # Total electricity vs. sum of end uses
         [cbecs.ANN_TOT_ENGY_KBTU, [cbecs.ANN_TOT_ELEC_KBTU,  # Total energy vs. sum of all fuels
                                         cbecs.ANN_TOT_GAS_KBTU,
-                                        cbecs.ANN_TOT_OTHFUEL_KBTU,
+                                        cbecs.ANN_TOT_FUELOIL_KBTU,
+                                        cbecs.ANN_TOT_PROPANE_KBTU,
                                         cbecs.ANN_TOT_DISTHTG_KBTU,
                                         cbecs.ANN_TOT_DISTCLG_KBTU]]
     ]
@@ -111,15 +113,15 @@ def test_cbecs_2018(caplog):
     for tot_col, enduse_cols in tot_col_enduse_cols:
         # Unweighted
         sum_tot_col = cbecs.data.select(tot_col).sum().collect().item()
-        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() 
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item()
                           for col in enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in unweighted {tot_col}'
         # Weighted
         wtd_tot_col = cbecs.col_name_to_weighted(tot_col, cbecs.weighted_energy_units)
-        wtd_enduse_cols = [cbecs.col_name_to_weighted(c, cbecs.weighted_energy_units) 
+        wtd_enduse_cols = [cbecs.col_name_to_weighted(c, cbecs.weighted_energy_units)
                           for c in enduse_cols if c in cbecs.data.columns]
         sum_tot_col = cbecs.data.select(wtd_tot_col).sum().collect().item()
-        sum_enduses = sum(cbecs.data.select(col).sum().collect().item() 
+        sum_enduses = sum(cbecs.data.select(col).sum().collect().item()
                           for col in wtd_enduse_cols if col in cbecs.data.columns)
         assert sum_enduses == pytest.approx(sum_tot_col, rel=engy_tol), f'Error in weighted {tot_col}'
 
