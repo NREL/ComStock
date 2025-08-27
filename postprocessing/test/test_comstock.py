@@ -36,7 +36,7 @@ def test_comstock_vs_cbecs_2012():
         )
 
     comstock.add_national_scaling_weights(cbecs, remove_non_comstock_bldg_types_from_cbecs=True)
-     
+
     comstock.data = comstock.add_weighted_area_energy_savings_columns(comstock.data)
 
     assert isinstance(comstock.data, pl.LazyFrame)
@@ -83,7 +83,8 @@ def test_comstock_vs_cbecs_2012():
         [comstock.ANN_TOT_ELEC_KBTU, comstock.COLS_ELEC_ENDUSE],  # Total electricity vs. sum of end uses
         [comstock.ANN_TOT_ENGY_KBTU, [comstock.ANN_TOT_ELEC_KBTU,  # Total energy vs. sum of all fuels
                                         comstock.ANN_TOT_GAS_KBTU,
-                                        comstock.ANN_TOT_OTHFUEL_KBTU,
+                                        comstock.ANN_TOT_FUELOIL_KBTU,
+                                        comstock.ANN_TOT_PROPANE_KBTU,
                                         comstock.ANN_TOT_DISTHTG_KBTU,
                                         comstock.ANN_TOT_DISTCLG_KBTU]]
     ]
