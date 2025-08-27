@@ -4,7 +4,7 @@ There are three steps to creating the sample of buildings modeled by ComStock. T
 
 \section{Stock Estimation}
 
-Any estimate of the energy consumption of the U.S. commercial building stock relies heavily on an estimate of how much floor area of each type of building exists in each part of the country. As shown by CBECS \citep{eia2012cbecs} and others, energy consumption of commercial buildings predominantly scales with floor area, not with building count. An accurate estimate of building floor area is therefore a critical input into any stock modeling tool focused on energy or energy-related metrics.
+Any estimate of the energy consumption of the U.S. commercial building stock relies heavily on an estimate of how much floor area of each type of building exists in each part of the country. As shown by CBECS \citep{eia2018cbecs} and others, energy consumption of commercial buildings predominantly scales with floor area, not with building count. An accurate estimate of building floor area is therefore a critical input into any stock modeling tool focused on energy or energy-related metrics.
 
 A secondary issue is the type of building associated with each floor area. Although accurately estimating the total floor area of commercial buildings is necessary, it is not sufficient, as building type also has an impact on energy use intensity (EUI), measured in units of energy use per square foot per year. As an example, a large office with a data center would be expected to have a dramatically higher electric load per square foot than an unconditioned warehouse.
 
@@ -22,7 +22,7 @@ Although both of these data sets provide excellent coverage of buildings they co
 
 \subsection{Building Type Assignments} \label{sec:btype_assignments}
 
-Building type definitions frequently do not match across data sources. This is particularly noticeable in the case of CoStar, CBECS, and DOE prototype buildings data sources. The DOE prototype building models, discussed further in Section~\ref{sec:building_type_meta}, defines specific combinations of space types as ``building types,'' which are then used by ComStock. The building types represented by the DOE prototype building models were decided on during the development of their precursors, the DOE reference building models \citep{doe_reference_buildings}. As such, ``translating'' building types across data sources introduces a layer of complexity. 
+Building type definitions frequently do not match across data sources. This is particularly noticeable in the case of CoStar, CBECS, and DOE prototype buildings data sources. The DOE prototype building models, discussed further in Section~\ref{sec:building_type_meta}, defines specific combinations of space types as ``building types,'' which are then used by ComStock. The building types represented by the DOE prototype building models were decided on during the development of their precursors, the DOE reference building models \citep{doe_reference_buildings}. As such, ``translating'' building types across data sources introduces a layer of complexity.
 
 ComStock maps the building type definitions from each data source to a specific building type from the DOE prototype buildings to maximize consistency. While these mappings are imperfect, they represent the best efforts of the ComStock team to capture the unique energy-related characteristics of different building types within the modeling framework created and used by DOE over the last 15 years. Table \ref{tab:building_types} shows the mapping from the CoStar building types and HIFLD tables to the DOE prototype buildings, and from the DOE prototype buildings to CBECS' Principal Building Activity Plus.
 
@@ -33,9 +33,8 @@ It is important to note that only one of either the CoStar or HIFLD data is used
 \begin{figure}
   \centering
   \includegraphics[
-        page={1}, 
-        trim={1cm 7cm 10cm 1cm}, clip, % L B R T
-        width=\textwidth] {figures/CBECS_2012_comstock_coverage.pdf}
+        page={1},
+        width=\textwidth] {figures/cbecs_2018_comstock_coverage.png}
   \caption[CBECS building types not covered by ComStock]{CBECS Principal Buildings Activity Plus building types not covered by ComStock on an energy use basis.}
   \label{fig:types_not_represented}
 \end{figure}
@@ -46,6 +45,7 @@ DOE prototype building type is used to represent a significant amount of the U.S
 
 \begin{description}
 \item [Full Service Restaurant] Both sit-down restaurants and bars are included in this category, as both typically require significant cooking and sanitation equipment for their operation.
+\item[Grocery Store] Grocery stores, also commonly referred to as supermarkets, are buildings whose primary purpose is the sale of food and dry goods rather than general merchandise. This category includes facilities that feature extensive refrigerated and frozen storage, fresh produce, and prepared foods, typically supported by substantial lighting, heating, ventilation, and refrigeration equipment loads. Convenience stores, small specialty food shops, and general merchandise retailers that include grocery sections are not represented by this category.
 \item[Hospital] Hospitals, wherever possible, are disambiguated from outpatient clinics through the existence of around-the-clock medical facilities. This is not possible in many states, in which case the differentiation is based on available CoStar data.
 \item[Large Hotel] Large hotels are differentiated from small hotels on the basis of conference or casino spaces. Hotels that have major facilities for conferences, events, or gambling are classified as large hotels.
 \item[Offices] Offices are divided up into three subsets: small, medium, and large. Each type of office is based on the thresholds used by American Society of Heating, Refrigerating and Air-Conditioning Engineers (ASHRAE) Appendix G \citep{ashrae_901_2010}, which include both size and number of stories. In the case of large offices, there are additional probability distributions that determine what percent (if any) of the office is a data center.
@@ -61,7 +61,7 @@ DOE prototype building type is used to represent a significant amount of the U.S
 
 \subsection{Data Amalgamation for Sampling} \label{sec:3.1.3data amalgamation for sampling}
 
-The data from CoStar and HIFLD were converted from individual building data points to probability distributions for geographic areas due to data retention clauses. 
+The data from CoStar and HIFLD were converted from individual building data points to probability distributions for geographic areas due to data retention clauses.
 
 The ComStock team tagged all individual buildings with a climate zone and a county to convert the county-level locations of buildings within the United States into a probability distribution. From this data, one distribution was created: the likelihood of a building in the United States being located in a given climate zone. In this distribution, there is a much higher likelihood of being located in a heavily populated climate zone (like 4A, which includes much of NJ, DC, MD, DE, VA, etc.) than a sparsely populated climate zone (like 8, which includes only part of AK). Next, for each climate zone, another distribution was created: the likelihood of a building being located in each county within that climate zone. In these distributions, there is a much higher likelihood of being located in a heavily populated county than a sparsely populated county. These two sets of distributions allow any ComStock sample to be assigned a climate zone and a county prior to any additional characteristics being calculated.
 
