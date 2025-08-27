@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -36,7 +36,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-module Make_Performance_Curves
+module MakePerformanceCurves
   # method to convert csv value to float
   def convert_to_float(value)
     # check if value is empty
@@ -185,9 +185,9 @@ module Make_Performance_Curves
   end
 
   def create_table_independent_variable(model, name, values, interp_method, extrap_method, unit_type, runner)
-    valid_interp_methods = %w[Linear Cubic]
-    valid_extrap_methods = %w[Linear Constant]
-    valid_unit_types = %w[Dimensionless Temperature VolumetricFlow MassFlow Distance Power]
+    valid_interp_methods = ['Linear', 'Cubic']
+    valid_extrap_methods = ['Linear', 'Constant']
+    valid_unit_types = ['Dimensionless', 'Temperature', 'VolumetricFlow', 'MassFlow', 'Distance Power']
     table_ind_var = OpenStudio::Model::TableIndependentVariable.new(model)
     table_ind_var.setName(name.to_s)
     if valid_interp_methods.include? interp_method
@@ -221,15 +221,15 @@ module Make_Performance_Curves
     # create curve lookup
     data = read_performance_curve_data(path, runner)
 
-    if %w[packaged_gshp console_gshp].include?(hvac_system_type)
+    if ['packaged_gshp', 'console_gshp'].include?(hvac_system_type)
       # get wb data values
-      if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type) && data['wb_data'].empty?
+      if ['sen_clg_cap', 'tot_clg_cap', 'clg_pow'].include?(curve_type) && data['wb_data'].empty?
         runner.registerError("No WB temp performance curve data at path (#{path})")
         return false
       end
       wb_values = data['wb_data'].uniq.sort
       # get db data values if relevant
-      if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
+      if ['sen_clg_cap', 'htg_cap', 'htg_pow'].include?(curve_type)
         if data['db_data'].empty?
           runner.registerError("No DB temp performance curve data at path (#{path})")
           return false
@@ -255,7 +255,8 @@ module Make_Performance_Curves
       end
       vdot_water_values = data['vdot_water_data'].uniq.sort
       # data length check
-      if curve_type == 'sen_clg_cap'
+      case curve_type
+      when 'sen_clg_cap'
         if data['sen_clg_cap_data'].empty?
           runner.registerError("No sensible cooling capacity performance curve data at path (#{path})")
           return false
@@ -265,7 +266,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif  curve_type == 'tot_clg_cap'
+      when 'tot_clg_cap'
         if data['tot_clg_cap_data'].empty?
           runner.registerError("No total cooling capacity performance curve data at path (#{path})")
           return false
@@ -275,7 +276,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif  curve_type == 'clg_pow'
+      when 'clg_pow'
         if data['clg_pow_data'].empty?
           runner.registerError("No cooling power performance curve data at path (#{path})")
           return false
@@ -285,7 +286,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif  curve_type == 'htg_cap'
+      when 'htg_cap'
         if data['htg_cap_data'].empty?
           runner.registerError("No heating capacity performance curve data at path (#{path})")
           return false
@@ -295,7 +296,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif  curve_type == 'htg_pow'
+      when 'htg_pow'
         if data['htg_pow_data'].empty?
           runner.registerError("No heating power performance curve data at path (#{path})")
           return false
@@ -312,12 +313,12 @@ module Make_Performance_Curves
 
       # create independent variable objects
       table_independent_variables = []
-      if %w[sen_clg_cap htg_cap htg_pow].include?(curve_type)
+      if ['sen_clg_cap', 'htg_cap', 'htg_pow'].include?(curve_type)
         table_independent_variables << create_table_independent_variable(model, "#{curve_type}_db_var", db_values,
                                                                          'Cubic', 'Constant', 'Temperature', runner)
       end
 
-      if %w[sen_clg_cap tot_clg_cap clg_pow].include?(curve_type)
+      if ['sen_clg_cap', 'tot_clg_cap', 'clg_pow'].include?(curve_type)
         table_independent_variables << create_table_independent_variable(model, "#{curve_type}_wb_var", wb_values,
                                                                          'Cubic', 'Constant', 'Temperature', runner)
       end
@@ -334,19 +335,20 @@ module Make_Performance_Curves
       table_lookup.setName(name.to_s)
       table_lookup.setNormalizationMethod('DivisorOnly')
       table_lookup.setNormalizationDivisor(divisor)
-      if curve_type == 'sen_clg_cap'
+      case curve_type
+      when 'sen_clg_cap'
         table_lookup.setOutputUnitType('Capacity')
         table_lookup.setOutputValues(data['sen_clg_cap_data'])
-      elsif  curve_type == 'tot_clg_cap'
+      when 'tot_clg_cap'
         table_lookup.setOutputUnitType('Capacity')
         table_lookup.setOutputValues(data['tot_clg_cap_data'])
-      elsif  curve_type == 'clg_pow'
+      when 'clg_pow'
         table_lookup.setOutputUnitType('Power')
         table_lookup.setOutputValues(data['clg_pow_data'])
-      elsif  curve_type == 'htg_cap'
+      when 'htg_cap'
         table_lookup.setOutputUnitType('Capacity')
         table_lookup.setOutputValues(data['htg_cap_data'])
-      elsif  curve_type == 'htg_pow'
+      when 'htg_pow'
         table_lookup.setOutputUnitType('Power')
         table_lookup.setOutputValues(data['htg_pow_data'])
       else
@@ -367,7 +369,8 @@ module Make_Performance_Curves
       end
       source_ewt_values = data['source_ewt_data'].uniq.sort
       # data length check
-      if curve_type == 'clg_cap'
+      case curve_type
+      when 'clg_cap'
         if data['plant_clg_cap_data'].empty?
           runner.registerError("No cooling capacity performance curve data at path (#{path})")
           return false
@@ -377,7 +380,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif curve_type == 'clg_eir'
+      when 'clg_eir'
         if data['plant_clg_eir_data'].empty?
           runner.registerError("No cooling eir performance curve data at path (#{path})")
           return false
@@ -387,7 +390,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif curve_type == 'htg_cap'
+      when 'htg_cap'
         if data['plant_htg_cap_data'].empty?
           runner.registerError("No heating capacity performance curve data at path (#{path})")
           return false
@@ -397,7 +400,7 @@ module Make_Performance_Curves
             return false
           end
         end
-      elsif curve_type == 'htg_eir'
+      when 'htg_eir'
         if data['plant_htg_eir_data'].empty?
           runner.registerError("No heating eir performance curve data at path (#{path})")
           return false
@@ -424,16 +427,17 @@ module Make_Performance_Curves
       table_lookup.setName(name.to_s)
       table_lookup.setNormalizationMethod('DivisorOnly')
       table_lookup.setNormalizationDivisor(divisor)
-      if curve_type == 'clg_cap'
+      case curve_type
+      when 'clg_cap'
         table_lookup.setOutputUnitType('Capacity')
         table_lookup.setOutputValues(data['plant_clg_cap_data'])
-      elsif  curve_type == 'clg_eir'
+      when 'clg_eir'
         table_lookup.setOutputUnitType('Dimensionless')
         table_lookup.setOutputValues(data['plant_clg_eir_data'])
-      elsif  curve_type == 'htg_cap'
+      when 'htg_cap'
         table_lookup.setOutputUnitType('Capacity')
         table_lookup.setOutputValues(data['plant_htg_cap_data'])
-      elsif  curve_type == 'htg_eir'
+      when 'htg_eir'
         table_lookup.setOutputUnitType('Dimensionless')
         table_lookup.setOutputValues(data['plant_htg_eir_data'])
       else
@@ -450,9 +454,9 @@ module Make_Performance_Curves
 
   # add lookup table performance data to relevant HVAC objects
   def add_lookup_performance_data(model, hvac_object, hvac_system_type, data_set_name, runner)
-    supported_hvac_system_types = %w[hydronic_gshp packaged_gshp console_gshp]
+    supported_hvac_system_types = ['hydronic_gshp', 'packaged_gshp', 'console_gshp']
     available_data_sets = {}
-    available_data_sets['hydronic_gshp'] = %w[Carrier_30WG_90kW Carrier_61WG_Glycol_90kW]
+    available_data_sets['hydronic_gshp'] = ['Carrier_30WG_90kW', 'Carrier_61WG_Glycol_90kW']
     available_data_sets['packaged_gshp'] = ['Trane_10_ton_GWSC120E']
     available_data_sets['console_gshp'] = ['Trane_3_ton_GWSC036H']
     # input checks
@@ -471,9 +475,9 @@ module Make_Performance_Curves
     end
 
     # collect relevant info based on data set input
-    if data_set_name == 'Trane_10_ton_GWSC120E'
-      valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
-                              OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
+    case data_set_name
+    when 'Trane_10_ton_GWSC120E'
+      valid_object_types = ['OS_Coil_Cooling_WaterToAirHeatPump_EquationFit', 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit']
       # check hvac object
       hvac_object_type = hvac_object.iddObjectType.valueName.to_s
       unless valid_object_types.include? hvac_object_type
@@ -497,9 +501,8 @@ module Make_Performance_Curves
       rated_ewt_clg = (75 - 32) / 1.8
       rated_ewt_htg = (32 - 32) / 1.8
 
-    elsif data_set_name == 'Trane_3_ton_GWSC036H'
-      valid_object_types = %w[OS_Coil_Cooling_WaterToAirHeatPump_EquationFit
-                              OS_Coil_Heating_WaterToAirHeatPump_EquationFit]
+    when 'Trane_3_ton_GWSC036H'
+      valid_object_types = ['OS_Coil_Cooling_WaterToAirHeatPump_EquationFit', 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit']
       # check hvac object
       hvac_object_type = hvac_object.iddObjectType.valueName.to_s
       unless valid_object_types.include? hvac_object_type
@@ -519,7 +522,7 @@ module Make_Performance_Curves
       rated_ewt_clg = (75 - 32) / 1.8
       rated_ewt_htg = (32 - 32) / 1.8
 
-    elsif  data_set_name == 'Carrier_30WG_90kW'
+    when 'Carrier_30WG_90kW'
       valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Cooling']
       # check hvac object
       hvac_object_type = hvac_object.iddObjectType.valueName.to_s
@@ -532,7 +535,7 @@ module Make_Performance_Curves
       rated_cooling_eir = 0.21505 # 5K delta
       0.00443 # 5k delta (same delta t and same working fluid, so same flow rate)
 
-    elsif  data_set_name == 'Carrier_61WG_Glycol_90kW'
+    when 'Carrier_61WG_Glycol_90kW'
       valid_object_types = ['OS_HeatPump_PlantLoop_EIR_Heating']
       # check hvac object
       hvac_object_type = hvac_object.iddObjectType.valueName.to_s
@@ -551,16 +554,16 @@ module Make_Performance_Curves
       density_water = 997 # kg/m3
       density_glycol = 1115 # kg/m3
       glycol_fraction = 0.3
-      density_evap = (1 - glycol_fraction) * density_water + glycol_fraction * density_glycol
-      cp_evap = (1 - glycol_fraction) * cp_water + glycol_fraction * cp_glycol
+      density_evap = ((1 - glycol_fraction) * density_water) + (glycol_fraction * density_glycol)
+      cp_evap = ((1 - glycol_fraction) * cp_water) + (glycol_fraction * cp_glycol)
       (rated_htg_load_flow_rate * density_water * cp_water * htg_cond_delta_t) / (density_evap * cp_evap * htg_evap_delta_t)
-
     else
       runner.registerError("#{data_set_name} is not supported by add_lookup_performance_data method")
       return false
     end
 
-    if hvac_object_type == 'OS_Coil_Cooling_WaterToAirHeatPump_EquationFit'
+    case hvac_object_type
+    when 'OS_Coil_Cooling_WaterToAirHeatPump_EquationFit'
       # read in csv data
       total_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_tot_clg_cap.csv"
       sensible_cooling_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_sen_clg_cap.csv"
@@ -582,7 +585,7 @@ module Make_Performance_Curves
       hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_clg)
       hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_clg)
 
-    elsif hvac_object_type == 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit'
+    when 'OS_Coil_Heating_WaterToAirHeatPump_EquationFit'
       # read in csv data
       heating_capacity_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_cap.csv"
       heating_power_data_path = "#{File.dirname(__FILE__)}/resources/#{data_set_name}_htg_pow.csv"
@@ -600,7 +603,7 @@ module Make_Performance_Curves
       hvac_object.setRatedEnteringAirDryBulbTemperature(rated_db_htg)
       hvac_object.setRatedEnteringAirWetBulbTemperature(rated_wb_htg)
 
-    elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Cooling'
+    when 'OS_HeatPump_PlantLoop_EIR_Cooling'
       # read in csv data
       cooling_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_clg.csv"
       # create lookup tables and supporting objects
@@ -614,7 +617,7 @@ module Make_Performance_Curves
       # set coil inputs
       hvac_object.setReferenceCoefficientofPerformance(1 / rated_cooling_eir)
 
-    elsif hvac_object_type == 'OS_HeatPump_PlantLoop_EIR_Heating'
+    when 'OS_HeatPump_PlantLoop_EIR_Heating'
       # read in csv data
       heating_data_path = "#{File.dirname(__FILE__)}/#{data_set_name}_htg.csv"
       # create lookup tables and supporting objects

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -41,11 +41,11 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'fileutils'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 
-class HVACDCV_Test < Minitest::Test
+class HVACDCVTest < Minitest::Test
   # all tests are a sub definition of this class, e.g.:
   # def test_new_kind_of_test
   #   # test content
@@ -116,9 +116,7 @@ class HVACDCV_Test < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -126,12 +124,8 @@ class HVACDCV_Test < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     # new_osm_path = File.expand_path("#{Dir.pwd}/#{File.basename(osm_path)}")

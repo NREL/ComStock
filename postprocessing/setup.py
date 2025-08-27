@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 #!/usr/bin/env python3
 
@@ -54,8 +54,8 @@ setup(
         'botocore',
         'pyyaml',
         'joblib',
-        'polars==0.20.7',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query@feature/add_buildstock_csv'
+        'polars==1.30.0',
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
     ],
     extras_require={
         'dev': [
@@ -68,6 +68,16 @@ setup(
             'ipykernel',
             # 'awscli',
             # 'colorama==0.4.3'
+        ],
+        'gap': [
+            'shapely',
+            'geopandas',
+            'folium',
+            'matplotlib',
+            'mapclassify',
+            'scikit-learn',
+            'openpyxl',
+            'better @ git+https://github.com/LBNL-JCI-ICF/better@packageready'
         ],
         ':sys_platform == "win32"': [
             'kaleido==0.1.0post1',  # kaleido version for Windows

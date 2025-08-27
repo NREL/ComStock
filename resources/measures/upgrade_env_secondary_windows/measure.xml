@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>env_secondary_windows</name>
   <uid>ebff8bcb-7bf6-405e-a5ba-f0ab6db2ec80</uid>
-  <version_id>49f64883-9334-4887-b030-f4bf46ae41da</version_id>
-  <version_modified>2025-03-20T04:16:17Z</version_modified>
+  <version_id>1e2a1369-8df3-47b1-b314-bcfdf5748a91</version_id>
+  <version_modified>2025-07-23T23:00:33Z</version_modified>
   <xml_checksum>1D437E7C</xml_checksum>
   <class_name>EnvSecondaryWindows</class_name>
   <display_name>Secondary Windows</display_name>
@@ -43,13 +43,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C7B50FF7</checksum>
+      <checksum>59EA4C19</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EDC91457</checksum>
+      <checksum>AF3BD0C0</checksum>
     </file>
   </files>
 </measure>

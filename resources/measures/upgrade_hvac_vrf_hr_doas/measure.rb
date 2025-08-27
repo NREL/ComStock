@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -57,7 +57,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # define defrosting strategy
@@ -249,7 +249,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       curve.setMaximumValueofz(data['maximum_independent_variable_z'])
       curve.setMinimumCurveOutput(data['minimum_dependent_variable_output'])
       curve.setMaximumCurveOutput(data['maximum_dependent_variable_output'])
-      return curve
+      curve
     when 'TableLookup', 'LookupTable', 'TableMultiVariableLookup', 'MultiVariableLookupTable'
       num_ind_var = data['number_independent_variables'].to_i
       if model.version < OpenStudio::VersionString.new('3.7.0')
@@ -272,8 +272,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         end
 
         # add data points
-        data_points = data.each.select { |key, value| key.include? 'data_point' }
-        data_points.each do |key, value|
+        data_points = data.each.select { |key, _value| key.include? 'data_point' }
+        data_points.each do |_key, value|
           if num_ind_var == 1
             table.addPoint(value.split(',')[0].to_f, value.split(',')[1].to_f)
           elsif num_ind_var == 2
@@ -286,9 +286,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         table.setNormalizationDivisor(data['normalization_reference'].to_f)
 
         # sorting data in ascending order
-        data_points = data.each.select { |key, value| key.include? 'data_point' }
+        data_points = data.each.select { |key, _value| key.include? 'data_point' }
         data_points = data_points.sort_by { |item| item[1].split(',').map(&:to_f) }
-        data_points.each do |key, value|
+        data_points.each do |_key, value|
           var_dep = value.split(',')[2].to_f
           table.addOutputValue(var_dep)
         end
@@ -303,14 +303,14 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           table_indvar.setUnitType(data["input_unit_type_x#{i + 1}"].to_s)
 
           # add data points
-          var_ind_unique = data_points.map { |key, value| value.split(',')[i].to_f }.uniq
+          var_ind_unique = data_points.map { |_key, value| value.split(',')[i].to_f }.uniq
           var_ind_unique.each { |var_ind| table_indvar.addValue(var_ind) }
           table.addIndependentVariable(table_indvar)
         end
       end
       table.setName(data['name'])
       table.setOutputUnitType(data['output_unit_type'])
-      return table
+      table
     else
       # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
       nil
@@ -320,7 +320,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   # --------------------------------------- #
   # supporting method
   # --------------------------------------- #
-  def get_tabular_data(model, sql, report_name, report_for_string, table_name, row_name, column_name)
+  def get_tabular_data(_model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
     val = sql.execAndReturnFirstDouble(var_val_query)
@@ -346,12 +346,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       ind_var_1 = lookup_table.independentVariables[0].values.to_a
       ind_var_2 = lookup_table.independentVariables[1].values.to_a
       dep_var = lookup_table.outputValues.to_a
-  
+
       if ind_var_1.size * ind_var_2.size != dep_var.size
         runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
         return false
       end
-  
+
       # Clamp input1 to bounds
       if input1 < ind_var_1.first
         runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
@@ -360,7 +360,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
         input1 = ind_var_1.last
       end
-  
+
       # Clamp input2 to bounds
       if input2 < ind_var_2.first
         runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
@@ -369,26 +369,26 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
         input2 = ind_var_2.last
       end
-    
+
       # Find bounding indices for input1
       i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
       i1_lower = [i1_upper - 1, 0].max
-  
+
       # Find bounding indices for input2
       i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
       i2_lower = [i2_upper - 1, 0].max
-  
+
       x1 = ind_var_1[i1_lower]
       x2 = ind_var_1[i1_upper]
       y1 = ind_var_2[i2_lower]
       y2 = ind_var_2[i2_upper]
-    
+
       # Get dependent variable values for bilinear interpolation
-      v11 = dep_var[i1_lower * ind_var_2.size + i2_lower]  # (x1, y1)
-      v12 = dep_var[i1_lower * ind_var_2.size + i2_upper]  # (x1, y2)
-      v21 = dep_var[i1_upper * ind_var_2.size + i2_lower]  # (x2, y1)
-      v22 = dep_var[i1_upper * ind_var_2.size + i2_upper]  # (x2, y2)
-    
+      v11 = dep_var[(i1_lower * ind_var_2.size) + i2_lower]  # (x1, y1)
+      v12 = dep_var[(i1_lower * ind_var_2.size) + i2_upper]  # (x1, y2)
+      v21 = dep_var[(i1_upper * ind_var_2.size) + i2_lower]  # (x2, y1)
+      v22 = dep_var[(i1_upper * ind_var_2.size) + i2_upper]  # (x2, y2)
+
       # If exact match, return directly
       if input1 == x1 && input2 == y1
         return v11
@@ -399,27 +399,27 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       elsif input1 == x2 && input2 == y2
         return v22
       end
-  
+
       # Handle edge cases where interpolation becomes linear
       dx = x2 - x1
       dy = y2 - y1
       return v11 if dx == 0 && dy == 0
-      return v11 + (v21 - v11) * (input1 - x1) / dx if dy == 0
-      return v11 + (v12 - v11) * (input2 - y1) / dy if dx == 0
-  
+      return v11 + ((v21 - v11) * (input1 - x1) / dx) if dy == 0
+      return v11 + ((v12 - v11) * (input2 - y1) / dy) if dx == 0
+
       # Bilinear interpolation
       interpolated_value =
-        v11 * (x2 - input1) * (y2 - input2) +
-        v21 * (input1 - x1) * (y2 - input2) +
-        v12 * (x2 - input1) * (input2 - y1) +
-        v22 * (input1 - x1) * (input2 - y1)
-  
+        (v11 * (x2 - input1) * (y2 - input2)) +
+        (v21 * (input1 - x1) * (y2 - input2)) +
+        (v12 * (x2 - input1) * (input2 - y1)) +
+        (v22 * (input1 - x1) * (input2 - y1))
+
       interpolated_value /= (x2 - x1) * (y2 - y1)
-  
-      return interpolated_value
+
+      interpolated_value
     else
-      runner.registerError("TableLookup object does not have exactly two independent variables.")
-      return false
+      runner.registerError('TableLookup object does not have exactly two independent variables.')
+      false
     end
   end
 
@@ -563,9 +563,11 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       map_performance_data['initial_heatrecovery_en_frac_cooling'] = acvrf.initialHeatRecoveryCoolingEnergyFraction
       map_performance_data['initial_heatrecovery_cap_frac_heating'] = acvrf.initialHeatRecoveryHeatingCapacityFraction
       map_performance_data['initial_heatrecovery_en_frac_heating'] = acvrf.initialHeatRecoveryHeatingEnergyFraction
-      map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'] = acvrf.heatRecoveryCoolingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_cap_timeconstant_cooling'] =
+        acvrf.heatRecoveryCoolingCapacityTimeConstant
       map_performance_data['initial_heatrecovery_en_timeconstant_cooling'] = acvrf.heatRecoveryCoolingEnergyTimeConstant
-      map_performance_data['initial_heatrecovery_cap_timeconstant_heating'] = acvrf.heatRecoveryHeatingCapacityTimeConstant
+      map_performance_data['initial_heatrecovery_cap_timeconstant_heating'] =
+        acvrf.heatRecoveryHeatingCapacityTimeConstant
       map_performance_data['initial_heatrecovery_en_timeconstant_heating'] = acvrf.heatRecoveryHeatingEnergyTimeConstant
       # map_performance_data["defrost_strategy"] = acvrf.defrostStrategy # unused for now
       # map_performance_data["defrost_control"] = acvrf.defrostControl # unused for now
@@ -580,10 +582,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
   def apply_vrf_performance_data(
     vrf_outdoor_unit,
     map_performance_data,
-    vrf_defrost_strategy,
-    disable_defrost
-    )
-
+    _vrf_defrost_strategy,
+    _disable_defrost
+  )
     # puts("*** applying performance map to AirConditioner:VariableRefrigerantFlow object: #{vrf_outdoor_unit.name.to_s}")
 
     # cooling
@@ -810,9 +811,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     unless map_performance_data['initial_heatrecovery_cap_timeconstant_heating'].nil?
       vrf_outdoor_unit.setHeatRecoveryHeatingCapacityTimeConstant(map_performance_data['initial_heatrecovery_cap_timeconstant_heating'])
     end
-    unless map_performance_data['initial_heatrecovery_en_timeconstant_heating'].nil?
-      vrf_outdoor_unit.setHeatRecoveryHeatingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_heating'])
-    end
+    return if map_performance_data['initial_heatrecovery_en_timeconstant_heating'].nil?
+
+    vrf_outdoor_unit.setHeatRecoveryHeatingEnergyTimeConstant(map_performance_data['initial_heatrecovery_en_timeconstant_heating'])
   end
 
   # --------------------------------------- #
@@ -1034,8 +1035,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # puts("--- VRF indoor unit location (#{space.name}): space_centroid_z = #{space_centroid_z} m")
         # Update max horizontal and vertical distances if needed
         equiv_distance = (location_cent_x.to_f - space_centroid_x.to_f).abs +
-                          (location_cent_y.to_f - space_centroid_y.to_f).abs +
-                          (location_cent_z.to_f - space_centroid_z.to_f).abs
+                         (location_cent_y.to_f - space_centroid_y.to_f).abs +
+                         (location_cent_z.to_f - space_centroid_z.to_f).abs
         max_equiv_distance = equiv_distance if equiv_distance > max_equiv_distance
         pos_vert_distance = [space_centroid_z.to_f - location_cent_z.to_f, 0.0].max
         # puts("--- VRF indoor unit location (#{space.name}): pos_vert_distance = #{pos_vert_distance} m")
@@ -1075,9 +1076,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # puts('### check input argument values')
     ######################################################
-    if upsizing_allowance_pct < 0
-      runner.registerError("Upsizing allowance percentage cannot be a negative value.")
-    end
+    runner.registerError('Upsizing allowance percentage cannot be a negative value.') if upsizing_allowance_pct < 0
 
     ######################################################
     # puts("### report initial condition of model")
@@ -1273,20 +1272,20 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
     # applicability: building type that has large exhaust
     building_types_to_exclude = [
-      #'Rtl', # Retail - Single-Story Large
-      #'Rt3', # Retail - Multistory Large
-      #'RtS', # Retail - Small
-      "RFF", # Restaurant - Fast-Food
-      "RSD", # Restaurant - Sit-Down
-      "Hsp", # Health/Medical - Hospital
-      #'RetailStandalone',
+      # 'Rtl', # Retail - Single-Story Large
+      # 'Rt3', # Retail - Multistory Large
+      # 'RtS', # Retail - Small
+      'RFF', # Restaurant - Fast-Food
+      'RSD', # Restaurant - Sit-Down
+      'Hsp', # Health/Medical - Hospital
+      # 'RetailStandalone',
       # 'RetailStripmall',
-      "QuickServiceRestaurant",
-      "FullServiceRestaurant",
-      "Hospital"
+      'QuickServiceRestaurant',
+      'FullServiceRestaurant',
+      'Hospital'
     ]
-    building_types_to_exclude = building_types_to_exclude.map { |item| item.downcase }
-    model_building_type=nil
+    building_types_to_exclude = building_types_to_exclude.map(&:downcase)
+    model_building_type = nil
     if model.getBuilding.standardsBuildingType.is_initialized
       model_building_type = model.getBuilding.standardsBuildingType.get
     else
@@ -1297,8 +1296,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
       runner.registerAsNotApplicable("applicability not passed due to building type (buildings with large exhaust): #{model_building_type}")
       return true
-    else
-      # puts("&&& applicability passed for building type: #{model_building_type}")
+      # else puts("&&& applicability passed for building type: #{model_building_type}")
     end
 
     # applicability: floor area too large
@@ -1309,26 +1307,23 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # puts("&&& applicability not passed due to total floor area being too large: #{total_area_ft2.round(0)} sqft")
       runner.registerAsNotApplicable("applicability not passed due to total floor area being too large: #{total_area_ft2.round(0)} sqft")
       return true
-    else
-      # puts("&&& applicability passed for floor area: #{total_area_ft2.round(0)} sqft")
+      # else puts("&&& applicability passed for floor area: #{total_area_ft2.round(0)} sqft")
     end
 
     # applicability: HVAC type (RTUs and VAVs that do not leverage district heating/cooling)
     applicable_air_loops = []
     na_air_loops = []
-    applicable_thermal_zones = []
-    na_thermal_zones = []
     na_mz_thermal_zones = []
     applicability = []
     applicability_msgs = []
     applicability_msg = ''
     air_loop_hvacs = model.getAirLoopHVACs
-    if air_loop_hvacs.size == 0
+    if air_loop_hvacs.empty?
       applicability_msg = 'this model does not have an air loop (so neither RTU nor VAV). so, skipping this model...'
       # puts("&&& #{applicability_msg}")
       applicability_msgs << applicability_msg
       applicability << false
-      runner.registerAsNotApplicable("#{applicability_msg}")
+      runner.registerAsNotApplicable(applicability_msg.to_s)
       return true
     else
       air_loop_hvacs.each do |air_loop_hvac|
@@ -1356,24 +1351,25 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         end
 
         # Skip air loops that already have DX heating (heat pumps)
-        dx_heating=false
+        dx_heating = false
         air_loop_hvac.supplyComponents.each do |component|
           # check main airloop for DX heating
           obj_type = component.iddObjectType.valueName.to_s
-          if ['Heating_DX'].any? { |word| (obj_type).include?(word) }
-            dx_heating=true
+          if ['Heating_DX'].any? { |word| obj_type.include?(word) }
+            dx_heating = true
           # check unitary systems for DX heating
-          elsif  obj_type=='OS_AirLoopHVAC_UnitarySystem'
+          elsif obj_type == 'OS_AirLoopHVAC_UnitarySystem'
             unitary_sys = component.to_AirLoopHVACUnitarySystem.get
             if unitary_sys.heatingCoil.is_initialized
               htg_coil = unitary_sys.heatingCoil.get.iddObjectType.valueName.to_s
               # check for DX heating coil
-              next unless ['Heating_DX'].any? { |word| (htg_coil).include?(word) }
-              dx_heating=true
+              next unless ['Heating_DX'].any? { |word| htg_coil.include?(word) }
+
+              dx_heating = true
             end
           end
         end
-        if dx_heating==true
+        if dx_heating == true
           applicability_msg = 'this air loop is already served by a heat pump. so, skipping this air loop system...'
           # puts("--- #{applicability_msg}")
           applicability_msgs << applicability_msg
@@ -1408,7 +1404,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # air loops with non applicable thermal zones
         air_loop_hvac.thermalZones.sort.each do |tz|
           # skip food service air loops
-          if %w[kitchen KITCHEN Kitchen Dining dining].any? { |word| (tz.name.get).include?(word) }
+          if ['kitchen', 'KITCHEN', 'Kitchen', 'Dining', 'dining'].any? { |word| tz.name.get.include?(word) }
             airloop_na_tz << tz
           # skip non-conditioned thermal zones
           elsif !OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz)
@@ -1490,6 +1486,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.thermalZones.each do |tz|
         # skip nonapplicable thermal zones that are on applicable air loops
         next if na_mz_thermal_zones.include?(tz)
+
         app_tz << tz
       end
     end
@@ -1528,12 +1525,10 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # applicability: number of indoor units per outdoor unit
     max_number_indoor_units_per_outdoor_unit = 41 # hardcoded based on manufacturer engineering manual
     max_indoor_unit_count_per_outdoor_unit = 0
-    applicable_thermalzone_per_floor.each do |z_coord, zones|
+    applicable_thermalzone_per_floor.each do |_z_coord, zones|
       # puts("checking number of thermal zones on each floor: z-coord = #{z_coord}")
       # puts("total number of thermal zones: #{zones.size} ")
-      if zones.size > max_indoor_unit_count_per_outdoor_unit
-        max_indoor_unit_count_per_outdoor_unit = zones.size
-      end
+      max_indoor_unit_count_per_outdoor_unit = zones.size if zones.size > max_indoor_unit_count_per_outdoor_unit
     end
     if max_indoor_unit_count_per_outdoor_unit <= max_number_indoor_units_per_outdoor_unit
       runner.registerInfo('this building model is applicable for the upgrade in terms of indoor unit counts')
@@ -1601,8 +1596,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
     # Loop through heating coils; remove if no longer connected to anything (which will fail simulation)
     model.getCoilHeatingWaters.each do |coil|
-      zones_served=[]
-      airloops_served=[]
+      zones_served = []
+      airloops_served = []
       if coil.airLoopHVAC.is_initialized
         air_loop = coil.airLoopHVAC.get
         airloops_served << air_loop
@@ -1614,20 +1609,19 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         end
       elsif coil.containingZoneHVACComponent.is_initialized
         zone_hvac = coil.containingZoneHVACComponent.get
-        if zone_hvac.thermalZone.is_initialized
-          zones_served << zone_hvac.thermalZone.get
-        end
+        zones_served << zone_hvac.thermalZone.get if zone_hvac.thermalZone.is_initialized
       end
       # Delete the coil is not connected to anything
-      next unless ((zones_served.empty?) && (airloops_served.empty?))
+      next unless zones_served.empty? && airloops_served.empty?
+
       # remove
       coil.remove
     end
 
     # Loop through cooling coils; remove if no longer connected to air loops
     model.getCoilCoolingWaters.each do |coil|
-      zones_served=[]
-      airloops_served=[]
+      zones_served = []
+      airloops_served = []
       if coil.airLoopHVAC.is_initialized
         air_loop = coil.airLoopHVAC.get
         airloops_served << air_loop
@@ -1639,13 +1633,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         end
       elsif coil.containingZoneHVACComponent.is_initialized
         zone_hvac = coil.containingZoneHVACComponent.get
-        if zone_hvac.thermalZone.is_initialized
-          zones_served << zone_hvac.thermalZone.get
-        end
+        zones_served << zone_hvac.thermalZone.get if zone_hvac.thermalZone.is_initialized
       end
 
       # Delete the coil is not connected to anything
-      next unless ((zones_served.empty?) && (airloops_served.empty?))
+      next unless zones_served.empty? && airloops_served.empty?
+
       # remove
       coil.remove
     end
@@ -1656,13 +1649,16 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       next if std.plant_loop_swh_loop?(loop)
       # don't remove the plant loop if there are any non applicable airloops that still use plant loop
       next unless na_air_loops.empty?
+
       # check if there is any equipment still connected to this loop
       has_connected_equipment = false
       loop.components.each do |component|
         next unless component.iddObjectType.valueName.to_s.include?('Coil')
+
         has_connected_equipment = true
       end
-      next unless has_connected_equipment==false
+      next unless has_connected_equipment == false
+
       # remove the plant loop if it is entirely unused
       loop.remove
     end
@@ -1670,12 +1666,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # puts("### add VRF DOAS")
     ######################################################
-    applicable_thermalzone_per_floor.each do |z_coord, thermal_zones|
-      std.model_add_hvac_system(model, 'VRF', ht = 'Electricity', znht = nil, cl = 'Electricity', thermal_zones,
-                              zone_equipment_ventilation: false)
+    applicable_thermalzone_per_floor.each do |_z_coord, thermal_zones|
+      std.model_add_hvac_system(model, 'VRF', 'Electricity', nil, 'Electricity', thermal_zones,
+                                zone_equipment_ventilation: false)
     end
 
-    std.model_add_hvac_system(model, 'DOAS', ht = 'Electricity', znht = nil, cl = 'Electricity', app_tz,
+    std.model_add_hvac_system(model, 'DOAS', 'Electricity', nil, 'Electricity', app_tz,
                               air_loop_heating_type: 'DX',
                               air_loop_cooling_type: 'DX')
 
@@ -1684,7 +1680,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     unless na_mz_thermal_zones.empty?
       # add new systems
       runner.registerInfo("Non-applicable thermal zones were found on applicable multizone system being replace with measure. These thermal zones will recieved new seperate RTU system with #{htg_type} heating. The heating fuel type is assumed to be electricity unless natural gas reheat was found on VAV reheat system.")
-      std.model_add_hvac_system(model, 'PSZ-AC', ht = nil, znht = htg_type, cl = 'Electricity', na_mz_thermal_zones)
+      std.model_add_hvac_system(model, 'PSZ-AC', nil, htg_type, 'Electricity', na_mz_thermal_zones)
     end
 
     ######################################################
@@ -1696,7 +1692,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
     # DOAS temperature supply settings - colder cooling discharge air for humid climates
     doas_dat_clg_c, doas_dat_htg_c, doas_type =
-      if %w[1A 2A 3A 4A 5A 6A 7 7A 8 8A].include?(climate_zone_classification)
+      if ['1A', '2A', '3A', '4A', '5A', '6A', '7', '7A', '8', '8A'].include?(climate_zone_classification)
         [12.7778, 19.4444, 'ERV']
       else
         [15.5556, 19.4444, 'HRV']
@@ -1705,8 +1701,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # add ERV/HRV and modify DOAS controls
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # only modify new DOAS systems
-      # next unless ['doas', 'DOAS', 'Doas'].any? { |word| (air_loop_hvac.name).include?(word) }
-      next unless %w[doas DOAS Doas].any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+      next unless ['doas', 'DOAS', 'Doas'].any? { |word| air_loop_hvac.name.to_s.include?(word) }
 
       # as a backup, skip non applicable airloops
       next if na_air_loops.member?(air_loop_hvac)
@@ -1716,8 +1711,8 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       # set availability schedule for DOAS
       # get schedule for DOAS and add system
-      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(thermal_zones=air_loop_hvac.thermalZones,
-                                                            occupied_percentage_threshold:0.05)
+      sch_ruleset = OpenstudioStandards::ThermalZone.thermal_zones_get_occupancy_schedule(air_loop_hvac.thermalZones,
+                                                                                          occupied_percentage_threshold: 0.05)
       # set air loop availability controls and night cycle manager, after oa system added
       air_loop_hvac.setAvailabilitySchedule(sch_ruleset)
       air_loop_hvac.setNightCycleControlType('CycleOnAnyZoneFansOnly')
@@ -1888,7 +1883,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
             # puts("--- performance maps part 1: adding individual idf object to model: #{obj.name} | #{objec_type}")
             component_object = obj.createComponent
-            componentData = model.insertComponent(component_object)
+            model.insertComponent(component_object)
           end
         end
 
@@ -1975,24 +1970,24 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     # curve derived from comparing PLR performance between Daikin data, Mitsubishi data, and Daikin spec sheet
     model.getAirConditionerVariableRefrigerantFlows.each do |obj|
       # puts("&&& overriding other curves: outdoor unit name = #{obj.name}")
-      if obj.coolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve.is_initialized
-        curve = obj.coolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve.get
-        # puts("&&& overriding other curves: curve.name = #{curve.name}")
-        if curve.to_CurveCubic.is_initialized
-          cubic = curve.to_CurveCubic.get
-          # puts("&&& overriding other curves: cubic (before) = #{cubic}")
-          cubic.setCoefficient1Constant(0.431522)
-          cubic.setCoefficient2x(-2.159775)
-          cubic.setCoefficient3xPOW2(6.030002)
-          cubic.setCoefficient4xPOW3(-3.301749)
-          cubic.setMinimumValueofx(0.25)
-          cubic.setMaximumValueofx(1.0)
-          cubic.setMinimumCurveOutput(0.272542771)
-          cubic.setMaximumCurveOutput(1.0)
-          # puts("&&& overriding other curves: cubic (after) = #{cubic}")
-        else
-          runner.registerWarning("cooling EIR modifier (function of PLR) not overriden with Daikin Aurora data because the base curve is not a cubic curve.")
-        end
+      next unless obj.coolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve.is_initialized
+
+      curve = obj.coolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve.get
+      # puts("&&& overriding other curves: curve.name = #{curve.name}")
+      if curve.to_CurveCubic.is_initialized
+        cubic = curve.to_CurveCubic.get
+        # puts("&&& overriding other curves: cubic (before) = #{cubic}")
+        cubic.setCoefficient1Constant(0.431522)
+        cubic.setCoefficient2x(-2.159775)
+        cubic.setCoefficient3xPOW2(6.030002)
+        cubic.setCoefficient4xPOW3(-3.301749)
+        cubic.setMinimumValueofx(0.25)
+        cubic.setMaximumValueofx(1.0)
+        cubic.setMinimumCurveOutput(0.272542771)
+        cubic.setMaximumCurveOutput(1.0)
+        # puts("&&& overriding other curves: cubic (after) = #{cubic}")
+      else
+        runner.registerWarning('cooling EIR modifier (function of PLR) not overriden with Daikin Aurora data because the base curve is not a cubic curve.')
       end
     end
 
@@ -2003,7 +1998,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     std.model_apply_prm_sizing_parameters(model)
     if std.model_run_sizing_run(model, "#{Dir.pwd}/SR1") == false
       runner.registerError('Sizing run did not succeed, cannot apply HVAC efficiencies.')
-      log_messages_to_runner(runner, debug = true)
+      log_messages_to_runner(runner, true)
       return false
     end
 
@@ -2018,9 +2013,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         runner.registerError('Cannot find last sql file.')
         return false
       end
-      if sql.is_initialized
-        sql = sql.get
-      end
+      sql = sql.get if sql.is_initialized
 
       # loop through each outdoor unit
       model.getAirConditionerVariableRefrigerantFlows.each do |ou|
@@ -2028,19 +2021,18 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         # puts("### OU name = #{ou.name}")
         capacity_outdoor_unit_new = 0
         ou.terminals.each do |iu|
-
           # get coil from indoor unit
           coil_cooling = iu.coolingCoil.get
           coil_heating = iu.heatingCoil.get
           if coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.is_initialized
             coil_cooling = coil_cooling.to_CoilCoolingDXVariableRefrigerantFlow.get
           else
-            runner.registerError("cannot get CoilCoolingDXVariableRefrigerantFlow object")
+            runner.registerError('cannot get CoilCoolingDXVariableRefrigerantFlow object')
           end
           if coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.is_initialized
             coil_heating = coil_heating.to_CoilHeatingDXVariableRefrigerantFlow.get
           else
-            runner.registerError("cannot get CoilHeatingDXVariableRefrigerantFlow object")
+            runner.registerError('cannot get CoilHeatingDXVariableRefrigerantFlow object')
           end
           # puts("--- ------------------------------------")
           # puts("--- IU cooling coil name = #{coil_cooling.name}")
@@ -2049,27 +2041,32 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
           # get design_cooling_load
           column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
-          design_cooling_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          design_cooling_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                 row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | design_cooling_load = #{design_cooling_load} W")
 
           # get design cooling temperature
           column_name = 'Outdoor Air Drybulb at Ideal Loads Peak'
-          design_cooling_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          design_cooling_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                 row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | design_cooling_temp = #{design_cooling_temp} C")
 
           # get design_heating_load
           column_name = 'Zone Sensible Heat Gain at Ideal Loads Peak'
-          design_heating_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
+          design_heating_load = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                 row_name_heating, column_name).to_f
           # puts("--- #{coil_cooling.name} | design_heating_load = #{design_heating_load} W")
 
           # get design heating temperature
           column_name = 'Outdoor Air Drybulb at Ideal Loads Peak'
-          design_heating_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_heating, column_name).to_f
+          design_heating_temp = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                 row_name_heating, column_name).to_f
           # puts("--- #{coil_cooling.name} | design_heating_temp = #{design_heating_temp} C")
 
           # get capacity_original_rated
           column_name = 'Coil Final Gross Total Capacity'
-          capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          capacity_original_rated = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                     row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | capacity_original_rated = #{capacity_original_rated} W")
 
           # get capacity modifier curves
@@ -2081,18 +2078,22 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           # get capacity modifier for cooling
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_cooling = capacity_modifier_curve_cooling.to_TableMultiVariableLookup.get
-            capacity_modifier_cooling = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, capacity_modifier_curve_cooling, OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
+            capacity_modifier_cooling = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner,
+                                                                                                     capacity_modifier_curve_cooling, OpenStudio.convert(67.0, 'F', 'C').get, design_cooling_temp)
           else
-            capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0,'F','C').get, design_cooling_temp)
+            capacity_modifier_cooling = capacity_modifier_curve_cooling.evaluate(OpenStudio.convert(67.0, 'F', 'C').get,
+                                                                                 design_cooling_temp)
           end
           # puts("--- #{coil_cooling.name} | capacity_modifier_cooling = #{capacity_modifier_cooling}")
 
           # get capacity modifier for heating
           if capacity_modifier_curve_cooling.to_TableMultiVariableLookup.is_initialized
             capacity_modifier_curve_heating = capacity_modifier_curve_heating.to_TableMultiVariableLookup.get
-            capacity_modifier_heating = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner, capacity_modifier_curve_heating, OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
+            capacity_modifier_heating = HvacVrfHrDoas.get_dep_var_from_lookup_table_with_two_ind_var(runner,
+                                                                                                     capacity_modifier_curve_heating, OpenStudio.convert(70.0, 'F', 'C').get, design_heating_temp)
           else
-            capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0,'F','C').get, design_heating_temp)
+            capacity_modifier_heating = capacity_modifier_curve_heating.evaluate(OpenStudio.convert(70.0, 'F', 'C').get,
+                                                                                 design_heating_temp)
           end
           # puts("--- #{coil_cooling.name} | capacity_modifier_heating = #{capacity_modifier_heating}")
 
@@ -2111,21 +2112,24 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
           # get design_air_flow_rate_m_3_per_sec
           column_name = 'Coil Air Volume Flow Rate at Ideal Loads Peak'
-          design_air_flow_rate_m_3_per_sec = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          design_air_flow_rate_m_3_per_sec = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility',
+                                                              'Coils', row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | design_air_flow_rate_m_3_per_sec = #{design_air_flow_rate_m_3_per_sec} m3/s")
 
           # get fan_heat_gain
           column_name = 'Supply Fan Air Heat Gain at Ideal Loads Peak'
-          fan_heat_gain = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          fan_heat_gain = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                           row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | fan_heat_gain = #{fan_heat_gain} W")
-    
+
           # get rated_capacity_modifier
           column_name = 'Coil Off-Rating Capacity Modifier at Ideal Loads Peak'
-          rated_capacity_modifier = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils', row_name_cooling, column_name).to_f
+          rated_capacity_modifier = get_tabular_data(model, sql, 'CoilSizingDetails', 'Entire Facility', 'Coils',
+                                                     row_name_cooling, column_name).to_f
           # puts("--- #{coil_cooling.name} | rated_capacity_modifier = #{rated_capacity_modifier}")
 
           # get capacity_upsized_rated
-          capacity_upsized_rated = capacity_original_rated * (1 + upsizing_allowance_pct / 100.0)
+          capacity_upsized_rated = capacity_original_rated * (1 + (upsizing_allowance_pct / 100.0))
           # puts("--- #{coil_cooling.name} | capacity_upsized_rated = #{capacity_upsized_rated} W")
 
           # get design capacity from upsized rated capacity
@@ -2145,15 +2149,15 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
           # get final upsized rated capacity
           capacity_final_rated = capacity_final_design + fan_heat_gain
-          capacity_final_rated = capacity_final_rated / rated_capacity_modifier
+          capacity_final_rated /= rated_capacity_modifier
           if capacity_final_rated < capacity_original_rated
             # puts("--- #{coil_cooling.name} | recalculation of rated capacity (#{capacity_final_rated.round(0)} W) is less than original rated capacity (#{capacity_original_rated.round(0)} W)")
             capacity_final_rated = capacity_original_rated
           end
           # puts("--- #{coil_cooling.name} | capacity_final_rated = #{capacity_final_rated}")
 
-          # get CFM/ton 
-          design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88 
+          # get CFM/ton
+          design_air_flow_rate_cfm = design_air_flow_rate_m_3_per_sec * 2118.88
           # puts("--- #{coil_cooling.name} | design_air_flow_rate_cfm = #{design_air_flow_rate_cfm} CFM")
           capacity_upsized_rated_ton = capacity_final_rated * 0.000284345
           # puts("--- #{coil_cooling.name} | capacity_upsized_rated_ton = #{capacity_upsized_rated_ton} ton")
@@ -2180,7 +2184,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           elsif coil_cooling.autosizedRatedAirFlowRate.is_initialized
             # puts("--- #{coil_cooling.name} | indoor unit cooling air flow rate before = #{coil_cooling.autosizedRatedAirFlowRate} m3/s")
           else
-            runner.registerError("Cannot find rated air flow rate for cooling.")
+            runner.registerError('Cannot find rated air flow rate for cooling.')
           end
           coil_cooling.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
           # puts("--- #{coil_cooling.name} | indoor unit cooling air flow rate after = #{coil_cooling.ratedAirFlowRate} m3/s")
@@ -2191,7 +2195,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           elsif coil_heating.autosizedRatedAirFlowRate.is_initialized
             # puts("--- #{coil_heating.name} | indoor unit heating air flow rate before = #{coil_heating.autosizedRatedAirFlowRate} m3/s")
           else
-            runner.registerError("Cannot find rated air flow rate for heating.")
+            runner.registerError('Cannot find rated air flow rate for heating.')
           end
           coil_heating.setRatedAirFlowRate(new_air_flow_rate_m_3_per_s)
           # puts("--- #{coil_heating.name} | indoor unit heating air flow rate after = #{coil_heating.ratedAirFlowRate} m3/s")
@@ -2202,7 +2206,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           elsif coil_cooling.autosizedRatedTotalCoolingCapacity.is_initialized
             # puts("--- #{coil_cooling.name} | indoor unit cooling capacity before = #{coil_cooling.autosizedRatedTotalCoolingCapacity} W")
           else
-            runner.registerError("Cannot find rated capacity for cooling.")
+            runner.registerError('Cannot find rated capacity for cooling.')
           end
           coil_cooling.setRatedTotalCoolingCapacity(capacity_final_rated)
           # puts("--- #{coil_cooling.name} | indoor unit cooling capacity after = #{coil_cooling.ratedTotalCoolingCapacity} W")
@@ -2213,7 +2217,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
           elsif coil_heating.autosizedRatedTotalHeatingCapacity.is_initialized
             # puts("--- #{coil_heating.name} | indoor unit heating capacity before = #{coil_heating.autosizedRatedTotalHeatingCapacity} W")
           else
-            runner.registerError("Cannot find rated capacity for heating.")
+            runner.registerError('Cannot find rated capacity for heating.')
           end
           coil_heating.setRatedTotalHeatingCapacity(capacity_final_rated)
           # puts("--- #{coil_heating.name} | indoor unit heating capacity after = #{coil_heating.ratedTotalHeatingCapacity} W")
@@ -2230,7 +2234,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("### #{ou.name} | outdoor unit heating capacity before = #{ou.autosizedGrossRatedHeatingCapacity} W")
         ou.setGrossRatedHeatingCapacity(capacity_outdoor_unit_new)
         runner.registerInfo("### #{ou.name} | outdoor unit heating capacity after = #{ou.grossRatedHeatingCapacity} W")
-
       end
     else
       runner.registerInfo("upsizing allowance set to #{upsizing_allowance_pct}% so skipping upsizing.")
@@ -2245,7 +2248,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     ######################################################
     # add ERV/HRV and modify DOAS controls
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      next unless %w[doas DOAS Doas].any? { |word| (air_loop_hvac.name.to_s).include?(word) }
+      next unless ['doas', 'DOAS', 'Doas'].any? { |word| air_loop_hvac.name.to_s.include?(word) }
       # as a backup, skip non applicable airloops
       next if na_air_loops.member?(air_loop_hvac)
 
@@ -2269,18 +2272,18 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         vol = thermal_zone.airVolume * thermal_zone.multiplier
         # get zone design people
         num_people = thermal_zone.numberOfPeople * thermal_zone.multiplier
-        if space.designSpecificationOutdoorAir.is_initialized
-          dsn_spec_oa = space.designSpecificationOutdoorAir.get
-          # add floor area component
-          oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
-          doas_oa_flow_m3_per_s += oa_area * fa
-          # add per person component
-          oa_person = dsn_spec_oa.outdoorAirFlowperPerson
-          doas_oa_flow_m3_per_s += oa_person * num_people
-          # add air change component
-          oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
-          doas_oa_flow_m3_per_s += (oa_ach * vol) / 60
-        end
+        next unless space.designSpecificationOutdoorAir.is_initialized
+
+        dsn_spec_oa = space.designSpecificationOutdoorAir.get
+        # add floor area component
+        oa_area = dsn_spec_oa.outdoorAirFlowperFloorArea
+        doas_oa_flow_m3_per_s += oa_area * fa
+        # add per person component
+        oa_person = dsn_spec_oa.outdoorAirFlowperPerson
+        doas_oa_flow_m3_per_s += oa_person * num_people
+        # add air change component
+        oa_ach = dsn_spec_oa.outdoorAirFlowAirChangesperHour
+        doas_oa_flow_m3_per_s += (oa_ach * vol) / 60
       end
 
       # fan efficiency ranges from 40-60% (Energy Modeling Guide for Very High Efficiency DOAS Final Report)
@@ -2317,6 +2320,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
 
       thermal_zone = thermal_zones[0]
       next unless na_mz_thermal_zones.include?(thermal_zone)
+
       # puts("air_loop_hvac: #{air_loop_hvac.name}")
 
       # # set availability schedule for DOAS
@@ -2388,7 +2392,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       else
         runner.registerWarning("For #{vrf_outdoor_unit.name} capacity is not available, total cooling capacity of vrf system will be incorrect when applying standard.")
       end
-      cop_cooling = (-0.000022 * cooling_capacity_w.to_f + 5.520555).round(3)
+      cop_cooling = ((-0.000022 * cooling_capacity_w.to_f) + 5.520555).round(3)
       cop_cooling = cop_cooling.clamp(3.974, 5.197)
       vrf_outdoor_unit.setGrossRatedCoolingCOP(cop_cooling)
       # puts("&&& VRF outdoor unit (#{vrf_outdoor_unit.name}): COP for cooling updated to #{cop_cooling} based on sized cooling capacity of #{cooling_capacity_w.round(0)}")
@@ -2403,7 +2407,7 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       else
         runner.registerWarning("For #{vrf_outdoor_unit.name} capacity is not available, total heating capacity of vrf system will be incorrect when applying standard.")
       end
-      cop_heating = (-0.000009 * heating_capacity_w.to_f + 4.829407).round(3)
+      cop_heating = ((-0.000009 * heating_capacity_w.to_f) + 4.829407).round(3)
       cop_heating = cop_heating.clamp(4.079, 4.655)
       vrf_outdoor_unit.setRatedHeatingCOP(cop_heating)
       # puts("&&& VRF outdoor unit (#{vrf_outdoor_unit.name}): COP for heating updated to #{cop_heating} based on sized heating capacity of #{heating_capacity_w.round(0)}")

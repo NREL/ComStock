@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>light_led</name>
   <uid>b95347e2-de50-4c7f-96c8-7651ad650339</uid>
-  <version_id>3b309efc-0848-4ced-aa40-48f1fad4ec74</version_id>
-  <version_modified>2024-08-13T17:28:08Z</version_modified>
+  <version_id>b8fb380f-e088-4636-b2a7-a1f3c0ea266b</version_id>
+  <version_modified>2025-07-23T23:00:39Z</version_modified>
   <xml_checksum>398F827A</xml_checksum>
   <class_name>LightLED</class_name>
   <display_name>light_led</display_name>
@@ -125,7 +125,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B7012029</checksum>
+      <checksum>288FE3B1</checksum>
     </file>
     <file>
       <filename>lighting_technology.csv</filename>
@@ -179,7 +179,7 @@
       <filename>light_led_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>BA2B5A43</checksum>
+      <checksum>4F60C1D0</checksum>
     </file>
     <file>
       <filename>outpatient.osm</filename>

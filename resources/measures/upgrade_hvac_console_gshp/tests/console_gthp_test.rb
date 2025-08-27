@@ -79,9 +79,9 @@ class ConsoleGTHPTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    rd = File.absolute_path(File.join(__dir__, 'output', "#{test_name}"))
+    rd = File.absolute_path(File.join(__dir__, 'output', test_name.to_s))
     puts "caller: #{caller[0]} run_dir(#{test_name}) = #{rd}"
-    File.absolute_path(File.join(__dir__, 'output', "#{test_name}"))
+    File.absolute_path(File.join(__dir__, 'output', test_name.to_s))
   end
 
   def model_input_path(osm_name)
@@ -127,7 +127,7 @@ class ConsoleGTHPTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -135,7 +135,7 @@ class ConsoleGTHPTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm_f(model_output_path(test_name))
 
     # copy the osm and epw to the test directory
     puts File.basename(osm_path)

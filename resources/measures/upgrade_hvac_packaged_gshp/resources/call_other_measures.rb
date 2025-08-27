@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -88,9 +88,9 @@ def call_dcv(model, runner)
   dcv_measure.run(model, runner_dcv, OpenStudio::Measure::OSArgumentMap.new)
   dcv_result = runner_dcv.result
 
-  runner = child_to_parent_runner_logging(runner, dcv_measure.name.to_s, dcv_result, registered_var_list = [])
+  runner = child_to_parent_runner_logging(runner, dcv_measure.name.to_s, dcv_result, [])
 
-  return dcv_result, runner
+  [dcv_result, runner]
 end
 
 def call_econ(model, runner)
@@ -106,9 +106,9 @@ def call_econ(model, runner)
   econ_measure.run(model, runner_econ, OpenStudio::Measure::OSArgumentMap.new)
   econ_result = runner_econ.result
 
-  runner = child_to_parent_runner_logging(runner, econ_measure.name.to_s, econ_result, registered_var_list = [])
+  runner = child_to_parent_runner_logging(runner, econ_measure.name.to_s, econ_result, [])
 
-  return econ_result, runner
+  [econ_result, runner]
 end
 
 def call_walls(model, runner)
@@ -124,9 +124,10 @@ def call_walls(model, runner)
   walls_measure.run(model, runner_walls, OpenStudio::Measure::OSArgumentMap.new)
   walls_result = runner_walls.result
 
-  runner = child_to_parent_runner_logging(runner, walls_measure.name.to_s, walls_result, registered_var_list = ['env_exterior_wall_insulation_area_ft2'])
+  runner = child_to_parent_runner_logging(runner, walls_measure.name.to_s, walls_result,
+                                          ['env_exterior_wall_insulation_area_ft2'])
 
-  return walls_result, runner
+  [walls_result, runner]
 end
 
 def call_roof(model, runner)
@@ -142,9 +143,10 @@ def call_roof(model, runner)
   roof_measure.run(model, runner_roof, OpenStudio::Measure::OSArgumentMap.new)
   roof_result = runner_roof.result
 
-  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result, registered_var_list = ['env_roof_insul_roof_area_ft_2'])
+  runner = child_to_parent_runner_logging(runner, roof_measure.name.to_s, roof_result,
+                                          ['env_roof_insul_roof_area_ft_2'])
 
-  return roof_result, runner
+  [roof_result, runner]
 end
 
 def call_windows(model, runner)
@@ -160,9 +162,10 @@ def call_windows(model, runner)
   windows_measure.run(model, runner_windows, OpenStudio::Measure::OSArgumentMap.new)
   windows_result = runner_windows.result
 
-  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result, registered_var_list = ['env_secondary_window_fen_area_ft_2'])
+  runner = child_to_parent_runner_logging(runner, windows_measure.name.to_s, windows_result,
+                                          ['env_secondary_window_fen_area_ft_2'])
 
-  return windows_result, runner
+  [windows_result, runner]
 end
 
 def call_lighting(model, runner)
@@ -184,9 +187,8 @@ def call_lighting(model, runner)
   lighting_measure.run(model, runner_lighting, lighting_arg_map)
   lighting_result = runner_lighting.result
 
-  runner = child_to_parent_runner_logging(runner, lighting_measure.name.to_s, lighting_result, registered_var_list = ['light_lighting_technology_initial_lighting_power','light_lighting_technology_initial_lighting_power_density','light_lighting_technology_final_lighting_power', 'light_lighting_technology_final_lighting_power_density'])
+  runner = child_to_parent_runner_logging(runner, lighting_measure.name.to_s, lighting_result,
+                                          ['light_lighting_technology_initial_lighting_power', 'light_lighting_technology_initial_lighting_power_density', 'light_lighting_technology_final_lighting_power', 'light_lighting_technology_final_lighting_power_density'])
 
-  return lighting_result, runner
+  [lighting_result, runner]
 end
-
-

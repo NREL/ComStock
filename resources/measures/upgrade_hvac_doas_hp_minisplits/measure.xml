@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>hvac_doas_hp_minisplits</name>
   <uid>6d59de63-d1c6-4237-9f94-f05f268e08dd</uid>
-  <version_id>1920dedf-df11-4a25-8614-4d519d168e1a</version_id>
-  <version_modified>2024-08-13T17:28:07Z</version_modified>
+  <version_id>a71ede60-cc47-4b77-bc82-037edbce332e</version_id>
+  <version_modified>2025-07-23T23:00:35Z</version_modified>
   <xml_checksum>CAA033D3</xml_checksum>
   <class_name>HvacDoasHpMinisplits</class_name>
   <display_name>hvac_doas_hp_minisplits</display_name>
@@ -129,7 +129,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5B87ED1F</checksum>
+      <checksum>D2FDDE69</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -141,7 +141,7 @@
       <filename>hvac_doas_hp_minisplits_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>30942449</checksum>
+      <checksum>C1258828</checksum>
     </file>
   </files>
 </measure>

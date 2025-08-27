@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_nist_infiltration_correlations</name>
   <uid>b74a4a45-8553-4e94-860f-35b217a04879</uid>
-  <version_id>792c4597-3f55-45aa-a4a3-d7169c7b75e2</version_id>
-  <version_modified>2025-01-03T19:48:23Z</version_modified>
+  <version_id>b37ac525-3b6c-4d22-8372-c89ea960b99c</version_id>
+  <version_modified>2025-07-23T23:00:28Z</version_modified>
   <xml_checksum>A54BB41C</xml_checksum>
   <class_name>SetNISTInfiltrationCorrelations</class_name>
   <display_name>Set NIST Infiltration Correlations</display_name>
@@ -301,7 +301,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>FF2CC1AE</checksum>
+      <checksum>1DB13AE5</checksum>
     </file>
     <file>
       <filename>Data-NISTInfiltrationCorrelations.csv</filename>
@@ -367,7 +367,7 @@
       <filename>nist_infiltration_correlations_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>85211AA7</checksum>
+      <checksum>303F2B1A</checksum>
     </file>
   </files>
 </measure>

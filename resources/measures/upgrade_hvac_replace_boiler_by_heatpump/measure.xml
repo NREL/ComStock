@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <measure>
   <schema_version>3.1</schema_version>
-  <name>replace_boiler_by_heatpump</name>
+  <name>replace_boiler_with_heat_pump</name>
   <uid>e5661219-4641-4140-8c83-a9d602e45ca7</uid>
-  <version_id>5beddc65-d79e-4193-80d3-8c60e54f8f90</version_id>
-  <version_modified>2024-03-26T21:10:17Z</version_modified>
+  <version_id>7c7fe317-e331-43d6-bb99-a84212d66f94</version_id>
+  <version_modified>2025-07-23T23:00:38Z</version_modified>
   <xml_checksum>F0147A36</xml_checksum>
-  <class_name>Replace_boiler_by_heatpump</class_name>
+  <class_name>ReplaceBoilerWithHeatPump</class_name>
   <display_name>replace_boiler_by_heatpump</display_name>
-  <description>This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. </description>
-  <modeler_description>This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.</modeler_description>
+  <description>This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. </description>
+  <modeler_description>This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.</modeler_description>
   <arguments>
     <argument>
       <name>keep_setpoint</name>
@@ -204,7 +204,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>838BFC6E</checksum>
+      <checksum>73B60351</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -221,7 +221,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A67C40F8</checksum>
+      <checksum>DDFCA550</checksum>
     </file>
     <file>
       <filename>SmallHotel-2A.osm</filename>
@@ -233,7 +233,7 @@
       <filename>add_hpwh_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1E82A175</checksum>
+      <checksum>5C2289F4</checksum>
     </file>
   </files>
 </measure>

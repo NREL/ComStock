@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shed</name>
   <uid>f4372ee0-7caa-4db1-8838-31c886e60881</uid>
-  <version_id>8b2c93da-41aa-4219-a92a-510a0eaa3a3c</version_id>
-  <version_modified>2025-04-24T16:07:16Z</version_modified>
+  <version_id>5c5d4ac7-9409-4eed-9eb4-db87c9de85b5</version_id>
+  <version_modified>2025-07-23T23:00:32Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShed</class_name>
   <display_name>demand flexibility - thermostat control load shed</display_name>
@@ -308,13 +308,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>30CB87B4</checksum>
+      <checksum>3BD3AD69</checksum>
     </file>
     <file>
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>E34F02A0</checksum>
+      <checksum>3FA8499B</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -830,7 +830,7 @@
       <filename>df_thermostat_control_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AFF2C253</checksum>
+      <checksum>8FFDD059</checksum>
     </file>
   </files>
 </measure>

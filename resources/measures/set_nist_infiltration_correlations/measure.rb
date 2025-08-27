@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2023, Alliance for Sustainable Energy, LLC.
@@ -103,11 +103,11 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       nist_building_type = 'RetailStandalone'
     when 'PrimarySchool', 'EPr'
       nist_building_type = 'PrimarySchool'
-    when 'SecondarySchool', 'ESe'
+    when 'SecondarySchool', 'ESe', 'College', 'Laboratory'
       nist_building_type = 'SecondarySchool'
     when 'SmallHotel', 'Mtl'
       nist_building_type = 'SmallHotel'
-    when 'LargeHotel', 'Htl'
+    when 'LargeHotel', 'Htl', 'TallBuilding', 'SuperTallBuilding'
       nist_building_type = 'LargeHotel'
     when 'Hospital', 'Hsp'
       nist_building_type = 'Hospital'
@@ -115,10 +115,6 @@ class SetNISTInfiltrationCorrelations < OpenStudio::Measure::ModelMeasure
       nist_building_type = 'MidriseApartment'
     when 'HighriseApartment'
       nist_building_type = 'HighriseApartment'
-    when 'TallBuilding', 'SuperTallBuilding'
-      nist_building_type = 'LargeHotel'
-    when 'College', 'Laboratory'
-      nist_building_type = 'SecondarySchool'
     when 'Courthouse'
       nist_building_type = 'MediumOffice'
     else

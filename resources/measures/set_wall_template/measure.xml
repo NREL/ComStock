@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_wall_template</name>
   <uid>3d02e4de-a6ad-4d83-8331-078f9fd5bb6f</uid>
-  <version_id>5a9d06f9-a5c3-48c4-a905-733ddfac7ecf</version_id>
-  <version_modified>2024-11-12T20:38:45Z</version_modified>
+  <version_id>f9be06d3-c730-4b42-b4fe-4d2cfe206f37</version_id>
+  <version_modified>2025-07-23T23:00:30Z</version_modified>
   <xml_checksum>66CE07BA</xml_checksum>
   <class_name>SetWallTemplate</class_name>
   <display_name>Set Wall Template</display_name>
@@ -530,13 +530,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>82CC940E</checksum>
+      <checksum>F1643D14</checksum>
     </file>
     <file>
       <filename>set_wall_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>D345E09E</checksum>
+      <checksum>B35CA06C</checksum>
     </file>
   </files>
 </measure>

@@ -5,10 +5,10 @@
 # replace_boiler_by_heatpump
 
 ## Description
-This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. 
+This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. 
 
 ## Modeler Description
-This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater.The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.
+This measure replaces an exising natural gas boiler by an air source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.
 
 ## Measure Type
 ModelMeasure

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 import logging
@@ -171,7 +171,8 @@ class GasCorrectionModelMixin():
         fuel_tot_cols = [
             self.ANN_TOT_ELEC_KBTU,
             self.ANN_TOT_GAS_KBTU,
-            self.ANN_TOT_OTHFUEL_KBTU,
+            self.ANN_TOT_FUELOIL_KBTU,
+            self.ANN_TOT_PROPANE_KBTU,
             self.ANN_TOT_DISTCLG_KBTU,
             self.ANN_TOT_DISTHTG_KBTU,
         ]

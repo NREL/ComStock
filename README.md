@@ -92,3 +92,4 @@ pip install NREL-PySAM==4.2.0
 2. navigate to the `.custom_gems` directory
 3. run `bundle exec rake rubocop:show` in terminal
 4. review results by opening the `rubocop-results.html` in the `.rubocop/` directory
+5. rubcop can automatically fix errors by running `rubocop --autocorrect`. This will fix some, but not all errors, so you still need to check and make manual fixes.

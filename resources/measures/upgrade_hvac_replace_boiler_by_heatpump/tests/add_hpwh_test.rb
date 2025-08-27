@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2021, Alliance for Sustainable Energy, LLC.
@@ -35,8 +35,6 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-
-
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
@@ -44,14 +42,7 @@ require_relative '../measure'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
-
 class AddHpwhTest < Minitest::Test
-  # def setup
-  # end
-
-  # def teardown
-  # end
-
   def test_good_argument_values
     # create an instance of the measure
     measure = AddHpwh.new
@@ -139,7 +130,7 @@ class AddHpwhTest < Minitest::Test
     assert(result.errors.size == 1)
   end
 
-  def test_custom_args_PumpedCondenser_specific_zone
+  def test_custom_args_pumpedcondenser_specific_zone
     # create an instance of the measure
     measure = AddHpwh.new
 
@@ -189,7 +180,7 @@ class AddHpwhTest < Minitest::Test
     model.save(output_file_path, true)
   end
 
-  def test_custom_args_WrappedCondenser_specific_zone
+  def test_custom_args_wrappedcondenser_specific_zone
     # create an instance of the measure
     measure = AddHpwh.new
 
