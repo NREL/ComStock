@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2021, Alliance for Sustainable Energy, LLC.
@@ -149,9 +149,7 @@ class CondensingBoilers < OpenStudio::Measure::ModelMeasure
         # htg_loop.autosizeMaximumLoopFlowRate
         # htg_loop.autocalculatePlantLoopVolume
 
-        htg_loop.supplyOutletNode.setpointManagers.each do |spm|
-          spm.remove
-        end
+        htg_loop.supplyOutletNode.setpointManagers.each(&:remove)
 
         # original method: set sp manager to constant 140F
         # spm.to_SetpointManagerScheduled.get.setSchedule(new_setpoint_sched)

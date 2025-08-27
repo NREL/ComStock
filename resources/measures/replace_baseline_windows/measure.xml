@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>replace_baseline_windows</name>
   <uid>b83a8434-794d-4a9a-a4b7-558ca4efdcd3</uid>
-  <version_id>7a4d35df-82aa-4767-92d4-82e5dd770b4a</version_id>
-  <version_modified>2025-03-18T20:07:16Z</version_modified>
+  <version_id>4c16d42b-c25f-4dc9-9f1d-75e09b9ac456</version_id>
+  <version_modified>2025-07-23T23:00:26Z</version_modified>
   <xml_checksum>9C8A26EB</xml_checksum>
   <class_name>ReplaceBaselineWindows</class_name>
   <display_name>replace_baseline_windows</display_name>
@@ -150,13 +150,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>DEEBC778</checksum>
+      <checksum>A12AA490</checksum>
     </file>
     <file>
       <filename>replace_baseline_windows_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>529F4FD6</checksum>
+      <checksum>3CA2A341</checksum>
     </file>
   </files>
 </measure>

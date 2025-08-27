@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -114,9 +114,12 @@ class QOIReportTest < Minitest::Test
     # create an instance of the measure
     measure = QOIReport.new
 
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
     # get arguments and test that they are what we are expecting
-    arguments = measure.arguments
-    assert_equal(0, arguments.size)
+    arguments = measure.arguments(model)
+    assert_equal(1, arguments.size)
   end
 
   def test_average_daily_use_base
@@ -269,5 +272,24 @@ class QOIReportTest < Minitest::Test
     osm_path = "#{__dir__}/cold_climate.osm"
     epw_path = "#{__dir__}/cold_climate.epw"
     assert(run_test(test_name, osm_path, epw_path))
+  end
+
+  def test_bad_grid_region
+    test_name = 'test_bad_grid_region'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    # load the test model resave with new name
+    osm_path = "#{__dir__}/cold_climate.osm"
+    epw_path = "#{__dir__}/cold_climate.epw"
+
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
+    assert(!model.empty?)
+    model = model.get
+    model.getBuilding.additionalProperties.setFeature('grid_region', 'AKMS')
+    new_osm_path = "#{__dir__}/bad_grid_region.osm"
+    model.save(new_osm_path, true)
+    assert(run_test(test_name, new_osm_path, epw_path))
+    File.delete(new_osm_path)
   end
 end

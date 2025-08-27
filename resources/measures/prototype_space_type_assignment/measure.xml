@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>prototype_space_type_assignment</name>
   <uid>8369efbb-e4c7-4171-b817-d7bbc860b085</uid>
-  <version_id>d2212ae8-1606-45eb-b7d7-88248547892d</version_id>
-  <version_modified>2024-10-17T18:28:11Z</version_modified>
+  <version_id>daa10a89-942c-4f5f-b5df-04ef04868de9</version_id>
+  <version_modified>2025-07-23T23:00:25Z</version_modified>
   <xml_checksum>FB7988E1</xml_checksum>
   <class_name>PrototypeSpaceTypeAssignment</class_name>
   <display_name>Prototype Space Type Assignment</display_name>
@@ -53,7 +53,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>26754486</checksum>
+      <checksum>EAC56DBB</checksum>
     </file>
     <file>
       <filename>prototype_space_type_lookup.csv</filename>
@@ -101,7 +101,7 @@
       <filename>prototype_space_type_assignment_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>BB519DC2</checksum>
+      <checksum>9A98706C</checksum>
     </file>
   </files>
 </measure>

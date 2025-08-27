@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -8,7 +8,7 @@ require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require_relative '../measure'
 
-class SimulationSettingsCheckTest < MiniTest::Unit::TestCase
+class SimulationSettingsCheckTest < MiniTest::Test
   def model_in_path_default
     "#{__dir__}/MediumOffice.osm"
   end

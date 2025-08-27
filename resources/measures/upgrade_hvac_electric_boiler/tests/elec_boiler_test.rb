@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2021, Alliance for Sustainable Energy, LLC.
@@ -65,8 +65,8 @@ class ElectricBoilerTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    puts 'run dir expanded=' + "#{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
-    File.join(File.dirname(__FILE__), 'output', "#{test_name}")
+    puts "run dir expanded = #{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
+    File.join(File.dirname(__FILE__), 'output', test_name.to_s)
   end
 
   def model_input_path(osm_name)
@@ -97,14 +97,12 @@ class ElectricBoilerTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
-    # if File.exist?(model_output_path(test_name))
-    # FileUtils.rm(model_output_path(test_name))
-    # end
-    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
+    # FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     # osm_path = File.expand_path(osm_path)
@@ -152,7 +150,7 @@ class ElectricBoilerTest < Minitest::Test
     show_output(result)
 
     # Save model
-    puts 'saving model to' + File.expand_path(model_output_path(test_name))
+    puts "saving model to #{File.expand_path(model_output_path(test_name))}"
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success
@@ -217,15 +215,15 @@ class ElectricBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now electric
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
         assert_equal('Electricity', boiler_fuel_type)
         assert_equal(1.0, boiler_efficiency)
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 
@@ -262,15 +260,15 @@ class ElectricBoilerTest < Minitest::Test
 
     # confirm that boilers in model are now electric
     boilers = model.getBoilerHotWaters
-    if boilers.size > 0
+    if boilers.empty?
+      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
+    else
       boilers.each do |boiler|
         boiler_fuel_type = boiler.fuelType
         boiler_efficiency = boiler.nominalThermalEfficiency
         assert_equal('Electricity', boiler_fuel_type)
         assert_equal(1.0, boiler_efficiency)
       end
-    else
-      runner.registerInfo('Model does not have any boilers. Measure not applicable.')
     end
   end
 

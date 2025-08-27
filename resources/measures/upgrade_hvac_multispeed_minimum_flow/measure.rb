@@ -1,26 +1,23 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
-#see the URL below for information on how to write OpenStudio measures
+# see the URL below for information on how to write OpenStudio measures
 # http://openstudio.nrel.gov/openstudio-measure-writing-guide
 
-#see your EnergyPlus installation or the URL below for information on EnergyPlus objects
+# see your EnergyPlus installation or the URL below for information on EnergyPlus objects
 # http://apps1.eere.energy.gov/buildings/energyplus/pdfs/inputoutputreference.pdf
 
-#see the URL below for information on using life cycle cost objects in OpenStudio
+# see the URL below for information on using life cycle cost objects in OpenStudio
 # http://openstudio.nrel.gov/openstudio-life-cycle-examples
 
-#see the URL below for access to C++ documentation on workspace objects (click on "workspace" in the main window to view workspace objects)
+# see the URL below for access to C++ documentation on workspace objects (click on "workspace" in the main window to view workspace objects)
 # http://openstudio.nrel.gov/sites/openstudio.nrel.gov/files/nv_data/cpp_documentation_it/utilities/html/idf_page.html
 
-$allchoices = 'All fenestration surfaces'
-
-#start the measure
+# start the measure
 class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
-
   # define the name that a user will see, this method may be deprecated as
   # the display name in PAT comes from the name field in measure.xml
   def name
-    return "Multispeed Minimum Flow"
+    return 'Multispeed Minimum Flow'
   end
 
   # define the arguments that the user will input
@@ -33,14 +30,13 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
   def run(workspace, runner, user_arguments)
     super(workspace, runner, user_arguments)
 
-	  #use the built-in error checking
-    if not runner.validateUserArguments(arguments(workspace), user_arguments)
+    # use the built-in error checking
+    if !runner.validateUserArguments(arguments(workspace), user_arguments)
       return false
     end
 
-	  # get all UnitarySystemPerformance:Multispeed objects in model, if any
+    # get all UnitarySystemPerformance:Multispeed objects in model, if any
     li_multispeed_perf = workspace.getObjectsByType('UnitarySystemPerformance:Multispeed'.to_IddObjectType)
-
 
     # check the user_name for reasonableness
     if li_multispeed_perf.empty?
@@ -54,7 +50,7 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
       # skip object if 'multispeed No Load Supply Air Flow Rate Ratio' field is populated
       if ms_perf_obj.getDouble(4, false).is_initialized
         runner.registerInfo("Minimum no load flow rate specified for -- #{ms_perf_obj.name} --; this measure will not make model changes to this object.")
-      elsif (ms_perf_obj.getDouble(5, false).is_initialized) && (ms_perf_obj.getDouble(6, false).is_initialized)
+      elsif ms_perf_obj.getDouble(5, false).is_initialized && ms_perf_obj.getDouble(6, false).is_initialized
         # determine minimum stage 1 flow ratios for heating and cooling
         htg_spd1_flow_ratio = ms_perf_obj.getDouble(5, true).get
         clg_spd1_min_flow_ratio = ms_perf_obj.getDouble(6, true).get
@@ -73,11 +69,12 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
     li_multispeed_perf.each do |ms_perf_obj|
       # get object indices
       num_fields = ms_perf_obj.numFields
-      fields_list = (0...(0 + (num_fields-1)))
+      fields_list = (0...(0 + (num_fields - 1)))
       # loop through indicies to replace any 0s
       fields_list.sort.each do |field|
         # replace blanks after position 5 with 1s
-        next unless (field >= 5) && (!ms_perf_obj.getDouble(field, false).is_initialized)
+        next unless (field >= 5) && !ms_perf_obj.getDouble(field, false).is_initialized
+
         ms_perf_obj.setDouble(field, 1)
       end
     end
@@ -91,5 +88,5 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
     return true
   end
 end
-#this allows the measure to be use by the application
+# this allows the measure to be use by the application
 MultispeedMinimumFlow.new.registerWithApplication

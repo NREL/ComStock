@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>thermal_bridging_derating</name>
   <uid>e80a588e-f52d-4244-888a-3c95bd845604</uid>
-  <version_id>393d3a57-9d3d-441f-bf6d-b0e117f68de5</version_id>
-  <version_modified>2024-08-08T21:48:54Z</version_modified>
+  <version_id>41089eb7-321c-4dde-a09f-1b2865951505</version_id>
+  <version_modified>2025-07-23T23:00:30Z</version_modified>
   <xml_checksum>D69419EB</xml_checksum>
   <class_name>ThermalBridgingDerating</class_name>
   <display_name>Thermal Bridging Derating</display_name>
@@ -212,13 +212,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>660DE5F4</checksum>
+      <checksum>1FDC1A1F</checksum>
     </file>
     <file>
       <filename>thermal_bridging_derating_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>FDCBB810</checksum>
+      <checksum>21296A7F</checksum>
     </file>
   </files>
 </measure>

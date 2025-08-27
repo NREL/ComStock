@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>env_new_aedg_windows</name>
   <uid>b0167804-5cb4-4641-b9de-961c640f02ea</uid>
-  <version_id>0b8ac15e-0a0a-4b06-85fa-8ff765614657</version_id>
-  <version_modified>2025-03-20T04:13:19Z</version_modified>
+  <version_id>7a628c87-13d3-48cb-948d-9915043346b8</version_id>
+  <version_modified>2025-07-23T23:00:33Z</version_modified>
   <xml_checksum>4A8A93C6</xml_checksum>
   <class_name>EnvNewAedgWindows</class_name>
   <display_name>env_new_aedg_windows</display_name>
@@ -53,13 +53,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>11508EB8</checksum>
+      <checksum>5D3A97BB</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>C9E763FD</checksum>
+      <checksum>6B31F882</checksum>
     </file>
   </files>
 </measure>
