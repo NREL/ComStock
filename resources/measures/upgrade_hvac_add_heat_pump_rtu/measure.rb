@@ -1205,21 +1205,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         condition_final_roof = results_window.stepFinalCondition.get if results_window.stepFinalCondition.is_initialized
       end
       if setback_during_peak == true
-        if peak_setback_value == 4
-          runner.registerInfo('Running DF Thermostat measure with 4 degF thermostat setback during peaks....')
-          results_df_thermostat, runner = call_df_thermostat_4deg_setback(model, runner)
-          if results_df_thermostat.stepInitialCondition.is_initialized
-            condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
-          end
-          condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
-        else peak_setback_value == 0
-          runner.registerInfo('Running DF Thermostat measure with no thermostat setback during peaks....')
-          results_df_thermostat, runner = call_df_thermostat_no_setback(model, runner)
-          if results_df_thermostat.stepInitialCondition.is_initialized
-            condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
-          end
-          condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
+        runner.registerInfo('Running DF Thermostat measure with 4 degF thermostat setback during peaks....')
+        results_df_thermostat, runner = call_df_thermostat_setback(model, runner, peak_setback_value)
+        if results_df_thermostat.stepInitialCondition.is_initialized
+          condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
         end
+        condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
+        # if peak_setback_value == 4
+        #   runner.registerInfo('Running DF Thermostat measure with 4 degF thermostat setback during peaks....')
+        #   results_df_thermostat, runner = call_df_thermostat_4deg_setback(model, runner)
+        #   if results_df_thermostat.stepInitialCondition.is_initialized
+        #     condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
+        #   end
+        #   condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
+        # else peak_setback_value == 0
+        #   runner.registerInfo('Running DF Thermostat measure with no thermostat setback during peaks....')
+        #   results_df_thermostat, runner = call_df_thermostat_no_setback(model, runner)
+        #   if results_df_thermostat.stepInitialCondition.is_initialized
+        #     condition_initial_df_thermostat = results_df_thermostat.stepInitialCondition.get
+        #   end
+        #   condition_final_df_thermostat = results_df_thermostat.stepFinalCondition.get if results_df_thermostat.stepFinalCondition.is_initialized
+        # end
       end
     end
 

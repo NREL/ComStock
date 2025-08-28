@@ -458,8 +458,8 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
       # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
       # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
-      applicable_clg_thermostats << thermostat if clg_fueltypes == ['Electricity']
-      applicable_htg_thermostats << thermostat if htg_fueltypes == ['Electricity']
+      applicable_clg_thermostats << thermostat # if clg_fueltypes == ['Electricity']
+      applicable_htg_thermostats << thermostat # if htg_fueltypes == ['Electricity']
     end
     [applicable_clg_thermostats, applicable_htg_thermostats, thermostats.size]
   end
@@ -624,24 +624,27 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
     puts('### ============================================================')
     nts_clg = 0
     nts_htg = 0
+    clgsp_adjustment = 0
     unless applicable_clg_thermostats.empty?
       puts('### Creating cooling setpoint adjustment schedule...')
-      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment = -sp_adjustment)
-      puts "cooling setpoint adjustment values = #{clgsp_adjustment_values}"
-      # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
-      # puts("--- clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
-      puts('### Updating thermostat cooling setpoint schedule...')
+      clgsp_adjustment = -sp_adjustment
+      clgsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, clgsp_adjustment)
+      #puts "cooling setpoint adjustment values = #{clgsp_adjustment_values}"
+      #puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
+      #puts("--- clgsp_adjustment_values.size = #{clgsp_adjustment_values.size}")
+      #puts('### Updating thermostat cooling setpoint schedule...')
       nts_clg = assign_clgsch_to_thermostats(model, applicable_clg_thermostats, runner, clgsp_adjustment_values)
     end
-    ### Leave pre-heating & seasonal operation for future development
-    # if applicable_htg_thermostats.size > 0
-    #   puts("### Creating heating setpoint adjustment schedule...")
-    #   heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, sp_adjustment=sp_adjustment)
-    #   puts("### Updating thermostat cooling setpoint schedule...")
-    #   nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
-    # end
-    # puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
-    # puts("--- heatsp_adjustment_values = #{heatsp_adjustment_values}")
+    ## Leave pre-heating & seasonal operation for future development
+    if applicable_htg_thermostats.size > 0
+      puts("### Creating heating setpoint adjustment schedule...")
+      heatsp_adjustment = sp_adjustment
+      heatsp_adjustment_values = temp_setp_adjust_hourly_based_on_sch(prepeak_schedule, heatsp_adjustment)
+      #puts("### Updating thermostat cooling setpoint schedule...")
+      nts_htg = assign_heatsch_to_thermostats(model,applicable_htg_thermostats,runner,heatsp_adjustment_values)
+    end
+    puts("--- clgsp_adjustment_values = #{clgsp_adjustment_values}")
+    puts("--- heatsp_adjustment_values = #{heatsp_adjustment_values}")
     runner.registerFinalCondition("Updated #{nts_clg}/#{applicable_clg_thermostats.size} thermostat cooling setpoint schedules and #{nts_htg}/#{applicable_htg_thermostats.size} thermostat heating setpoint schedules to model, with #{sp_adjustment.abs} degree C offset for #{prepeak_len} hours of daily pre-cooling/pre-heating before #{peak_len}-hour peak window, using #{load_prediction_method} simulation for load prediction")
     true
   end
