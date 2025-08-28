@@ -77,7 +77,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
   # Warning: Do not change the name of this method to be snake_case. The method must be lowerCamelCase.
   def energyPlusOutputRequests(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -612,7 +612,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -3613,6 +3613,68 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # report out weater heater unmet demand heat transfer
     runner.registerValue('com_report_shw_hp_water_heater_unmet_heat_transfer_demand_j', heat_pump_water_heater_unmet_heat_transfer_demand_j)
     runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
+
+    # Get outputs for heat recovery chillers
+    heat_cap_water = 4.184 # j/g/deg C
+    has_hrc = false
+    hrc_cap = 999
+    hrc_energy = 999
+    hrc_htg_load = 999
+    hrc_clg_load = 999
+    hrc_name = ''
+    model.getPlantLoops.each do |plant_loop|
+      plant_loop.supplyComponents.each do |component|
+        if component.to_ChillerElectricEIR.is_initialized
+          chiller = component.to_ChillerElectricEIR.get
+          idd_chiller = component.to_IddObjectType
+          next unless idd_chiller.getString(17, false).is_initialized
+
+          has_hrc = true
+          hrc_name = chiller.name.get.to_s
+          if chiller.referenceCapacity.is_initialized
+            hrc_cap = chiller.referenceCapacity.get
+          end
+
+
+
+        end
+      end
+    end
+
+    # Extract time series values for HRC if present
+    if has_hrc
+      # clg load and energy use
+      hrc_clg_load_ts_j = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Chiller Evaporator Cooling Energy', hrc_name.name.to_s.upcase)
+      hrc_energy_ts_j = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Chiller Electricity Energy [J]', hrc_name.name.to_s.upcase)
+      # variables to calculate heating provided by hrc
+      wtr_htr_outlet_temp_ts = sql.timeSeries(ann_env_pd, timeseries_timestep, 'System Node Temperature', 'Heat Recovery Storage Water Heater Demand Outlet Water Node'.upcase)
+      wtr_htr_inlet_temp_ts = sql.timeSeries(ann_env_pd, timeseries_timestep, 'System Node Temperature', 'Heat Recovery Storage Water Heater Demand Inlet Water Node'.upcase)
+      wtr_htr_mdot_ts = sql.timeSeries(ann_env_pd, timeseries_timestep, 'System Node Mass Flow Rate', 'Heat Recovery Storage Water Heater Demand Outlet Water Node'.upcase)
+
+      # convert to lists
+      hrc_clg_load_ts_j = convert_timeseries_to_list(hrc_clg_load_ts_j)
+      hrc_energy_ts_j = convert_timeseries_to_list(hrc_energy_ts_j)
+      wtr_htr_outlet_temp_ts = convert_timeseries_to_list(wtr_htr_outlet_temp_ts)
+      wtr_htr_inlet_temp_ts = convert_timeseries_to_list(wtr_htr_inlet_temp_ts)
+      wtr_htr_mdot_ts = convert_timeseries_to_list(wtr_htr_mdot_ts)
+
+      # Calculate energy transferred in htg by HRC
+      temp_delta = wtr_htr_outlet_temp_ts.zip(wtr_htr_inlet_temp_ts).map do |a, b|
+        a - b
+      end
+
+      ht_transfer_hrc = temp_delta.zip(wtr_htr_mdot_ts).map { |x, y| x * y * 1000 * ht_cap_water } # output in Watts
+      ht_transfer_hrc_kWh = ht_transfer_hrc.inject(0, :+).to_f / 1000
+      # Calculate sums
+      hrc_energy_sum_j = hrc_energy_ts_j.inject(0, :+)
+      hrc_clg_load_sum_j = hrc_clg_load_ts_j.inject(0, :+)
+
+    end
+
+    # add to outputs
+    runner.registerValue('hrc_energy_j', hrc_energy_sum_j)
+    runner.registerValue('hrc_clg_load_sum_j', hrc_clg_load_sum_j)
+    runner.registerValue('hrc_htg_load_sum_kWh', ht_transfer_hrc_kWh)
 
     # Error and Warning count from eplusout.err file (sql does not have data)
     err_path = File.join(File.dirname(sql.path.to_s), 'eplusout.err')
