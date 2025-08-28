@@ -1015,6 +1015,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     peak_setback_value = runner.getDoubleArgumentValue('peak_setback_value', user_arguments)
     compressor_reduction_during_peak = runner.getBoolArgumentValue('compressor_reduction_during_peak', user_arguments)
     peak_compressor_reduction_value = runner.getStringArgumentValue('peak_compressor_reduction_value', user_arguments)
+    backup_heat_reduction_during_peak = runner.getBoolArgumentValue('backup_heat_reduction_during_peak', user_arguments)
+    peak_backup_heat_reduction_value = runner.getStringArgumentValue('peak_backup_heat_reduction_value', user_arguments)    
 
     # build standard to use OS standards methods
     # ---------------------------------------------------------
@@ -2694,6 +2696,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     ############### START COMPRESSOR PEAK ADJUSTMENT ###################
+    
     #convert peak compressor reduction % input to a fraction
     max_compressor_frac = 1
     if peak_compressor_reduction_value == '0%'
@@ -2716,9 +2719,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
 
         # 1. EMS Sensor: reads the peak schedule (0 or 1)
-        peak_sch = model.getScheduleByName('Peak Schedule for Compressor Adjustment')
+        peak_sch = model.getScheduleByName('Peak Schedule for DR Adjustments')
         if peak_sch.empty?
-          runner.registerError('Peak Schedule for Compressor Adjustment not found in model')
+          runner.registerError('Peak Schedule for DR Adjustments not found in model.')
           return false
         end
         sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
@@ -2755,9 +2758,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           limit_val = max_compressor_frac * num_speeds
           runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of #{limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
 
-          SET limit_val = @MIN limit_val num_speeds
-          SET limit_val = @MAX limit_val 1
-          SET limit_val = @FLOOR limit_val
+          # SET limit_val = @MIN limit_val num_speeds
+          # SET limit_val = @MAX limit_val 1
+          # SET limit_val = @FLOOR limit_val
+          limit_val = [limit_val, num_speeds].min
+          limit_val = [limit_val, 1].max
+          limit_val = limit_val.floor
 
           # 4. EMS Program
           program_body = <<~EMS
@@ -2765,7 +2771,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
               SET #{actuator.name} = #{limit_val},
             ELSE,
               SET #{actuator.name} = Null,
-            ENDIF;
+            ENDIF
           EMS
 
           program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
@@ -2786,63 +2792,71 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ################# END COMPRESSOR PEAK ADJUSTMENT ################
 
     ################# START BACKUP HEAT PEAK ADJUSTMENT ################
-    # === EMS to limit supplemental electric heat during peak periods ===
 
-    # user config: choose one
-    sup_frac_during_peak = 0.5  # use 0.0 for full shed (0%), or 0.5 for 50%
-
-    # 1) Sensor on your existing peak schedule
-    peak_sch = model.getScheduleByName('Peak Schedule for Compressor Adjustment') # or your schedule name
-    if peak_sch.empty?
-      runner.registerError('Peak schedule not found for supplemental heat EMS.')
-      return false
+    #convert backup heat reduction % input to a fraction
+    backup_heat_frac = 1
+    if peak_backup_heat_reduction_value == '0%'
+      backup_heat_frac = 1
+    elsif peak_backup_heat_reduction_value == '50%'
+      backup_heat_frac = 0.5
+    elsif peak_backup_heat_reduction_value == '100%'
+      backup_heat_frac = 0
     end
-    dr_flag = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
-    dr_flag.setName('DR_Flag_SupHeat')
-    dr_flag.setKeyName(peak_sch.get.nameString)
 
-    # 2) Loop unitary systems and add the supplemental-heat actuator + program
-    model.getAirLoopHVACUnitarySystems.each do |unitary|
-      # Make sure there is a supplemental heating coil (often CoilHeatingElectric)
-      unless unitary.supplementalHeatingCoil.is_initialized
-        runner.registerInfo("Unitary '#{unitary.name}' has no supplemental heat; skipping EMS for it.")
-        next
+    if backup_heat_reduction_during_peak == true
+      # 1. Sensor on your existing peak schedule
+      peak_sch = model.getScheduleByName('Peak Schedule for DR Adjustments') # or your schedule name
+      if peak_sch.empty?
+        runner.registerError('Peak schedule not found for supplemental heat EMS.')
+        return false
       end
+      dr_flag = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
+      dr_flag.setName('DR_Flag_SupHeat')
+      dr_flag.setKeyName(peak_sch.get.nameString)
 
-      # Actuator: Unitary System Supplemental Coil Stage Level
-      sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
-        unitary,
-        'Coil Speed Control',
-        'Unitary System Supplemental Coil Stage Level'
-      )
-      sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
+      # 2. Loop unitary systems and add the supplemental-heat actuator + program
+      model.getAirLoopHVACUnitarySystems.each do |unitary|
+        # Make sure there is a supplemental heating coil (often CoilHeatingElectric)
+        unless unitary.supplementalHeatingCoil.is_initialized
+          runner.registerInfo("Unitary '#{unitary.name}' has no supplemental heat; skipping EMS for it.")
+          next
+        end
 
-      # For most RTUs the supplemental electric coil is single-stage (N=1)
-      # Leaving N=1 lets fractional values act as cycling ratio (e.g., 0.5 = 50%).
-      num_sup_stages = 1
-      if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
-        num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
+        # Actuator: Unitary System Supplemental Coil Stage Level
+        sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
+          unitary,
+          'Coil Speed Control',
+          'Unitary System Supplemental Coil Stage Level'
+        )
+        sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
+
+        # For most RTUs the supplemental electric coil is single-stage (N=1)
+        # Leaving N=1 lets fractional values act as cycling ratio (e.g., 0.5 = 50%).
+        num_sup_stages = 1
+        if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
+          num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
+        end
+
+        # EMS program body: during peak, cap to backup_heat_frac * N; else release control
+        program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+        program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
+        program.setBody(<<~EMS)
+          SET sup_lim = #{(backup_heat_frac).round(3)} * #{num_sup_stages}
+          IF (#{dr_flag.name} > 0.5),
+            SET #{sup_act.name} = sup_lim,   ! e.g., 0.5 on a 1-stage coil = 50%
+          ELSE,
+            SET #{sup_act.name} = Null,      ! release to normal control off-peak
+          ENDIF
+        EMS
+
+        # Call inside HVAC iteration loop
+        pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+        pcm.setName("PCM_DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
+        pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+        pcm.addProgram(program)
+
+        runner.registerInfo("Supplemental heat on '#{unitary.name}' will be capped to #{(backup_heat_frac*100).round}% during peak periods.")
       end
-
-      # EMS program body: during peak, cap to sup_frac_during_peak * N; else release control
-      program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-      program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
-      program.setBody(<<~EMS)
-        SET sup_lim = #{(sup_frac_during_peak).round(3)} * #{num_sup_stages}
-        IF (#{dr_flag.name} > 0.5),
-          SET #{sup_act.name} = sup_lim,   ! e.g., 0.5 on a 1-stage coil = 50%
-        ELSE,
-          SET #{sup_act.name} = Null,      ! release to normal control off-peak
-        ENDIF;
-      EMS
-
-      # Call inside HVAC iteration loop
-      pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-      pcm.setName("PCM_DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
-      pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-      pcm.addProgram(program)
-
-      runner.registerInfo("Supplemental heat on '#{unitary.name}' will be capped to #{(sup_frac_during_peak*100).round}% during peak periods.")
     end
 
     # report final condition of model

@@ -1106,7 +1106,7 @@ def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, pe
   peak_schedule
 end
 
-def make_peak_schedule_interval(model, peak_array, name = 'Peak Schedule for Compressor Adjustment')
+def make_peak_schedule_interval(model, peak_array, name = 'Peak Schedule for DR Adjustments')
   year_description = model.getYearDescription
   start_date = year_description.makeDate(1, 1)
 

@@ -612,7 +612,7 @@ class DfThermostatControlLoadShift < OpenStudio::Measure::ModelMeasure
       prepeak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr = 1,
                                                   peak_window_strategy, rebound_len = 0, prepeak_len, season = 'all')
       
-      peak_schedule_compressor = make_peak_schedule_interval(model, prepeak_schedule, 'Peak Schedule for Compressor Adjustment')
+      peak_schedule_compressor = make_peak_schedule_interval(model, prepeak_schedule, 'Peak Schedule for DR Adjustments')
       puts "peak schedule compressor = #{peak_schedule_compressor}"
     else
       runner.registerError('Not supported objective.')
