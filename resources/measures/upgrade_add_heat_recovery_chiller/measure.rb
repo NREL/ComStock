@@ -772,7 +772,7 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
 
     end
 
-    # Add vars for sizing
+    # Add vars for sizing and for output from comstock sensitivity reports
 
     var = OpenStudio::Model::OutputVariable.new('Plant Supply Side Cooling Demand Rate', model)
     var.setKeyValue(chilled_water_loop.name.to_s)
@@ -798,7 +798,40 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     var = OpenStudio::Model::OutputVariable.new('Boiler Heating Rate', model)
     var.setKeyValue('*')
     var.setReportingFrequency('Timestep')
+	
+	var = OpenStudio::Model::OutputVariable.new('Boiler Heating Rate', model)
+    var.setKeyValue('*')
+    var.setReportingFrequency('Timestep')
+	
+	#Variables for output variable calculation
+	var = OpenStudio::Model::OutputVariable.new('Chiller Evaporator Cooling Energy', model) #clg delivered by the chiller
+    var.setKeyValue('Heat Recovery Chiller')
+    var.setReportingFrequency('Timestep')
+	
+	var = OpenStudio::Model::OutputVariable.new('Chiller Electricity Energy [J]', model) #clg delivered by the chiller
+    var.setKeyValue('Heat Recovery Chiller')
+    var.setReportingFrequency('Timestep')
+	
+	var = OpenStudio::Model::OutputVariable.new('Chiller Evaporator Cooling Energy', model) #clg delivered by the chiller
+    var.setKeyValue('Heat Recovery Chiller')
+    var.setReportingFrequency('Timestep')
+	
+	var = OpenStudio::Model::OutputVariable.new('Chiller Electricity Energy [J]', model) #clg delivered by the chiller
+    var.setKeyValue('Heat Recovery Chiller')
+    var.setReportingFrequency('Timestep')
+	
+    var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+    var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+    var.setReportingFrequency('Timestep')
 
+    var = OpenStudio::Model::OutputVariable.new('System Node Temperature', model)
+    var.setKeyValue('Heat Recovery Storage Water Heater Demand Inlet Water Node')
+    var.setReportingFrequency('Timestep')
+
+    var = OpenStudio::Model::OutputVariable.new('System Node Mass Flow Rate', model)
+    var.setKeyValue('Heat Recovery Storage Water Heater Demand Outlet Water Node')
+    var.setReportingFrequency('Timestep')
+	
     # Create hash of vars to add
     # vars = Hash.new
     # vars["Heat Recovery Storage Water Heater Demand Outlet Water Node"] = ["System Node Temperature", "System Node Mass Flow Rate"] #need to structure this differently or make it a hash explicitly
