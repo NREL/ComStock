@@ -77,7 +77,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
   # Warning: Do not change the name of this method to be snake_case. The method must be lowerCamelCase.
   def energyPlusOutputRequests(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -612,7 +612,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -3600,8 +3600,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # report out weater heater unmet demand heat transfer
     runner.registerValue('com_report_shw_hp_water_heater_unmet_heat_transfer_demand_j', heat_pump_water_heater_unmet_heat_transfer_demand_j)
     runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
-	
-	# Get outputs for heat recovery chillers
+
+    # Get outputs for heat recovery chillers
     heat_cap_water = 4.184 # j/g/deg C
     has_hrc = false
     hrc_cap = 999
@@ -3615,6 +3615,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           chiller = component.to_ChillerElectricEIR.get
           idd_chiller = component.to_IddObjectType
           next unless idd_chiller.getString(17, false).is_initialized
+
           has_hrc = true
           hrc_name = chiller.name.get.to_s
           if chiller.referenceCapacity.is_initialized
