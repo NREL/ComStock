@@ -3628,15 +3628,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           chiller = component.to_ChillerElectricEIR.get
           idd_chiller = component.to_IddObjectType
           next unless idd_chiller.getString(17, false).is_initialized
-
           has_hrc = true
           hrc_name = chiller.name.get.to_s
           if chiller.referenceCapacity.is_initialized
             hrc_cap = chiller.referenceCapacity.get
           end
-
-
-
         end
       end
     end
