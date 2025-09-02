@@ -1052,10 +1052,23 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
       # get Air System Mixed Air Mass Flow Rate
       air_loop_mass_flow_rate_kg_s = sql_get_report_variable_data_double(runner, sql, air_loop_hvac, 'Air System Mixed Air Mass Flow Rate')
-
+	  
+	  fan_des_mass_flow_rate = 999
+	  
+	  #added variables for sp reset measure
+	  if air_loop_hvac.supplyFanto_FanVariableVolume.is_initialized
+	     sup_fan = air_loop_hvac.supplyFanto_FanVariableVolume.get
+		       if sup_fan.autosizedMaximumFlowRate.is_initialized
+			    fan_des_mass_flow_rate = sup_fan.autosizedMaximumFlowRate.get
+			   elsif sup_fan.maximumFlowRate.is_initialized
+			    fan_des_mass_flow_rate = sup_fan.maximumFlowRate.get
+			  end 
+	   end 
+	  
       fan_minimum_flow_frac = 0.0
       fan_static_pressure = 0.0
       fan_efficiency = 0.0
+	  fan_des_mass_flow_rate = 0.0
       supply_fan = air_loop_hvac.supplyFan
       if supply_fan.is_initialized
         supply_fan = supply_fan.get
@@ -1064,16 +1077,31 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           fan_minimum_flow_frac = 1.0
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
+		  if supply_fan.autosizedMaximumFlowRate.is_initialized
+			    fan_des_mass_flow_rate = supply_fan.autosizedMaximumFlowRate.get
+		  elsif supply_fan.maximumFlowRate.is_initialized
+			    fan_des_mass_flow_rate = supply_fan.maximumFlowRate.get
+		  end 
         elsif supply_fan.to_FanConstantVolume.is_initialized
           supply_fan = supply_fan.to_FanConstantVolume.get
           fan_minimum_flow_frac = 1.0
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
+		  if supply_fan.autosizedMaximumFlowRate.is_initialized
+			 fan_des_mass_flow_rate = supply_fan.autosizedMaximumFlowRate.get
+		  elsif supply_fan.maximumFlowRate.is_initialized
+			 fan_des_mass_flow_rate = supply_fan.maximumFlowRate.get
+		  end 
         elsif supply_fan.to_FanVariableVolume.is_initialized
           supply_fan = supply_fan.to_FanVariableVolume.get
           fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
+		  if supply_fan.autosizedMaximumFlowRate.is_initialized
+			 fan_des_mass_flow_rate = supply_fan.autosizedMaximumFlowRate.get
+		  elsif supply_fan.maximumFlowRate.is_initialized
+			 fan_des_mass_flow_rate = supply_fan.maximumFlowRate.get
+		  end 
         else
           runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
