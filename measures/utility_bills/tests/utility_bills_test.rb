@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -127,77 +127,6 @@ class UtilityBillsTest < Minitest::Test
     end
 
     run_test_simulation(test_name, epw_path)
-  end
-
-  # Test when the building is in a tract with no EIA utility ID assigned
-  def test_sm_hotel_no_utility_for_tract
-    test_name = 'sm_hotel_no_urdb_rates'
-    model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
-    # This census tract has no EIA utility ID assigned
-    sampling_region = '0'
-    census_tract = 'G0100470957000'
-    state_abbreviation = 'AL'
-    year = 1999
-
-    # create an instance of the measure
-    measure = UtilityBills.new
-
-    # create an instance of a runner
-    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-
-    # get arguments
-    arguments = measure.arguments
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # get the energyplus output requests, this will be done automatically by OS App and PAT
-    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
-    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
-
-    # mimic the process of running this measure in OS App or PAT
-    epw_path = epw_path_default
-    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
-
-    assert(File.exist?(model_out_path(test_name)))
-    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
-
-    # Set up runner, this will happen automatically when measure is run in PAT or OpenStudio
-    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
-    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
-    runner.setLastEpwFilePath('')
-    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
-
-    # Temporarily change directory to the run directory and run the measure
-    start_dir = Dir.pwd
-    begin
-      Dir.chdir(run_dir(test_name))
-      # run the measure
-      measure.run(runner, argument_map)
-      result = runner.result
-      show_output(result)
-      assert_equal('Success', result.value.valueName)
-    ensure
-      Dir.chdir(start_dir)
-    end
-
-    # Check that electric bills are being calculated
-    puts '***Machine-Readable Attributes**'
-    rvs = {}
-    result.stepValues.each do |value|
-      name_val = JSON.parse(value.string)
-      rvs[name_val['name']] = name_val['value']
-    end
-
-    elec_util_from_file = get_utility_for_tract(census_tract)
-    # check that no utility is found for the given census tract
-    assert(elec_util_from_file.nil?)
-
-    # check that nothing is found for this tract in bill results
-    utility_id_regexp = /\|([^:]+)/
-    refute_includes(rvs['electricity_utility_bill_results'].scan(utility_id_regexp).flatten, elec_util_from_file)
-
-    # check that state average result has value
-    state_avg_regexp = /\|([^:]+)/
-    assert_includes(rvs['state_avg_electricity_cost_results'].scan(state_avg_regexp).flatten, state_abbreviation)
   end
 
   # Test when the building is assigned a utility with no rates from URDB

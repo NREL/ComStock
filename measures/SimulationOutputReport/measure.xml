@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>simulation_output_report</name>
   <uid>fc337100-8634-404e-8966-01243d292a79</uid>
-  <version_id>b46b7257-d768-42cd-990b-71a0988b2521</version_id>
-  <version_modified>2025-07-16T03:45:47Z</version_modified>
+  <version_id>fb07379c-943a-4de1-a7d5-0157236e6b9b</version_id>
+  <version_modified>2025-03-18T22:23:04Z</version_modified>
   <xml_checksum>2C8A3EEF</xml_checksum>
   <class_name>SimulationOutputReport</class_name>
   <display_name>Simulation Output Report</display_name>
@@ -30,6 +30,20 @@
       <name>total_site_natural_gas_therm</name>
       <display_name>total_site_natural_gas_therm</display_name>
       <short_name>total_site_natural_gas_therm</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>total_site_fuel_oil_mbtu</name>
+      <display_name>total_site_fuel_oil_mbtu</display_name>
+      <short_name>total_site_fuel_oil_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>total_site_propane_mbtu</name>
+      <display_name>total_site_propane_mbtu</display_name>
+      <short_name>total_site_propane_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -65,13 +79,6 @@
       <name>net_site_electricity_kwh</name>
       <display_name>net_site_electricity_kwh</display_name>
       <short_name>net_site_electricity_kwh</short_name>
-      <type>Double</type>
-      <model_dependent>false</model_dependent>
-    </output>
-    <output>
-      <name>purchased_site_electricity_kwh</name>
-      <display_name>purchased_site_electricity_kwh</display_name>
-      <short_name>purchased_site_electricity_kwh</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -209,6 +216,62 @@
       <model_dependent>false</model_dependent>
     </output>
     <output>
+      <name>fuel_oil_heating_mbtu</name>
+      <display_name>fuel_oil_heating_mbtu</display_name>
+      <short_name>fuel_oil_heating_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>fuel_oil_interior_equipment_mbtu</name>
+      <display_name>fuel_oil_interior_equipment_mbtu</display_name>
+      <short_name>fuel_oil_interior_equipment_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>fuel_oil_water_systems_mbtu</name>
+      <display_name>fuel_oil_water_systems_mbtu</display_name>
+      <short_name>fuel_oil_water_systems_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>fuel_oil_generators_mbtu</name>
+      <display_name>fuel_oil_generators_mbtu</display_name>
+      <short_name>fuel_oil_generators_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>propane_heating_mbtu</name>
+      <display_name>propane_heating_mbtu</display_name>
+      <short_name>propane_heating_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>propane_interior_equipment_mbtu</name>
+      <display_name>propane_interior_equipment_mbtu</display_name>
+      <short_name>propane_interior_equipment_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>propane_water_systems_mbtu</name>
+      <display_name>propane_water_systems_mbtu</display_name>
+      <short_name>propane_water_systems_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>propane_generators_mbtu</name>
+      <display_name>propane_generators_mbtu</display_name>
+      <short_name>propane_generators_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
       <name>district_cooling_cooling_therm</name>
       <display_name>district_cooling_cooling_therm</display_name>
       <short_name>district_cooling_cooling_therm</short_name>
@@ -247,6 +310,13 @@
       <name>other_fuel_water_systems_mbtu</name>
       <display_name>other_fuel_water_systems_mbtu</display_name>
       <short_name>other_fuel_water_systems_mbtu</short_name>
+      <type>Double</type>
+      <model_dependent>false</model_dependent>
+    </output>
+    <output>
+      <name>other_fuel_generators_mbtu</name>
+      <display_name>other_fuel_generators_mbtu</display_name>
+      <short_name>other_fuel_generators_mbtu</short_name>
       <type>Double</type>
       <model_dependent>false</model_dependent>
     </output>
@@ -326,7 +396,49 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A8C50C29</checksum>
+      <checksum>9250DFBE</checksum>
+    </file>
+    <file>
+      <filename>USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A76C8897</checksum>
+    </file>
+    <file>
+      <filename>USA_MN_Duluth.Intl.AP.727450_TMY.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>17EAF57D</checksum>
+    </file>
+    <file>
+      <filename>USA_NV_Nellis.Afb.723865_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>877412BC</checksum>
+    </file>
+    <file>
+      <filename>bldg0000034.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>48EBAF7F</checksum>
+    </file>
+    <file>
+      <filename>bldg0000090.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2747EBA8</checksum>
+    </file>
+    <file>
+      <filename>heat_pump_boiler_1.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A95E6942</checksum>
+    </file>
+    <file>
+      <filename>simulation_output_report_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>11D38439</checksum>
     </file>
   </files>
 </measure>

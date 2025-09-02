@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 import re
@@ -75,6 +75,8 @@ class PlottingMixin():
             pattern_dict = {
                 'Electricity': "",
                 'Natural Gas':"/",
+                'Propane': 'p',
+                'Fuel Oil No 2': '$',
                 'District Cooling':"x",
                 'District Heating':".",
                 'Other Fuel':'+'
@@ -99,6 +101,8 @@ class PlottingMixin():
                 'Fuel Type': [
                             'Electricity',
                             'Natural Gas',
+                            'Propane',
+                            'Fuel Oil No 2'
                             'District Cooling',
                             'District Heating',
                             'Other Fuel',

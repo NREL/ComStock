@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 ######################################################################
 #  Copyright (c) 2008-2013, Alliance for Sustainable Energy.
@@ -22,15 +22,11 @@
 require 'openstudio'
 require 'openstudio/ruleset/ShowRunnerOutput'
 require_relative '../../../../test/helpers/minitest_helper'
-
-require_relative '../measure.rb'
+require_relative '../measure'
 require 'minitest/autorun'
 
-class InjectIDFObjects_Test < MiniTest::Unit::TestCase
-
-
-  def test_InjectIDFObjects
-
+class MultispeedMinimumFlowTest < MiniTest::Unit::TestCase
+  def test_multispeed_minimum_flow
     # create an instance of the measure
     measure = MultispeedMinimumFlow.new
 
@@ -40,9 +36,9 @@ class InjectIDFObjects_Test < MiniTest::Unit::TestCase
 
     # load the test model
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/in.osm")
+    path = OpenStudio::Path.new("#{File.dirname(__FILE__)}/in.osm")
     model = translator.loadModel(path)
-    assert((not model.empty?))
+    assert(!model.empty?)
     model = model.get
 
     # forward translate OSM file to IDF file
@@ -56,13 +52,10 @@ class InjectIDFObjects_Test < MiniTest::Unit::TestCase
     measure.run(workspace, runner, argument_map)
     result = runner.result
     show_output(result)
-    #assert(result.value.valueName == "Success")
+    # assert(result.value.valueName == "Success")
 
     # save the workspace to output directory
-    output_file_path = OpenStudio::Path.new(File.dirname(__FILE__) + "/output/test_output.idf")
-    workspace.save(output_file_path,true)
-
+    output_file_path = OpenStudio::Path.new("#{File.dirname(__FILE__)}/output/test_output.idf")
+    workspace.save(output_file_path, true)
   end
-
-
 end

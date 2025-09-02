@@ -90,6 +90,11 @@ Install the libraries needed for this repository:
 $ pip install -e .[dev]
 ```
 
+If running the ComStock Gap Model, install the required libraries with:
+```
+$ pip install -e .[dev,gap]
+```
+
 ## Usage
 
 ### Comparing one or more ComStock runs to each other and CBECS

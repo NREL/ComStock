@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2020, Alliance for Sustainable Energy, LLC.
@@ -35,11 +35,11 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
-require "openstudio"
-require "openstudio/measure/ShowRunnerOutput"
-require "minitest/autorun"
-require "fileutils"
-require_relative "../measure.rb"
+require 'openstudio'
+require 'openstudio/measure/ShowRunnerOutput'
+require 'minitest/autorun'
+require 'fileutils'
+require_relative '../measure'
 
 class ThermalBridgingDeratingTest < Minitest::Test
   # return file paths to test models in test directory
@@ -66,7 +66,7 @@ class ThermalBridgingDeratingTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return File.join(File.dirname(__FILE__),"output","#{test_name}")
+    return File.join(File.dirname(__FILE__), 'output', test_name.to_s)
   end
 
   def model_input_path(osm_name)
@@ -96,18 +96,12 @@ class ThermalBridgingDeratingTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
 

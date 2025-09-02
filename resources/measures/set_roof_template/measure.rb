@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -185,8 +185,8 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
 
     # set additional properties for building
     props = model.getBuilding.additionalProperties
-    props.setFeature('roof_as_constructed_template',"#{as_constructed_template}")
-    props.setFeature('roof_template',"#{template}")
+    props.setFeature('roof_as_constructed_template', as_constructed_template.to_s)
+    props.setFeature('roof_template', template.to_s)
 
     # Not applicable if the selected template matches the as-constructed template
     if template == as_constructed_template
@@ -196,7 +196,7 @@ class SetRoofTemplate < OpenStudio::Measure::ModelMeasure
 
     # Make a standard
     reset_log
-    standard = Standard.build("#{template}")
+    standard = Standard.build(template.to_s)
 
     # Check that a default construction set is defined
     bldg_def_const_set = model.getBuilding.defaultConstructionSet
