@@ -23,10 +23,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin):
-    def __init__(self, 
-                 truth_data_version='v01', 
-                 reload_from_saved=True, 
-                 resstock_version='2024_amy2018_release_2', 
+    def __init__(self,
+                 truth_data_version='v01',
+                 reload_from_saved=True,
+                 resstock_version='2024_amy2018_release_2',
                  comstock_version='2024_amy2018_release_1',
                  basis_lrd_name='First Energy PA',
                  res_allocation_method='EIA',
@@ -43,15 +43,15 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             resstock_version (String): version of ResStock to query
             comstock_version (String): version of ComStock to query
             basis_lrd_name (String): name of LRD utility to use as basis for Industrial profile
-            res_allocation_method (String): method to allocate residential demand profiles to BA. 
+            res_allocation_method (String): method to allocate residential demand profiles to BA.
             com_allocation_method (String): method to allocate commercial demand profiles to BA.
-            gap_allocation_method (String): one of ['CBECS', 'BAGeo']. The method used to allocate BA-level gap profiles to County-level. 
-                'BAGeo' allocates gap demand to county by the fraction of commercial building area in each county and BA as determined by the BA geography mapping 
-                    (i.e. combining Electric Retail Service Territories shapefiles by BA, de-overlapping them, then overlaying Structures data and summing total 
+            gap_allocation_method (String): one of ['CBECS', 'BAGeo']. The method used to allocate BA-level gap profiles to County-level.
+                'BAGeo' allocates gap demand to county by the fraction of commercial building area in each county and BA as determined by the BA geography mapping
+                    (i.e. combining Electric Retail Service Territories shapefiles by BA, de-overlapping them, then overlaying Structures data and summing total
                     Commercial structures areas contained in each shape).
-                'CBECS' allocates gap demand by using CBECS reported electricity EUI by building type and climate division, mapping the CBECS building types to the 
-                    types found in the StockE dataset, and computing the total annual electricity consumption of the StockE buildings. StockE buildings are assigned 
-                    to a BA using the ComStock tract to utility_id map, and matching utility_id to BA from EIA861 Sales, Short, and Advanced Metering forms. The 
+                'CBECS' allocates gap demand by using CBECS reported electricity EUI by building type and climate division, mapping the CBECS building types to the
+                    types found in the StockE dataset, and computing the total annual electricity consumption of the StockE buildings. StockE buildings are assigned
+                    to a BA using the ComStock tract to utility_id map, and matching utility_id to BA from EIA861 Sales, Short, and Advanced Metering forms. The
                     total estimated annual energy can then be summed by county and BA, and the fraction of the total BA consumption determined for each county it serves.
             trim_negative_gap (Bool): whether to allow negative gap values. If True, negative values are set to 0. If False, negative values are kept as is.
         """
@@ -71,7 +71,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         self.plot_dir = os.path.join(self.output_dir, 'comparison_plots')
         self.truth_data_dir = os.path.join(current_dir, '..', '..', 'truth_data', self.truth_data_version)
         self.processed_dir = os.path.join(self.truth_data_dir, 'gap_processed')
-        
+
         for p in [self.truth_data_dir, self.processed_dir, self.output_dir, self.plot_dir]:
             if not os.path.exists(p):
                 os.makedirs(p)
@@ -141,7 +141,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         if com_cols_to_drop:
             logger.info(f"Dropping {', '.join(com_cols_to_drop)} columns from Commercial profiles.")
             self.com_ba_profiles = com_ba_profiles.drop(com_cols_to_drop, axis=1)
-        
+
         gap_ba_profiles = self.total_ba_profiles.sub(self.res_ba_profiles + self.com_ba_profiles + self.ind_ba_profiles)
 
         if self.trim_negative_gap:
@@ -176,7 +176,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                 state = str(id)[:2]
                 county = str(id)[2:]
                 return f'G{state}0{county}0'
-            
+
             # remake index with county gisjoins
             ba_county_fracs.index = pd.MultiIndex.from_arrays(
                 [
@@ -191,7 +191,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
         elif self.gap_allocation_method == 'CBECS':
             ba_county_fracs = self.ba_county_fractions_from_cbecs()
-        
+
         else:
             logger.error(f'Cannot allocate gap profiles to counties with method {self.gap_allocation_method} - not supported.')
             exit()
@@ -204,10 +204,10 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         ba_county_gap_profiles_data = {}
         for idx, row in ba_county_fracs.iterrows():
             ba_county_gap_profiles_data[idx] = gap_ba_profiles[idx[0]].mul(row['fraction'])
-        
+
         ba_county_gap_profiles = pd.DataFrame(ba_county_gap_profiles_data)
         # print(ba_county_gap_profiles)
-        
+
         county_gap_profiles = ba_county_gap_profiles.T.groupby(level=1).sum().T
 
         return county_gap_profiles
@@ -219,12 +219,12 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
         # TODO
         return None
-    
+
     def plot_profiles_for_single_ba(self, ba_code):
         # extract specified ba from component dfs
-        
+
         gap_ba_profiles = self.commercial_gap_by_ba()
-        
+
         total = self.total_ba_profiles[[ba_code]].rename(columns={ba_code: f'{ba_code} Total Reported BA Demand'})
         ind = self.ind_ba_profiles[[ba_code]].rename(columns={ba_code: f'{ba_code} Industrial Profile (estimated)'})
         res = self.res_ba_profiles[[ba_code]].rename(columns={ba_code: f'{ba_code} Residential (ResStock adjusted)'})
@@ -240,14 +240,14 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         all_bldgs_path = f'truth_data/{self.truth_data_version}/StockE/all_bldgs_with_tracts_for_gap.parquet'
         df = self.read_delimited_truth_data_file_from_S3(all_bldgs_path, delimiter=',')
         return df
-    
+
     def correct_cbecs_other_eui(self, df, cbecs_eui_by_type_and_div):
         """
         Buildings with 'Other' type in CBECS have an unusually large electric EUI - similar to Laboratories or Restaurants. This type is mapped to the 'general' type in the buildings data, which makes up a significant portion of the square footage in certain counties, and since this type isn't mapped to a ComStock building type, this unfairly skews the 'gap' energy consumption by county.
         Instead, we assume that buildings categorized as 'general' in the buildings data are just mis-categorized of other types, and further that the distribution of those unknown types matches the distribution of correctly-categorized buildings for that state.
         So for each building with type 'general', apply an EUI calculated by the weighted average EUI of known types in that state.
         Args:
-            df (pandas.DataFrame) buildings dataframe with CBECS building types 
+            df (pandas.DataFrame) buildings dataframe with CBECS building types
             cbecs_eui_by_type_and_div (pandas.DataFrame) cbecs EUIs grouped by CBECS_BLDG_TYPE and CEN_DIV
         """
         logger.info("Adjusting 'general' building EUI based on state distribution of known-type buildings")
@@ -265,11 +265,11 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
             # get all buildings not categorized 'Other'/'general'
             by_type_filtered = by_type[by_type.index != 'Other']
-            
+
             # merge in CBECS EUIs for known types
             by_type_filtered.reset_index(inplace=True)
             by_type_filtered = pd.merge(by_type_filtered, cbecs_euis_by_type_for_state, how='left', on=self.CBECS_BLDG_TYPE)
-            
+
             # types in the buildings data might not be represented in the CBECS census division - in this case fill with national averages
             national_fills = cbecs_eui_by_type.rename(columns={EUI: 'National EUI'}).reset_index()
             by_type_filtered = pd.merge(by_type_filtered, national_fills, how='left', on=self.CBECS_BLDG_TYPE)
@@ -293,7 +293,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
     def ba_county_fractions_from_cbecs(self):
         """
-        Estimates the total annual commercial building electricity energy by county by using StockE total buildings by tract and type, and the mean electric energy intenstiy by building type from CBECS. 
+        Estimates the total annual commercial building electricity energy by county by using StockE total buildings by tract and type, and the mean electric energy intenstiy by building type from CBECS.
         """
 
         processed_filename = 'gap_county_fractions_from_CBECS.parquet'
@@ -305,7 +305,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                 return ba_county_fracs
             else:
                 logger.warning(f'No processed data found for {processed_filename}.  Processing from truth data.')
-                
+
 
         # mapping of StockE building types to cbecs types
         type_map = {
@@ -381,7 +381,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         # load CBECS
         cbecs_obj = CBECS(cbecs_year=2018, truth_data_version=self.truth_data_version, reload_from_csv=False)
         cbecs = cbecs_obj.data.collect().to_pandas()
-        
+
         # calculate energy intensities from CBECS
         EUI = self.col_name_to_eui(self.ANN_TOT_ELEC_KBTU)
         cbecs_eui_by_type_and_div = cbecs.groupby([self.CBECS_BLDG_TYPE, self.CEN_DIV])[EUI].agg('mean').to_frame()
@@ -396,11 +396,11 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
         # sum by state, convert to MWh
         elec_by_state = all_bldgs.groupby(self.STATE_ABBRV)[self.ANN_TOT_ELEC_KBTU].sum() / 1e3
- 
+
         # TODO: compare state estimated totals against EIA 861 reported totals in log-log plot
 
         # merge BAs, Utility IDs onto buildings data
-        tract_utility_ba_map = CommercialProfile().tract_utility_ba_map()
+        tract_utility_ba_map = CommercialProfile(comstock_version=self.comstock_version, allocation_method=self.com_allocation_method).tract_utility_ba_map()
 
         all_bldgs = pd.merge(all_bldgs, tract_utility_ba_map, how='left', on=self.TRACT_ID)
 
@@ -445,7 +445,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         gap_bldgs = all_bldgs[~all_bldgs['building_type'].isin(comstock_types.keys())]
 
 
-        # sum by BA 
+        # sum by BA
         by_ba = gap_bldgs.groupby('BA Code')[self.ANN_TOT_ELEC_KBTU].sum().to_frame()
 
         # sum estimated total energy by BA and County
@@ -458,7 +458,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         ba_county_fracs.to_parquet(processed_path)
 
         return ba_county_fracs
-    
+
     def annual_comparison_plot(self):
         """
         Creates an annual comparison stacked barchart of reported EIA sector totals compared to modeled profile totals
@@ -478,7 +478,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         # EIA 930 totals
         ba_profiles = EIA930().data
         total_930 = ba_profiles.sum().sum()
-        
+
         reported_totals.at[TOTAL, 'value'] = total_930
 
         # EIA 861 Sales
@@ -488,7 +488,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         all_861 = all_861[(all_861['State'] != 'AK') & (all_861['State'] != 'HI')]
 
         all_861_total = all_861[['INDUSTRIAL_Sales_MWh', 'COMMERCIAL_Sales_MWh', 'RESIDENTIAL_Sales_MWh']].sum(axis=0).to_frame()
-        
+
         reported_totals.at[IND, 'value'] = all_861_total.loc['INDUSTRIAL_Sales_MWh'][0]
         reported_totals.at[COM, 'value'] = all_861_total.loc['COMMERCIAL_Sales_MWh'][0]
         reported_totals.at[RES, 'value'] = all_861_total.loc['RESIDENTIAL_Sales_MWh'][0]
@@ -526,7 +526,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
         print(modeled_totals)
         print(reported_totals)
 
-        # value: [bar color, text color] 
+        # value: [bar color, text color]
         colors = {
             IND: ['orange','white'],
             IND_M: ['orange','white'],
@@ -761,7 +761,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             com_profile = self.com_ba_profiles
             res_profile = self.res_ba_profiles
             ind_profile = self.ind_ba_profiles
-            
+
             if aggregation_key == 'All':
                 keys_to_plot = gap_profile.columns
             elif type(aggregation_key) == list:
@@ -771,7 +771,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             else:
                 logger.error(f"BA {aggregation_key} not found in gap profiles")
                 return None
-            
+
             for key in keys_to_plot:
                 logger.info(f"Plotting profiles for BA {key}")
 
@@ -783,10 +783,10 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
 
                 # combine into single dataframe
                 df = pd.concat([
-                    total_data, 
-                    gap_data, 
-                    com_data, 
-                    res_data, 
+                    total_data,
+                    gap_data,
+                    com_data,
+                    res_data,
                     ind_data
                 ], axis=1)
 
@@ -797,7 +797,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                     'ResStock',
                     'Industrial'
                 ]
-                
+
                 # plot for each season
                 colors = {
                     'EIA 930 Total': 'blue',
@@ -810,6 +810,6 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
                 fig_name = f'{key} {aggregation_type} Profiles.png'
                 plot_stacked_area_for_days(df, key, colors)
                 plot_for_dates(df, aggregation_type, key, colors, fig_name)
-                
+
 
                 # return df
