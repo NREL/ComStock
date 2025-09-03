@@ -966,6 +966,8 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
       sum = slice.reduce(:+).to_f
       hourly_load << sum
     end
+  else
+    hourly_load = load
   end
   # convert load from J to mwh
   hourly_load_mwh = []

@@ -110,7 +110,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
     args << light_adjustment
 
     num_timesteps_in_hr = OpenStudio::Measure::OSArgument.makeIntegerArgument('num_timesteps_in_hr', true)
-    num_timesteps_in_hr.setDisplayName('Number/Count of timesteps in an hour for sample simulations')
+    num_timesteps_in_hr.setDisplayName('Number/Count of timesteps in an hour for sample simulations (will be fixed to 1 for grid peak load / emissions objective)')
     num_timesteps_in_hr.setDefaultValue(4)
     args << num_timesteps_in_hr
 
