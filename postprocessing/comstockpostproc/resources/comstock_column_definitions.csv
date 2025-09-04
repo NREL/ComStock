@@ -678,6 +678,9 @@ results.csv,com_stock_sensitivity_reports.com_report_number_of_spaces,out.params
 results.csv,com_stock_sensitivity_reports.com_report_smallest_space_m_2,out.params.smallest_space_floor_area,TRUE,FALSE,float,m2,m2,Smallest Space by floor area in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_number_of_surfaces,out.params.number_of_surfaces,TRUE,FALSE,integer,,,Number of Surface objects in the building energy model
 results.csv,com_stock_sensitivity_reports.com_report_pv_system_size_kw,out.params.pv_system_size,TRUE,TRUE,float,kW,kW,Total photovoltaic design capacity in kW
+results.csv,com_stock_sensitivity_reports.com_report_battery_capacity_kwh,out.params.battery_capacity_kwh,TRUE,TRUE,float,kWh,kWh,Total energy capacity of battery storage
+results.csv,com_stock_sensitivity_reports.com_report_battery_max_charge_kw,out.params.battery_max_charge_kw,TRUE,TRUE,float,kW,kW,Total max charge power of battery
+results.csv,com_stock_sensitivity_reports.com_report_battery_max_discharge_kw,out.params.battery_max_discharge_kw,TRUE,TRUE,float,kW,kW,Total max discharge power of battery
 results.csv,completed_at,,FALSE,FALSE,float,,,Simulation end time for model
 results.csv,completed_status,completed_status,TRUE,FALSE,string,,,Simulation completion status
 results.csv,emissions_reporting.annual_cooling_district_cooling_ghg_emissions_kg,out.emissions.district_cooling.cooling,TRUE,FALSE,float,co2e_kg,co2e_kg,annual greenhouse gas emissions from district cooling for cooling use
@@ -1158,7 +1161,7 @@ results.csv,simulation_output_report.electricity_interior_equipment_kwh,out.elec
 results.csv,simulation_output_report.electricity_interior_lighting_kwh,out.electricity.interior_lighting.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual interior lighting electricity energy consumption
 results.csv,simulation_output_report.electricity_pumps_kwh,out.electricity.pumps.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual pump electricity energy consumption
 results.csv,simulation_output_report.electricity_pv_kwh,out.electricity.pv.energy_consumption,TRUE,FALSE,float,kwh,kwh,"Annual PV electricity energy consumption in kWh, negative values indicate generation"
-results.csv,simulation_output_report.net_site_electricity_kwh,out.electricity.net.energy_consumption,TRUE,FALSE,float,kwh,kwh,"Annual net electricity energy consumption in kWh with negative values indicating excess onsite electricity generation sent back to the grid."
+results.csv,simulation_output_report.net_site_electricity_kwh,out.electricity.net.energy_consumption,TRUE,FALSE,float,kwh,kwh,Annual net electricity energy consumption in kWh with negative values indicating excess onsite electricity generation sent back to the grid.
 results.csv,simulation_output_report.electricity_refrigeration_kwh,out.electricity.refrigeration.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual commercial refrigetation electricity energy consumption
 results.csv,simulation_output_report.electricity_water_systems_kwh,out.electricity.water_systems.energy_consumption,TRUE,FALSE,float,kwh,kwh,Building annual service water heating electricity energy consumption
 results.csv,simulation_output_report.fuel_oil_heating_mbtu,out.fuel_oil.heating.energy_consumption,TRUE,FALSE,float,million_btu,kwh,Building annual heating energy consumption for fuel oil no2
@@ -1208,6 +1211,7 @@ calculated,in.nhgis_county_gisjoin,in.nhgis_county_gisjoin,TRUE,TRUE,string,,,"C
 calculated,in.nhgis_puma_gisjoin,in.nhgis_puma_gisjoin,TRUE,TRUE,string,,,"Census PUMA identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_tract_gisjoin,in.nhgis_tract_gisjoin,TRUE,TRUE,string,,,"Census tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.nhgis_state_gisjoin,in.nhgis_state_gisjoin,TRUE,TRUE,string,,,"State tract identifier where the model is located, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+calculated,in.electric_utility_eia_code,in.electric_utility_eia_code,TRUE,FALSE,integer,,,The EIA ID of the electric utility for this building
 calculated,out.utility_bills.electricity_bill_min,out.utility_bills.electricity_bill_min,TRUE,FALSE,float,usd,usd,Minimum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as state average rate bill.
 calculated,out.utility_bills.electricity_bill_min_label,out.utility_bills.electricity_bill_min_label,TRUE,FALSE,string,,,Minimum applicable utility rate label. If not utility ID or applicable rates found this will be state_average_rate.
 calculated,out.utility_bills.electricity_bill_max,out.utility_bills.electricity_bill_max,TRUE,FALSE,float,usd,usd,Maximum utility bill result for applicable utility rates. If no utility ID or applicable rates found this is same as state average rate bill.

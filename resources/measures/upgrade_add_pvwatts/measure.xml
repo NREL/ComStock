@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_pvwatts</name>
   <uid>028f219f-d1a4-4f92-985b-08fc5127fe6d</uid>
-  <version_id>79af8480-6b80-4b9f-8459-dc4f53cd0d82</version_id>
-  <version_modified>2025-07-23T23:00:30Z</version_modified>
+  <version_id>2abbc023-df48-472d-94f9-d443096dde2c</version_id>
+  <version_modified>2025-07-16T15:10:35Z</version_modified>
   <xml_checksum>A66F5BE5</xml_checksum>
   <class_name>UpgradeAddPvwatts</class_name>
   <display_name>upgrade_add_pvwatts</display_name>
@@ -19,6 +19,25 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>0.4</default_value>
+    </argument>
+    <argument>
+      <name>incl_batt_storage</name>
+      <display_name>Include Battery Storage?</display_name>
+      <description>Adds battery storage system per CEC guidlines.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
     </argument>
   </arguments>
   <outputs />
@@ -69,7 +88,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>7527FCB3</checksum>
+      <checksum>A46C38EF</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -92,7 +111,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B815C5D4</checksum>
+      <checksum>C466193D</checksum>
+    </file>
+    <file>
+      <filename>deer_t24_2022.battery_storage_system.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>E94BC18F</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -104,7 +129,7 @@
       <filename>upgrade_add_pvwatts_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>150B4F00</checksum>
+      <checksum>BE3642F9</checksum>
     </file>
   </files>
 </measure>
