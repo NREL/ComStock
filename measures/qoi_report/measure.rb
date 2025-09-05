@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -36,6 +36,9 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # *******************************************************************************
 
+# require all .rb files in resources folder
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
+
 require 'date'
 
 # start the measure
@@ -51,9 +54,20 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   end
 
   # define the arguments that the user will input
-  def arguments(_model = nil)
-    OpenStudio::Measure::OSArgumentVector.new
-    # this measure does not require any user arguments, return an empty list
+  def arguments(model = nil)
+    args = OpenStudio::Measure::OSArgumentVector.new
+
+    # make an argument for the grid region
+    grid_region_chs = OpenStudio::StringVector.new
+    grid_regions.each { |grid_region| grid_region_chs << grid_region }
+    grid_region_chs << 'Lookup from model'
+    grid_region = OpenStudio::Measure::OSArgument.makeChoiceArgument('grid_region', grid_region_chs, true)
+    grid_region.setDisplayName('Grid Region')
+    grid_region.setDescription('Cambium electric grid region, or eGrid region for Alaska and Hawaii')
+    grid_region.setDefaultValue('Lookup from model')
+    args << grid_region
+
+    return args
   end
 
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
@@ -66,17 +80,49 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     result = OpenStudio::IdfObjectVector.new
 
-    result << OpenStudio::IdfObject.load('Output:Meter,Electricity:Facility,hourly;').get
+    result << OpenStudio::IdfObject.load('Output:Meter,ElectricityPurchased:Facility,hourly;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Site Outdoor Air Drybulb Temperature,Hourly;').get
 
     result
   end
 
+  def grid_regions
+    grid_regions = [
+      'AZNMc',
+      'AKGD',
+      'AKMS',
+      'CAMXc',
+      'ERCTc',
+      'FRCCc',
+      'HIMS',
+      'HIOA',
+      'MROEc',
+      'MROWc',
+      'NEWEc',
+      'NWPPc',
+      'NYSTc',
+      'RFCEc',
+      'RFCMc',
+      'RFCWc',
+      'RMPAc',
+      'SPNOc',
+      'SPSOc',
+      'SRMVc',
+      'SRMWc',
+      'SRSOc',
+      'SRTVc',
+      'SRVCc'
+    ]
+    return grid_regions
+  end
+
   def seasons
-    {
+    return {
       'winter' => [-1e9, 55],
       'summer' => [70, 1e9],
-      'shoulder' => [55, 70]
+      'shoulder' => [55, 70],
+      'nonwinter' => [55, 1e9],
+      'all' => [-1e9, 1e9]
     }
   end
 
@@ -140,7 +186,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def min_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "minimum_daily_peak_use_#{month}_kw"
+      output_names << "minimum_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -148,7 +194,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def q1_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "q1_daily_peak_use_#{month}_kw"
+      output_names << "q1_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -156,7 +202,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def med_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "median_daily_peak_use_#{month}_kw"
+      output_names << "median_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -164,7 +210,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def q3_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "q3_daily_peak_use_#{month}_kw"
+      output_names << "q3_daily_peak_#{month}_kw"
     end
     output_names
   end
@@ -172,7 +218,31 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
   def max_daily_peak_by_month
     output_names = []
     months.each do |month, _month_val|
-      output_names << "maximum_daily_peak_use_#{month}_kw"
+      output_names << "maximum_daily_peak_#{month}_kw"
+    end
+    output_names
+  end
+
+  def mean_daily_peak_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_#{month}_kw"
+    end
+    output_names
+  end
+
+  def mean_daily_peak_grid_window_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_grid_window_#{month}_kw"
+    end
+    output_names
+  end
+
+  def mean_daily_peak_grid_peak_by_month
+    output_names = []
+    months.each do |month, _month_val|
+      output_names << "mean_daily_peak_grid_peak_#{month}_kw"
     end
     output_names
   end
@@ -205,6 +275,9 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     output_names += med_daily_peak_by_month
     output_names += q3_daily_peak_by_month
     output_names += max_daily_peak_by_month
+    output_names += mean_daily_peak_by_month
+    output_names += mean_daily_peak_grid_window_by_month
+    output_names += mean_daily_peak_grid_peak_by_month
     output_names += med_daily_peak_timing_by_month
     output_names += total_electricity_by_month
 
@@ -221,7 +294,11 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     super(runner, user_arguments)
 
     # use the built-in error checking
-    return false unless runner.validateUserArguments(arguments, user_arguments)
+    if !runner.validateUserArguments(arguments, user_arguments)
+      return false
+    end
+
+    grid_region = runner.getStringArgumentValue('grid_region', user_arguments)
 
     # get the last model and sql file
     model = runner.lastOpenStudioModel
@@ -251,6 +328,32 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       return false
     end
 
+    # set cambium grid regions
+    grid_region_intialized = false
+    if grid_region == 'Lookup from model'
+      grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+      unless grid_region.is_initialized
+        runner.registerWarning('Unable to find grid region in model building additional properties.')
+      end
+      grid_region = grid_region.get
+      runner.registerInfo("Using grid region #{grid_region} from model building additional properties.")
+      grid_region_intialized = true
+    else
+      # set grid region
+      model.getBuilding.additionalProperties.setFeature('grid_region', args['grid_region'])
+      runner.registerInfo("Set '#{args['grid_region']}' as the grid_region in the building additional properties.")
+      grid_region_intialized = true
+    end
+
+    if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+      runner.registerWarning("Grid region '#{grid_region}' is not available in Cambium data.")
+      grid_region_intialized = false
+    end
+
+    unless grid_region_intialized
+      runner.registerWarning('Grid region is data is not available. Unable to calculate daily grid peak by month statistics.')
+    end
+
     # get timeseries results for the year
     env_period_ix_query = "SELECT EnvironmentPeriodIndex FROM EnvironmentPeriods WHERE EnvironmentName='#{ann_env_pd}'"
     env_period_ix = sql_file.execAndReturnFirstInt(env_period_ix_query).get
@@ -267,7 +370,7 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     end
 
     # Get electricity values
-    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableTYpe='Sum' AND VariableName='Electricity:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
+    electricity_query = "SELECT VariableValue FROM ReportMeterData WHERE ReportMeterDataDictionaryIndex IN (SELECT ReportMeterDataDictionaryIndex FROM ReportMeterDataDictionary WHERE VariableTYpe='Sum' AND VariableName='ElectricityPurchased:Facility' AND ReportingFrequency='Hourly' AND VariableUnits='J') AND TimeIndex IN (SELECT TimeIndex FROM Time WHERE EnvironmentPeriodIndex='#{env_period_ix}')"
     unless sql_file.execAndReturnVectorOfDouble(electricity_query).get.empty?
       values = sql_file.execAndReturnVectorOfDouble(electricity_query).get
       values.each do |val|
@@ -287,7 +390,6 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       # Average daily peak timing (by season) (3)
       report_sim_output(runner, "average_maximum_daily_timing_#{season}_hour",
                         average_daily_timing(timeseries, temperature_range, 'max'), '', '')
-
 
       # Top 10 daily seasonal peak magnitude (2)
       report_sim_output(runner, "average_of_top_ten_highest_peaks_use_#{season}_kw",
@@ -319,13 +421,31 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       report_sim_output(runner, "maximum_daily_peak_#{month}_kw",
                         daily_peak_stats_by_month(timeseries, month_val, 'max'), '', '')
 
+      # Daily peak average by month (12)
+      report_sim_output(runner, "mean_daily_peak_#{month}_kw",
+                        daily_peak_stats_by_month(timeseries, month_val, 'mean'), '', '')
+
+      if grid_region_intialized
+        # Daily peak average during grid peak window by month (12)
+        report_sim_output(runner,
+                          "mean_daily_peak_grid_window_#{month}_kw",
+                          daily_peak_stats_on_grid_peak_by_month(model, 4, timeseries, month_val, 'mean'),
+                          '',
+                          '')
+
+        # Daily peak average on grid peak by month (12)
+        report_sim_output(runner,
+                          "mean_daily_peak_grid_peak_#{month}_kw",
+                          daily_peak_stats_on_grid_peak_by_month(model, 1, timeseries, month_val, 'mean'),
+                          '',
+                          '')
+      end
 
       # Daily peak timing median by month (12)
       report_sim_output(runner, "median_daily_peak_timing_#{month}_hour",
                         daily_peak_timing_stats_by_month(timeseries, month_val, 'med'), '', '')
 
-
-      # Daily peak timing median by month (12)
+      # Energy by month (12)
       report_sim_output(runner, "total_electricity_use_#{month}_kwh", monthly_energy(timeseries, month_val, 'total'),
                         '', '')
     end
@@ -409,7 +529,6 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
 
     return sorted_array[index] if fractional_part.zero?
 
-
     lower_value = sorted_array[index]
     upper_value = sorted_array[index + 1]
     ((1 - fractional_part) * lower_value) + (fractional_part * upper_value)
@@ -433,8 +552,10 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
       stats_by_month = calculate_percentile(daily_peak_by_month, 75)
     when 'max'
       stats_by_month = daily_peak_by_month.max
+    when 'mean'
+      stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
     else
-      return nil
+      raise 'unsupported statistics for daily peak outputs'
     end
     stats_by_month
   end
@@ -449,9 +570,43 @@ class QOIReport < OpenStudio::Measure::ReportingMeasure
     if stats_option == 'med'
       stats_by_month = calculate_percentile(daily_peak_timing_by_month, 50)
     elsif stats_option == 'mean'
-      stats_by_month = daily_peak_timing_by_month.inject { |sum, el| sum + el }.to_f / daily_peak_timing_by_month.size
+      stats_by_month = daily_peak_timing_by_month.sum(0.0) / daily_peak_timing_by_month.size
     else
-      return nil
+      raise 'unsupported statistics for daily peak timing outputs'
+    end
+    stats_by_month
+  end
+
+  def grid_peak_schedule(model, peak_len, timeseries)
+    grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
+    raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
+
+    grid_region = grid_region.get
+    load_csv = "#{File.dirname(__FILE__)}/resources/cambium/Load_MidCase_2035/#{grid_region}.csv"
+    return nil if !File.file?(load_csv)
+
+    net_load_mwh = CSV.read(load_csv, converters: :float).flatten
+    grid_peak_schedule = peak_schedule_generation(net_load_mwh, timeseries['temperature'], peak_len, 1, 'center with peak')
+
+    return grid_peak_schedule
+  end
+
+  def daily_peak_stats_on_grid_peak_by_month(model, peak_len, timeseries, month_val, stats_option = 'mean', year = 2018)
+    grid_peaks = grid_peak_schedule(model, peak_len, timeseries)
+    return nil if grid_peaks.nil?
+
+    daily_peaks = timeseries['total_site_electricity_kw'].zip(grid_peaks).map { |kw, peak| kw * peak }
+    daily_peak_by_month = []
+    daily_peaks.each_slice(24).with_index do |kws, doy|
+      month, = day_of_year_to_date(doy, year)
+      daily_peak_by_month << (kws.sum(0.0) / peak_len) if month == month_val
+    end
+    stats_by_month = nil
+    case stats_option
+    when 'mean'
+      stats_by_month = daily_peak_by_month.sum(0.0) / daily_peak_by_month.size
+    else
+      raise 'unsupported statistics for daily peak on grid peaks'
     end
     stats_by_month
   end

@@ -3,14 +3,44 @@
   <schema_version>3.1</schema_version>
   <name>df_thermostat_control_load_shift</name>
   <uid>5aa9a6e4-0f3d-44f7-bf50-97686603a657</uid>
-  <version_id>8d2bf451-4ce4-4279-872c-064562ccc64f</version_id>
-  <version_modified>2024-06-20T18:58:42Z</version_modified>
+  <version_id>3c532db9-b27d-48ad-b54b-fe68b6e3f6bb</version_id>
+  <version_modified>2025-07-15T22:20:44Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DfThermostatControlLoadShift</class_name>
   <display_name>demand flexibility - thermostat control load shift</display_name>
   <description>This measure implements demand flexibility measure on daily thermostat control with load shift strategy, by adjusting thermostat setpoints for pre-cooling and/or pre-heating corresponding to the pre-peak schedule based on daily peak load prediction.</description>
   <modeler_description>This measure performs load prediction based on options of full baseline run, bin-sample method and par year bin-sample method. Based on the predicted load profile the measure generates daily (pre-)peak schedule, and iterates through all applicable (electric) thermostats to adjust the pre-peak cooling or heating setpoints for pre-cooling or pre-heating.</modeler_description>
   <arguments>
+    <argument>
+      <name>demand_flexibility_objective</name>
+      <display_name>Objective of demand flexibility control (peak load, grid peak load, emissions, utility bill cost, operational cost)</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>peak load</default_value>
+      <choices>
+        <choice>
+          <value>peak load</value>
+          <display_name>peak load</display_name>
+        </choice>
+        <choice>
+          <value>grid peak load</value>
+          <display_name>grid peak load</display_name>
+        </choice>
+        <choice>
+          <value>emissions</value>
+          <display_name>emissions</display_name>
+        </choice>
+        <choice>
+          <value>utility bill cost</value>
+          <display_name>utility bill cost</display_name>
+        </choice>
+        <choice>
+          <value>operational cost</value>
+          <display_name>operational cost</display_name>
+        </choice>
+      </choices>
+    </argument>
     <argument>
       <name>peak_len</name>
       <display_name>Length of dispatch window (hour)</display_name>
@@ -45,7 +75,7 @@
     </argument>
     <argument>
       <name>load_prediction_method</name>
-      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample)</display_name>
+      <display_name>Method of load prediction (full baseline run, bin sample, part year bin sample, fixed schedule, outdoor air temperature-based)</display_name>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -62,6 +92,40 @@
         <choice>
           <value>part year bin sample</value>
           <display_name>part year bin sample</display_name>
+        </choice>
+        <choice>
+          <value>fix</value>
+          <display_name>fix</display_name>
+        </choice>
+        <choice>
+          <value>oat</value>
+          <display_name>oat</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>peak_window_strategy</name>
+      <display_name>Method of determining peak windows (max savings, start with peak, end with peak, center with peak)</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>center with peak</default_value>
+      <choices>
+        <choice>
+          <value>max savings</value>
+          <display_name>max savings</display_name>
+        </choice>
+        <choice>
+          <value>start with peak</value>
+          <display_name>start with peak</display_name>
+        </choice>
+        <choice>
+          <value>end with peak</value>
+          <display_name>end with peak</display_name>
+        </choice>
+        <choice>
+          <value>center with peak</value>
+          <display_name>center with peak</display_name>
         </choice>
       </choices>
     </argument>
@@ -123,19 +187,139 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>892D2D88</checksum>
+      <checksum>B50C9BCB</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>539CBAAB</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/CAMXc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7F5083E1</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/ERCTc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>1FE57B71</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/FRCCc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5CE15FD1</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/MROEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>E2DA3C9E</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/MROWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>13AFAD89</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NEWEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F2E596E3</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NWPPc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A6428178</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/NYSTc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B86CFD98</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCEc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B44EABE</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCMc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>92FDBEE4</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RFCWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>CD1D5574</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/RMPAc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>41C14E26</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SPNOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F4CA5490</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SPSOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>05F8BAD9</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRMVc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0E2F9035</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRMWc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0D476EC3</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRSOc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0B929419</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRTVc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>936DED13</checksum>
+    </file>
+    <file>
+      <filename>cambium/Load_MidCase_2035/SRVCc.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>435D2C3E</checksum>
     </file>
     <file>
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>74A61AFB</checksum>
+      <checksum>54137CEF</checksum>
     </file>
     <file>
       <filename>df_thermostat_control_load_shift_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>6E53D196</checksum>
+      <checksum>094556FF</checksum>
     </file>
   </files>
 </measure>

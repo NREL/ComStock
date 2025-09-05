@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -326,6 +326,8 @@ class TimeseriesCSVExportTest < Minitest::Test
       cols = line.split(',')
       # Electricity
       assert(cols.include?('total_site_electricity_kwh'))
+      assert(cols.include?('total_net_site_electricity_kwh'))
+      assert(cols.include?('total_purchased_site_electricity_kwh'))
       assert(cols.include?('electricity_heating_kwh'))
       assert(cols.include?('electricity_cooling_kwh'))
       assert(cols.include?('electricity_interior_lighting_kwh'))
@@ -340,6 +342,7 @@ class TimeseriesCSVExportTest < Minitest::Test
       assert(!cols.include?('electricity_humidification_kwh'))
       assert(!cols.include?('electricity_heat_recovery_kwh'))
       assert(!cols.include?('electricity_generators_kwh'))
+      assert(!cols.include?('electricity_pv_kwh'))
       # Natural Gas
       assert(cols.include?('total_site_gas_kbtu'))
       assert(cols.include?('gas_interior_equipment_kbtu'))

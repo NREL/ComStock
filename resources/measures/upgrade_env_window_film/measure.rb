@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 # *******************************************************************************
 # OpenStudio(R), Copyright (c) 2008-2022, Alliance for Sustainable Energy, LLC.
@@ -600,7 +600,11 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
         puts "--- get existing window properties"
         old_simple_glazing_u = simple_glazing.uFactor
         old_simple_glazing_shgc = simple_glazing.solarHeatGainCoefficient
-        old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+        if simple_glazing.visibleTransmittance.is_initialized
+          old_simple_glazing_vlt = simple_glazing.visibleTransmittance.get
+        else
+          old_simple_glazing_vlt = old_simple_glazing_shgc # if vlt is blank, E+ uses shgc
+        end
 
         # get correct pane type based on comstock glazing name
         # TODO: maybe there's a more elegant way than this

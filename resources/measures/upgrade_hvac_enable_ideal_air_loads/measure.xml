@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_enable_ideal_air_loads</name>
   <uid>f70d4a3d-8b93-4fef-b679-858fe1e05acc</uid>
-  <version_id>f385c4f3-4cef-44c3-912f-570ec080c2a2</version_id>
-  <version_modified>2024-10-09T19:08:16Z</version_modified>
+  <version_id>c42cfd24-63c6-4528-86bc-51b4234107d0</version_id>
+  <version_modified>2025-07-23T23:00:36Z</version_modified>
   <xml_checksum>4435983D</xml_checksum>
   <class_name>UpgradeHvacEnableIdealAirLoads</class_name>
   <display_name>Upgrade HVAC Enable Ideal Air Loads</display_name>
@@ -56,13 +56,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>B3679206</checksum>
+      <checksum>6C104434</checksum>
     </file>
     <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A7A71FA9</checksum>
+      <checksum>82B1A4FC</checksum>
     </file>
   </files>
 </measure>

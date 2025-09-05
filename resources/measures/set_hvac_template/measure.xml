@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_hvac_template</name>
   <uid>7e2eb386-560f-4bf4-a817-ea1317cb414d</uid>
-  <version_id>46367cd8-205c-42e3-bc7a-5372bd91710e</version_id>
-  <version_modified>2024-10-16T22:09:17Z</version_modified>
+  <version_id>09eeceee-b06e-461b-8e99-fca41bda01b0</version_id>
+  <version_modified>2025-07-23T23:00:27Z</version_modified>
   <xml_checksum>8766A9E7</xml_checksum>
   <class_name>SetHVACTemplate</class_name>
   <display_name>Set HVAC Template</display_name>
@@ -525,19 +525,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>86C7EB48</checksum>
+      <checksum>64810867</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2D01794A</checksum>
+      <checksum>813E733A</checksum>
     </file>
     <file>
       <filename>set_hvac_template_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>858FF2F8</checksum>
+      <checksum>AE1F59D3</checksum>
     </file>
   </files>
 </measure>

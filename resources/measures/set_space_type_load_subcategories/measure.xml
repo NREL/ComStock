@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_space_type_load_subcategories</name>
   <uid>3b46bd57-b295-4591-83d8-2c7427d4aaa9</uid>
-  <version_id>828ebbeb-85a9-4d1f-a430-1d156c51ceb9</version_id>
-  <version_modified>2024-10-17T16:04:53Z</version_modified>
+  <version_id>33a594f5-d411-4aed-bc7c-df7b7a1b9fb2</version_id>
+  <version_modified>2025-07-23T23:00:29Z</version_modified>
   <xml_checksum>19B43B5C</xml_checksum>
   <class_name>SetSpaceTypeLoadSubcategories</class_name>
   <display_name>Set Space Type Load Subcategories</display_name>
@@ -98,13 +98,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>F9CE795A</checksum>
+      <checksum>DD79BD28</checksum>
     </file>
     <file>
       <filename>set_space_type_load_subcategories_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>A40979E7</checksum>
+      <checksum>7AF80820</checksum>
     </file>
   </files>
 </measure>

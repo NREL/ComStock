@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>change_building_location</name>
   <uid>d4db4971-f5ba-11e3-a3ac-0800200c9a66</uid>
-  <version_id>40d60c38-b6b0-429c-9f90-c4d6805efa7f</version_id>
-  <version_modified>2024-10-18T02:24:52Z</version_modified>
+  <version_id>1123200a-7a26-4e02-bb9f-7578d61659b8</version_id>
+  <version_modified>2025-09-03T19:24:58Z</version_modified>
   <xml_checksum>057E8D9D</xml_checksum>
   <class_name>ChangeBuildingLocation</class_name>
   <display_name>ChangeBuildingLocation</display_name>
@@ -334,25 +334,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>6EF801F5</checksum>
+      <checksum>4B231F82</checksum>
     </file>
     <file>
       <filename>epw.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>1874655D</checksum>
+      <checksum>E3FB781C</checksum>
     </file>
     <file>
       <filename>os_lib_helper_methods.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>D3E1CB2F</checksum>
+      <checksum>23FA741B</checksum>
     </file>
     <file>
       <filename>stat_file.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>45D7DE00</checksum>
+      <checksum>61F8A1B7</checksum>
     </file>
     <file>
       <filename>CA_LOS-ANGELES-IAP_722950S_12.ddy</filename>
@@ -430,7 +430,7 @@
       <filename>change_building_location_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>7132F5C7</checksum>
+      <checksum>B58728D7</checksum>
     </file>
     <file>
       <filename>multiyear.ddy</filename>

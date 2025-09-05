@@ -43,10 +43,7 @@
 # https://www.nrcan.gc.ca/sites/nrcan/files/canmetenergy/pdf/ASHP%20Sizing%20and%20Selection%20Guide%20(EN).pdf
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
-
-# resource file modules
-include Make_Performance_Curves
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
@@ -56,6 +53,9 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
   require 'csv'
   require 'time'
 
+  # resource file modules
+  include MakePerformanceCurves
+
   # human readable name
   def name
     # Measure name should be the title case of the class name.
@@ -64,18 +64,16 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    'This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater.'\
-    'The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. '
+    'This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest. '
   end
 
   # human readable description of modeling approach
   def modeler_description
-    'This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater.'\
-            'The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.'
+    'This measure replaces an exising natural gas boiler with a water source heat pump. An electric resister element or the existing boiler could be used as a back up heater. The heat pump could be sized to handle the entire heating load or a percentage of the heating load with a back up system handling the rest.'
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(_model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # Create argument for keeping the hot water loop temperature setpoint
@@ -86,20 +84,19 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     args << keep_setpoint
 
     # Create argument to modify the hot water loop temperature setpoint
-    hw_setpoint_F = OpenStudio::Measure::OSArgument.makeDoubleArgument('hw_setpoint_F', true)
-    hw_setpoint_F.setDisplayName('Hot water setpoint')
-    hw_setpoint_F.setUnits('F')
-    hw_setpoint_F.setDescription('Applicable only if user chooses to change the existing hot water setpoint')
-    hw_setpoint_F.setDefaultValue(140)
-    args << hw_setpoint_F
+    hw_setpoint_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hw_setpoint_F', true)
+    hw_setpoint_f.setDisplayName('Hot water setpoint')
+    hw_setpoint_f.setUnits('F')
+    hw_setpoint_f.setDescription('Applicable only if user chooses to change the existing hot water setpoint')
+    hw_setpoint_f.setDefaultValue(140)
+    args << hw_setpoint_f
 
-
-    chw_setpoint_F = OpenStudio::Measure::OSArgument.makeDoubleArgument('chw_setpoint_F', true)
-    chw_setpoint_F.setDisplayName('Chilled water setpoint')
-    chw_setpoint_F.setUnits('F')
-    chw_setpoint_F.setDescription('Chilled water temperature setpoint')
-    chw_setpoint_F.setDefaultValue(44)
-    args << chw_setpoint_F
+    chw_setpoint_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('chw_setpoint_F', true)
+    chw_setpoint_f.setDisplayName('Chilled water setpoint')
+    chw_setpoint_f.setUnits('F')
+    chw_setpoint_f.setDescription('Chilled water temperature setpoint')
+    chw_setpoint_f.setDefaultValue(44)
+    args << chw_setpoint_f
 
     # Create argument for re-sizing heating coils
     autosize_hc = OpenStudio::Measure::OSArgument.makeBoolArgument('autosize_hc', true)
@@ -107,7 +104,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     autosize_hc.setDescription('Applicable only if user chooses to change the hot water setpoint')
     autosize_hc.setDefaultValue(true)
     args << autosize_hc
-
 
     # Max design heat pump capacity at the design condition.
     # Default is 1500MBH (439kW) based on Trane Ascend air-to-water heat pump series
@@ -133,11 +129,36 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     cop.setDefaultValue(2.85)
     args << cop
 
+    # add options for envelope and lighting measures for measure packages
+    # add wall insulation option
+    walls = OpenStudio::Measure::OSArgument.makeBoolArgument('walls', true)
+    walls.setDisplayName('Upgrade Wall Insulation?')
+    walls.setDefaultValue(false)
+    args << walls
+
+    # add roof insulation option
+    roof = OpenStudio::Measure::OSArgument.makeBoolArgument('roof', true)
+    roof.setDisplayName('Upgrade Roof Insulation?')
+    roof.setDefaultValue(false)
+    args << roof
+
+    # add new windows option
+    windows = OpenStudio::Measure::OSArgument.makeBoolArgument('windows', true)
+    windows.setDisplayName('Upgrade to New Windows?')
+    windows.setDefaultValue(false)
+    args << windows
+
+    # add LED lighting option
+    lighting = OpenStudio::Measure::OSArgument.makeBoolArgument('lighting', true)
+    lighting.setDisplayName('Upgrade to LED Lighting?')
+    lighting.setDefaultValue(false)
+    args << lighting
+
     args
   end
 
   def vav_terminals?(air_loop_hvac)
-    air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+    air_loop_hvac.thermalZones.each do |thermal_zone| # iterate thru thermal zones and modify zone-level terminal units
       thermal_zone.equipment.each do |equip|
         if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
           return true
@@ -154,30 +175,27 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         end
       end
     end
-    return false
+    false
   end
 
   def hhw_reheat?(air_loop_hvac)
-    air_loop_hvac.thermalZones.each do |thermal_zone| #iterate thru thermal zones and modify zone-level terminal units
+    air_loop_hvac.thermalZones.each do |thermal_zone| # iterate thru thermal zones and modify zone-level terminal units
       thermal_zone.equipment.each do |equip|
         next if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
         next if equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
         next if equip.to_AirTerminalDualDuctVAV.is_initialized
         next if equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+
         if equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
           term = equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.get
-          if term.reheatCoil.to_CoilHeatingWater.is_initialized
-            return true
-          end
+          return true if term.reheatCoil.to_CoilHeatingWater.is_initialized
         elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
           term = equip.to_AirTerminalSingleDuctVAVReheat.get
-          if term.reheatCoil.to_CoilHeatingWater.is_initialized
-            return true
-          end
+          return true if term.reheatCoil.to_CoilHeatingWater.is_initialized
         end
       end
     end
-    return false
+    false
   end
 
   # check if air loop uses district energy
@@ -211,7 +229,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         is_unitary_system = true
       end
     end
-    return is_unitary_system
+    is_unitary_system
   end
 
   # define what happens when the measure is run
@@ -227,53 +245,46 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     # Assign the user inputs to variables
     keep_setpoint = runner.getBoolArgumentValue('keep_setpoint', user_arguments)
-    hw_setpoint_F = runner.getDoubleArgumentValue('hw_setpoint_F', user_arguments)
-    chw_setpoint_F = runner.getDoubleArgumentValue('chw_setpoint_F', user_arguments)
+    hw_setpoint_f = runner.getDoubleArgumentValue('hw_setpoint_F', user_arguments)
+    chw_setpoint_f = runner.getDoubleArgumentValue('chw_setpoint_F', user_arguments)
     autosize_hc = runner.getBoolArgumentValue('autosize_hc', user_arguments)
     hp_des_cap_htg = runner.getDoubleArgumentValue('hp_des_cap_htg', user_arguments)
     hp_des_cap_clg = runner.getDoubleArgumentValue('hp_des_cap_clg', user_arguments)
-    cop = runner.getDoubleArgumentValue('cop', user_arguments)
+    runner.getDoubleArgumentValue('cop', user_arguments)
+    walls = runner.getBoolArgumentValue('walls', user_arguments)
+    roof = runner.getBoolArgumentValue('roof', user_arguments)
+    windows = runner.getBoolArgumentValue('windows', user_arguments)
+    lighting = runner.getBoolArgumentValue('lighting', user_arguments)
 
     # Get chw setpoint
-    chw_setpoint_c = OpenStudio.convert(chw_setpoint_F, 'F', 'C').get
-    hw_setpoint_c = OpenStudio.convert(hw_setpoint_F, 'F', 'C').get
+    chw_setpoint_c = OpenStudio.convert(chw_setpoint_f, 'F', 'C').get
+    hw_setpoint_c = OpenStudio.convert(hw_setpoint_f, 'F', 'C').get
 
     # unit conversions
-    tons_per_watt = 0.000284345
-    mcs_per_gpm =  0.00006309019640343866 # m3/s per gpm
+    tons_per_watt = 0.000284345 # m3/s per gpm
 
     delta_t_coil = 8 # deg C, slightly reduced from OS typical value of 10C for higher HHW supply water temps
 
-    # high level assumptions
-    source_side_gpm_per_ton = 2.75 # per Mescher et al
-
+    # high level assumptions # per Mescher et al
 
     runner.registerInfo("Start time: #{Time.now} ")
 
     # check for measure applicability
     # check for different types of chillers in measure as well
-
-
-    if hw_setpoint_F > 145
-      runner.registerWarning("#{hw_setpoint_F}F is above or near the limit of the HP performance curves. If the " \
-                            'simulation fails with cooling capacity less than 0, you have exceeded performance ' \
-                            'limits. Consider setting max temp to less than 145F.')
+    if hw_setpoint_f > 145
+      runner.registerWarning("#{hw_setpoint_f}F is above or near the limit of the HP performance curves. If the simulation fails with cooling capacity less than 0, you have exceeded performance limits. Consider setting max temp to less than 145F.")
     end
 
     # use openstudio-standards utility methods, choice of standard does not impact results
     std = Standard.build('NREL ZNE Ready 2017')
 
-
     hpwh_eir_plr_coefficient1constant = 1.25
     hpwh_eir_plr_coefficient2x = -0.25
-    hpwh_eir_plr_coefficient3xPOW2 = 0
-
+    hpwh_eir_plr_coefficient3xpow2 = 0
 
     cooling_hp_plr_coeff1constant = 0.5203969
     cooling_hp_plr_coeff2x = -0.77759
-    cooling_hp_plr_coeff3xPOW2 = 1.255394
-
-
+    cooling_hp_plr_coeff3xpow2 = 1.255394
 
     if keep_setpoint == false
       # sched = OpenStudio::Model::ScheduleRuleset.new(model, hw_setpoint_c)
@@ -285,7 +296,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     end
 
     # Create offset schedules for intermediate loops
-
     sched_htg_intermed = OpenStudio::Model::ScheduleConstant.new(model) # , hw_setpoint_c)
     sched_htg_intermed.setValue(hw_setpoint_c + 2)
     sched_htg_intermed.setName('Intermediate Heating Loop Temperature Setpoint')
@@ -294,25 +304,21 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     sched_clg_intermed.setValue(chw_setpoint_c - 2)
     sched_clg_intermed.setName('Intermediate Cooling Loop Temperature Setpoint')
 
-
     # Find all hot water loops in the model
     # boilers = []
-    hot_water_loops = []
-    ch_water_loops = []
-
     no_ht_pump_htg_coils = model.getCoilHeatingWaterToAirHeatPumpEquationFits.size
     no_ht_pump_clg_coils = model.getCoilCoolingWaterToAirHeatPumpEquationFits.size
 
     no_boilers = model.getBoilerHotWaters.size
     no_chillers = model.getChillerElectricEIRs.size
 
-    if (no_ht_pump_htg_coils > 0) or (no_ht_pump_clg_coils > 0)
+    if (no_ht_pump_htg_coils > 0) || (no_ht_pump_clg_coils > 0)
       runner.registerAsNotApplicable('Heat pumps already present in model--measure will not be applied.')
       return true
     end
 
     # measure not applied if neither a boiler or a chiller
-    if (no_boilers == 0) and (no_chillers == 0)
+    if (no_boilers == 0) && (no_chillers == 0)
       runner.registerAsNotApplicable('No boilers or chillers in model--measure will not be applied.')
       return true
     end
@@ -331,32 +337,31 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       return true
     end
 
-    #Screen out PTAC systems
-    if model.getAirLoopHVACs.length == 0
+    # Screen out PTAC systems
+    if model.getAirLoopHVACs.empty?
       runner.registerAsNotApplicable('No air loops in model--measure will not be applied.')
       return true
     end
 
-    #Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat
+    # Screen out packaged single zone with gas boiler, district HVAC systems, and PVAV with hot water reheat
     model.getAirLoopHVACs.each do |air_loop_hvac|
-        supply_comp = air_loop_hvac.supplyComponents
-      #screen out district energy
+      supply_comp = air_loop_hvac.supplyComponents
+      # screen out district energy
       if air_loop_hvac_served_by_district_energy?(air_loop_hvac)
         runner.registerAsNotApplicable('HVAC system served by district energy-measure will not be applied.')
         return true
       elsif air_loop_hvac_unitary_system?(air_loop_hvac)
         supply_comp.each do |component|
-        obj_type = component.iddObjectType.valueName.to_s
-        case obj_type
-        #screen out PSZ with hot water heating
-        when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
-          component = component.to_AirLoopHVACUnitarySystem.get
-          if (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
-            if component.coolingCoil.is_initialized
+          obj_type = component.iddObjectType.valueName.to_s
+          case obj_type
+          # screen out PSZ with hot water heating
+          when 'OS_AirLoopHVAC_UnitarySystem', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir', 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed', 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
+            component = component.to_AirLoopHVACUnitarySystem.get
+            if (air_loop_hvac.thermalZones.length == 1) && !vav_terminals?(air_loop_hvac) && component.coolingCoil.is_initialized
               clg_coil = component.coolingCoil.get
               if component.heatingCoil.is_initialized
                 htg_coil = component.heatingCoil.get
-                if (htg_coil.to_CoilHeatingWater.is_initialized && (clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized || clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized ))
+                if htg_coil.to_CoilHeatingWater.is_initialized && (clg_coil.to_CoilCoolingDXSingleSpeed.is_initialized || clg_coil.to_CoilCoolingDXTwoSpeed.is_initialized)
                   runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
                   return true
                 end
@@ -364,22 +369,58 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
             end
           end
         end
-      end
-     #Screen out PSZ with hot water heating not modeled as unitary
-      elsif (air_loop_hvac.thermalZones.length() == 1) && ! vav_terminals?(air_loop_hvac) #identify single zone systems with no VAV terminals
-        if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' && ('OS_Coil_Cooling_DX_SingleSpeed' ||'OS_Coil_Cooling_DX_TwoSpeed' ))
+      # Screen out PSZ with hot water heating not modeled as unitary
+      elsif (air_loop_hvac.thermalZones.length == 1) && !vav_terminals?(air_loop_hvac) # identify single zone systems with no VAV terminals
+        if supply_comp.map do |x|
+          x.iddObjectType.valueName.to_s
+        end.include?(('OS_Coil_Cooling_DX_SingleSpeed' || 'OS_Coil_Cooling_DX_TwoSpeed'))
           runner.registerAsNotApplicable('Packaged single zone system with hot water heating--measure will not be applied.')
           return true
         end
-      #Screen out packaged VAV with hot water heating and hot water reheat
+      # Screen out packaged VAV with hot water heating and hot water reheat
       elsif vav_terminals?(air_loop_hvac)
-        if supply_comp.map{ |x| x.iddObjectType.valueName.to_s }.include?('OS_Coil_Heating_Water' &&  ('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed' ) )
-          if hhw_reheat?(air_loop_hvac)
-            runner.registerAsNotApplicable('Packaged VAV with hot water reheat system--measure will not be applied.')
-            return true
-          end
+        if supply_comp.map do |x|
+          x.iddObjectType.valueName.to_s
+        end.include?(('OS_Coil_Cooling_DX_TwoSpeed' || 'OS_Coil_Cooling_DX_SingleSpeed')) && hhw_reheat?(air_loop_hvac)
+          runner.registerAsNotApplicable('Packaged VAV with hot water reheat system--measure will not be applied.')
+          return true
         end
       end
+    end
+
+    # initialize variables for reporting
+
+    # after finished checking for non applicable models, run envelope measures as package if user arguments are true
+    # run wall insulation measure if user argument is true
+    if walls == true
+      runner.registerInfo('Running Wall Insulation measure....')
+      results_walls, runner = call_walls(model, runner)
+      results_walls.stepInitialCondition.get if results_walls.stepInitialCondition.is_initialized
+      results_walls.stepFinalCondition.get if results_walls.stepFinalCondition.is_initialized
+    end
+
+    # run roof insulation measure if user argument is true
+    if roof == true
+      runner.registerInfo('Running Roof Insulation measure....')
+      results_roof, runner = call_roof(model, runner)
+      results_roof.stepInitialCondition.get if results_roof.stepInitialCondition.is_initialized
+      results_roof.stepFinalCondition.get if results_roof.stepFinalCondition.is_initialized
+    end
+
+    # run new windows measure if user argument is true
+    if windows == true
+      runner.registerInfo('Running New Windows measure....')
+      results_windows, runner = call_windows(model, runner)
+      results_windows.stepInitialCondition.get if results_windows.stepInitialCondition.is_initialized
+      results_windows.stepFinalCondition.get if results_windows.stepFinalCondition.is_initialized
+    end
+
+    # run lighting measure if user argument is true
+    if lighting == true
+      runner.registerInfo('Running LED Lighting measure....')
+      results_lighting, runner = call_lighting(model, runner)
+      results_lighting.stepInitialCondition.get if results_lighting.stepInitialCondition.is_initialized
+      results_lighting.stepFinalCondition.get if results_lighting.stepFinalCondition.is_initialized
     end
 
     # change to model.getBoilers....
@@ -464,7 +505,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     ground_pump.setName('Ground loop circulation pump')
     ground_pump.setRatedPumpHead(66_955.1) # #Set this based on modified version of example in Table 6.15 in ASHRAE geothermal design guide (subtracted out heat pumps and headers to them)
     ground_pump.addToNode(ground_loop.supplyInletNode)
-	ground_pump.setPumpControlType('Continuous') 
+    ground_pump.setPumpControlType('Continuous')
 
     # Create a scheduled setpoint manager
     # TODO determine if a schedule that follows the monthly ground temperature
@@ -602,7 +643,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     pump_clg_intermed_loop.setRatedPumpHead(100) # setting head to a nominal value since this loop wouldn't actually exist
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump_clg_intermed_loop.addToNode(intermed_clg_cond_loop.supplyInletNode)
-	pump_clg_intermed_loop.setPumpControlType('Continuous') 
+    pump_clg_intermed_loop.setPumpControlType('Continuous')
 
     # add a pump to the intermediate htg condenser loop
     pump_htg_intermed_loop = OpenStudio::Model::PumpConstantSpeed.new(model)
@@ -611,7 +652,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     pump_htg_intermed_loop.setRatedPumpHead(100) # setting head to a nominal value since this loop wouldn't actually exist
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump_htg_intermed_loop.addToNode(intermed_htg_cond_loop.supplyInletNode)
-	pump_htg_intermed_loop.setPumpControlType('Continuous') 
+    pump_htg_intermed_loop.setPumpControlType('Continuous')
 
     # create and add a pump to the condenser loop
     pump = OpenStudio::Model::PumpVariableSpeed.new(model)
@@ -620,7 +661,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     pump.setRatedPumpHead(44_834.7) # 15 ftf for primary pump for a primary-secondary system based on Appendix G
     # pump.addToNode(hp_loop.supplyInletNode) ##AA commented out
     pump.addToNode(cond_loop.supplyInletNode)
-	pump.setPumpControlType('Continuous') 
+    pump.setPumpControlType('Continuous')
 
 
     # #AA added below for case where no CHW loop present
@@ -639,7 +680,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     chw_loop_setpoint_sched.setName('Chilled Water Loop Setpoint')
 
     # create CHW loop if one doesn't exist
-    if chw_loops.length == 0
+    if chw_loops.empty?
       chw_loop = OpenStudio::Model::PlantLoop.new(model) # Create new chw loop
       chw_loop.setName('Chilled Water Loop')
 
@@ -707,7 +748,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         chw_coil.setDesignInletWaterTemperature(chw_setpoint_c)
         chw_loop.addDemandBranchForComponent(chw_coil)
         air_loop = sys.airLoopHVAC.get
-        mixed_air_node = air_loop.mixedAirNode.get # didnt work to_Node.get()
+        air_loop.mixedAirNode.get # didnt work to_Node.get()
         # runner.registerInfo("unitary mixed air node #{mixed_air_node}")
         # remove existing system
         sys.resetCoolingCoil
@@ -724,7 +765,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    if no_chillers == 0 and no_unit_sys
+    if no_chillers == 0 && no_unit_sys
       model.getCoilCoolingDXTwoSpeeds.each do |coil|
         # tally up coil capacity
         if coil.autosizedRatedHighSpeedTotalCoolingCapacity.is_initialized # #AA moved up, 7/12
@@ -814,7 +855,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       model.getAirTerminalSingleDuctParallelPIUReheats.each do |term|
         i += 1
         hhw_coil = OpenStudio::Model::CoilHeatingWater.new(model)
-        hhw_coil.setName('reheat coil' + i.to_s)
+        hhw_coil.setName("reheat coil #{i}")
         # hhw_coil.autosizeDesignAirFlowRate()
         hhw_coil.autosizeMaximumWaterFlowRate
         hhw_coil.autosizeUFactorTimesAreaValue
@@ -856,7 +897,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       (1..no_hps).each do |hp| # adding heat pumps to the loop
         # create water source heat pump object
         heatpump = OpenStudio::Model::HeatPumpPlantLoopEIRHeating.new(model)
-        heatpump.setName('Heating HeatPump' + hp.to_s)
+        heatpump.setName("Heating HeatPump #{hp}")
         # if cooling_heatpumps.length() > 0
         # heatpump.setCompanionCoolingHeatPump(cooling_heatpumps[0])
         # cooling_heatpumps[0].setCompanionHeatingHeatPump(heatpump) ##AA revise this for multiple heat pumps
@@ -874,7 +915,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         hpwh_eir_plr.setName('HPWH-EIR-PLR')
         hpwh_eir_plr.setCoefficient1Constant(hpwh_eir_plr_coefficient1constant)
         hpwh_eir_plr.setCoefficient2x(hpwh_eir_plr_coefficient2x)
-        hpwh_eir_plr.setCoefficient3xPOW2(hpwh_eir_plr_coefficient3xPOW2)
+        hpwh_eir_plr.setCoefficient3xPOW2(hpwh_eir_plr_coefficient3xpow2)
 
         # assigning performance curves to the heat pump
         # heatpump.setCapacityModifierFunctionofTemperatureCurve(hpwh_cap)
@@ -945,7 +986,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         heatpump = OpenStudio::Model::HeatPumpPlantLoopEIRCooling.new(model)
         heatpump.setName('Cooling HeatPump') # #AA modify this later on if using more than one +hp.to_s)
         cooling_heatpumps.append(heatpump)
-        heatpump_cooling = heatpump
         # heatpump.setCompanionHeatingHeatPump("Heating HeatPump" +hp.to_s)  ##AA comment this back in later
         heatpump.autosizeLoadSideReferenceFlowRate
         heatpump.autosizeSourceSideReferenceFlowRate
@@ -953,7 +993,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         hpwh_eir_plr.setName('HPWH-EIR-PLR')
         hpwh_eir_plr.setCoefficient1Constant(cooling_hp_plr_coeff1constant)
         hpwh_eir_plr.setCoefficient2x(cooling_hp_plr_coeff2x)
-        hpwh_eir_plr.setCoefficient3xPOW2(cooling_hp_plr_coeff3xPOW2)
+        hpwh_eir_plr.setCoefficient3xPOW2(cooling_hp_plr_coeff3xpow2)
         heatpump.setReferenceCapacity(working_hp_cap_clg) # (working_hp_cap_clg) ##AA revisit this
         heatpump.setElectricInputtoOutputRatioModifierFunctionofPartLoadRatioCurve(hpwh_eir_plr)
         add_lookup_performance_data(model, heatpump, 'hydronic_gshp', 'Carrier_30WG_90kW', runner)
@@ -963,7 +1003,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         # adding the heat pump to the demand side of the ground loop
         # ground_loop.addDemandBranchForComponent(heatpump) ##AA commented out
         # #AA added the below, can refine this later on
-        chw_loop.addSupplyBranchForComponent(inter_clg_heat_exchanger)  # #may need to modify if multiple heat pumps
+        chw_loop.addSupplyBranchForComponent(inter_clg_heat_exchanger) # #may need to modify if multiple heat pumps
         intermed_clg_cond_loop.addSupplyBranchForComponent(heatpump)
         # #AA will need to set this later on
         cond_loop.addDemandBranchForComponent(heatpump) # #AA added
@@ -988,8 +1028,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       # if boiler.nominalCapacity.is_initialized ##AA moved up, 7/12
       # runner.registerInfo("nominal name:  #{chiller.name}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
       # cap_blr += boiler.nominalCapacity.get.to_f #sum up capacity across boilers on loop
-      inlet = chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
-      outlet = chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers \
+      chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
+      chiller.supplyInletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers \
       chw_loop = chiller.plantLoop.get
       if chiller.autosizedReferenceCapacity.is_initialized # #AA moved up, 7/12
         # runner.registerInfo("nominal name:  #{chiller.name} and #{chiller.autosizedReferenceCapacity.get.to_f}") # boiler capacity #{boiler.nominalCapacity.get.to_f}")
@@ -1031,9 +1071,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       (1..no_hps).each do |hp| # adding heat pumps to the loop
         # create water source heat pump object
         heatpump = OpenStudio::Model::HeatPumpPlantLoopEIRCooling.new(model)
-        heatpump.setName('Cooling HeatPump' + hp.to_s)
+        heatpump.setName("Cooling HeatPump #{hp}")
         cooling_heatpumps.append(heatpump)
-        heatpump_cooling = heatpump
         # heatpump.setCompanionHeatingHeatPump("Heating HeatPump" +hp.to_s)
         heatpump.autosizeLoadSideReferenceFlowRate
         heatpump.autosizeSourceSideReferenceFlowRate
@@ -1048,7 +1087,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         hpwh_eir_plr.setName('HPWH-EIR-PLR')
         hpwh_eir_plr.setCoefficient1Constant(cooling_hp_plr_coeff1constant)
         hpwh_eir_plr.setCoefficient2x(cooling_hp_plr_coeff2x)
-        hpwh_eir_plr.setCoefficient3xPOW2(cooling_hp_plr_coeff3xPOW2)
+        hpwh_eir_plr.setCoefficient3xPOW2(cooling_hp_plr_coeff3xpow2)
 
         # assigning performance curves to the heat pump
         # heatpump.setCapacityModifierFunctionofTemperatureCurve(hpwh_cap)
@@ -1064,7 +1103,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         # adding the heat pump to the demand side of the ground loop
         # ground_loop.addDemandBranchForComponent(heatpump) ##AA commented out
         # #AA added the below, can refine this later on
-        chw_loop.addSupplyBranchForComponent(inter_clg_heat_exchanger)  # #may need to modify if multiple heat pumps
+        chw_loop.addSupplyBranchForComponent(inter_clg_heat_exchanger) # #may need to modify if multiple heat pumps
         intermed_clg_cond_loop.addSupplyBranchForComponent(heatpump)
       end
 
@@ -1083,8 +1122,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       # model.getBoilerHotWater.each.do boiler
       # boiler.plantLoop =>optional plant loop
       # runner.registerInfo("inside boiler loop #{Time.now} ")
-      inlet = boiler.inletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
-      outlet = boiler.outletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
+      boiler.inletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
+      boiler.outletModelObject.get.to_Node.get # #AA need to modify this approach for multiple boilers
       htg_loop = boiler.plantLoop.get
       htg_loop_sizing = htg_loop.sizingPlant
       htg_loop_sizing.setDesignLoopExitTemperature(hw_setpoint_c)
@@ -1133,7 +1172,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
       (1..no_hps).each do |hp| # adding heat pumps to the loop
         # create water source heat pump object
         heatpump = OpenStudio::Model::HeatPumpPlantLoopEIRHeating.new(model)
-        heatpump.setName('Heating HeatPump' + hp.to_s)
+        heatpump.setName("Heating HeatPump #{hp}")
         # if cooling_heatpumps.length() > 0
         # heatpump.setCompanionCoolingHeatPump(cooling_heatpumps[0])
         # cooling_heatpumps[0].setCompanionHeatingHeatPump(heatpump) ##AA revise this for multiple heat pumps
@@ -1151,7 +1190,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
         hpwh_eir_plr.setName('HPWH-EIR-PLR')
         hpwh_eir_plr.setCoefficient1Constant(hpwh_eir_plr_coefficient1constant)
         hpwh_eir_plr.setCoefficient2x(hpwh_eir_plr_coefficient2x)
-        hpwh_eir_plr.setCoefficient3xPOW2(hpwh_eir_plr_coefficient3xPOW2)
+        hpwh_eir_plr.setCoefficient3xPOW2(hpwh_eir_plr_coefficient3xpow2)
 
         # assigning performance curves to the heat pump
         # heatpump.setCapacityModifierFunctionofTemperatureCurve(hpwh_cap)
@@ -1255,9 +1294,8 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     # add output variable for GHEDesigner
     reporting_frequency = 'Hourly'
-    outputVariable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate',
-                                                           model)
-    outputVariable.setReportingFrequency(reporting_frequency)
+    output_variable = OpenStudio::Model::OutputVariable.new('Plant Temperature Source Component Heat Transfer Rate', model)
+    output_variable.setReportingFrequency(reporting_frequency)
     runner.registerInfo("Adding output variable for 'Plant Temperature Source Component Heat Transfer Rate' reporting at the hourly timestep.")
 
     # retrieve or perform annual run to get hourly thermal loads
@@ -1306,7 +1344,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
 
     # Calculate maximum load on ground loop
-    ground_loads_abs = ground_loads.map { |item| item.abs }
+    ground_loads_abs = ground_loads.map(&:abs)
     max_ground_loop_load = ground_loads_abs.max
 
     # Convert to tons
@@ -1314,8 +1352,6 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     runner.registerInfo("max ground loop load tons: #{max_ground_loop_load_tons}")
 
     # source flow rate
-    source_side_gpm = source_side_gpm_per_ton * max_ground_loop_load_tons
-    source_side_mcs = source_side_gpm * mcs_per_gpm
 
     # #AA commenting this out for now, 9/14
 
@@ -1331,7 +1367,7 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
     # Make directory for GHEDesigner simulation
     # ghedesigner_run_dir = "C:/Users/mprapros/Desktop/ghedesigner"
     ghedesigner_run_dir = "#{Dir.pwd}/GHEDesigner"
-    FileUtils.mkdir_p(ghedesigner_run_dir) unless File.exist?(ghedesigner_run_dir)
+    FileUtils.mkdir_p(ghedesigner_run_dir)
 
     # Make json input file for GHEDesigner
     borefield_defaults_json_path = "#{File.dirname(__FILE__)}/resources/borefield_defaults.json" # #AA updated for this run
@@ -1355,14 +1391,13 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
 
     # Make system call to run GHEDesigner
     start_time = Time.new
-    envname = 'base'
     require 'open3'
     require 'etc'
     # TODO: remove conda activate andrew
     # command = "C:/Users/#{Etc.getlogin}/Anaconda3/Scripts/activate.bat && conda activate #{envname} && ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
     # command = "conda activate base && ghedesigner '#{ghe_in_path}' '#{ghedesigner_run_dir}'"
     command = "ghedesigner #{ghe_in_path} #{ghedesigner_run_dir}"
-    stdout_str, stderr_str, status = Open3.capture3(command, chdir: ghedesigner_run_dir)
+    _, _, status = Open3.capture3(command, chdir: ghedesigner_run_dir)
     if status.success?
       runner.registerInfo("Successfully ran ghedesigner: #{command}")
     else

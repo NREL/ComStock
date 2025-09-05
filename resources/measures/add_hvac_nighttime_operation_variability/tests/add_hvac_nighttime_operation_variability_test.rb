@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -174,5 +174,40 @@ class AddHvacNighttimeOperationVariabilityTest < Minitest::Test
       assert(oa_system.minimumOutdoorAirSchedule.is_initialized)
       assert_equal("#{air_loop_hvac.name}_night_ventcycle_schedule", oa_system.minimumOutdoorAirSchedule.get.name.get)
     end
+  end
+
+  def test_restaurant_exhaust_fan_schedule
+    puts "\n######\nTEST:#{__method__}\n######\n"
+
+    # create an instance of the measure
+    measure = AddHvacNighttimeOperationVariability.new
+
+    # make an empty model
+    model = OpenStudio::Model::Model.new
+
+    # load the test model
+    osm_path = "#{__dir__}/restaurant.osm"
+    epw_path = epws_for_tests.select { |x| 'MI_DETROIT_725375_12' == File.basename(x, '.epw') }[0]
+
+    # set arguments here; will vary by measure
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure::OSArgumentMap.new
+    rtu_night_mode = arguments[0].clone
+    assert(rtu_night_mode.setValue('night_fancycle_novent'))
+    argument_map['rtu_night_mode'] = rtu_night_mode
+
+    # apply the measure to the model and optionally run the model
+    result = apply_measure_and_run('test_restaurant_exhaust_fan_change', measure, argument_map, osm_path, epw_path, run_model: false)
+
+    assert(result.value.valueName == 'Success')
+
+    # check that schedules changed
+    model = load_model(model_output_path('test_restaurant_exhaust_fan_change'))
+    kitchen_exhaust_fan = model.getFanZoneExhaustByName('Zone FullServiceRestaurant Kitchen  - Story ground Exhaust Fan').get
+    tranfer_air_fan = model.getFanZoneExhaustByName('Zone FullServiceRestaurant Kitchen  - Story ground Transfer Air Source').get
+    assert_equal('RestaurantSitDown Kitchen_Exhaust_SCH', kitchen_exhaust_fan.availabilitySchedule.get.name.get)
+    assert_equal('RestaurantSitDown Kitchen_Exhaust_SCH', kitchen_exhaust_fan.flowFractionSchedule.get.name.get)
+    assert_equal('RestaurantSitDown Kitchen Exhaust Fan Balanced Exhaust Fraction Schedule', kitchen_exhaust_fan.balancedExhaustFractionSchedule.get.name.get)
+    assert_equal('RestaurantSitDown Kitchen_Exhaust_SCH', tranfer_air_fan.availabilitySchedule.get.name.get)
   end
 end

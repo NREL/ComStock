@@ -1,0 +1,113 @@
+current_code_in_force,climate_zone,current_code_window,u_val,shgc,vlt
+ComStock 90.1-2004,ASHRAE 169-2013-1A,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2004,ASHRAE 169-2013-1B,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2004,ASHRAE 169-2013-2A,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2004,ASHRAE 169-2013-2B,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2004,ASHRAE 169-2013-3A,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-3B,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-3C,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-4A,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-4B,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-4C,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-5A,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-5B,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-6A,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-6B,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-7A,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock 90.1-2004,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2007,ASHRAE 169-2013-1A,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2007,ASHRAE 169-2013-1B,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2007,ASHRAE 169-2013-2A,Double - No LowE - Tinted/Reflective - Aluminum,0.749,0.484,0.411
+ComStock 90.1-2007,ASHRAE 169-2013-2B,Double - No LowE - Tinted/Reflective - Aluminum,0.749,0.484,0.411
+ComStock 90.1-2007,ASHRAE 169-2013-3A,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2007,ASHRAE 169-2013-3B,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2007,ASHRAE 169-2013-3C,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2007,ASHRAE 169-2013-4A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-4B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-4C,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-5A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-5B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-6A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-6B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2007,ASHRAE 169-2013-7A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2007,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2010,ASHRAE 169-2013-1A,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2010,ASHRAE 169-2013-1B,Single - No LowE - Tinted/Reflective - Aluminum,1.01,0.579,0.455
+ComStock 90.1-2010,ASHRAE 169-2013-2A,Double - No LowE - Tinted/Reflective - Aluminum,0.749,0.484,0.411
+ComStock 90.1-2010,ASHRAE 169-2013-2B,Double - No LowE - Tinted/Reflective - Aluminum,0.749,0.484,0.411
+ComStock 90.1-2010,ASHRAE 169-2013-3A,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2010,ASHRAE 169-2013-3B,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2010,ASHRAE 169-2013-3C,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2010,ASHRAE 169-2013-4A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-4B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-4C,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-5A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-5B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-6A,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-6B,Double - LowE - Clear - Thermally Broken Aluminum,0.499,0.378,0.591
+ComStock 90.1-2010,ASHRAE 169-2013-7A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2010,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-1A,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-1B,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-2A,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-2B,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-3A,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-3B,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-3C,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2013,ASHRAE 169-2013-4A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-4B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-4C,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-5A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-5B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-6A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-6B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-7A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2013,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-1A,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-1B,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-2A,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-2B,Double - LowE - Tinted/Reflective - Aluminum,0.557,0.274,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-3A,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-3B,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-3C,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2016,ASHRAE 169-2013-4A,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2016,ASHRAE 169-2013-4B,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2016,ASHRAE 169-2013-4C,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2016,ASHRAE 169-2013-5A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-5B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-6A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-6B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-7A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2016,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-1A,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2019,ASHRAE 169-2013-1B,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2019,ASHRAE 169-2013-2A,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2019,ASHRAE 169-2013-2B,Double - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.496,0.266,0.359
+ComStock 90.1-2019,ASHRAE 169-2013-3A,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-3B,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-3C,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-4A,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-4B,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-4C,Triple - LowE - Tinted/Reflective - Thermally Broken Aluminum,0.299,0.224,0.32
+ComStock 90.1-2019,ASHRAE 169-2013-5A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-5B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-6A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-6B,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-7A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock 90.1-2019,ASHRAE 169-2013-8A,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC1,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC2,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC3,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC4,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC5,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC6,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC7,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC8,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC9,Double - LowE - Clear - Aluminum,0.559,0.386,0.591
+ComStock DEER 2020,CEC T24-CEC10,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC11,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC12,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC13,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC14,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC15,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527
+ComStock DEER 2020,CEC T24-CEC16,Triple - LowE - Clear - Thermally Broken Aluminum,0.3,0.328,0.527

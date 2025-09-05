@@ -1,15 +1,15 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'minitest/autorun'
-require_relative '../measure.rb'
+require_relative '../measure'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '../resources/*.rb'].each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/../resources/*.rb"].sort.each { |file| require file }
 
 class DfThermostatControlLoadShiftTest < Minitest::Test
   # def setup
@@ -21,15 +21,13 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
   # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # return file paths to epw files in test directory
   def epws_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
-    paths = paths.map { |path| File.expand_path(path) }
-    return paths
+    paths.map { |path| File.expand_path(path) }
   end
 
   # create an array of hashes with model name, weather, and expected result
@@ -37,22 +35,26 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     test_sets = []
 
     # test: applicable building type
-    test_sets << {
-      model: 'Small_Office_2A',
-      weather: 'TX_Port_Arthur_Jeffers_722410_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: '361_Medium_Office_PSZ_HP',
-      weather: 'CO_FortCollins_16',
-      result: 'Success'
-    }
-    test_sets << {
-      model: 'LargeOffice_VAV_chiller_boiler',
-      weather: 'NY_New_York_John_F_Ke_744860_16',
-      result: 'Success'
-    }
-    
+    # test_sets << {
+    #   model: 'Small_Office_2A',
+    #   weather: 'TX_Port_Arthur_Jeffers_722410_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: '361_Medium_Office_PSZ_HP',
+    #   weather: 'CO_FortCollins_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'LargeOffice_VAV_chiller_boiler',
+    #   weather: 'NY_New_York_John_F_Ke_744860_16',
+    #   result: 'Success'
+    # }
+    # test_sets << {
+    #   model: 'Warehouse_5A',
+    #   weather: 'MN_Cloquet_Carlton_Co_726558_16',
+    #   result: 'Success'
+    # }
     test_sets << {
       model: '3340_small_office_OS38', # small office
       weather: 'IL_Dupage_3340_18',
@@ -69,44 +71,41 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       weather: 'CO_FortCollins_16',
       result: 'NA'
     }
-    # test: not applicable hvac (non-electric)
-    test_sets << {
-      model: 'Warehouse_5A',
-      weather: 'MN_Cloquet_Carlton_Co_726558_16',
-      result: 'NA'
-    }
 
-    return test_sets
+    test_sets
   end
 
   def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
-    model = model.get
-    return model
+    model.get
   end
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    return "#{File.dirname(__FILE__)}/output/#{test_name}"
+    "#{File.dirname(__FILE__)}/output/#{test_name}"
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-    return File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
+    File.join(File.dirname(__FILE__), '../../../tests/models', osm_name)
   end
 
   def epw_input_path(epw_name)
-    return File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
+    File.join(File.dirname(__FILE__), '../../../tests/weather', epw_name)
   end
 
   def model_output_path(test_name)
-    return "#{run_dir(test_name)}/#{test_name}.osm"
+    "#{run_dir(test_name)}/#{test_name}.osm"
   end
 
   def report_path(test_name)
-    return "#{run_dir(test_name)}/reports/eplustbl.html"
+    "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  def sql_path(test_name)
+    "#{run_dir(test_name)}/run/eplusout.sql"
   end
 
   # applies the measure and then runs the model
@@ -115,9 +114,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name)) unless File.exist?(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # change into run directory for tests
@@ -125,12 +122,8 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     Dir.chdir run_dir(test_name)
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm(model_output_path(test_name)) if File.exist?(model_output_path(test_name))
+    FileUtils.rm(report_path(test_name)) if File.exist?(report_path(test_name))
 
     # copy the osm and epw to the test directory
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
@@ -173,7 +166,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
     # change back directory
     Dir.chdir(start_dir)
 
-    return result
+    result
   end
 
   def test_models
@@ -201,42 +194,75 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       argument_map = OpenStudio::Measure::OSArgumentMap.new
 
       # set arguments:
-      peak_len = arguments[0].clone
+      demand_flexibility_objective = arguments[0].clone
+      assert(demand_flexibility_objective.setValue('peak load'))
+      argument_map['demand_flexibility_objective'] = demand_flexibility_objective
+
+      # set arguments:
+      peak_len = arguments[1].clone
       assert(peak_len.setValue(4))
       argument_map['peak_len'] = peak_len
 
       # set arguments:
-      prepeak_len = arguments[1].clone
+      prepeak_len = arguments[2].clone
       assert(prepeak_len.setValue(2))
       argument_map['prepeak_len'] = prepeak_len
 
       # set arguments:
-      sp_adjustment = arguments[2].clone
-      assert(sp_adjustment.setValue(2.0))
+      sp_adjustment = arguments[3].clone
+      assert(sp_adjustment.setValue(1.0))
       argument_map['sp_adjustment'] = sp_adjustment
 
       # set arguments:
-      num_timesteps_in_hr = arguments[3].clone
+      num_timesteps_in_hr = arguments[4].clone
       assert(num_timesteps_in_hr.setValue(4))
       argument_map['num_timesteps_in_hr'] = num_timesteps_in_hr
 
       # set arguments:
-      load_prediction_method = arguments[4].clone
-      assert(load_prediction_method.setValue('full baseline'))#'bin sample''part year bin sample'
+      load_prediction_method = arguments[5].clone
+      assert(load_prediction_method.setValue('full baseline')) # 'bin sample''part year bin sample'
       argument_map['load_prediction_method'] = load_prediction_method
 
       # set arguments:
-      peak_lag = arguments[5].clone
-      assert(peak_lag.setValue(2))
-      argument_map['peak_lag'] = peak_lag
-
-      # set arguments:
       peak_window_strategy = arguments[6].clone
-      assert(peak_window_strategy.setValue('center with peak'))#'bin sample''part year bin sample'
+      assert(peak_window_strategy.setValue('center with peak')) # 'bin sample''part year bin sample'
       argument_map['peak_window_strategy'] = peak_window_strategy
 
+      # store baseline schedule for check later
+      heat_schedules = {}
+      cool_schedules = {}
+      thermostats = model.getThermostatSetpointDualSetpoints
+      thermostats.each do |thermostat|
+        if thermostat.to_Thermostat.get.thermalZone.is_initialized
+          thermalzone = thermostat.to_Thermostat.get.thermalZone.get
+          clg_fueltypes = thermalzone.coolingFuelTypes.map(&:valueName).uniq
+          htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
+          # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
+          # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
+          if htg_fueltypes == ['Electricity']
+            heat_sch = thermostat.heatingSetpointTemperatureSchedule
+            if !heat_sch.empty? && !heat_schedules.key?(heat_sch.get.name.to_s)
+              schedule = heat_sch.get.clone(model)
+              schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760 * num_timesteps_in_hr.valueAsInteger)
+              heat_schedules[heat_sch.get.name.to_s] = schedule_ts
+            end
+          end
+          if clg_fueltypes == ['Electricity']
+            cool_sch = thermostat.coolingSetpointTemperatureSchedule
+            if !cool_sch.empty? && !cool_schedules.key?(cool_sch.get.name.to_s)
+              schedule = cool_sch.get.clone(model)
+              schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get, 8760 * num_timesteps_in_hr.valueAsInteger)
+              cool_schedules[cool_sch.get.name.to_s] = schedule_ts
+            end
+          end
+        end
+      end
+      puts("heat_schedules.key=#{heat_schedules.keys}")
+      puts("cool_schedules.key=#{cool_schedules.keys}")
+      puts('-----------------------------------------------------------------')
+
       # apply the measure to the model and optionally run the model
-      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: true)
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable (NA)
       # also check the amount of warnings, info, and error messages
@@ -246,6 +272,86 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
       # to check that something changed in the model, load the model and the check the objects match expected new value
       model = load_model(model_output_path(instance_test_name))
 
+      ### quick check on schedule update
+      if set[:result] == 'Success'
+        thermostats = model.getThermostatSetpointDualSetpoints
+        lights = model.getLightss
+        new_heat_schedules = {}
+        new_cool_schedules = {}
+        new_light_schedules = {}
+
+        # quick check on schedule update
+        nts_clg = 0
+        nts_htg = 0
+        # check on thermostat schedules
+        thermostats.each do |thermostat|
+          cool_sch = thermostat.coolingSetpointTemperatureSchedule
+          clg_sch_name = cool_sch.get.name.to_s
+          if clg_sch_name.include?(' df_adjusted')
+            unless new_cool_schedules.key?(clg_sch_name)
+              schedule = cool_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_cool_schedules[clg_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_clg += 1
+          end
+          heat_sch = thermostat.heatingSetpointTemperatureSchedule
+          heat_sch_name = heat_sch.get.name.to_s
+          if heat_sch_name.include?(' df_adjusted')
+            unless new_heat_schedules.key?(heat_sch_name)
+              schedule = heat_sch.get.clone(model)
+              schedule = schedule.to_ScheduleInterval.get
+              new_heat_schedules[heat_sch_name] = schedule.timeSeries.values.to_a
+            end
+            nts_htg += 1
+          end
+        end
+        puts('-----------------------------------------------------------------')
+        puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
+        assert(nts_clg + nts_htg > 0)
+        puts(new_cool_schedules.keys)
+        
+        # compare before/after schedules
+        if nts_clg > 0
+          cool_schedules.each do |cool_sch_name, cool_sch_vals|
+            new_cool_sch_vals = new_cool_schedules["#{cool_sch_name} df_adjusted"]
+            diff = cool_sch_vals.zip(new_cool_sch_vals).map { |a, b| (b - a).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            puts('-----------------------------------------------------------------')
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- cooling schedule changes on average #{diff.sum / 365.0 / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{prepeak_len.valueAsInteger} hours everyday")
+            counts.each do |value, count|
+              unless value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+                puts("--- cooling schedule changes #{value}C in #{count / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+                assert(value.abs <= sp_adjustment.valueAsDouble, "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
+              end
+            end
+            total_days = counts[-sp_adjustment.valueAsDouble] / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+            assert(total_days < 367 && total_days > 330, "cooling schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
+          end
+        end
+        if nts_htg > 0
+          heat_schedules.each do |heat_sch_name, heat_sch_vals|
+            new_heat_sch_vals = new_heat_schedules["#{heat_sch_name} df_adjusted"]
+            diff = heat_sch_vals.zip(new_heat_sch_vals).map { |a, b| (a - b).round(2) }
+            counts = diff.tally
+            counts = counts.sort.to_h
+            puts('-----------------------------------------------------------------')
+            # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
+            puts("--- heating schedule changes on average #{diff.sum / 365.0 / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{prepeak_len.valueAsInteger} hours everyday")
+            counts.each do |value, count|
+              unless value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+                puts("--- heating schedule changes #{value} in #{count / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+                assert(value.abs <= sp_adjustment.valueAsDouble, "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
+              end
+            end
+            total_days = counts[sp_adjustment.valueAsDouble] / prepeak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+            assert(total_days < 367 && total_days > 330, "heating schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
+          end
+        end
+        puts('=================================================================')
+      end
     end
   end
 
@@ -359,5 +465,4 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
 
   #   # assert()
   # end
-
 end

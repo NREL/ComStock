@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 require 'openstudio-standards'
@@ -208,100 +208,86 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # @param input2 [Double] independent variable 2
   # @return [Double] dependent variable value
   def get_dep_var_from_lookup_table_with_two_ind_var(runner, lookup_table, input1, input2)
-    # Check if the lookup table only has two independent variables
     if lookup_table.independentVariables.size == 2
-
-      # Extract independent variable 1 (e.g., indoor air temperature data)
-      ind_var_1_obj = lookup_table.independentVariables[0]
-      ind_var_1_values = ind_var_1_obj.values.to_a
-
-      # Extract independent variable 2 (e.g., outdoor air temperature data)
-      ind_var_2_obj = lookup_table.independentVariables[1]
-      ind_var_2_values = ind_var_2_obj.values.to_a
-
-      # Extract output values (dependent variable)
+      # Extract independent variable arrays
+      ind_var_1 = lookup_table.independentVariables[0].values.to_a
+      ind_var_2 = lookup_table.independentVariables[1].values.to_a
       dep_var = lookup_table.outputValues.to_a
 
-      # Check for dimension mismatch
-      if ind_var_1_values.size * ind_var_2_values.size != dep_var.size
-        runner.registerError("Output values count does not match with value counts of variable 1 and 2 for TableLookup object: #{lookup_table.name}")
+      if ind_var_1.size * ind_var_2.size != dep_var.size
+        runner.registerError("Table dimensions do not match output size for TableLookup object: #{lookup_table.name}")
         return false
       end
 
-      # Perform interpolation from the two independent variables
-      interpolate_from_two_ind_vars(runner, ind_var_1_values, ind_var_2_values, dep_var, input1,
-                                    input2)
+      # Clamp input1 to bounds
+      if input1 < ind_var_1.first
+        runner.registerWarning("input1 (#{input1}) below range, clamping to #{ind_var_1.first}")
+        input1 = ind_var_1.first
+      elsif input1 > ind_var_1.last
+        runner.registerWarning("input1 (#{input1}) above range, clamping to #{ind_var_1.last}")
+        input1 = ind_var_1.last
+      end
 
+      # Clamp input2 to bounds
+      if input2 < ind_var_2.first
+        runner.registerWarning("input2 (#{input2}) below range, clamping to #{ind_var_2.first}")
+        input2 = ind_var_2.first
+      elsif input2 > ind_var_2.last
+        runner.registerWarning("input2 (#{input2}) above range, clamping to #{ind_var_2.last}")
+        input2 = ind_var_2.last
+      end
+
+      # Find bounding indices for input1
+      i1_upper = ind_var_1.index { |val| val >= input1 } || (ind_var_1.size - 1)
+      i1_lower = [i1_upper - 1, 0].max
+
+      # Find bounding indices for input2
+      i2_upper = ind_var_2.index { |val| val >= input2 } || (ind_var_2.size - 1)
+      i2_lower = [i2_upper - 1, 0].max
+
+      x1 = ind_var_1[i1_lower]
+      x2 = ind_var_1[i1_upper]
+      y1 = ind_var_2[i2_lower]
+      y2 = ind_var_2[i2_upper]
+
+      # Get dependent variable values for bilinear interpolation
+      v11 = dep_var[(i1_lower * ind_var_2.size) + i2_lower]  # (x1, y1)
+      v12 = dep_var[(i1_lower * ind_var_2.size) + i2_upper]  # (x1, y2)
+      v21 = dep_var[(i1_upper * ind_var_2.size) + i2_lower]  # (x2, y1)
+      v22 = dep_var[(i1_upper * ind_var_2.size) + i2_upper]  # (x2, y2)
+
+      # If exact match, return directly
+      if input1 == x1 && input2 == y1
+        return v11
+      elsif input1 == x1 && input2 == y2
+        return v12
+      elsif input1 == x2 && input2 == y1
+        return v21
+      elsif input1 == x2 && input2 == y2
+        return v22
+      end
+
+      # Handle edge cases where interpolation becomes linear
+      dx = x2 - x1
+      dy = y2 - y1
+      return v11 if dx == 0 && dy == 0
+      return v11 + ((v21 - v11) * (input1 - x1) / dx) if dy == 0
+      return v11 + ((v12 - v11) * (input2 - y1) / dy) if dx == 0
+
+      # Bilinear interpolation
+      interpolated_value =
+        (v11 * (x2 - input1) * (y2 - input2)) +
+        (v21 * (input1 - x1) * (y2 - input2)) +
+        (v12 * (x2 - input1) * (input2 - y1)) +
+        (v22 * (input1 - x1) * (input2 - y1))
+
+      interpolated_value /= (x2 - x1) * (y2 - y1)
+
+      return interpolated_value
     else
-      runner.registerError('This TableLookup is not based on two independent variables, so it is not supported with this method.')
-      false
+      runner.registerError('TableLookup object does not have exactly two independent variables.')
+      return false
     end
-  end
-
-  # lookup or interpolate dependent varible based on two independent variable arrays and one dependent variable array
-  # @param ind_var_1 [Array] independent variables 1
-  # @param ind_var_2 [Array] independent variables 2
-  # @param dep_var [Array] dependent variables
-  # @param input1 [Double] independent variable 1
-  # @param input2 [Double] independent variable 2
-  def interpolate_from_two_ind_vars(runner, ind_var_1, ind_var_2, dep_var, input1, input2)
-    # Check input1 value
-    if input1 < ind_var_1.first
-      runner.registerWarning("input1 value (#{input1}) is lower than the minimum value in the data (#{ind_var_1.first}) thus replacing to minimum bound")
-      input1 = ind_var_1.first
-    elsif input1 > ind_var_1.last
-      runner.registerWarning("input1 value (#{input1}) is larger than the maximum value in the data (#{ind_var_1.last}) thus replacing to maximum bound")
-      input1 = ind_var_1.last
-    end
-
-    # Check input2 value
-    if input2 < ind_var_2.first
-      runner.registerWarning("input2 value (#{input2}) is lower than the minimum value in the data (#{ind_var_2.first}) thus replacing to minimum bound")
-      input2 = ind_var_2.first
-    elsif input2 > ind_var_2.last
-      runner.registerWarning("input2 value (#{input2}) is larger than the maximum value in the data (#{ind_var_2.last}) thus replacing to maximum bound")
-      input2 = ind_var_2.last
-    end
-
-    # Find the closest lower and upper bounds for input1 in ind_var_1
-    i1_lower = ind_var_1.index { |val| val >= input1 } || (ind_var_1.length - 1)
-    i1_upper = i1_lower.positive? ? i1_lower - 1 : 0
-
-    # Find the closest lower and upper bounds for input2 in ind_var_2
-    i2_lower = ind_var_2.index { |val| val >= input2 } || (ind_var_2.length - 1)
-    i2_upper = i2_lower.positive? ? i2_lower - 1 : 0
-
-    # Ensure i1_lower and i1_upper are correctly ordered
-    if ind_var_1[i1_lower] < input1
-      i1_upper = i1_lower
-      i1_lower = [i1_lower + 1, ind_var_1.length - 1].min
-    end
-
-    # Ensure i2_lower and i2_upper are correctly ordered
-    if ind_var_2[i2_lower] < input2
-      i2_upper = i2_lower
-      i2_lower = [i2_lower + 1, ind_var_2.length - 1].min
-    end
-
-    # Get the dep_var values at these indices
-    v11 = dep_var[(i1_upper * ind_var_2.length) + i2_upper]
-    v12 = dep_var[(i1_upper * ind_var_2.length) + i2_lower]
-    v21 = dep_var[(i1_lower * ind_var_2.length) + i2_upper]
-    v22 = dep_var[(i1_lower * ind_var_2.length) + i2_lower]
-
-    # If input1 or input2 exactly matches, no need for interpolation
-    return v11 if input1 == ind_var_1[i1_upper] && input2 == ind_var_2[i2_upper]
-
-    # Interpolate between v11, v12, v21, and v22
-    x1 = ind_var_1[i1_upper]
-    x2 = ind_var_1[i1_lower]
-    y1 = ind_var_2[i2_upper]
-    y2 = ind_var_2[i2_lower]
-
-    ((v11 * (x2 - input1) * (y2 - input2)) +
-       (v12 * (x2 - input1) * (input2 - y1)) +
-       (v21 * (input1 - x1) * (y2 - input2)) +
-       (v22 * (input1 - x1) * (input2 - y1))) / ((x2 - x1) * (y2 - y1))
   end
 
   def convert_timeseries_to_list(timeseries)
@@ -978,6 +964,27 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     else
       runner.registerWarning('Interior electric equipment power is not available; cannot calculate equivalent full load hours.')
     end
+
+    # get PV capacity
+    pv_capacity_w = 0
+    model.getGeneratorPVWattss.sort.each do |pv_sys|
+      # get PV system capacity
+      pv_capacity_w += pv_sys.dcSystemCapacity / 1000
+    end
+    runner.registerValue('com_report_pv_system_size_kw', pv_capacity_w, 'kW')
+
+    # get battery storage information
+    battery_capacity_kwh = 0.0
+    max_charge_kw = 0.0
+    max_discharge_kw = 0.0
+    model.getElectricLoadCenterStorageSimples.each do |batt|
+      battery_capacity_kwh += batt.maximumStorageCapacity / 3.6e6  # J → kWh
+      max_charge_kw += batt.maximumPowerforCharging / 1000.0       # W → kW
+      max_discharge_kw += batt.maximumPowerforDischarging / 1000.0 # W → kW
+    end
+    runner.registerValue('com_report_battery_capacity_kwh', battery_capacity_kwh.round(2), 'kWh')
+    runner.registerValue('com_report_battery_max_charge_kw', max_charge_kw.round(2), 'kW')
+    runner.registerValue('com_report_battery_max_discharge_kw', max_discharge_kw.round(2), 'kW')
 
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0
@@ -1991,12 +1998,16 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     chiller_total_load_j = 0.0
     chiller_load_weighted_cop = 0.0
     chiller_load_weighted_design_cop = 0.0
+    chiller_load_weighted_iplv_eer = 0.0
     chiller_total_capacity_w = 0.0
     chiller_count_0_to_75_tons = 0.0
     chiller_count_75_to_150_tons = 0.0
     chiller_count_150_to_300_tons = 0.0
     chiller_count_300_to_600_tons = 0.0
     chiller_count_600_plus_tons = 0.0
+    chiller_acc_capacity_fraction_weighted_sum = 0.0
+    chiller_wcc_capacity_fraction_weighted_sum = 0.0
+    chiller_ecc_capacity_fraction_weighted_sum = 0.0
     model.getChillerElectricEIRs.sort.each do |chiller|
       # get chiller capacity
       if chiller.referenceCapacity.is_initialized
@@ -2023,6 +2034,19 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         chiller_count_600_plus_tons += 1
       end
 
+      # log condenser type fraction
+      case chiller.condenserType
+      when 'AirCooled'
+        chiller_acc_capacity_fraction_weighted_sum += capacity_w
+      when 'WaterCooled'
+        chiller_wcc_capacity_fraction_weighted_sum += capacity_w
+      when 'EvaporativelyCooled'
+        chiller_ecc_capacity_fraction_weighted_sum += capacity_w
+      else
+        runner.registerError("Chiller condenser type not available for chiller '#{chiller.name}'.")
+        return false
+      end
+
       # get Chiller Evaporator Cooling Energy
       chiller_load_j = sql_get_report_variable_data_double(runner, sql, chiller, 'Chiller Evaporator Cooling Energy')
 
@@ -2032,10 +2056,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       # get chiller design cop
       chiller_design_cop = chiller.referenceCOP
 
+      # get chiller IPLV
+      var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'EquipmentSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Central Plant' AND RowName = '#{chiller.name.to_s.upcase}' AND ColumnName = 'IPLV in IP Units' AND Units = 'Btu/W-h'"
+      val = sql.execAndReturnFirstDouble(var_val_query)
+      if val.is_initialized
+        chiller_iplv_eer = val.get
+      else
+        chiller_iplv_eer = 0.0
+        runner.registerWarning('Chiller IPLV EER not available.')
+      end
+
       # add to weighted load cop
       chiller_total_load_j += chiller_load_j
       chiller_load_weighted_cop += chiller_load_j * chiller_annual_cop
       chiller_load_weighted_design_cop += chiller_load_j * chiller_design_cop
+      chiller_load_weighted_iplv_eer += chiller_load_j * chiller_iplv_eer
     end
     average_chiller_cop = chiller_total_load_j > 0.0 ? chiller_load_weighted_cop / chiller_total_load_j : 0.0
     runner.registerValue('com_report_hvac_average_chiller_cop', average_chiller_cop)
@@ -2048,6 +2083,14 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_hvac_count_chillers_150_to_300_tons', chiller_count_150_to_300_tons)
     runner.registerValue('com_report_hvac_count_chillers_300_to_600_tons', chiller_count_300_to_600_tons)
     runner.registerValue('com_report_hvac_count_chillers_600_plus_tons', chiller_count_600_plus_tons)
+    chiller_acc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_acc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_wcc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_wcc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    chiller_ecc_capacity_fraction = chiller_total_capacity_w > 0.0 ? chiller_ecc_capacity_fraction_weighted_sum / chiller_total_capacity_w : 0.0
+    runner.registerValue('com_report_hvac_chiller_acc_capacity_fraction', chiller_acc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_wcc_capacity_fraction', chiller_wcc_capacity_fraction)
+    runner.registerValue('com_report_hvac_chiller_ecc_capacity_fraction', chiller_ecc_capacity_fraction)
+    chiller_iplv_eer = chiller_total_load_j > 0.0 ? chiller_load_weighted_iplv_eer / chiller_total_load_j : 0.0
+    runner.registerValue('com_report_hvac_chiller_iplv_eer', chiller_iplv_eer)
 
     # water to air heat pump cooling capacity, load, and efficiencies
     wa_hp_cooling_total_electric_j = 0.0
@@ -2950,18 +2993,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_cooling_count += 1
     end
     average_heat_pump_cooling_capacity_weighted_design_cop = heat_pump_cooling_total_capacity_w > 0.0 ? heat_pump_cooling_capacity_weighted_design_cop / heat_pump_cooling_total_capacity_w : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_weighted_design_cop', average_heat_pump_cooling_capacity_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_capacity_weighted_design_cop', average_heat_pump_cooling_capacity_weighted_design_cop)
     average_heat_pump_cooling_load_weighted_design_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_design_cop / heat_pump_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_design_cop', average_heat_pump_cooling_load_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_load_weighted_design_cop', average_heat_pump_cooling_load_weighted_design_cop)
     average_heat_pump_cooling_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_cop / heat_pump_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_average_cop', average_heat_pump_cooling_cop)
-    runner.registerValue('com_report_hvac_heat_pump_cooling_total_load_j', heat_pump_cooling_total_load_j)
-    runner.registerValue('com_report_hvac_heat_pump_cooling_total_electric_j', heat_pump_cooling_total_electric_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_average_cop', average_heat_pump_cooling_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_total_load_j', heat_pump_cooling_total_load_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_total_electric_j', heat_pump_cooling_total_electric_j)
     heat_pump_cooling_total_capacity_kbtuh = OpenStudio.convert(heat_pump_cooling_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_kbtuh', heat_pump_cooling_total_capacity_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_cooling', heat_pump_cooling_count)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_capacity_kbtuh', heat_pump_cooling_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_cooling', heat_pump_cooling_count)
     average_heat_pump_cooling_load_weighted_source_inlet_temperature_c = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_source_inlet_temperature_c / heat_pump_cooling_total_load_j : -999
-    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_source_inlet_temperature_c', average_heat_pump_cooling_load_weighted_source_inlet_temperature_c)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_load_weighted_source_inlet_temperature_c', average_heat_pump_cooling_load_weighted_source_inlet_temperature_c)
 
     # Heat pump heating capacity, load, and efficiencies
     heat_pump_heating_total_load_j = 0.0
@@ -3020,21 +3063,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
     average_heat_pump_heating_capacity_weighted_design_cop = heat_pump_heating_total_capacity_w > 0.0 ? heat_pump_heating_capacity_weighted_design_cop / heat_pump_heating_total_capacity_w : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_weighted_design_cop', average_heat_pump_heating_capacity_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_capacity_weighted_design_cop', average_heat_pump_heating_capacity_weighted_design_cop)
     average_heat_pump_heating_load_weighted_design_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_design_cop / heat_pump_heating_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_design_cop', average_heat_pump_heating_load_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_load_weighted_design_cop', average_heat_pump_heating_load_weighted_design_cop)
     average_heat_pump_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_cop / heat_pump_heating_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_average_cop', average_heat_pump_cop)
-    runner.registerValue('com_report_hvac_heat_pump_heating_total_load_j', heat_pump_heating_total_load_j)
-    runner.registerValue('com_report_hvac_heat_pump_heating_total_electric_j', heat_pump_heating_total_electric_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_average_cop', average_heat_pump_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_total_load_j', heat_pump_heating_total_load_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_total_electric_j', heat_pump_heating_total_electric_j)
     heat_pump_heating_total_capacity_kbtuh = OpenStudio.convert(heat_pump_heating_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_kbtuh', heat_pump_heating_total_capacity_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating', heat_pump_heating_count)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_0_to_300_kbtuh', heat_pump_heating_count_0_to_300_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_300_to_2500_kbtuh', heat_pump_heating_count_300_to_2500_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_2500_plus_kbtuh', heat_pump_heating_count_2500_plus_kbtuh)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_capacity_kbtuh', heat_pump_heating_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating', heat_pump_heating_count)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_0_to_300_kbtuh', heat_pump_heating_count_0_to_300_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_300_to_2500_kbtuh', heat_pump_heating_count_300_to_2500_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_2500_plus_kbtuh', heat_pump_heating_count_2500_plus_kbtuh)
     average_heat_pump_heating_load_weighted_source_inlet_temperature_c = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_source_inlet_temperature_c / heat_pump_heating_total_load_j : -999
-    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_source_inlet_temperature_c', average_heat_pump_heating_load_weighted_source_inlet_temperature_c)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_load_weighted_source_inlet_temperature_c', average_heat_pump_heating_load_weighted_source_inlet_temperature_c)
 
     # export temperature data for ground loop heat exchangers if present
     num_boreholes = 0.0
@@ -3445,7 +3488,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     # loop through non-heat pump water heaters, omitting those that are tanks for hpwh objects
-    water_heaters = model.getWaterHeaterMixeds.map { |wh| wh}
+    water_heaters = model.getWaterHeaterMixeds.map { |wh| wh }
     model.getWaterHeaterStratifieds.each { |wh| water_heaters << wh }
     water_heaters.sort.each do |wh|
       # skip tanks that are associated with heat pump water heaters
