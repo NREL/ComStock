@@ -48,7 +48,7 @@ OS:RunPeriod,
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
   12,                                     !- End Month
-  30,                                     !- End Day of Month
+  31,                                     !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
   ,                                       !- Apply Weekend Holiday Rule
@@ -84,14 +84,10 @@ OS:WeatherFile,
   file:////weather/USA_NJ_Newark.Intl.Airport.725020_2016.epw, !- Url
   226BE93E;                               !- Checksum
 
-OS:RunPeriodControl:DaylightSavingTime,
-  {8e9f823d-ee06-44b2-93f2-ca1d2341ae47}, !- Handle
-  2nd Sunday in March,                    !- Start Date
-  1st Sunday in November;                 !- End Date
 
 OS:YearDescription,
   {aba72106-7a18-4403-bfd2-3f6cffa6ca3a}, !- Handle
-  2016,                                   !- Calendar Year
+  2018,                                   !- Calendar Year
   ,                                       !- Day of Week for Start Day
   ;                                       !- Is Leap Year
 

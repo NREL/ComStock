@@ -67,7 +67,7 @@ module OsLib_ScoutHVAC
           'OS_Boiler_Steam'
         fuels << [component, scout_fuel_type_from_energyplus_fuel_type(component.fuelType)]
       when 'OS_DistrictHeating'
-        # fuels << [component, 'district_heating'] # TODO decide how to account for district heating
+        fuels << [component, 'district_heating'] # TODO decide how to account for district heating
       when 'OS_HeatPump_WaterToWater_EquationFit_Heating'
         fuels << [component, 'electricity']
       when 'OS_SolarCollector_FlatPlate_PhotovoltaicThermal',
@@ -75,7 +75,7 @@ module OsLib_ScoutHVAC
           'OS_SolarCollector_IntegralCollectorStorage'
         fuels << [component, 'solar_energy']
       when 'OS_WaterHeater_HeatPump'
-        fuels << [component, 'electricity']     
+        fuels << [component, 'electricity']
       when 'OS_WaterHeater_Mixed'
         # Check if the heater actually has a capacity (otherwise it's simply a Storage Tank)
         if component.heaterMaximumCapacity.empty? || component.heaterMaximumCapacity.get != 0
@@ -115,7 +115,7 @@ module OsLib_ScoutHVAC
         # OpenStudio::logFree(OpenStudio::Debug, 'openstudio.sizing.Model', "No heating fuel types found for #{obj_type}")
       end
     end
-    
+
     return fuels.uniq.sort
   end
 
@@ -162,7 +162,7 @@ module OsLib_ScoutHVAC
         #OpenStudio::logFree(OpenStudio::Debug, 'openstudio.sizing.Model', "No cooling fuel types found for #{obj_type}")
       end
     end
-    
+
     return fuels.uniq.sort
   end
 
@@ -265,12 +265,12 @@ module OsLib_ScoutHVAC
           'OS_AirTerminal_SingleDuct_SeriesPIUReheat',
           'OS_AirTerminal_SingleDuct_VAVHeatAndCool_Reheat',
           'OS_AirTerminal_SingleDuct_VAV_Reheat'
-        fuels += self.coil_heating_fuels(component.reheatCoil)  
+        fuels += self.coil_heating_fuels(component.reheatCoil)
       when 'OS_AirTerminal_SingleDuct_InletSideMixer'
         # This component does not provide heating
       when 'OS_ZoneHVAC_UnitVentilator'
         if component.heatingCoil.is_initialized
-          fuels += self.coil_heating_fuels(component.heatingCoil.get) 
+          fuels += self.coil_heating_fuels(component.heatingCoil.get)
         end
       when 'OS_ZoneHVAC_Baseboard_Convective_Electric',
           'OS_ZoneHVAC_Baseboard_RadiantConvective_Electric',
@@ -288,7 +288,7 @@ module OsLib_ScoutHVAC
         # OpenStudio::logFree(OpenStudio::Debug, 'openstudio.sizing.Model', "No heating fuel types found for #{obj_type}")
       end
     end
-    
+
     return fuels.uniq.sort
   end
 
@@ -301,12 +301,12 @@ module OsLib_ScoutHVAC
       component = component_to_concrete(component)
       # Get the object type
       obj_type = component.iddObjectType.valueName.to_s
-      case obj_type    
+      case obj_type
       when 'OS_AirTerminal_SingleDuct_ConstantVolume_CooledBeam'
         fuels += self.coil_cooling_fuels(component.coilCoolingCooledBeam)
       when 'OS_AirTerminal_SingleDuct_ConstantVolume_FourPipeInduction'
         if component.coolingCoil.is_initialized
-          fuels += self.coil_cooling_fuels(component.coolingCoil.get) 
+          fuels += self.coil_cooling_fuels(component.coolingCoil.get)
         end
       when 'OS_ZoneHVAC_FourPipeFanCoil',
           'OS_ZoneHVAC_LowTemperatureRadiant_ConstantFlow',
@@ -336,7 +336,7 @@ module OsLib_ScoutHVAC
       return fuels.uniq.sort
     end
     air_loop = air_loop.get
-    
+
     # Find fuel types of all equipment
     # on the supply side of this airloop.
     air_loop.supplyComponents.each do |component|
@@ -390,7 +390,7 @@ module OsLib_ScoutHVAC
       return fuels.uniq.sort
     end
     air_loop = air_loop.get
-    
+
     # Find fuel types of all equipment
     # on the supply side of this airloop.
     air_loop.supplyComponents.each do |component|
@@ -432,8 +432,8 @@ module OsLib_ScoutHVAC
       else
         # OpenStudio::logFree(OpenStudio::Debug, 'openstudio.sizing.Model', "No heating fuel types found for #{obj_type}")
       end
-    end    
- 
+    end
+
     return fuels.uniq.sort
   end
 
