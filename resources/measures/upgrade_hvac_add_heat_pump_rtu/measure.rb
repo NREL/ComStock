@@ -1016,7 +1016,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     compressor_reduction_during_peak = runner.getBoolArgumentValue('compressor_reduction_during_peak', user_arguments)
     peak_compressor_reduction_value = runner.getStringArgumentValue('peak_compressor_reduction_value', user_arguments)
     backup_heat_reduction_during_peak = runner.getBoolArgumentValue('backup_heat_reduction_during_peak', user_arguments)
-    peak_backup_heat_reduction_value = runner.getStringArgumentValue('peak_backup_heat_reduction_value', user_arguments)    
+    peak_backup_heat_reduction_value = runner.getStringArgumentValue('peak_backup_heat_reduction_value', user_arguments)   
 
     # build standard to use OS standards methods
     # ---------------------------------------------------------
@@ -2471,18 +2471,36 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
       if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
-        new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
-        new_backup_heating_coil.setEfficiency(1.0)
-        new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
+        if backup_heat_reduction_during_peak == true
+          new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectricMultiStage.new(model)
+          
+          stage1 = OpenStudio::Model::CoilHeatingElectricMultiStageStageData.new(model)
+          new_backup_heating_coil.addStage(stage1)
+          stage1.setEfficiency(1.0)
+          stage1.setNominalCapacity(orig_htg_coil_gross_cap_old * 0.5)
+          
+          stage2 = OpenStudio::Model::CoilHeatingElectricMultiStageStageData.new(model)
+          new_backup_heating_coil.addStage(stage2)
+          stage2.setEfficiency(1.0)
+          stage2.setNominalCapacity(orig_htg_coil_gross_cap_old)
+        
+          new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance multistage backup coil")
+        else
+          new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
+          new_backup_heating_coil.setEfficiency(1.0)
+          new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
+          # set capacity of backup heat to meet full heating load
+          new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
+        end
       else
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
         new_backup_heating_coil.setGasBurnerEfficiency(0.80)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
+        # set capacity of backup heat to meet full heating load
+        new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
       end
       # set availability schedule
       new_backup_heating_coil.setAvailabilitySchedule(always_on)
-      # set capacity of backup heat to meet full heating load
-      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
 
       # add new fan
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
@@ -2863,6 +2881,87 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         runner.registerInfo("Supplemental heat on '#{unitary.name}' will be capped to #{(backup_heat_frac*100).round}% during peak periods.")
       end
+    end
+
+    ################# ADD EMS OUTPUT VARIABLES ################
+   
+    # adding output variables (for debugging)
+    out_vars = [
+    #   'Air System Mixed Air Mass Flow Rate',
+    #   'Fan Air Mass Flow Rate',
+    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #   'Cooling Coil Total Cooling Rate',
+    #   'Cooling Coil Electricity Rate',
+    #   'Cooling Coil Runtime Fraction',
+    #   'Heating Coil Heating Rate',
+    #   'Heating Coil Electricity Rate',
+    #   'Heating Coil Runtime Fraction',
+    #   'Unitary System DX Coil Cycling Ratio',
+       'Unitary System DX Coil Speed Ratio',
+       'Unitary System DX Coil Speed Level',
+    #   'Unitary System Total Cooling Rate',
+    #   'Unitary System Total Heating Rate',
+    #   'Unitary System Electricity Rate',
+    #   'HVAC System Solver Iteration Count',
+    #   'Site Outdoor Air Drybulb Temperature',
+    #   'Heating Coil Crankcase Heater Electricity Rate',
+    #   'Heating Coil Defrost Electricity Rate'
+    ]
+    out_vars.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
+    end
+
+    # Peak schedule value (to verify EMS trigger timing)
+    peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
+    peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
+    peak_sch_outvar.setReportingFrequency('Hourly')
+
+    runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
+
+    # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    output_EMS = model.getOutputEnergyManagementSystem
+    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+
+    timeseriesnames = []
+
+    # Get EMS variables created by the measure
+    li_ems_act_oa_flow = []
+    model.getEnergyManagementSystemActuators.each do |ems_actuator|
+      li_ems_act_oa_flow << ems_actuator
+    end
+    model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+      li_ems_act_oa_flow << glo_var
+    end
+    
+    # Create output var for EMS variables
+    ems_output_variable_list = []
+    li_ems_act_oa_flow.each do |act|
+      name = act.name
+      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+      ems_act_oa_flow.setUpdateFrequency('timestep')
+      ems_act_oa_flow.setName("#{name}_ems_outvar")
+      ems_output_variable_list << ems_act_oa_flow.name.to_s
+    end
+    
+    # Add EMS output variables to regular output variables
+    ems_output_variable_list.each do |variable|
+      output = OpenStudio::Model::OutputVariable.new(variable,model)
+      output.setKeyValue("*")
+      output.setReportingFrequency('timestep')
+      timeseriesnames << variable
+    end
+
+    # Add output vars for simulation after measure implementation
+    timeseriesnames.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
     end
 
     # report final condition of model

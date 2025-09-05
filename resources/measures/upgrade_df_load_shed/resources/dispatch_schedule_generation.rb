@@ -1383,3 +1383,34 @@ def peak_schedule_generation_oat(oat, peak_len, peak_lag, rebound_len = 0, prepe
   peak_schedule_htg = peak_schedule_htg.take(nd * 24)
   [peak_schedule_clg, peak_schedule_htg]
 end
+
+def make_peak_schedule_interval(model, peak_array, name = 'Peak Schedule for DR Adjustments')
+  year_description = model.getYearDescription
+  start_date = year_description.makeDate(1, 1)
+
+  # Convert array to OS vector
+  schedule_values = OpenStudio::Vector.new(peak_array.length, 0.0)
+  peak_array.each_with_index do |val, i|
+    schedule_values[i] = val
+  end
+
+  # Determine timestep resolution
+  case schedule_values.size
+  when 35_040, 35_136
+    interval = OpenStudio::Time.new(0, 0, 15)  # 15-min
+  when 8_760, 8_784
+    interval = OpenStudio::Time.new(0, 1, 0)   # hourly
+  else
+    raise "Peak schedule array length #{schedule_values.size} not supported."
+  end
+
+  # Build a timeseries and ScheduleInterval
+  timeseries = OpenStudio::TimeSeries.new(start_date, interval, schedule_values, '1') # unitless
+  peak_schedule_compressor = OpenStudio::Model::ScheduleInterval.fromTimeSeries(timeseries, model)
+  if peak_schedule_compressor.empty?
+    raise 'Unable to create ScheduleInterval for peak schedule'
+  end
+  peak_schedule_compressor.get.setName(name)
+
+  return peak_schedule_compressor.get
+end

@@ -491,8 +491,8 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
       htg_fueltypes = thermalzone.heatingFuelTypes.map(&:valueName).uniq
       # puts("### DEBUGGING: clg_fueltypes = #{clg_fueltypes}")
       # puts("### DEBUGGING: htg_fueltypes = #{htg_fueltypes}")
-      applicable_clg_thermostats << thermostat if clg_fueltypes == ['Electricity']
-      applicable_htg_thermostats << thermostat if htg_fueltypes == ['Electricity']
+      applicable_clg_thermostats << thermostat #if clg_fueltypes == ['Electricity']
+      applicable_htg_thermostats << thermostat #if htg_fueltypes == ['Electricity']
     end
     [applicable_clg_thermostats, applicable_htg_thermostats, thermostats.size]
   end
@@ -740,6 +740,9 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
       puts('### Grid predictive schedule...')
       peak_schedule = peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr = 1,
                                                peak_window_strategy, rebound_len = 0, prepeak_len = 0, season = 'all')
+
+      peak_schedule_dr_adjust = make_peak_schedule_interval(model, peak_schedule, 'Peak Schedule for DR Adjustments')
+      #puts "peak schedule for dr adjustments = #{peak_schedule_dr_adjust}"
     when 'emissions'
       puts('### Creating peak schedule for emissions reduction...')
       peak_schedule = peak_schedule_generation(hourly_emissions_kg, oat, peak_len, num_timesteps_in_hr = 1,
