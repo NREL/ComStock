@@ -442,4 +442,85 @@ Ground-source heat pumps (GSHPs) are WSHP systems that use the ground as the hea
 The GSHP model in ComStock uses the ``Plant Component Temperature Source'' with energy management system (EMS) controls to represent the temperature behavior of the ground condenser water loop. The EMS predicts the exit temperature of the ground loop based on the inlet temperature of the loop, where the exit temperature will directly impact the efficiency and capacity of the heat pump system. A warmer exit temperature will generally be beneficial for heating, whereas a colder exit temperature will generally be beneficial for cooling. The exit temperature in ComStock is predicted by a linear interpolation that assumes a +12°F delta temperature at the lowest expected inlet loop temperature of 30°F (42°F loop exit temperature), and a -12°F delta temperature at the highest expected inlet loop temperature of 90°F (78°F loop exit temperature), while ramping linearly in between. The relationship between the inlet loop temperature and the outlet loop temperature is illustrated in Figure~\ref{fig:gshp_loop_temps}. Note that there is no change in the loop temperature at 60°F, as this approach results in a constant ground temperature assumption of 60°F.
 
 \subsection{Refrigeration}
-In ComStock, refrigeration systems refer to the large refrigerated cases and walk-ins found in commercial kitchens and grocery stores. Small plug-in refrigerators are included in plug and process loads, as described in Section~\ref{sec:plug_and_process_loads}. Six building types in ComStock have refrigeration systems: primary schools, secondary schools, quick service restaurants, full service restaurants, large hotels, and hospitals.  Each of these buildings has a walk-in cooler and a walk-in freezer in the kitchen.  Medium-temperature walk-in coolers operate at 35.6°F with a source temperature of 25°F and have an off cycle defrost that occurs for 60 minutes twice per day with a drip-down period of 60 minutes occurring twice per day.  Low-temperature walk-in freezers operate at -9.4°F with a source temperature of -19°F and an electric defrost that occurs for 45 minutes twice per day with a drip-down period of 45 minutes occurring twice per day. Starting in the 90.1-2007 vintage, walk-ins are equipped with a strip curtain for the door.  Walk-in coolers and freezers do not account for the refrigeration requirement from restocking new food products (zero restocking schedule) and assume lighting is always on.  All walk-in refrigeration uses R-404a refrigerant with constant suction temperature control.  Walk-in sizes, fan power, and lighting power are shown in Table \ref{tab:refrigeration_data}.  Each refrigeration system has a number of identical compressors sufficient to meet the rated cooling capacity.  Compressor data by vintage is shown in Table \ref{tab:refrigeration_compressor_data}.  Compressor curves are detailed in Figures~\ref{fig:refrig_mt_new},~\ref{fig:refrig_lt_old}, and~\ref{fig:refrig_lt_new}.
+\label{sec:refrigeration}
+
+In ComStock, refrigeration systems refer to the refrigerated cases and walk-ins found in commercial kitchens, grocery stores, and other food service spaces. Small plug-in refrigerators are included in plug and process loads, as described in Section~\ref{sec:plug_and_process_loads}. Refrigeration is modeled in building types where it is a major end use (primary and secondary schools, restaurants, hotels, hospitals, and grocery stores).
+
+\subsubsection{Walk-ins and Case Scaling}
+Earlier versions of ComStock used fixed-size walk-in coolers and freezers for each building kitchen zone. This has been replaced with a scaling approach: refrigeration equipment is now sized according to the floor area of the associated space type (such as kitchens, stock rooms, or grocery sales areas). Rather than applying fixed case or walk-in sizes, ComStock uses reference space types to establish a ratio of refrigerated area or case length to total floor area. For example, a reference space type might assume 20{,}000 ft$^2$ of grocery sales area with 400 ft of refrigerated cases; this ratio of case type to floor area is then scaled to the actual space type floor area in the model. This scaling approach is consistent with the best available data sources and has been validated through in-person site visits performed by NREL staff, providing confidence that modeled refrigeration capacities align with real-world practice.
+
+\subsubsection{Technology Level Assignment}
+Refrigeration systems are now characterized by probabilistic assignment of technology levels: \textit{old}, \textit{new}, and \textit{advanced}. These levels represent distributions of baseline efficiency as a function of both building vintage and building size. Technology levels influence compressor efficiency, case lighting, fan motors, and defrost cycles. This approach allows ComStock to capture variability in stock performance, from legacy systems to modern ENERGY STAR\textsuperscript{\textregistered}-like equipment~\citep{DOE_TSD_2009,ENERGYSTAR_Refrigeration}.
+
+The assignment of technology levels draws from three TSVs:
+\begin{itemize}
+    \item \textit{include\_refrigeration\_technology\_level.tsv} flags buildings with refrigeration.
+    \item \textit{year\_bin\_of\_last\_refrigeration\_replacement.tsv} assigns the year range of the last major equipment replacement, based on survival curves (see Section~\ref{sec:refrigeration_survival}).
+    \item \textit{refrigeration\_technology\_level.tsv} probabilistically assigns equipment efficiency distributions based on year built, replacement year, and building size.
+\end{itemize}
+
+
+Figure~\ref{fig:refrigeration_tech_distribution} illustrates the resulting distribution of refrigeration technology levels by building size and year of last replacement.
+
+\subsubsection{Efficiency Distributions}
+Efficiency distributions for refrigeration equipment are derived from DOE Technical Support Documents, ENERGY STAR\textsuperscript{\textregistered} archives, ASHRAE research, and utility/laboratory studies~\citep{DOE_TSD_2009,Fricke2010,CEC_Title20}. Historical data show a clear trend of improvement:
+\begin{itemize}
+    \item Pre-1990 equipment had very high energy intensities (e.g., 0.3--0.4~kWh/ft$^3$/day for reach-in refrigerators, 2.5--3.0~kWh/ft/day for open vertical cases).
+    \item 1990s equipment introduced modest improvements (better insulation, new refrigerants), but performance was still poor by modern standards.
+    \item Early 2000s saw the introduction of ENERGY STAR\textsuperscript{\textregistered} criteria and California Title 20 standards, driving significant efficiency gains in reach-ins, freezers, and merchandisers.
+    \item By the late 2000s, most new commercial refrigeration equipment met or exceeded federal standards, with widespread adoption of LED case lighting, ECM fan motors, anti-sweat heater controls, and night covers.
+\end{itemize}
+
+These historical shipment distributions were mapped to \textit{old}, \textit{new}, and \textit{advanced} efficiency levels using Oak Ridge National Laboratory (ORNL) performance data embedded in OpenStudio Standards. In practice, ComStock samples from these distributions to assign performance characteristics to each refrigeration system. Approximate efficiency values by technology level are summarized in Table~\ref{tab:refrigeration_efficiency_levels}. This ensures the resulting stock reflects both legacy equipment and the adoption of modern efficiency measures over time.
+
+%\usepackage{threeparttable}
+
+\begin{table}[h!]
+\centering
+\begin{threeparttable}
+\caption{Approximate efficiency levels for refrigeration equipment categories (illustrative ranges).}
+\label{tab:refrigeration_efficiency_levels}
+\begin{tabular}{|p{1.8in}|p{1.2in}|p{1.2in}|p{1.2in}|}
+\hline
+\textbf{Equipment Category} & \textbf{Old (Legacy / Pre-Standard)} & \textbf{New (Standard-Era Baseline)} & \textbf{Advanced (High Efficiency / ENERGY STAR)} \\ \hline
+Reach-in Refrigerators (solid/glass door) & 0.30--0.40 kWh/ft$^3$/day & 0.20--0.30 kWh/ft$^3$/day & 0.15--0.20 kWh/ft$^3$/day \\ \hline
+Reach-in Freezers & 0.50--0.60 kWh/ft$^3$/day & 0.40--0.50 kWh/ft$^3$/day & 0.30--0.40 kWh/ft$^3$/day \\ \hline
+Vertical Open Display Cases (medium-temp) & 2.3--3.0 kWh/ft/day & 1.8--2.3 kWh/ft/day & 1.2--1.6 kWh/ft/day \\ \hline
+Horizontal/Coffin Freezers (low-temp) & 2.0--2.5 kWh/ft/day & 1.5--2.0 kWh/ft/day & 1.0--1.4 kWh/ft/day \\ \hline
+Walk-in Coolers (8$\times$8 typical) & 0.07--0.09 kWh/ft$^3$/day & 0.05--0.07 kWh/ft$^3$/day & 0.03--0.05 kWh/ft$^3$/day \\ \hline
+Walk-in Freezers (8$\times$8 typical) & 0.14--0.18 kWh/ft$^3$/day & 0.11--0.14 kWh/ft$^3$/day & 0.08--0.11 kWh/ft$^3$/day \\ \hline
+\end{tabular}
+\begin{tablenotes}
+\footnotesize
+\item Values represent typical daily energy use intensities under standard test conditions, used to define the ``Old,'' ``New,'' and ``Advanced'' technology levels applied in ComStock. Ranges are derived from DOE Technical Support Documents, ENERGY STAR\textsuperscript{\textregistered} criteria, and ASHRAE/utility research studies, and mapped to OpenStudio Standards performance data.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+
+\subsubsection{System Types and Controls}
+Refrigeration configurations also vary by building type and size. Large grocery stores almost universally use centralized compressor rack systems serving dozens of cases and walk-ins, while small-format stores rely on self-contained units~\citep{EIA_FoodSales2018}. Efficiency technologies such as floating head pressure control, variable-speed compressors, adaptive defrost, and LED case lighting are incorporated in proportion to their historical and present-day adoption levels. For example:
+\begin{itemize}
+    \item Floating head pressure control was common by the late 1990s and is standard in modern racks.
+    \item Variable-speed compressors and VFD-controlled condenser fans are now standard in new systems.
+    \item Adaptive defrost and anti-sweat heater controls are widely adopted in newer or retrofitted equipment.
+    \item Medium-temperature case doors, once rare, are now installed in roughly half of all modern supermarkets, reflecting a major retrofit trend.
+\end{itemize}
+
+\subsubsection{Summary}
+In summary, ComStock’s refrigeration modeling now:
+\begin{itemize}
+    \item Scales walk-in and case sizes based on space type floor area, validated against site visits and data sources;
+    \item Applies survival-based replacement schedules to reflect realistic equipment lifetimes (Section~\ref{sec:refrigeration_survival});
+    \item Assigns technology levels probabilistically, capturing distributions of baseline efficiency by vintage and size, based on DOE shipment data mapped to OpenStudio Standards performance levels;
+    \item Incorporates adoption of modern refrigeration efficiency measures and retrofit trends.
+\end{itemize}
+
+This methodology ensures that ComStock refrigeration energy use better reflects the diversity of U.S. commercial building stock, including both legacy equipment and advanced technologies.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/refrigeration_tech_distribution.png}
+    \caption{Distribution of refrigeration technology levels (old, new, advanced) by building size and year of last replacement. Based on DOE shipment data mapped to OpenStudio Standards performance levels.}
+    \label{fig:refrigeration_tech_distribution}
+\end{figure}

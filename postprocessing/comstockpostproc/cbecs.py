@@ -81,10 +81,10 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             logger.debug(c)
 
         assert isinstance(self.data, pd.DataFrame)
-        logger.info(f'Created {self.dataset_name} with {len(self.data)} rows')
+        logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
-        #Convert columns with name in self.FLR_AREA or weight to numeric
+        #Convert columns with name in self.FLR_AREA or weight to numeric 
         numeric_patterns = [
             self.FLR_AREA,
             self.BLDG_WEIGHT,
@@ -94,7 +94,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'sqft',
             'intensity'
         ]
-
+ 
         for col in self.data.columns:
             if any(pattern in col for pattern in numeric_patterns):
                 try:
@@ -105,7 +105,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
-
+        
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -236,7 +236,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual major fuel consumption (thous Btu)': self.ANN_TOT_ENGY_KBTU,
             'Annual electricity consumption (thous Btu)': self.ANN_TOT_ELEC_KBTU,
             'Annual natural gas consumption (thous Btu)': self.ANN_TOT_GAS_KBTU,
-            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_OTHFUEL_KBTU,
+            'Annual fuel oil consumption (thous Btu)': self.ANN_TOT_FUELOIL_KBTU,
+            'Annual propane consumption (thous Btu)': self.ANN_TOT_PROPANE_KBTU,
             'Annual district heat consumption (thous Btu)': self.ANN_TOT_DISTHTG_KBTU,
             # End use energy - electricity
             'Electricity heating use (thous Btu)': self.ANN_ELEC_HEAT_KBTU,
@@ -249,14 +250,16 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Natural gas heating use (thous Btu)': self.ANN_GAS_HEAT_KBTU,
             'Natural gas cooling use (thous Btu)': self.ANN_GAS_COOL_KBTU,
             'Natural gas water heating use (thous Btu)': self.ANN_GAS_SWH_KBTU,
+            # End use energy - propane
+            'Propane heating use (thous Btu)': self.ANN_PROPANE_HEAT_KBTU,
+            'Propane water heating use (thous Btu)': self.ANN_PROPANE_SWH_KBTU,
+            # End use energy - fuel oil
+            'Fuel oil heating use (thous Btu)': self.ANN_FUELOIL_HEAT_KBTU,
+            'Fuel oil water heating use (thous Btu)': self.ANN_FUELOIL_SWH_KBTU,
             # End use energy - district heating
             'District heat heating use (thous Btu)': self.ANN_DISTHTG_HEAT_KBTU,
             'District heat cooling use (thous Btu)': self.ANN_DISTHTG_COOL_KBTU,
             'District heat water heating use (thous Btu)': self.ANN_DISTHTG_SWH_KBTU,
-            # End use energy - other fuels (sum of propane and fuel oil)
-            'Fuel oil heating use (thous Btu)': self.ANN_OTHER_HEAT_KBTU,
-            'Fuel oil cooling use (thous Btu)': self.ANN_OTHER_COOL_KBTU,
-            'Fuel oil water heating use (thous Btu)': self.ANN_OTHER_SWH_KBTU,
             # Utility bills
             'Annual electricity expenditures ($)': self.UTIL_BILL_ELEC,
             'Annual natural gas expenditures ($)': self.UTIL_BILL_GAS,
@@ -274,12 +277,15 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             # End use energy - natural gas interior equipment
             [['Natural gas cooking use (thous Btu)',
             'Natural gas miscellaneous use (thous Btu)'], self.ANN_GAS_INTEQUIP_KBTU],
-            # End use energy - district heating interior equipment
-            [['District heat cooking use (thous Btu)',
-            'District heat miscellaneous use (thous Btu)'], self.ANN_DISTHTG_INTEQUIP_KBTU],
+            # End use energy - propane interior equipment
+            [['Propane cooking use (thous Btu)',
+            'Propane miscellaneous use (thous Btu)'], self.ANN_PROPANE_INTEQUIP_KBTU],
             # End use energy - fuel oil interior equipment
             [['Fuel oil cooking use (thous Btu)',
-            'Fuel oil miscellaneous use (thous Btu)'], self.ANN_OTHER_INTEQUIP_KBTU]
+            'Fuel oil miscellaneous use (thous Btu)'], self.ANN_FUELOIL_INTEQUIP_KBTU],
+            # End use energy - district heating interior equipment
+            [['District heat cooking use (thous Btu)',
+            'District heat miscellaneous use (thous Btu)'], self.ANN_DISTHTG_INTEQUIP_KBTU]
         ]
         for cols, new_col_name in combo_cols:
             found_cols = []
@@ -287,8 +293,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 if not col in self.data:
                     logger.warning(f'Missing energy column {col}, will not be included in {new_col_name}')
                     continue
-                self.data[col] = self.data[col].replace('Not Applicable', np.nan)
-                self.data[col] = self.data[col].replace('Not applicable', np.nan)
+                self.data[col] = self.data[col].replace('Not Applicable', str(np.nan))
+                self.data[col] = self.data[col].replace('Not applicable', str(np.nan))
                 self.data[col] = self.data[col].astype('float64')
                 found_cols.append(col)
             new_col_dict = {}
@@ -301,8 +307,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             if not col in self.data:
                 continue
             # Ensure the energy column is numeric then create weighted column
-            self.data[col] = self.data[col].replace('Not Applicable', np.nan)
-            self.data[col] = self.data[col].replace('Not applicable', np.nan)
+            self.data[col] = self.data[col].replace('Not Applicable', str(np.nan))
+            self.data[col] = self.data[col].replace('Not applicable', str(np.nan))
             self.data[col] = self.data[col].astype('float64')
             new_col = self.col_name_to_weighted(col, self.weighted_energy_units)
 
@@ -342,7 +348,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 self.data[bill_col] = np.nan
             # Divide bill by area to create intensity
             per_area_col = self.col_name_to_area_intensity(bill_col)
-            self.data[bill_col] = self.data[bill_col].replace('Not applicable', np.nan)
+            self.data[bill_col] = self.data[bill_col].replace('Not applicable', str(np.nan))
             self.data[bill_col] = self.data[bill_col].astype('float64')
             self.data[per_area_col] = self.data[bill_col] / self.data[self.FLR_AREA]
 

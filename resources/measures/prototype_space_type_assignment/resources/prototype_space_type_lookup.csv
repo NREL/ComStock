@@ -195,6 +195,18 @@ StripMall,Strip mall - type 0B,whole_building_retail
 StripMall,Strip mall - type 1,whole_building_retail
 StripMall,Strip mall - type 2,whole_building_retail
 StripMall,Strip mall - type 3,whole_building_retail
+SuperMarket,Bakery,retail
+SuperMarket,Deli,retail
+SuperMarket,DryStorage,storage_active_50ft2_to_1000ft2
+SuperMarket,Office,office_enclosed_less_than_250ft2
+SuperMarket,Produce,retail
+SuperMarket,Sales,retail
+SuperMarket,Corridor,corridor_all_other
+SuperMarket,Dining,dining_area_all_other
+SuperMarket,Elec/MechRoom,electrical_mechanical
+SuperMarket,Meeting,conference_meeting_multipurpose
+SuperMarket,Restroom,restroom
+SuperMarket,Vestibule,lobby_all_other
 Warehouse,Fine,warehouse_fine_storage
 Warehouse,Bulk,warehouse_bulk_storage
 Warehouse,Office,office_enclosed_less_than_250ft2
@@ -227,6 +239,10 @@ EUn,Kitchen,kitchen_with_dishwashing
 EUn,CorridorStairway,corridor_all_other
 EUn,FacMaint,warehouse_bulk_storage
 EUn,DormitoryRoom,guest_room
+Gro,GrocSales,retail
+Gro,OfficeGeneral,office_enclosed_less_than_250ft2
+Gro,RefFoodPrep,kitchen_without_dishwashing
+Gro,IndLoadDock,storage_active_50ft2_to_1000ft2
 Hsp,HspSurgOutptLab,operating_room
 Hsp,Dining,dining_area_cafeteria
 Hsp,Kitchen,kitchen_with_dishwashing
@@ -283,6 +299,6 @@ RtL,Kitchen,kitchen_without_dishwashing
 RtS,RetailSales,retail
 RtS,StockRoom,warehouse_fine_storage
 SCn,WarehouseCond,warehouse_bulk_storage
-Scn,OfficeGeneral,office_open
+SCn,OfficeGeneral,office_open
 SUn,WarehouseUnCond,warehouse_bulk_storage
 SUn,OfficeGeneral,office_open

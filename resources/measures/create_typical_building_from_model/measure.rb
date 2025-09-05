@@ -394,6 +394,17 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
     add_refrigeration.setDefaultValue(true)
     args << add_refrigeration
 
+    # make an argument for refrigeration_template
+    refrigeration_template_choices = OpenStudio::StringVector.new
+    refrigeration_template_choices << 'old'
+    refrigeration_template_choices << 'new'
+    refrigeration_template_choices << 'advanced'
+    refrigeration_template = OpenStudio::Measure::OSArgument.makeChoiceArgument('refrigeration_template', refrigeration_template_choices, true)
+    refrigeration_template.setDisplayName('Refrigeration Technology Level')
+    refrigeration_template.setDescription('The refrigeration technology level used for refrigerated cases, walkins, compressors, and systems.')
+    refrigeration_template.setDefaultValue('new')
+    args << refrigeration_template
+
     # modify weekday hours of operation
     modify_wkdy_op_hrs = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_wkdy_op_hrs', true)
     modify_wkdy_op_hrs.setDisplayName('Modify weekday hours of operation')
@@ -520,6 +531,7 @@ class CreateTypicalBuildingFromModel < OpenStudio::Measure::ModelMeasure
       add_swh: args['add_swh'],
       add_thermostat: args['add_thermostat'],
       add_refrigeration: args['add_refrigeration'],
+      refrigeration_template: args['refrigeration_template'],
       modify_wkdy_op_hrs: args['modify_wkdy_op_hrs'],
       wkdy_op_hrs_start_time: args['wkdy_op_hrs_start_time'],
       wkdy_op_hrs_duration: args['wkdy_op_hrs_duration'],
