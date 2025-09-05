@@ -222,6 +222,10 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     site.setTimeZone(weather_time)
     site.setElevation(weather_elev)
 
+    # set site terrain assumption for wind speed modifications for infiltration
+    terrain = 'City' # default for now
+    site.setTerrain(terrain)
+
     runner.registerInfo("city is #{epw_file.city}. State is #{epw_file.state}")
 
     # Add SiteWaterMainsTemperature -- via parsing of STAT file.
