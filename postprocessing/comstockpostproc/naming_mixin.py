@@ -1005,25 +1005,25 @@ class NamingMixin():
     ]
 
     LOAD_COMPONENTS = [
-        'doors_conduction',
-        'equipment_gain',
-        'floor',
-        'foundation_wall',
-        'ground',
-        'infiltration',
-        'lighting_gain',
         'people_gain',
+        'light_gain',
+        'equip_gain',
+        'win_sol',
+        'ext_wall',
+        'fnd_wall',
         'roof',
-        'ventilation',
-        'wall',
-        'windows_conduction',
-        'windows_solar'
+        'ext_flr',
+        'gnd_flr',
+        'win_cond',
+        'door',
+        'infil',
+        'vent'
     ]
 
     LOAD_PERIODS = [
-        'heating',
-        'cooling',
-        'floating'
+        'htg',
+        'clg',
+        'flt'
     ]
 
     LOAD_FUELS = [
@@ -1231,6 +1231,7 @@ class NamingMixin():
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
         col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
+        col_name = col_name.replace('loads', 'loads_intensity')
         col_name = col_name.replace('bill_state_average', 'bill_state_average_intensity')
         col_name = col_name.replace('bill_min', 'bill_min_intensity')
         col_name = col_name.replace('bill_max', 'bill_max_intensity')
@@ -1380,12 +1381,9 @@ class NamingMixin():
 
     def load_component_cols(self):
         loads_cols = []
-        for fuel in (self.LOAD_FUELS):
-            for period in (self.LOAD_PERIODS):
-                for component in (self.LOAD_COMPONENTS):
-                    pre = 'out.loads.'
-                    demand = 'demand'
-                    unit = '..kbtu'
-                    loads_cols.append(f"{pre}{fuel}.{period}.{demand}.{component}{unit}")
+        for period in (self.LOAD_PERIODS):
+            for component in (self.LOAD_COMPONENTS):
+                pre = 'out.loads'
+                unit = '..gj'
+                loads_cols.append(f"{pre}.{period}.{component}{unit}")
         return loads_cols
-
