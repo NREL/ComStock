@@ -2662,6 +2662,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
         # Downselect and order columns
+        logger.info(f"Downselecting columns using option: {column_downselection}")
         ordered_cols = self.reorder_columns(self.columns_for_export(wtd_agg_outs, column_downselection))
         wtd_agg_outs = wtd_agg_outs.select(ordered_cols)
 
