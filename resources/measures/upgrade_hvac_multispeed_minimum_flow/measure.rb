@@ -35,6 +35,11 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
       return false
     end
 
+    type_counts = workspace.objects.group_by { |obj| obj.iddObject.name }
+    type_counts.keys.sort.each do |t|
+      runner.registerInfo("### DEBUGGING: object type = #{t}, count = #{type_counts[t].size}")
+    end
+
     # get all UnitarySystemPerformance:Multispeed objects in model, if any
     li_multispeed_perf = workspace.getObjectsByType('UnitarySystemPerformance:Multispeed'.to_IddObjectType)
 

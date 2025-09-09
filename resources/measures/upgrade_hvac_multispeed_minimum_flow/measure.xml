@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>multispeed_minimum_flow</name>
   <uid>82ab405f-375a-4dc6-bc66-9e6aac4baf52</uid>
-  <version_id>05914202-08c1-4a52-af3a-25dce0dadb87</version_id>
-  <version_modified>2025-07-24T18:44:33Z</version_modified>
+  <version_id>7d6ad306-ab28-46b6-a7c1-0cfb47a9644e</version_id>
+  <version_modified>2025-09-09T12:34:14Z</version_modified>
   <xml_checksum>912062DA</xml_checksum>
   <class_name>MultispeedMinimumFlow</class_name>
   <display_name>Multispeed Minimum Flow</display_name>
@@ -104,7 +104,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3D40720B</checksum>
+      <checksum>F4E393F5</checksum>
     </file>
     <file>
       <filename>Cold_ASHRAE.idf</filename>
