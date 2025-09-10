@@ -363,7 +363,9 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
       max_floor_area_served = 0.0
       hot_water_loops.each do |plant_loop|
         floor_area_served = std.plant_loop_total_floor_area_served(plant_loop)
+		runner.registerInfo("floor area served #{floor_area_served}")
         if floor_area_served > max_floor_area_served
+		  runner.registerInfo("368") 
           hot_water_loop = plant_loop
           max_floor_area_served = floor_area_served
         end
@@ -472,7 +474,6 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     if reset_hot_water_loop_temperature
       new_hot_water_temperature_f = heat_recovery_loop_temperature_f - 5 # Offset to emulate effects of heat exchanger
       new_hot_water_temperature_c = OpenStudio.convert(new_hot_water_temperature_f, 'F', 'C').get
-
       hot_water_loop_sizing = hot_water_loop.sizingPlant
       hot_water_loop_sizing.setDesignLoopExitTemperature(new_hot_water_temperature_c)
       hot_water_loop_sizing.setLoopDesignTemperatureDifference(OpenStudio.convert(20.0, 'R', 'K').get)
@@ -964,6 +965,18 @@ class AddHeatRecoveryChiller < OpenStudio::Measure::ModelMeasure
     opt_hrc_size = hrc_eval.key(hrc_eval.values.min)
     heat_recovery_chiller.setReferenceCapacity(opt_hrc_size)
     puts hrc_eval
+	
+	#testing 
+    hrc_cap = 0
+	
+    chillers = model.getObjectsByType('OS:ChillerElectricEIR'.to_IddObjectType)
+	
+	for chiller in chillers
+	    next unless idd_chiller.getString(17, false).is_initialized #confirm that this works 
+		#has_hrc = true
+        #hrc_name = chiller.getString(0, false).get
+		hrc_cap = chiller.getDouble(1, false).get #need another check here? 
+	end 
 
     true
   end
