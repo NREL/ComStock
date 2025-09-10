@@ -3244,7 +3244,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info('Successfully completed the apportionment sampling postprocessing')
 
     def get_sim_outs_for_upgrade(self, upgrade_id):
-        breakpoint()
         # Ensure this is a valid upgrade ID
         avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         if upgrade_id not in avail_up_ids:
