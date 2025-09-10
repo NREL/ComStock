@@ -21,6 +21,10 @@ class UnitsMixin():
 
         class MASS:
             CO2E_MMT = 'co2e_mmt'
+            NOX_KG = 'nox_kg'
+            CO_KG = 'co_kg'
+            PM_KG = 'pm_kg'
+            SO2_KG = 'so2_kg'
 
         class DIMLESS:
             PERCENT = 'percent'
