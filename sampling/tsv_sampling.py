@@ -568,29 +568,23 @@ class ComStockBaseSampler:
         prev_results_key_list = list(prev_results_dict.keys())
         for index in sample_dict.keys():
             dep_hash = deepcopy(dependency_hash)
-            try:
-                prev_results = prev_results_dict[prev_results_key_list[index]]
-            except:
-                breakpoint()
+            prev_results = prev_results_dict[prev_results_key_list[index]]
             sample_vector = sample_dict[index]
             results_dict = dict()
             sample_vector_index = -1
             for attr in attr_order:
-                try:
-                    if attr in prev_results.keys():
-                        attr_result = prev_results[attr]
-                    else:
-                        sample_vector_index += 1
-                        attr_dict = json_set[attr]
-                        tsv_dist_val = sample_vector[sample_vector_index]
-                        for dep in dep_hash[attr]:
-                            attr_dict = attr_dict[str(dep_hash[dep])]
-                        attr_series = pd.Series(attr_dict).astype(float)
-                        attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
-                    dep_hash[attr] = attr_result
-                    results_dict[attr] = attr_result
-                except:
-                    breakpoint()
+                if attr in prev_results.keys():
+                    attr_result = prev_results[attr]
+                else:
+                    sample_vector_index += 1
+                    attr_dict = json_set[attr]
+                    tsv_dist_val = sample_vector[sample_vector_index]
+                    for dep in dep_hash[attr]:
+                        attr_dict = attr_dict[str(dep_hash[dep])]
+                    attr_series = pd.Series(attr_dict).astype(float)
+                    attr_result = attr_series[attr_series.values.cumsum() > tsv_dist_val].index[0].replace('Option=', '')
+                dep_hash[attr] = attr_result
+                results_dict[attr] = attr_result
             results_dict['state_id'] = results_dict['tract'][:4]
             results_dict['county_id'] = results_dict['tract'][:8]
             res.append(results_dict)
