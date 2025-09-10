@@ -3244,6 +3244,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info('Successfully completed the apportionment sampling postprocessing')
 
     def get_sim_outs_for_upgrade(self, upgrade_id):
+        breakpoint()
         # Ensure this is a valid upgrade ID
         avail_up_ids = pl.Series(self.data.select(pl.col(self.UPGRADE_ID)).unique().collect()).to_list()
         if upgrade_id not in avail_up_ids:
@@ -3801,8 +3802,34 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
     def create_and_export_long_loads_data(self, geo_data):
 
+        def add_climate_zone_group(df):
+            cz_groups = {
+                '1A': 'Hot (Zones 1-3)',
+                '2A': 'Hot (Zones 1-3)',
+                '2B': 'Hot (Zones 1-3)',
+                '3A': 'Hot (Zones 1-3)',
+                '3B': 'Hot (Zones 1-3)',
+                '3C': 'Hot (Zones 1-3)',
+                '4A': 'Mixed (Zone 4)',
+                '4B': 'Mixed (Zone 4)',
+                '4C': 'Mixed (Zone 4)',
+                '5A': 'Cold (Zones 5-8)',
+                '5B': 'Cold (Zones 5-8)',
+                '6A': 'Cold (Zones 5-8)',
+                '6B': 'Cold (Zones 5-8)',
+                '7':  'Cold (Zones 5-8)',
+                '7A': 'Cold (Zones 5-8)',
+                '7B': 'Cold (Zones 5-8)',
+                '8': 'Cold (Zones 5-8)',
+                '8A': 'Cold (Zones 5-8)',
+            }
+    
+            df = df.with_columns((pl.col(self.CZ_ASHRAE).cast(pl.Utf8).replace(cz_groups, default=None)).alias('Climate Zone Group'))
+            df = df.with_columns(pl.col('Climate Zone Group').cast(pl.Categorical))
+            return df
+        
         # add climate zone groups
-        geo_data = self.add_climate_zone_group(geo_data)
+        geo_data = add_climate_zone_group(geo_data)
 
         # convert load component data to long format, with a row for each fuel/enduse/load component group combo
         load_cols = self.load_component_cols()
