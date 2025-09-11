@@ -1046,6 +1046,7 @@ class NamingMixin():
         'people_gain',
         'light_gain',
         'equip_gain',
+        'ref_equip_gain',
         'win_sol',
         'ext_wall',
         'fnd_wall',

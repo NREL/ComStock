@@ -1149,6 +1149,9 @@ results.csv,loads_summary.door_htg,out.loads.htg.door,TRUE,TRUE,float,gj,gj,Heat
 results.csv,loads_summary.equip_gain_clg,out.loads.clg.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during cooling
 results.csv,loads_summary.equip_gain_flt,out.loads.flt.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during floating
 results.csv,loads_summary.equip_gain_htg,out.loads.htg.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during heating
+results.csv,loads_summary.ref_equip_gain_clg,out.loads.clg.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during cooling
+results.csv,loads_summary.ref_equip_gain_flt,out.loads.flt.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during floating
+results.csv,loads_summary.ref_equip_gain_htg,out.loads.htg.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during heating
 results.csv,loads_summary.ext_flr_clg,out.loads.clg.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during cooling
 results.csv,loads_summary.ext_flr_flt,out.loads.flt.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during floating
 results.csv,loads_summary.ext_flr_htg,out.loads.htg.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during heating
