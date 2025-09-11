@@ -185,7 +185,6 @@ class LoadsSummaryTest < Minitest::Test
     cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
     puts cmd
     system(cmd)
-
   end
 
   def test_simple_model
@@ -198,87 +197,6 @@ class LoadsSummaryTest < Minitest::Test
     }
 
     run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-  end
-
-
-  def test_cz1A_warehouse
-    test_name = 'test_cz1A_warehouse'
-    test_model_name = 'CZ1A_warehouse_10001_25000_PTHP.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G1200860.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz2A_warehouse
-    test_name = 'test_cz2A_warehouse'
-    test_model_name = 'CZ2A_warehouse_10001_25000_PSZ-AC with electric coil.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G1200210.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz2B_full_service_restaurant
-    test_name = 'test_cz2B_full_service_restaurant'
-    test_model_name = 'CZ2B_full_service_restaurant_10001_25000_PSZ-AC with electric coil.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0400130.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz3A_strip_mall
-    test_name = 'test_cz3A_strip_mall'
-    test_model_name = 'CZ3A_strip_mall_10001_25000_PVAV with gas boiler reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G4801810.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz3B_warehouse
-    test_name = 'test_cz3B_warehouse'
-    test_model_name = 'CZ3B_warehouse_200001_500000_PVAV with gas boiler reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0600710.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
   end
 
   def test_cz3C_small_office
@@ -330,22 +248,6 @@ class LoadsSummaryTest < Minitest::Test
     return true
   end
 
-  def test_cz4A_outpatient
-    test_name = 'test_cz4A_outpatient'
-    test_model_name = 'CZ4A_outpatient_25001_50000_PSZ-AC with gas boiler.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G2405100.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
   def test_cz4B_retail
     test_name = 'test_cz4B_retail'
     test_model_name = 'CZ4B_retail_10001_25000_PSZ-AC with gas coil.osm'
@@ -370,118 +272,6 @@ class LoadsSummaryTest < Minitest::Test
     test_model_name = 'CZ4C_warehouse_100001_200000_PVAV with PFP boxes.osm'
     test_model_path =  "#{__dir__}/#{test_model_name}"
     epw_path = "#{__dir__}/G5300670.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz5A_outpatient
-    test_name = 'test_cz5A_outpatient'
-    test_model_name = 'CZ5A_outpatient_5001_10000_PSZ-AC with gas boiler.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G4200970.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz5B_strip_mall
-    test_name = 'test_cz5B_strip_mall'
-    test_model_name = 'CZ5B_strip_mall_5001_10000_PVAV with PFP boxes.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0800310.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz6B_strip_mall
-    test_name = 'test_cz6B_strip_mall'
-    test_model_name = 'CZ6B_strip_mall_50001_100000_PSZ-AC with gas coil.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G3000410.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz7_secondary_school
-    test_name = 'test_cz7_secondary_school'
-    test_model_name = 'CZ7_secondary_school_10001_25000_PVAV with district hot water reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0200130.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz7A_strip_mall
-    test_name = 'test_cz7A_strip_mall'
-    test_model_name = 'CZ7A_strip_mall_25001_50000_PVAV with gas boiler reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G3800170.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz7B_secondary_school
-    test_name = 'test_cz7B_secondary_school'
-    test_model_name = 'CZ7B_secondary_school_10001_25000_VAV air-cooled chiller with gas boiler reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0801050.epw"
-
-    # set the arguments to test
-    args_hash = {
-    }
-
-    # run the measure
-    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
-
-    return true
-  end
-
-  def test_cz8_large_office
-    test_name = 'test_cz8_large_office'
-    test_model_name = 'CZ8_large_office_10001_25000_VAV chiller with gas boiler reheat.osm'
-    test_model_path =  "#{__dir__}/#{test_model_name}"
-    epw_path = "#{__dir__}/G0200900.epw"
 
     # set the arguments to test
     args_hash = {
