@@ -28,6 +28,15 @@ The fraction of roof area for PV installation.
 **Model Dependent:** false
 
 
+### Include Battery Storage?
+Adds battery storage system per CEC guidlines.
+**Name:** incl_batt_storage,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 
 
 

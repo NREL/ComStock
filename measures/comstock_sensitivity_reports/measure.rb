@@ -973,6 +973,19 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
     runner.registerValue('com_report_pv_system_size_kw', pv_capacity_w, 'kW')
 
+    # get battery storage information
+    battery_capacity_kwh = 0.0
+    max_charge_kw = 0.0
+    max_discharge_kw = 0.0
+    model.getElectricLoadCenterStorageSimples.each do |batt|
+      battery_capacity_kwh += batt.maximumStorageCapacity / 3.6e6  # J → kWh
+      max_charge_kw += batt.maximumPowerforCharging / 1000.0       # W → kW
+      max_discharge_kw += batt.maximumPowerforDischarging / 1000.0 # W → kW
+    end
+    runner.registerValue('com_report_battery_capacity_kwh', battery_capacity_kwh.round(2), 'kWh')
+    runner.registerValue('com_report_battery_max_charge_kw', max_charge_kw.round(2), 'kW')
+    runner.registerValue('com_report_battery_max_discharge_kw', max_discharge_kw.round(2), 'kW')
+
     # Occupant calculations
     total_zone_occupant_area_m2 = 0.0
     total_zone_design_ppl = 0.0
@@ -2980,18 +2993,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       heat_pump_cooling_count += 1
     end
     average_heat_pump_cooling_capacity_weighted_design_cop = heat_pump_cooling_total_capacity_w > 0.0 ? heat_pump_cooling_capacity_weighted_design_cop / heat_pump_cooling_total_capacity_w : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_weighted_design_cop', average_heat_pump_cooling_capacity_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_capacity_weighted_design_cop', average_heat_pump_cooling_capacity_weighted_design_cop)
     average_heat_pump_cooling_load_weighted_design_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_design_cop / heat_pump_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_design_cop', average_heat_pump_cooling_load_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_load_weighted_design_cop', average_heat_pump_cooling_load_weighted_design_cop)
     average_heat_pump_cooling_cop = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_cop / heat_pump_cooling_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_cooling_average_cop', average_heat_pump_cooling_cop)
-    runner.registerValue('com_report_hvac_heat_pump_cooling_total_load_j', heat_pump_cooling_total_load_j)
-    runner.registerValue('com_report_hvac_heat_pump_cooling_total_electric_j', heat_pump_cooling_total_electric_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_average_cop', average_heat_pump_cooling_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_total_load_j', heat_pump_cooling_total_load_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_total_electric_j', heat_pump_cooling_total_electric_j)
     heat_pump_cooling_total_capacity_kbtuh = OpenStudio.convert(heat_pump_cooling_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_heat_pump_cooling_capacity_kbtuh', heat_pump_cooling_total_capacity_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_cooling', heat_pump_cooling_count)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_capacity_kbtuh', heat_pump_cooling_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_cooling', heat_pump_cooling_count)
     average_heat_pump_cooling_load_weighted_source_inlet_temperature_c = heat_pump_cooling_total_load_j > 0.0 ? heat_pump_cooling_load_weighted_source_inlet_temperature_c / heat_pump_cooling_total_load_j : -999
-    runner.registerValue('com_report_hvac_heat_pump_cooling_load_weighted_source_inlet_temperature_c', average_heat_pump_cooling_load_weighted_source_inlet_temperature_c)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_cooling_load_weighted_source_inlet_temperature_c', average_heat_pump_cooling_load_weighted_source_inlet_temperature_c)
 
     # Heat pump heating capacity, load, and efficiencies
     heat_pump_heating_total_load_j = 0.0
@@ -3050,21 +3063,21 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
     average_heat_pump_heating_capacity_weighted_design_cop = heat_pump_heating_total_capacity_w > 0.0 ? heat_pump_heating_capacity_weighted_design_cop / heat_pump_heating_total_capacity_w : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_weighted_design_cop', average_heat_pump_heating_capacity_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_capacity_weighted_design_cop', average_heat_pump_heating_capacity_weighted_design_cop)
     average_heat_pump_heating_load_weighted_design_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_design_cop / heat_pump_heating_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_design_cop', average_heat_pump_heating_load_weighted_design_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_load_weighted_design_cop', average_heat_pump_heating_load_weighted_design_cop)
     average_heat_pump_cop = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_cop / heat_pump_heating_total_load_j : 0.0
-    runner.registerValue('com_report_hvac_heat_pump_heating_average_cop', average_heat_pump_cop)
-    runner.registerValue('com_report_hvac_heat_pump_heating_total_load_j', heat_pump_heating_total_load_j)
-    runner.registerValue('com_report_hvac_heat_pump_heating_total_electric_j', heat_pump_heating_total_electric_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_average_cop', average_heat_pump_cop)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_total_load_j', heat_pump_heating_total_load_j)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_total_electric_j', heat_pump_heating_total_electric_j)
     heat_pump_heating_total_capacity_kbtuh = OpenStudio.convert(heat_pump_heating_total_capacity_w, 'W', 'kBtu/h').get
-    runner.registerValue('com_report_hvac_heat_pump_heating_capacity_kbtuh', heat_pump_heating_total_capacity_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating', heat_pump_heating_count)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_0_to_300_kbtuh', heat_pump_heating_count_0_to_300_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_300_to_2500_kbtuh', heat_pump_heating_count_300_to_2500_kbtuh)
-    runner.registerValue('com_report_hvac_count_heat_pumps_heating_2500_plus_kbtuh', heat_pump_heating_count_2500_plus_kbtuh)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_capacity_kbtuh', heat_pump_heating_total_capacity_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating', heat_pump_heating_count)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_0_to_300_kbtuh', heat_pump_heating_count_0_to_300_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_300_to_2500_kbtuh', heat_pump_heating_count_300_to_2500_kbtuh)
+    runner.registerValue('com_report_hvac_count_water_water_heat_pumps_heating_2500_plus_kbtuh', heat_pump_heating_count_2500_plus_kbtuh)
     average_heat_pump_heating_load_weighted_source_inlet_temperature_c = heat_pump_heating_total_load_j > 0.0 ? heat_pump_heating_load_weighted_source_inlet_temperature_c / heat_pump_heating_total_load_j : -999
-    runner.registerValue('com_report_hvac_heat_pump_heating_load_weighted_source_inlet_temperature_c', average_heat_pump_heating_load_weighted_source_inlet_temperature_c)
+    runner.registerValue('com_report_hvac_water_water_heat_pump_heating_load_weighted_source_inlet_temperature_c', average_heat_pump_heating_load_weighted_source_inlet_temperature_c)
 
     # export temperature data for ground loop heat exchangers if present
     num_boreholes = 0.0

@@ -45,7 +45,7 @@ def write_polars_csv_to_s3_or_local(data: pl.DataFrame, out_fs, out_path):
     # s3_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/comstock_amy2018_release_2/junk_data/'
 
     # If local, write uncompressed CSV
-    if not isinstance(out_fs, s3fs.core.S3FileSystem):
+    if not isinstance(out_fs, s3fs.S3FileSystem):
         data.write_csv(out_path)
         return True
 
@@ -130,12 +130,13 @@ class S3UtilitiesMixin:
         s3_file_path = s3_file_path.replace('\\', '/')
 
         # Perform upload
-        self.s3_client.upload_file(file_path, bucket_name, s3_file_path)
+        s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        s3_client.upload_file(file_path, bucket_name, s3_file_path)
 
     def download_truth_data_file(self, s3_file_path):
         """
-        Download a file from s3 to local truth data directory. 
-        
+        Download a file from s3 to local truth data directory.
+
         Args:
             s3_file_path (string): File path on AWS S3 without bucket name
 
@@ -157,8 +158,11 @@ class S3UtilitiesMixin:
             logger.info('Downloading %s from s3...' % filename)
             # Download file
             bucket_name = 'eulp'
+            s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+            # print(f"Downloading {s3_file_path} from s3 bucket {bucket_name} to {local_path}...")
+            s3_client.download_file(bucket_name, s3_file_path, local_path)
             self.s3_client.download_file(bucket_name, s3_file_path, local_path)
-        
+
         return local_path
 
     def read_delimited_truth_data_file_from_S3(self, s3_file_path, delimiter, args={}):
@@ -232,7 +236,7 @@ class S3UtilitiesMixin:
             output_dir['storage_options'] = {
                 "aws_access_key_id": credentials.access_key,
                 "aws_secret_access_key": credentials.secret_key,
-                "aws_region": "us-west-2"
+                "aws_region": "us-west-2",
             }
             if credentials.token:
                 output_dir['storage_options']["aws_session_token"] = credentials.token

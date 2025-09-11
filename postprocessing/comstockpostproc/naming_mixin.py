@@ -490,6 +490,8 @@ class NamingMixin():
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
     GHG_FUEL_OIL = 'out.emissions.fuel_oil..co2e_kg'
     GHG_PROPANE = 'out.emissions.propane..co2e_kg'
+    GHG_DISTCLG = 'out.emissions.district_cooling..co2e_kg'
+    GHG_DISTHTG = 'out.emissions.district_heating..co2e_kg'
     GHG_LRMER_LOW_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_low_re_cost_15_2023_start..co2e_kg'
     GHG_LRMER_MID_CASE_15_ELEC = 'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
     GHG_LRMER_HIGH_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_high_re_cost_15_2023_start..co2e_kg'
@@ -786,6 +788,8 @@ class NamingMixin():
         GHG_NATURAL_GAS,
         GHG_FUEL_OIL,
         GHG_PROPANE,
+        GHG_DISTCLG,
+        GHG_DISTHTG,
         GHG_LRMER_LOW_RE_COST_15_ELEC,
         #GHG_LRMER_MID_CASE_15_ELEC,
         GHG_LRMER_HIGH_RE_COST_15_ELEC,
@@ -904,7 +908,8 @@ class NamingMixin():
             'Hospital',
             'SmallHotel',
             'LargeHotel',
-            'Warehouse'],
+            'Warehouse',
+            'Grocery'],
 
          HVAC_SYS: [
              'Baseboard electric',
@@ -966,7 +971,9 @@ class NamingMixin():
         'Hospital': 'hospital',
         'SmallHotel': 'small_hotel',
         'LargeHotel': 'large_hotel',
-        'Warehouse': 'warehouse'
+        'Warehouse': 'warehouse',
+        'Grocery': 'grocery',
+        'SuperMarket': 'grocery'
     }
 
     BLDG_TYPE_TO_ABBRV = {
@@ -983,7 +990,8 @@ class NamingMixin():
         'Hospital': 'HSP',
         'SmallHotel': 'SMHOT',
         'LargeHotel': 'LGHOT',
-        'Warehouse': 'WH'
+        'Warehouse': 'WH',
+        'Grocery': 'GROC'
     }
 
     END_USES = [

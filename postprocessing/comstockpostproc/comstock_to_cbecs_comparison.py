@@ -124,10 +124,10 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             common_columns = common_columns & set(df.columns)
         logger.info(f"Not including columns {all_columns - common_columns} in comstock only plots")
         comstock_dfs_to_concat = [df.select(common_columns) for df in comstock_dfs_to_concat]
-        comstock_df = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed")
-        # comstock_df = comstock_df[[self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED]
         comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED
-        comstock_df: pl.LazyFrame = comstock_df.select(comstock_qoi_columns)
+        comstock_df: pl.LazyFrame = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed").select(comstock_qoi_columns)
+        comstock_enduse_columns = [self.DATASET] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE
+        comstock_enduse_df: pl.LazyFrame = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed").select(comstock_enduse_columns)
 
         # Make directories
         self.output_dir = os.path.join(current_dir, '..', 'output', self.name)
@@ -148,7 +148,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Make ComStock to CBECS comparison plots
         if make_comparison_plots:
             self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
-            # QOI plots can only be made with comstock data because CBECS data do not have QOI columns
+            # Enduse and QOI plots can only be made with comstock data because CBECS data do not have QOI columns
+            self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
             self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
 
         else:
@@ -188,7 +189,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
 
-        logger.info('Making EUI historgram by building type plots')
+        logger.info('Making EUI histogram by building type plots')
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_eui_histograms_by_building_type,
             lazy_frame=lazy_frame.clone(),
@@ -200,8 +201,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             lazy_frame=lazy_frame.clone(),
             columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
-        # TODO Renenable utility rate plots when available
-
+        # TODO Utility rate plots when available
         # logger.info('Making Energy Rate plots')
         # LazyFramePlotter.plot_with_lazy(
         #     plot_method=self.plot_energy_rate_boxplots,
@@ -227,9 +227,19 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 lazy_frame=lazy_frame.clone(),
                 columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.HVAC_SYS, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
-
-
-
+    def make_enduse_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir):
+        BASIC_PARAMS = {
+            'column_for_grouping': column_for_grouping,
+            'color_map': color_map,
+            'output_dir': output_dir,
+            'applicability':'stock'
+        }
+        # Make the stacked end use plots only if there is more than one comstock dataset to compare
+        if (lazy_frame.select(pl.col(column_for_grouping).n_unique()).collect()[0, 0] > 1):
+            LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_by_enduse_and_fuel_type,
+                                            lazy_frame=lazy_frame.clone(),
+                                            columns=([self.DATASET] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,
