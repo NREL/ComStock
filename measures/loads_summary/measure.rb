@@ -51,6 +51,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     'people_gain',
     'light_gain',
     'equip_gain',
+    'ref_equip_gain',
     'win_sol',
     'ext_wall',
     'fnd_wall',
@@ -177,7 +178,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
   def modelOutputRequests(model, runner, user_arguments)
 
     timeseries_output = runner.getBoolArgumentValue('timeseries_output', user_arguments)
-    
+
     # request advanced reporting for window heat gain components
     model.getOutputDiagnostics.addKey('DisplayAdvancedReportVariables')
 
@@ -203,7 +204,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
         else
           out_var.setReportingFrequency('RunPeriod')
         end
-        
+
       end
     end
 
@@ -219,7 +220,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
 
     # read in the template
     rsrcs = "#{File.dirname(__FILE__)}/resources"
-    
+
     # script_version = runner.getIntegerArgumentValue('script_version', user_arguments)
     # get surface information
     surf_h = get_surface_info(model)
@@ -243,15 +244,15 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
 
     external_file = OpenStudio::Model::ExternalFile.getExternalFile(model, plugin_path)
     external_file = external_file.get
-    
+
     # python plugin instance
     python_plugin_instance = OpenStudio::Model::PythonPluginInstance.new(external_file, 'LoadSummary')
     python_plugin_instance.setName('Load Summary')
     python_plugin_instance.setRunDuringWarmupDays(true)
-    
+
     # python plugin search paths
     # TODO if we need external libraries
-    
+
     return true
   end
 
@@ -287,7 +288,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
 
     return time_series_array
   end
- 
+
   def get_runperiod_variable_value(runner, sql, env_period, key_value, desired_units = nil)
     query = %{
     SELECT rvd.VariableValue
@@ -311,7 +312,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
     end
 
     return desired_units ? OpenStudio.convert(result, 'J', desired_units).get : result
-  end  
+  end
 
   # define what happens when the measure is run
   def run(runner, user_arguments)

@@ -3,14 +3,34 @@
   <schema_version>3.1</schema_version>
   <name>loads_summary</name>
   <uid>82d9a22a-80ea-4fa7-a57f-77ce8fa4be76</uid>
-  <version_id>de7790c5-fba7-46d8-883f-79c7d1f73da3</version_id>
-  <version_modified>2025-07-11T21:35:32Z</version_modified>
+  <version_id>4ef0777d-9737-4414-a990-974c1b634a75</version_id>
+  <version_modified>2025-09-11T18:52:35Z</version_modified>
   <xml_checksum>58F01CAA</xml_checksum>
   <class_name>LoadsSummary</class_name>
   <display_name>loads_summary</display_name>
   <description></description>
   <modeler_description></modeler_description>
-  <arguments />
+  <arguments>
+    <argument>
+      <name>timeseries_output</name>
+      <display_name>Output Timeseries</display_name>
+      <description>If true, the measure will output timeseries data for each component and mode.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
   <outputs />
   <provenances />
   <tags>
@@ -39,7 +59,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>09729BF4</checksum>
+      <checksum>8DB27E84</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -62,19 +82,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E5E65A88</checksum>
-    </file>
-    <file>
-      <filename>in.py</filename>
-      <filetype>py</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>DE8D7AFA</checksum>
+      <checksum>914C97A7</checksum>
     </file>
     <file>
       <filename>python_plugin.py.erb</filename>
       <filetype>erb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>45155009</checksum>
+      <checksum>F0683E7C</checksum>
     </file>
     <file>
       <filename>report.html.in</filename>
@@ -95,6 +109,12 @@
       <checksum>582D5F6F</checksum>
     </file>
     <file>
+      <filename>CZ4B_retail_10001_25000_PSZ-AC with gas coil.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>054759D6</checksum>
+    </file>
+    <file>
       <filename>CZ4C_warehouse_100001_200000_PVAV with PFP boxes.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -113,10 +133,16 @@
       <checksum>8FDBC3A8</checksum>
     </file>
     <file>
-      <filename>G3600290.epw</filename>
+      <filename>G3500010.epw</filename>
       <filetype>epw</filetype>
       <usage_type>test</usage_type>
-      <checksum>E2329027</checksum>
+      <checksum>A19FF6D2</checksum>
+    </file>
+    <file>
+      <filename>G3600070.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B57143EE</checksum>
     </file>
     <file>
       <filename>G5300670.epw</filename>
@@ -140,7 +166,7 @@
       <filename>loads_summary_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1BF85F71</checksum>
+      <checksum>B32C8A9C</checksum>
     </file>
     <file>
       <filename>simple_test.osm</filename>

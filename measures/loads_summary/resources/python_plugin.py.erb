@@ -7,6 +7,7 @@ COMPONENTS = {i: c for i, c in enumerate([
     'people_gain',
     'light_gain',
     'equip_gain',
+    'ref_equip_gain',
     'win_sol',
     'ext_wall',
     'fnd_wall',
@@ -65,7 +66,8 @@ PEOPLE_CONV = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zpche'), Non
 PEOPLE_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zprhe'), None)
 LIGHT_CONV = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlche'), None)
 LIGHT_RAD = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zlrhe'), None)
-EQUIP_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zeeche', 'zgeche', 'zhweche', 'zoeche', 'rzcwitsce']}
+EQUIP_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zeeche', 'zgeche', 'zhweche', 'zoeche']}
+REF_EQUIP_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['rzcwitsce']}
 INFIL_VENT_CONV = {k: val for k, val in ZN_OUTPUT_MAP.items() if val[0] in ['zishge', 'zishle', 'zmvhlie', 'zmvhlde', 'zmvclie', 'zmvclde']}
 INFIL_GAIN = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishge'), None)
 INFIL_LOSS = next((k for k, v in ZN_OUTPUT_MAP.items() if v[0] == 'zishle'), None)
@@ -192,29 +194,29 @@ class LoadSummary(EnergyPlusPlugin):
                         self.flr_surf_frac_map[i][j][k] = frac
                 if j in EXT_SURF_KEYS:
                     for k, (surf_name, frac) in enumerate(self.zn_ext_surf_fracs[zone_name][surf_type].items()):
-                        self.ext_surf_frac_map[i][j][k] = frac 
+                        self.ext_surf_frac_map[i][j][k] = frac
 
         # dict to store zone multiplier handles and values
         # {'zn_name_key': {0: handle, 1: value}}
         self.zone_multipliers = defaultdict(lambda: defaultdict())
 
         # dict to store zone (or enclosure) variable handles and values
-        # {'zn_name_key': {'var_abbrev_key': {0: handle, 1: value}}
+        # {'zn_name_key': {'var_abbrev_key': {0: handle, 1: value}}}
         self.zone_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict()))
 
         # dict to store surface variable handles and values
-        # {zn_name_key: {surf_type_key: {surf_name_key: {'var_abbrev_key': {0: handle, 1: value}}
+        # {zn_name_key: {surf_type_key: {surf_name_key: {'var_abbrev_key': {0: handle, 1: value}}}}}
         self.surf_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict()))))
         self.win_out_var_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict()))))
 
         # dict to store output components
-        # {'mode': {'component': {0: handle, 1: value}}
+        # {'mode': {'component': {0: handle, 1: value}}}
         self.component_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
 
         # dict to store radiant history lists
         # {'zn_name_key': {'rad_term_key': FixedSizeList}}
         self.rad_hist_dict = defaultdict(lambda: defaultdict())
-    
+
     def clean_name(self, name):
         return name.lower().replace(' ', '_')
 
@@ -229,7 +231,7 @@ class LoadSummary(EnergyPlusPlugin):
         Converts a dictionary to a dictionary of integer keys and values of keys of original dict
         """
         return {i: key for i, key in enumerate(dict.keys())}
-    
+
     def filter_zone_info(self, zone_info, surf_keys):
         """
         Filters the zone info dictionary to only include the specified surface keys
@@ -311,7 +313,7 @@ class LoadSummary(EnergyPlusPlugin):
                             output[1],
                             window_name
                         )
-            
+
             # surface output handles
             for j, output in SURF_OUT_VAR_MAP.items():
                 for surf_type_key, surf_type_name in self.surf_name_map[z].items():
@@ -322,7 +324,7 @@ class LoadSummary(EnergyPlusPlugin):
                                 output[1],
                                 surf_name
                             )
-        
+
         # global handles
         for m, mode in MODES.items():
             for c, component in COMPONENTS.items():
@@ -366,14 +368,14 @@ class LoadSummary(EnergyPlusPlugin):
             rad_hist_dict[term] = FixedSizeList(self.num_ts * 24, rad_val)
         else:
             rad_hist_dict[term].add_first_drop_last(rad_val)
-        
+
         return sum(
             [x * y for x, y in zip(
                 rad_hist_dict[term].chunk_avg(self.num_ts),
                 rts_vals
             )]
         )
-    
+
     def on_begin_zone_timestep_before_init_heat_balance(self, state) -> int:
 
         # only perform calcs during run period, not design days
@@ -393,7 +395,6 @@ class LoadSummary(EnergyPlusPlugin):
             for j in ZN_OUTPUT_MAP:
                 self.zone_out_var_dict[z][j][1] = 0
 
-
         return 0
 
     def on_end_of_system_timestep_after_hvac_reporting(self, state) -> int:
@@ -401,11 +402,11 @@ class LoadSummary(EnergyPlusPlugin):
         # only perform calcs during run period, not design days
         if self.api.exchange.calendar_year(state) == 0:
             return 0
-        
+
         # get values
         # zone output values
         for z in self.zone_name_map:
-            
+
             for j, output in INFIL_VENT_CONV.items():
                 if self.zone_out_var_dict[z][j][0] != -1:
                     self.zone_out_var_dict[z][j][1] += self.api.exchange.get_variable_value(
@@ -418,11 +419,11 @@ class LoadSummary(EnergyPlusPlugin):
         return 0
 
     def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
-        
+
         # only perform calcs during run period, not design days
         if self.api.exchange.calendar_year(state) == 0:
             return 0
-        
+
         # get handles
         if self.need_to_get_handles:
             self.get_handles(state)
@@ -484,6 +485,11 @@ class LoadSummary(EnergyPlusPlugin):
             tot_equipment_conv = 0
             for equip_key in EQUIP_CONV:
                 tot_equipment_conv += self.zone_out_var_dict[z][equip_key][1]
+
+            # total refrigeration equipment convection
+            tot_ref_equipment_conv = 0
+            for ref_equip_key in REF_EQUIP_CONV:
+                tot_ref_equipment_conv += self.zone_out_var_dict[z][ref_equip_key][1]
 
             # calculated delayed internal gains
             tot_del_int_gains = 0
@@ -605,7 +611,7 @@ class LoadSummary(EnergyPlusPlugin):
                                 ext_surf_conv[ext_surf_type_key] += (
                                     surf_conv * -1
                                     ) - (
-                                    (tot_del_int_gains + win_del_ir_gains) * all_surf_frac 
+                                    (tot_del_int_gains + win_del_ir_gains) * all_surf_frac
                                     ) + (
                                     int_surf_total_conv * ext_surf_frac
                                 )
@@ -631,32 +637,34 @@ class LoadSummary(EnergyPlusPlugin):
             self.component_dict[comp_mode][1][1] += (self.zone_out_var_dict[z][LIGHT_CONV][1] + lights_rad_delay) * multiplier
             # equipment loads
             self.component_dict[comp_mode][2][1] += (tot_equipment_conv + equip_rad_delay) * multiplier
+            # refrigeration equipment loads
+            self.component_dict[comp_mode][3][1] += tot_ref_equipment_conv * multiplier
             # windows solar loads
-            self.component_dict[comp_mode][3][1] += win_del_solar * multiplier
+            self.component_dict[comp_mode][4][1] += win_del_solar * multiplier
             # exterior wall loads
-            self.component_dict[comp_mode][4][1] += ext_surf_conv[0] * multiplier
+            self.component_dict[comp_mode][5][1] += ext_surf_conv[0] * multiplier
             # foundation wall loads
-            self.component_dict[comp_mode][5][1] += ext_surf_conv[1] * multiplier
+            self.component_dict[comp_mode][6][1] += ext_surf_conv[1] * multiplier
             # exterior roof loads
-            self.component_dict[comp_mode][6][1] += ext_surf_conv[2] * multiplier
+            self.component_dict[comp_mode][7][1] += ext_surf_conv[2] * multiplier
             # exterior floor loads
-            self.component_dict[comp_mode][7][1] += ext_surf_conv[3] * multiplier
+            self.component_dict[comp_mode][8][1] += ext_surf_conv[3] * multiplier
             # ground floor loads
-            self.component_dict[comp_mode][8][1] += ext_surf_conv[4] * multiplier
+            self.component_dict[comp_mode][9][1] += ext_surf_conv[4] * multiplier
             # window conduction loads
-            self.component_dict[comp_mode][9][1] += (ext_surf_conv[5] + window_shade_ir) * multiplier
+            self.component_dict[comp_mode][10][1] += (ext_surf_conv[5] + window_shade_ir) * multiplier
             # door loads
-            self.component_dict[comp_mode][10][1] += ext_surf_conv[6] * multiplier
+            self.component_dict[comp_mode][11][1] += ext_surf_conv[6] * multiplier
             # infiltration loads
-            self.component_dict[comp_mode][11][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] - self.zone_out_var_dict[z][INFIL_LOSS][1]) * multiplier
+            self.component_dict[comp_mode][12][1] += (self.zone_out_var_dict[z][INFIL_GAIN][1] - self.zone_out_var_dict[z][INFIL_LOSS][1]) * multiplier
             # ventilation loads
-            self.component_dict[comp_mode][12][1] += (
-                self.zone_out_var_dict[z][VENT_CLG_INC][1] 
-                + self.zone_out_var_dict[z][VENT_HTG_DEC][1] 
-                - self.zone_out_var_dict[z][VENT_CLG_DEC][1] 
+            self.component_dict[comp_mode][13][1] += (
+                self.zone_out_var_dict[z][VENT_CLG_INC][1]
+                + self.zone_out_var_dict[z][VENT_HTG_DEC][1]
+                - self.zone_out_var_dict[z][VENT_CLG_DEC][1]
                 - self.zone_out_var_dict[z][VENT_HTG_INC][1]
             ) * multiplier
-            
+
         # flip sign of all components in heating
         for component in COMPONENTS:
            self.component_dict[0][component][1] *= -1
