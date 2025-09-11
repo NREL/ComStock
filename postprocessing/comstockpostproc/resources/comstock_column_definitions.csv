@@ -1191,6 +1191,9 @@ calculated,calc.loads_intensity.htg.door,calc.loads_intensity.htg.door,TRUE,FALS
 calculated,calc.loads_intensity.clg.equip_gain,calc.loads_intensity.clg.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during cooling per unit floor area
 calculated,calc.loads_intensity.flt.equip_gain,calc.loads_intensity.flt.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during floating per unit floor area
 calculated,calc.loads_intensity.htg.equip_gain,calc.loads_intensity.htg.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.ref_equip_gain,calc.loads_intensity.clg.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.ref_equip_gain,calc.loads_intensity.flt.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.ref_equip_gain,calc.loads_intensity.htg.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during heating per unit floor area
 calculated,calc.loads_intensity.clg.ext_flr,calc.loads_intensity.clg.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during cooling per unit floor area
 calculated,calc.loads_intensity.flt.ext_flr,calc.loads_intensity.flt.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during floating per unit floor area
 calculated,calc.loads_intensity.htg.ext_flr,calc.loads_intensity.htg.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during heating per unit floor area
