@@ -151,6 +151,78 @@ class AddHvacNighttimeOperationVariability < OpenStudio::Measure::ModelMeasure
     fan_schd_1_count = 0
     fan_sch_op_count = 0
 
+    # adjust exhaust fan schedules
+    # load lookup file and convert to hash table
+    exhaust_fan_schedules_csv = "#{File.dirname(__FILE__)}/resources/exhaust_fan_schedules.csv"
+    if !File.file?(exhaust_fan_schedules_csv)
+      runner.registerError("Unable to find file: #{exhaust_fan_schedules_csv}")
+      return nil
+    end
+    exhaust_fan_schedules_tbl = CSV.table(exhaust_fan_schedules_csv)
+    exhaust_fan_schedules_hsh = exhaust_fan_schedules_tbl.map(&:to_hash)
+
+    # loop through exhaust fans and change schedules
+    model.getFanZoneExhausts.each do |exhaust_fan|
+      # if the exhaust fan is a transfer air source, get the data for the target thermal zone instead
+      if exhaust_fan.name.to_s.downcase.include?('transfer air source')
+        target_thermal_zone_name = exhaust_fan.name.to_s.gsub(' Transfer Air Source', '')
+        target_thermal_zone = model.getThermalZoneByName(target_thermal_zone_name)
+        if target_thermal_zone.is_initialized
+          target_thermal_zone = target_thermal_zone.get
+          standards_building_type = OpenstudioStandards::ThermalZone.thermal_zone_get_building_type(target_thermal_zone)
+          space_type = OpenstudioStandards::ThermalZone.thermal_zone_get_space_type(target_thermal_zone)
+          runner.registerInfo("Exhaust fan #{exhaust_fan.name} is a Transfer Air Source. Looking up standards data for target zone #{target_thermal_zone.name} instead of exhaust fan zone #{exhaust_fan.thermalZone.get.name}.")
+        else
+          runner.registerWarning("Unable to find target thermal zone '#{target_thermal_zone_name}' for exhaust fan '#{exhaust_fan.name}'. Not adjusting '#{exhaust_fan.name}' schedule.")
+          next
+        end
+      else
+        thermal_zone = exhaust_fan.thermalZone
+        next unless thermal_zone.is_initialized
+
+        thermal_zone = thermal_zone.get
+        standards_building_type = OpenstudioStandards::ThermalZone.thermal_zone_get_building_type(thermal_zone)
+        space_type = OpenstudioStandards::ThermalZone.thermal_zone_get_space_type(thermal_zone)
+      end
+      if space_type.is_initialized
+        space_type = space_type.get
+        if space_type.standardsSpaceType.is_initialized
+          standards_space_type = space_type.standardsSpaceType.get
+        else
+          runner.registerWarning("Unable to find standards space type for exhaust fan '#{exhaust_fan.name}'.")
+          next
+        end
+      else
+        runner.registerWarning("Unable to find space type for exhaust fan '#{exhaust_fan.name}'.")
+        next
+      end
+
+      # lookup prototype space type
+      sch_data = exhaust_fan_schedules_hsh.select { |r| (r[:building_type] == standards_building_type) && (r[:space_type] == standards_space_type) }
+      if sch_data.empty?
+        runner.registerWarning("Unable to find standards space type for '#{standards_building_type} - #{standards_space_type}'. Not adjusting exhaust fan '#{exhaust_fan.name}' schedule.")
+        next
+      end
+      sch_data = sch_data[0]
+
+      if sch_data[:exhaust_availability_schedule]
+        exhaust_schedule = std.model_add_schedule(model, sch_data[:exhaust_availability_schedule])
+        exhaust_fan.setAvailabilitySchedule(exhaust_schedule)
+      end
+
+      if sch_data[:exhaust_flow_fraction_schedule] && !exhaust_fan.name.to_s.downcase.include?('transfer air source')
+        exhaust_flow_schedule = std.model_add_schedule(model, sch_data[:exhaust_flow_fraction_schedule])
+        exhaust_fan.setFlowFractionSchedule(exhaust_flow_schedule)
+      end
+
+      if sch_data[:balanced_exhaust_fraction_schedule] && !exhaust_fan.name.to_s.downcase.include?('transfer air source')
+        balanced_exhaust_schedule = std.model_add_schedule(model, sch_data[:balanced_exhaust_fraction_schedule])
+        exhaust_fan.setBalancedExhaustFractionSchedule(balanced_exhaust_schedule)
+        exhaust_fan.setPressureRise(1.0) # transfer air set pressure rise to negligable but non-zero value
+      end
+      runner.registerInfo("Exhaust fan '#{exhaust_fan.name}' schedule adjusted based on standards space type '#{standards_building_type} - #{standards_space_type}'.")
+    end
+
     # make changes to unitary systems
     li_unitary_systems.sort.each do |air_loop_hvac|
       # change night OA schedule to match hvac operation schedule for no night OA

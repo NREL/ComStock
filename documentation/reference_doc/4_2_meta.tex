@@ -87,6 +87,27 @@ Instead, we decided to use the EUL sources described in Table~\ref{tab:effective
 
 \input{tables/eul_distributions}
 
+\subsection{Commercial Refrigeration Equipment}
+\label{sec:refrigeration_survival}
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=\textwidth]{figures/refrigeration_survival_curves_combined.png}
+  \caption[Survival curves for commercial refrigeration equipment]{Weibull survival curves for commercial refrigeration equipment in large and small/medium grocery buildings.}
+  \label{fig:refrigeration_survival_curves}
+\end{figure}
+
+We represent commercial refrigeration equipment lifetimes using Weibull survival functions fit to effective useful lives (EULs) informed by the U.S. Department of Energy’s \emph{Commercial Refrigeration Equipment} Technical Support Document \citep{doe_cre_tsd}. Consistent with the TSD’s market framing and industry practices, we differentiate between large grocery buildings (often owned or operated by national chains) and medium/small grocery buildings (more often independently owned).
+
+For large groceries, we assume earlier replacement decisions driven by risk management, reliability requirements, and chain-wide retrofit programs that standardize fleets. We therefore assign a shorter EUL of 10 years. For medium and small groceries, where equipment is commonly retained until failure or when repair costs become prohibitive, we assign a longer EUL of 15 years. These assumptions align with the ownership and operations context underlying DOE’s CRE analyses and shipments modeling \citep{doe_cre_tsd}.
+
+We parameterize shifted-Weibull survival functions such that (i) 50\% survival occurs at the EUL (our operational definition of EUL), and (ii) a minimum lifespan threshold of roughly 60\% of the EUL avoids unrealistic early whole-system failures. The resulting parameters are listed in Table~\ref{tab:refrigeration_eul_distributions}. These distributions produce the combined survival curves shown in Figure~\ref{fig:refrigeration_survival_curves} and are used to schedule replacements and retirements in ComStock’s stock-turnover logic.
+
+\input{tables/eul_refrigeration_dist}
+
+
+
+
 \subsection{Space Type Ratios}
 \label{sec:space_type_ratios}
 A space type refers to a portion of a building that has a distinct usage, purpose, occupancy schedule, thermostat set point, etc. Most buildings have multiple space types. For example, schools typically have classrooms, hallways, restrooms, cafeterias, etc. In ComStock, each building type is assumed to have a fixed ratio of various space types relative to the total building floor area. For buildings outside of California, the space type ratios were largely taken from the DOE commercial reference building models \citep{deru_2011}. For buildings in California, the space type ratios were largely taken from the DEER prototype models \citep{cpuc_deer}. There are certain building types that have altered ratios or are a mix of building types. For example in ComStock, warehouses include both unconditioned storage facilities and light manufacturing. Warehouse building subtypes alter the ratio of bulk storage. Retail strip mall buildings have different ratios of restaurant space types, with the default being 20\%. Two examples of space type ratios are shown in Table \ref{tab:space_type_ratios}. See Table~\ref{tab:space_type_ratios_all} for the space type ratios for all building types.

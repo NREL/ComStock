@@ -50,8 +50,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.sampling_regions_name = 'sampling_regions_v1.json'
         self.ca_cz_tract_2010_name = 'cec_cz_by_tract_2010_lkup.json'
         self.ca_cz_tract_2020_name = 'cec_cz_by_tract_2020_lkup.json'
-        self.hvac_system_type_name = 'hvac_system_type_v2.tsv'
-        self.space_heating_fuel_type_name = 'heating_fuel_v1.tsv'
+        self.hvac_system_type_name = 'hvac_system_type_v3.tsv'
+        self.space_heating_fuel_type_name = 'heating_fuel_v2.tsv'
         self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         logger.info(f'Creating {self.dataset_name}')
 
@@ -65,7 +65,7 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+        if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             if not os.path.exists(self.output_dir['fs_path']):
                 os.makedirs(self.output_dir['fs_path'])
 
@@ -110,7 +110,8 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         'large_hotel': 'LargeHotel',
         'hospital': 'Hospital',
         'primary_school': 'PrimarySchool',
-        'secondary_school': 'SecondarySchool'
+        'secondary_school': 'SecondarySchool',
+        'grocery': 'Grocery'
     }
     """Mapping between snake_case and UpperCamelCase building type enumerations. """
 
@@ -561,7 +562,6 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if len(leftovers) > 0:
             logger.error('Building type values from the building estimate not expected by the building type mapper:')
             logger.error(f'{leftovers}')
-            breakpoint()
             raise RuntimeError('Unable to process the specified building type enumerations.')
 
         self.data = df.copy(deep=True)
@@ -683,6 +683,10 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # remove 103, hospital, size_bin 0
         buckets = buckets.loc[~(
             (buckets.sampling_region == 103) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
+        ), :]
+        # remove 109, hospital, size_bin 0
+        buckets = buckets.loc[~(
+            (buckets.sampling_region == 109) & (buckets.building_type == 'hospital') & (buckets.size_bin == 0)
         ), :]
         # remove 110, large_hotel, size_bin 1
         buckets = buckets.loc[~(
