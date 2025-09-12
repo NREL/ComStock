@@ -17,14 +17,9 @@ OS:WeatherFile,
   file:////var/simdata/openstudio/weather/USA_MD_Baltimore.Washingto.724060_2012.epw, !- Url
   226BE93E;                               !- Checksum
 
-OS:RunPeriodControl:DaylightSavingTime,
-  {cb14bac5-8365-4134-a41b-427c6fc0c85a}, !- Handle
-  2nd Sunday in March,                    !- Start Date
-  1st Sunday in November;                 !- End Date
-
 OS:YearDescription,
   {7c2f0b32-d68d-46d7-bd9a-c0966c4a8343}, !- Handle
-  2016,                                   !- Calendar Year
+  2018,                                   !- Calendar Year
   ,                                       !- Day of Week for Start Day
   ;                                       !- Is Leap Year
 
@@ -38,7 +33,7 @@ OS:RunPeriod,
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
   12,                                     !- End Month
-  30,                                     !- End Day of Month
+  31,                                     !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
   ,                                       !- Apply Weekend Holiday Rule
