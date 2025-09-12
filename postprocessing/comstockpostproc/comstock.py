@@ -387,7 +387,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
         if reload_from_csv:
             file_name = f'Timeseries for AMI long.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.join(self.output_dir["fs_path"], file_name)
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
@@ -398,7 +398,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
             for region in ami.ami_region_map:
-                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                region_file_path_long = os.path.join(self.output_dir["fs_path"], region['source_name'] + '_building_type_timeseries_long.csv')
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
                     logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
@@ -410,7 +410,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     # Convert bigint to timestamp type if necessary
                     ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
 
-                # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+                # region_file_path_wide = os.path.join(self.output_dir["fs_path"], region['source_name'] + '_building_type_timeseries_wide.csv')
                 # ts_agg.to_csv(region_file_path_wide, index=False)
                 # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
 
@@ -418,7 +418,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 timeseries_df['region_name'] = region['source_name']
                 all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
 
-            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            data_path = os.path.join(self.output_dir["fs_path"], 'Timeseries for AMI long.csv')
             all_timeseries_df.to_csv(data_path, index=True)
             self.ami_timeseries_data = all_timeseries_df
 
@@ -503,7 +503,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
         size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
-        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
+        # file_path = os.path.join(self.output_dir["fs_path"], output_name + '_building_type_size.csv')
         # size_df.write_csv(file_path)
 
         weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
@@ -516,7 +516,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # save out long data format
         if save_individual_region:
-            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            output_file_path = os.path.join(self.output_dir["fs_path"], output_name + '_building_type_timeseries_long.csv')
             agg_df.to_csv(output_file_path, index=True)
             logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
 
@@ -3860,7 +3860,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             intensity_col = self.col_name_to_area_intensity(col).replace('out.','calc.')
             load_intensity_cols.append(intensity_col)
 
-
         # convert load intensity columns to long format
         load_var_col = 'calc.loads_intensity.period.component..units'
         load_val_col = 'calc.loads_intensity.component..kbtu_per_ft2'
@@ -3896,7 +3895,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         loads_data_long = loads_long
 
         file_name = f'load_components_long.csv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting to: {file_path}')
         loads_data_long.write_csv(file_path)
         
@@ -3915,13 +3914,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # for up_id in up_ids:
         #     logger.error('Got here')
         #     file_name = f'upgrade{up_id:02d}_energy_long.csv'
-        #     file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        #     file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         #     logger.info(f'Exporting to: {file_path}')
         #     self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
         for cached_parquet in self.cached_parquet:
             file_name = f'{cached_parquet}_energy_long.csv'
-            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
             logger.info(f'Exporting to: {file_path}')
             self.data_long.write_csv(file_path)
 
@@ -4060,12 +4059,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Save files
         file_name = f'data_dictionary.tsv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting data dictionary to: {file_path}')
         data_dictionary.write_csv(file_path, separator='\t')
 
         file_name = f'enumeration_dictionary.tsv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
 

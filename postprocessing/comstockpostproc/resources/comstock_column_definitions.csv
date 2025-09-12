@@ -2355,6 +2355,9 @@ calculated,calc.weighted.loads.htg.door,calc.weighted.loads.htg.door,TRUE,FALSE,
 calculated,calc.weighted.loads.clg.equip_gain,calc.weighted.loads.clg.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during cooling
 calculated,calc.weighted.loads.flt.equip_gain,calc.weighted.loads.flt.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during floating
 calculated,calc.weighted.loads.htg.equip_gain,calc.weighted.loads.htg.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during heating
+calculated,calc.weighted.loads.clg.equip_gain,calc.weighted.loads.clg.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during cooling
+calculated,calc.weighted.loads.flt.equip_gain,calc.weighted.loads.flt.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during floating
+calculated,calc.weighted.loads.htg.equip_gain,calc.weighted.loads.htg.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during heating
 calculated,calc.weighted.loads.clg.ext_flr,calc.weighted.loads.clg.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during cooling
 calculated,calc.weighted.loads.flt.ext_flr,calc.weighted.loads.flt.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during floating
 calculated,calc.weighted.loads.htg.ext_flr,calc.weighted.loads.htg.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during heating
