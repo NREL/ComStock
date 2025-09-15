@@ -40,7 +40,7 @@ comstock_a.export_metadata_and_annual_results_for_upgrade(0, geo_exports)
 
 path = "C:/path/to/comstock/postprocessing/output/ComStock loads_summary/metadata_and_annual_results_aggregates/national_by_state/full/csv/upgrade0_agg.csv"
 
-df = pl.read_csv(path, dtypes={
+df = pl.read_csv(path, infer_schema_length=1000, schema_overrides={
     'in.number_stories': pl.Utf8,
 })
  
