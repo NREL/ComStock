@@ -1050,6 +1050,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_weighted_fan_power_minimum_flow_fraction = 0.0
     air_system_weighted_fan_static_pressure = 0.0
     air_system_weighted_fan_efficiency = 0.0
+    air_system_total_vav_mass_flow = 0.0
+	air_system_total_des_flow_rate = 0.0
+	air_system_vav_avg_flow_ratio = -999
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # check if unitary system
@@ -1138,11 +1141,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
-	  air_system_total_vav_mass_flow = 0 
-	  air_system_total_des_flow_rate = 0 
 	  if fan_var_vol
 	      air_system_total_vav_mass_flow += air_loop_mass_flow_rate_kg_s #Track VAV airflow separately for SP reset measure 
-		  air_system_total_des_flow_rate + = des_flow_rate
+		  air_system_total_des_flow_rate += des_flow_rate
 	  end 
     end
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
@@ -1153,10 +1154,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_air_system_fan_static_pressure', air_system_fan_static_pressure, 'Pa')
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
-	air_system_vav_avg_flow_ratio = -999
-	if air_system_total_des_flow_rate ! = 0 
-	   air_system_vav_avg_flow_ratio = air_system_total_vav_mass_flow/air_system_total_des_flow_rate
-	end 
+	air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate > 0.0 ? air_system_total_vav_mass_flow.to_f / air_system_total_des_flow_rate.to_f : 0.0
+
 
     # calculate economizer variables
     if economizer_statistics.empty?
