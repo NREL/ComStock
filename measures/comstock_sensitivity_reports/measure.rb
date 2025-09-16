@@ -1136,7 +1136,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
 
       # add to weighted
-      air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s #Use this AA; also get fan design mass flow rate 
+      air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s 
       air_system_total_oa_mass_flow_kg_s += air_loop_oa_mass_flow_rate_kg_s
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
