@@ -1438,6 +1438,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 	if (zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats)
 	    has_htg_setback = true 
 	end 
+	
+	runner.registerValue('com_report_has_htg_setback', has_htg_setback)
+    runner.registerValue('com_report_has_clg_setback', has_clg_setback)
 
     # Thermostat heating setpoint minimum and maximum
     if weighted_thermostat_heating_area_m2 > 0.0
