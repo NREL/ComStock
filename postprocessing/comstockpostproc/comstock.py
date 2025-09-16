@@ -223,6 +223,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
                 self.add_emissions_intensity_columns()
+                self.add_criteria_pollutant_emissions_intensity_columns()
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 self.add_unweighted_savings_columns()
                 # Downselect the self.data to just the upgrade
@@ -1825,6 +1826,27 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.data = self.data.with_columns(
                 (pl.col(emissions_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
 
+    def add_criteria_pollutant_emissions_intensity_columns(self):
+        # Create criteria pollutant emissions per area column for each criteria pollutant emissions column
+        for emissions_col in ([
+            self.NOX_NATURAL_GAS,
+            self.CO_NATURAL_GAS,
+            self.PM_NATURAL_GAS,
+            self.SO2_NATURAL_GAS,
+            self.NOX_FUEL_OIL,
+            self.CO_FUEL_OIL,
+            self.PM_FUEL_OIL,
+            self.SO2_FUEL_OIL,
+            self.NOX_PROPANE,
+            self.CO_PROPANE,
+            self.PM_PROPANE,
+            self.SO2_PROPANE
+            ]):
+            # Divide emissions by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(emissions_col)
+            self.data = self.data.with_columns(
+                (pl.col(emissions_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+
     def add_aeo_nems_building_type_column(self):
         # Add the AEO and NEMS building type for each row of CBECS
 
@@ -2662,6 +2684,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
         # Downselect and order columns
+        logger.info(f"Downselecting columns using option: {column_downselection}")
         ordered_cols = self.reorder_columns(self.columns_for_export(wtd_agg_outs, column_downselection))
         wtd_agg_outs = wtd_agg_outs.select(ordered_cols)
 

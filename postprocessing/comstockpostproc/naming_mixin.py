@@ -490,10 +490,26 @@ class NamingMixin():
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
     GHG_FUEL_OIL = 'out.emissions.fuel_oil..co2e_kg'
     GHG_PROPANE = 'out.emissions.propane..co2e_kg'
+    GHG_DISTCLG = 'out.emissions.district_cooling..co2e_kg'
+    GHG_DISTHTG = 'out.emissions.district_heating..co2e_kg'
     GHG_LRMER_LOW_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_low_re_cost_15_2023_start..co2e_kg'
     GHG_LRMER_MID_CASE_15_ELEC = 'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
     GHG_LRMER_HIGH_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_high_re_cost_15_2023_start..co2e_kg'
     GHG_ELEC_EGRID = 'out.emissions.electricity.egrid_2021_subregion..co2e_kg'
+
+    # Criteria pollutant emissions columns
+    NOX_NATURAL_GAS = 'out.nox_emissions.natural_gas..nox_kg'
+    CO_NATURAL_GAS = 'out.co_emissions.natural_gas..co_kg'
+    PM_NATURAL_GAS = 'out.pm_emissions.natural_gas..pm_kg'
+    SO2_NATURAL_GAS = 'out.so2_emissions.natural_gas..so2_kg'
+    NOX_FUEL_OIL = 'out.nox_emissions.fuel_oil..nox_kg'
+    CO_FUEL_OIL = 'out.co_emissions.fuel_oil..co_kg'
+    PM_FUEL_OIL = 'out.pm_emissions.fuel_oil..pm_kg'
+    SO2_FUEL_OIL = 'out.so2_emissions.fuel_oil..so2_kg'
+    NOX_PROPANE = 'out.nox_emissions.propane..nox_kg'
+    CO_PROPANE = 'out.co_emissions.propane..co_kg'
+    PM_PROPANE = 'out.pm_emissions.propane..pm_kg'
+    SO2_PROPANE = 'out.so2_emissions.propane..so2_kg'
 
     # Addressable segment columns
     SEG_A = 'A: Non Food-Service Buildings with Small Packaged Units'
@@ -786,6 +802,8 @@ class NamingMixin():
         GHG_NATURAL_GAS,
         GHG_FUEL_OIL,
         GHG_PROPANE,
+        GHG_DISTCLG,
+        GHG_DISTHTG,
         GHG_LRMER_LOW_RE_COST_15_ELEC,
         #GHG_LRMER_MID_CASE_15_ELEC,
         GHG_LRMER_HIGH_RE_COST_15_ELEC,
@@ -824,6 +842,26 @@ class NamingMixin():
                             ANN_GHG_EGRID,
                             ANN_GHG_CAMBIUM]),
             'weighted_units': 'co2e_mmt'
+        },
+        # NOX Emissions
+        {
+            'cols': ([NOX_NATURAL_GAS, NOX_FUEL_OIL, NOX_PROPANE]),
+            'weighted_units': 'nox_kg'
+        },
+        # CO Emissions
+        {
+            'cols': ([CO_NATURAL_GAS, CO_FUEL_OIL, CO_PROPANE]),
+            'weighted_units': 'co_kg'
+        },
+        # PM Emissions
+        {
+            'cols': ([PM_NATURAL_GAS, PM_FUEL_OIL, PM_PROPANE]),
+            'weighted_units': 'pm_kg'
+        },
+        # SO2 Emissions
+        {
+            'cols': ([SO2_NATURAL_GAS, SO2_FUEL_OIL, SO2_PROPANE]),
+            'weighted_units': 'so2_kg'
         }
     ]
 
@@ -1172,6 +1210,14 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
             converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
+        elif ".nox_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.nox_emissions.', '.nox_emissions.savings.')
+        elif ".co_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.co_emissions.', '.co_emissions.savings.')
+        elif ".pm_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.pm_emissions.', '.pm_emissions.savings.')
+        elif ".so2_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.so2_emissions.', '.so2_emissions.savings.')
 
         if converted_col_name == col_name:
             raise ValueError(f"Cannot convert column name {col_name} to savings column")
@@ -1212,6 +1258,10 @@ class NamingMixin():
         col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
         col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
         col_name = col_name.replace('.emissions.', '.emissions.intensity.')
+        col_name = col_name.replace('.nox_emissions.', '.nox_emissions.intensity.')
+        col_name = col_name.replace('.co_emissions.', '.co_emissions.intensity.')
+        col_name = col_name.replace('.pm_emissions.', '.pm_emissions.intensity.')
+        col_name = col_name.replace('.so2_emissions.', '.so2_emissions.intensity.')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'
         col_name = col_name.replace(f'..{units}', f'..{intensity_units}')
