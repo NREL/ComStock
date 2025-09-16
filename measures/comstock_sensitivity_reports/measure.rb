@@ -1362,6 +1362,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_min_c = 0.0
     weighted_thermostat_cooling_max_c = 0.0
     weighted_thermostat_cooling_area_m2 = 0.0
+	
+	##AA add something here to compare min and max and decide if setback present or not in baseline; look at outputs from baseline and not full run 
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
 
