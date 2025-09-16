@@ -1677,6 +1677,11 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
 
         # add speed data to variable speed coil object
         new_dx_cooling_coil.addSpeed(dx_coil_speed_data)
+
+        if stage == 3
+          new_dx_cooling_coil.setGrossRatedTotalCoolingCapacityAtSelectedNominalSpeedLevel(reference_capacity_w)
+          new_dx_cooling_coil.setRatedAirFlowRateAtSelectedNominalSpeedLevel(reference_airflow_m_3_per_s)
+        end
       end
 
       # -------------------------------------------------------

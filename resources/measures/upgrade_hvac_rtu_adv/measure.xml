@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_rtu_adv</name>
   <uid>16167f07-446a-4b8e-bbf1-0fc2240decb9</uid>
-  <version_id>8bd17159-8ca6-42a2-b554-5bc69e5043d9</version_id>
-  <version_modified>2025-08-18T11:20:09Z</version_modified>
+  <version_id>be461dc0-36db-4b5c-b96a-b99187208c15</version_id>
+  <version_modified>2025-09-16T18:32:29Z</version_modified>
   <xml_checksum>67CFAACE</xml_checksum>
   <class_name>UpgradeHvacRtuAdv</class_name>
   <display_name>upgrade_hvac_rtu_adv</display_name>
@@ -166,7 +166,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D138414A</checksum>
+      <checksum>137B69F9</checksum>
     </file>
     <file>
       <filename>lookup_rtu_adv_capacity_0_11_high.json</filename>
@@ -409,12 +409,6 @@
       <checksum>DDDD8102</checksum>
     </file>
     <file>
-      <filename>380_Small_Office_psz_gas_1zone_not_hard_sized.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>29FDA300</checksum>
-    </file>
-    <file>
       <filename>G1000030.ddy</filename>
       <filetype>ddy</filetype>
       <usage_type>test</usage_type>
@@ -475,46 +469,10 @@
       <checksum>DA3AEA3E</checksum>
     </file>
     <file>
-      <filename>USA_AK_Fairbanks.Intl.AP.702610_TMY3.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>877E7E26</checksum>
-    </file>
-    <file>
-      <filename>USA_AK_Fairbanks.Intl.AP.702610_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>288AE598</checksum>
-    </file>
-    <file>
-      <filename>USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>79607561</checksum>
-    </file>
-    <file>
-      <filename>USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>F0AA8FA7</checksum>
-    </file>
-    <file>
-      <filename>USA_HI_Honolulu.Intl.AP.911820_TMY3.ddy</filename>
-      <filetype>ddy</filetype>
-      <usage_type>test</usage_type>
-      <checksum>068512AF</checksum>
-    </file>
-    <file>
-      <filename>USA_HI_Honolulu.Intl.AP.911820_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>FAFD839F</checksum>
-    </file>
-    <file>
       <filename>measure_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>7607CFF5</checksum>
+      <checksum>656B0DFE</checksum>
     </file>
   </files>
 </measure>
