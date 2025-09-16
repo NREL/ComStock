@@ -979,7 +979,7 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
         raise 'Unable to calculate emissions for run periods not of length 8760 or 8784'
       end
 
-      # leap year, copy Feb 28 data for Feb 29
+      puts("Leap year but emissions factor data has 8760 hours. Copying Feb 28 data for Feb 29.")
       factor = factor[0..1415] + factor[1392..1415] + factor[1416..8759]
     end
     hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
@@ -1015,7 +1015,7 @@ def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   year = model.getYearDescription.calendarYear.to_i
   if leap_year?(year)
     if grid_load_data.size == 8760
-      # Duplicate Feb 28 data to create Feb 29 for leap year conversion
+      puts("Leap year but grid load data has 8760 hours. Copying Feb 28 data for Feb 29.")
       feb_28_start = (31 + 28 - 1) * 24
       grid_load_data = grid_load_data[0...feb_28_start + 24] + 
                       grid_load_data[feb_28_start...feb_28_start + 24] + 
