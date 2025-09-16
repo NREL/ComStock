@@ -1010,7 +1010,25 @@ def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
 
-  CSV.read(load_csv, converters: :float).flatten
+  grid_load_data = CSV.read(load_csv, converters: :float).flatten
+  
+  year = model.getYearDescription.calendarYear.to_i
+  if leap_year?(year)
+    if grid_load_data.size == 8760
+      # Duplicate Feb 28 data to create Feb 29 for leap year conversion
+      feb_28_start = (31 + 28 - 1) * 24
+      grid_load_data = grid_load_data[0...feb_28_start + 24] + 
+                      grid_load_data[feb_28_start...feb_28_start + 24] + 
+                      grid_load_data[feb_28_start + 24..-1]
+    end
+  # else
+  #   if grid_load_data.size == 8784
+  #     feb_29_start = (31 + 29 - 1) * 24
+  #     grid_load_data.slice!(feb_29_start, 24)
+  #   end
+  end
+  
+  grid_load_data
 end
 
 def round_down(number)
