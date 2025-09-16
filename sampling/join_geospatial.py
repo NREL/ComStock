@@ -126,7 +126,7 @@ def main():
     args = parse_arguments()
     for arg in vars(args):
         logger.debug(f'{arg} = {getattr(args, arg)}')
-    
+
     # Create directory if output directory does not exist
     if not os.path.exists(os.path.join('output-buildstocks', 'final')):
         os.makedirs(os.path.join('output-buildstocks', 'final'))
@@ -140,10 +140,10 @@ def main():
 
     # Import buildstock.csv
     df_buildstock = pd.read_csv(os.path.join('output-buildstocks', 'intermediate', args.buildstock_name), index_col='Building', na_filter=False)
-    
+
     # Manually update select FIPS codes due to Census year differences
     df_buildstock = manual_fips_update(df_buildstock)
-    
+
     # Specify the tract value as the gisjoin value for the spatial lookup
     df_buildstock.loc[:, 'gisjoin'] = df_buildstock.loc[:, 'tract']
     df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v8.csv'))
@@ -166,7 +166,6 @@ def main():
 
     # Join the files and ensure no nulls from the merge
     df_results_geospatial = df_buildstock.merge(df_geospatial_lkup, left_on='gisjoin', right_on='nhgis_tract_gisjoin', how='left')
-    #breakpoint()
     assert(df_results_geospatial.loc[:, list(df_geospatial_lkup)].isna().sum().sum() == 0)
     df_results_geospatial.drop(['gisjoin'], axis=1, inplace=True)
     df_results_geospatial.index = np.linspace(1, len(df_results_geospatial), len(df_results_geospatial)).astype(int)
