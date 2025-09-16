@@ -2407,8 +2407,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
       fan_max_flow = stage_flows_cooling[num_cooling_stages]
-      if stage_flows_heating[num_cooling_stages] > stage_flows_cooling[num_cooling_stages]
-        fan_max_flow = stage_flows_heating[num_cooling_stages]
+      if stage_flows_heating[num_heating_stages] > stage_flows_cooling[num_cooling_stages]
+        fan_max_flow = stage_flows_heating[num_heating_stages]
       end
       new_fan.setMaximumFlowRate(fan_max_flow)
 
