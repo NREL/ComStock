@@ -996,38 +996,21 @@ end
 def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
   raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
-
   grid_region = grid_region.get
-  puts("Using grid region #{grid_region} from model building additional properties.")
-  # if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
-  #   cambium_grid_region = nil
-  #   egrid_region = grid_region
-  #   puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
-  # else
-  #   cambium_grid_region = grid_region
-  #   egrid_region = grid_region.chop
-  # end
   load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
-
   grid_load_data = CSV.read(load_csv, converters: :float).flatten
-  
   year = model.getYearDescription.calendarYear.to_i
   if leap_year?(year)
     if grid_load_data.size == 8760
       puts("Leap year but grid load data has 8760 hours. Copying Feb 28 data for Feb 29.")
+      # hour index at which Feb 28 starts in a non-leap year
       feb_28_start = (31 + 28 - 1) * 24
       grid_load_data = grid_load_data[0...feb_28_start + 24] + 
                       grid_load_data[feb_28_start...feb_28_start + 24] + 
                       grid_load_data[feb_28_start + 24..-1]
     end
-  # else
-  #   if grid_load_data.size == 8784
-  #     feb_29_start = (31 + 29 - 1) * 24
-  #     grid_load_data.slice!(feb_29_start, 24)
-  #   end
   end
-  
   grid_load_data
 end
 
