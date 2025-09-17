@@ -77,7 +77,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
   # Warning: Do not change the name of this method to be snake_case. The method must be lowerCamelCase.
   def energyPlusOutputRequests(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -612,7 +612,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    super(runner, user_arguments)
+    super
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -1362,27 +1362,27 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_min_c = 0.0
     weighted_thermostat_cooling_max_c = 0.0
     weighted_thermostat_cooling_area_m2 = 0.0
-	zones_with_htg_setbacks = []
-	zones_with_clg_setbacks = []
-	zones_htg_tstats = [] #zones w heating thermostats 
-	zones_clg_tstats = [] #zones w clg thermostats
-	has_clg_setback = 'NA'
-	has_htg_setback = 'NA' 
-	
+    zones_with_htg_setbacks = []
+    zones_with_clg_setbacks = []
+    zones_htg_tstats = [] # zones w heating thermostats
+    zones_clg_tstats = [] # zones w clg thermostats
+    has_clg_setback = 'NA'
+    has_htg_setback = 'NA'
+
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
-       
+
       floor_area_m2 = zone.floorArea * zone.multiplier
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
-		zones_htg_tstats << zone
-        if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized 
+        zones_htg_tstats << zone
+        if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
           cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
-		  if cool_min_max['max'] > cool_min_max['min']
-		     zones_with_htg_setbacks << zone #Add to list of zones with setbacks 
-		  end 
+          if cool_min_max['max'] > cool_min_max['min']
+            zones_with_htg_setbacks << zone # Add to list of zones with setbacks
+          end
           weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1390,9 +1390,9 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleInterval.get
           ts = thermostat_heating_schedule.timeSeries
           interval_values_array = ts.values
-		  if interval_values_array.max > interval_values_array.min
-		     zones_with_htg_setbacks << zone #Add to list of zones with setbacks 
-		  end 
+          if interval_values_array.max > interval_values_array.min
+            zones_with_htg_setbacks << zone # Add to list of zones with setbacks
+          end
           weighted_thermostat_heating_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_heating_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1405,7 +1405,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         # weighted_thermostat_heating_area_m2 += floor_area_m2
       end
       if thermostat.coolingSetpointTemperatureSchedule.is_initialized
-	    zones_clg_tstats << zone 
+        zones_clg_tstats << zone
         thermostat_cooling_schedule = thermostat.coolingSetpointTemperatureSchedule.get
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
@@ -1413,37 +1413,37 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
-		  if cool_min_max['max'] > cool_min_max['min']
-		     zones_with_clg_setbacks << zone #Add to list of zones with setbacks 
-		  end 
+          if cool_min_max['max'] > cool_min_max['min']
+            zones_with_clg_setbacks << zone # Add to list of zones with setbacks
+          end
         elsif thermostat_cooling_schedule.to_ScheduleInterval.is_initialized
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleInterval.get
           ts = thermostat_cooling_schedule.timeSeries
           interval_values_array = ts.values
-		  if interval_values_array.max > interval_values_array.min
-		     zones_with_clg_setbacks << zone #Add to list of zones with setbacks 
-		  end 
+          if interval_values_array.max > interval_values_array.min
+            zones_with_clg_setbacks << zone # Add to list of zones with setbacks
+          end
           weighted_thermostat_cooling_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_cooling_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
         end
       end
     end
-	
-	#Set setback variable reporting
-	if (zones_with_clg_setbacks & zones_clg_tstats == zones_clg_tstats)
-	    has_clg_setback = "true" 
-    else 
-	    has_clg_setback = "false"
-	end 
-	
-	if (zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats)
-	    has_htg_setback = "true" 
-	else 
-	    has_htg_setback = "false"
-	end 
-	
-	runner.registerValue('com_report_has_htg_setback', has_htg_setback)
+
+    # Set setback variable reporting
+    if zones_with_clg_setbacks & zones_clg_tstats == zones_clg_tstats
+      has_clg_setback = 'true'
+    else
+      has_clg_setback = 'false'
+    end
+
+    if zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats
+      has_htg_setback = 'true'
+    else
+      has_htg_setback = 'false'
+    end
+
+    runner.registerValue('com_report_has_htg_setback', has_htg_setback)
     runner.registerValue('com_report_has_clg_setback', has_clg_setback)
 
     # Thermostat heating setpoint minimum and maximum

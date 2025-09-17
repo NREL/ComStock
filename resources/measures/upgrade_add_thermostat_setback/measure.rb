@@ -386,7 +386,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           next # skip zones that have setbacks for htg and clg already
         end
 
-        # #modify for htg vs cooling and threshold temps
+        # modify for htg vs cooling and threshold temps
         if htg_valid
           if !no_people_obj and !has_htg_setback # align thermostat schedules with occupancy if people object present
             clg_des_day = htg_schedule.summerDesignDaySchedule
