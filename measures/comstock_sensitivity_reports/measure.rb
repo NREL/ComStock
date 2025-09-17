@@ -1432,11 +1432,15 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 	
 	#Set setback variable reporting
 	if (zones_with_clg_setbacks & zones_clg_tstats == zones_clg_tstats)
-	    has_clg_setback = true 
+	    has_clg_setback = "true" 
+    else 
+	    has_clg_setback = "false"
 	end 
 	
 	if (zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats)
-	    has_htg_setback = true 
+	    has_htg_setback = "true" 
+	else 
+	    has_htg_setback = "false"
 	end 
 	
 	runner.registerValue('com_report_has_htg_setback', has_htg_setback)
