@@ -1335,7 +1335,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
-	runner.registerValue('com_report_air_sys_vav_avg_flow_ratio', air_system_vav_avg_flow_ratio) ##AA added
+	runner.registerValue('com_report_air_sys_vav_avg_flow_ratio', air_system_vav_avg_flow_ratio)
     runner.registerValue('com_report_zone_hvac_total_outdoor_air_mass_flow_rate', zone_hvac_total_oa_mass_flow_kg_s, 'kg/s')
     zone_hvac_average_outdoor_air_fraction = zone_hvac_total_mass_flow_kg_s > 0.0 ? zone_hvac_total_oa_mass_flow_kg_s / zone_hvac_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_zone_hvac_average_outdoor_air_fraction', zone_hvac_average_outdoor_air_fraction)
