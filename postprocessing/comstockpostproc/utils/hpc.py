@@ -793,8 +793,8 @@ def summarize_failures(yml_path, sort_order='upgrade'):
 def _if_s5cmd_installed():
     """Check if s5cmd is available in the system."""
     try:
-        result = subprocess.run(['s5cmd', '--version'], 
-                              stdout=subprocess.PIPE, 
+        result = subprocess.run(['s5cmd', '--version'],
+                              stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE)
         return result.returncode == 0
     except FileNotFoundError:
@@ -828,8 +828,8 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
 
     # define S3 path to baseline postprocessed results file
     # this will be used to pull models in the final data set
-    df_baseline_results = pd.read_parquet(os.path.join(oedi_metadata_dir, 'baseline.parquet'), engine='pyarrow')
-    li_bldg = df_baseline_results.index
+    df_baseline_results = pd.read_parquet(os.path.join(oedi_metadata_dir, 'upgrade0_agg_basic.parquet'), engine='fastparquet')
+    li_bldg = df_baseline_results['bldg_id'].unique().tolist()
 
     # Make directory for model extractions
     # this is temporary and will be deleted after transfer
@@ -899,8 +899,8 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                                     print(f"Transferring {model_path_out} to {s3_model_path} with s5cmd.")
                                     subprocess.run(["s5cmd", "cp", f"{model_path_out}", f'{s3_model_path}'],  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
                             except subprocess.CalledProcessError as e:
-                                print(f"Error transferring {model_path_out} to {s3_model_path}: {e.stderr} with s5cmd.") 
-                             
+                                print(f"Error transferring {model_path_out} to {s3_model_path}: {e.stderr} with s5cmd.")
+
                         else:
 
                             print(f"checking the file {model_path_out} exists in S3 bucket={bucket} key={key}")
@@ -908,7 +908,7 @@ def transfer_model_files_to_s3(yml_path, s3_output_dir, oedi_metadata_dir):
                                 print(f"File already exists in S3: {key}")
                             else:
                                 print(f"Transferring {model_path_out} bucket={bucket} key={key}")
-                                s3.upload_file(model_path_out, bucket, key) 
+                                s3.upload_file(model_path_out, bucket, key)
 
                         # add file to list to be deleted
                         li_files_to_delete.append(model_path_out)
