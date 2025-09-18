@@ -1142,6 +1142,91 @@ results.csv,qoi_report.total_electricity_use_nov_kwh,out.electricity.total.nov.e
 results.csv,qoi_report.total_electricity_use_dec_kwh,out.electricity.total.dec.energy_consumption,TRUE,FALSE,float,kwh,kwh,Total electricity energy consumption during December
 results.csv,run_directory_cleanup.applicable,,FALSE,FALSE,boolean,,,Specifies if directory cleanup was applied to model
 results.csv,run_name,,FALSE,FALSE,string,,,Name of original ComStock run sometimes manually added when combining multiple ComStock runs
+results.csv,loads_summary.applicable,,,,,,,
+results.csv,loads_summary.door_clg,out.loads.clg.door,TRUE,TRUE,float,gj,gj,Heat conducted through doors during cooling
+results.csv,loads_summary.door_flt,out.loads.flt.door,TRUE,TRUE,float,gj,gj,Heat conducted through doors during floating
+results.csv,loads_summary.door_htg,out.loads.htg.door,TRUE,TRUE,float,gj,gj,Heat conducted through doors during heating
+results.csv,loads_summary.equip_gain_clg,out.loads.clg.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during cooling
+results.csv,loads_summary.equip_gain_flt,out.loads.flt.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during floating
+results.csv,loads_summary.equip_gain_htg,out.loads.htg.equip_gain,TRUE,TRUE,float,gj,gj,Equipment heat gain during heating
+results.csv,loads_summary.ref_equip_gain_clg,out.loads.clg.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during cooling
+results.csv,loads_summary.ref_equip_gain_flt,out.loads.flt.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during floating
+results.csv,loads_summary.ref_equip_gain_htg,out.loads.htg.ref_equip_gain,TRUE,TRUE,float,gj,gj,Refrigeration equipment heat gain during heating
+results.csv,loads_summary.ext_flr_clg,out.loads.clg.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during cooling
+results.csv,loads_summary.ext_flr_flt,out.loads.flt.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during floating
+results.csv,loads_summary.ext_flr_htg,out.loads.htg.ext_flr,TRUE,TRUE,float,gj,gj,Heat conducted through exterior floors during heating
+results.csv,loads_summary.ext_wall_clg,out.loads.clg.ext_wall,TRUE,TRUE,float,gj,gj,Heat conducted through exterior walls during cooling
+results.csv,loads_summary.ext_wall_flt,out.loads.flt.ext_wall,TRUE,TRUE,float,gj,gj,Heat conducted through exterior walls during floating
+results.csv,loads_summary.ext_wall_htg,out.loads.htg.ext_wall,TRUE,TRUE,float,gj,gj,Heat conducted through exterior walls during heating
+results.csv,loads_summary.fnd_wall_clg,out.loads.clg.fnd_wall,TRUE,TRUE,float,gj,gj,Heat conducted through foundation walls during cooling
+results.csv,loads_summary.fnd_wall_flt,out.loads.flt.fnd_wall,TRUE,TRUE,float,gj,gj,Heat conducted through foundation walls during floating
+results.csv,loads_summary.fnd_wall_htg,out.loads.htg.fnd_wall,TRUE,TRUE,float,gj,gj,Heat conducted through foundation walls during heating
+results.csv,loads_summary.gnd_flr_clg,out.loads.clg.gnd_flr,TRUE,TRUE,float,gj,gj,Heat conducted through ground contact floors during cooling
+results.csv,loads_summary.gnd_flr_flt,out.loads.flt.gnd_flr,TRUE,TRUE,float,gj,gj,Heat conducted through ground contact floors during floating
+results.csv,loads_summary.gnd_flr_htg,out.loads.htg.gnd_flr,TRUE,TRUE,float,gj,gj,Heat conducted through ground contact floors during heating
+results.csv,loads_summary.infil_clg,out.loads.clg.infil,TRUE,TRUE,float,gj,gj,Infiltration heat gain during cooling
+results.csv,loads_summary.infil_flt,out.loads.flt.infil,TRUE,TRUE,float,gj,gj,Infiltration heat gain during floating
+results.csv,loads_summary.infil_htg,out.loads.htg.infil,TRUE,TRUE,float,gj,gj,Infiltration heat gain during heating
+results.csv,loads_summary.light_gain_clg,out.loads.clg.light_gain,TRUE,TRUE,float,gj,gj,Lighting heat gain during cooling
+results.csv,loads_summary.light_gain_flt,out.loads.flt.light_gain,TRUE,TRUE,float,gj,gj,Lighting heat gain during floating
+results.csv,loads_summary.light_gain_htg,out.loads.htg.light_gain,TRUE,TRUE,float,gj,gj,Lighting heat gain during heating
+results.csv,loads_summary.people_gain_clg,out.loads.clg.people_gain,TRUE,TRUE,float,gj,gj,People heat gain during cooling
+results.csv,loads_summary.people_gain_flt,out.loads.flt.people_gain,TRUE,TRUE,float,gj,gj,People heat gain during floating
+results.csv,loads_summary.people_gain_htg,out.loads.htg.people_gain,TRUE,TRUE,float,gj,gj,People heat gain during heating
+results.csv,loads_summary.roof_clg,out.loads.clg.roof,TRUE,TRUE,float,gj,gj,Heat conducted through roof during cooling
+results.csv,loads_summary.roof_flt,out.loads.flt.roof,TRUE,TRUE,float,gj,gj,Heat conducted through roof during floating
+results.csv,loads_summary.roof_htg,out.loads.htg.roof,TRUE,TRUE,float,gj,gj,Heat conducted through roof during heating
+results.csv,loads_summary.vent_clg,out.loads.clg.vent,TRUE,TRUE,float,gj,gj,Ventilation heat gain during floating
+results.csv,loads_summary.vent_flt,out.loads.flt.vent,TRUE,TRUE,float,gj,gj,Ventilation heat gain during floating
+results.csv,loads_summary.vent_htg,out.loads.htg.vent,TRUE,TRUE,float,gj,gj,Ventilation heat gain during floating
+results.csv,loads_summary.win_cond_clg,out.loads.clg.win_cond,TRUE,TRUE,float,gj,gj,Heat conducted through windows during cooling
+results.csv,loads_summary.win_cond_flt,out.loads.flt.win_cond,TRUE,TRUE,float,gj,gj,Heat conducted through windows during floating
+results.csv,loads_summary.win_cond_htg,out.loads.htg.win_cond,TRUE,TRUE,float,gj,gj,Heat conducted through windows during heating
+results.csv,loads_summary.win_sol_clg,out.loads.clg.win_sol,TRUE,TRUE,float,gj,gj,Solar radiation transmitted through windows during cooling
+results.csv,loads_summary.win_sol_flt,out.loads.flt.win_sol,TRUE,TRUE,float,gj,gj,Solar radiation transmitted through windows during floating
+results.csv,loads_summary.win_sol_htg,out.loads.htg.win_sol,TRUE,TRUE,float,gj,gj,Solar radiation transmitted through windows during heating
+calculated,calc.loads_intensity.clg.door,calc.loads_intensity.clg.door,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through doors during cooling per unit floor area
+calculated,calc.loads_intensity.flt.door,calc.loads_intensity.flt.door,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through doors during floating per unit floor area
+calculated,calc.loads_intensity.htg.door,calc.loads_intensity.htg.door,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through doors during heating per unit floor area
+calculated,calc.loads_intensity.clg.equip_gain,calc.loads_intensity.clg.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.equip_gain,calc.loads_intensity.flt.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.equip_gain,calc.loads_intensity.htg.equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Equipment heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.ref_equip_gain,calc.loads_intensity.clg.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.ref_equip_gain,calc.loads_intensity.flt.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.ref_equip_gain,calc.loads_intensity.htg.ref_equip_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Refrigeration equipment heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.ext_flr,calc.loads_intensity.clg.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during cooling per unit floor area
+calculated,calc.loads_intensity.flt.ext_flr,calc.loads_intensity.flt.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during floating per unit floor area
+calculated,calc.loads_intensity.htg.ext_flr,calc.loads_intensity.htg.ext_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior floors during heating per unit floor area
+calculated,calc.loads_intensity.clg.ext_wall,calc.loads_intensity.clg.ext_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior walls during cooling per unit floor area
+calculated,calc.loads_intensity.flt.ext_wall,calc.loads_intensity.flt.ext_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior walls during floating per unit floor area
+calculated,calc.loads_intensity.htg.ext_wall,calc.loads_intensity.htg.ext_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through exterior walls during heating per unit floor area
+calculated,calc.loads_intensity.clg.fnd_wall,calc.loads_intensity.clg.fnd_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through foundation walls during cooling per unit floor area
+calculated,calc.loads_intensity.flt.fnd_wall,calc.loads_intensity.flt.fnd_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through foundation walls during floating per unit floor area
+calculated,calc.loads_intensity.htg.fnd_wall,calc.loads_intensity.htg.fnd_wall,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through foundation walls during heating per unit floor area
+calculated,calc.loads_intensity.clg.gnd_flr,calc.loads_intensity.clg.gnd_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through ground contact floors during cooling per unit floor area
+calculated,calc.loads_intensity.flt.gnd_flr,calc.loads_intensity.flt.gnd_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through ground contact floors during floating per unit floor area
+calculated,calc.loads_intensity.htg.gnd_flr,calc.loads_intensity.htg.gnd_flr,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through ground contact floors during heating per unit floor area
+calculated,calc.loads_intensity.clg.infil,calc.loads_intensity.clg.infil,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Infiltration heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.infil,calc.loads_intensity.flt.infil,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Infiltration heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.infil,calc.loads_intensity.htg.infil,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Infiltration heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.light_gain,calc.loads_intensity.clg.light_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Lighting heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.light_gain,calc.loads_intensity.flt.light_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Lighting heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.light_gain,calc.loads_intensity.htg.light_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Lighting heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.people_gain,calc.loads_intensity.clg.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,People heat gain during cooling per unit floor area
+calculated,calc.loads_intensity.flt.people_gain,calc.loads_intensity.flt.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,People heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.people_gain,calc.loads_intensity.htg.people_gain,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,People heat gain during heating per unit floor area
+calculated,calc.loads_intensity.clg.roof,calc.loads_intensity.clg.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through roof during cooling per unit floor area
+calculated,calc.loads_intensity.flt.roof,calc.loads_intensity.flt.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through roof during floating per unit floor area
+calculated,calc.loads_intensity.htg.roof,calc.loads_intensity.htg.roof,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through roof during heating per unit floor area
+calculated,calc.loads_intensity.clg.vent,calc.loads_intensity.clg.vent,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Ventilation heat gain during floating per unit floor area
+calculated,calc.loads_intensity.flt.vent,calc.loads_intensity.flt.vent,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Ventilation heat gain during floating per unit floor area
+calculated,calc.loads_intensity.htg.vent,calc.loads_intensity.htg.vent,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Ventilation heat gain during floating per unit floor area
+calculated,calc.loads_intensity.clg.win_cond,calc.loads_intensity.clg.win_cond,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through windows during cooling per unit floor area
+calculated,calc.loads_intensity.flt.win_cond,calc.loads_intensity.flt.win_cond,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through windows during floating per unit floor area
+calculated,calc.loads_intensity.htg.win_cond,calc.loads_intensity.htg.win_cond,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Heat conducted through windows during heating per unit floor area
+calculated,calc.loads_intensity.clg.win_sol,calc.loads_intensity.clg.win_sol,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Solar radiation transmitted through windows during cooling per unit floor area
+calculated,calc.loads_intensity.flt.win_sol,calc.loads_intensity.flt.win_sol,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Solar radiation transmitted through windows during floating per unit floor area
+calculated,calc.loads_intensity.htg.win_sol,calc.loads_intensity.htg.win_sol,TRUE,FALSE,float,kbtu_per_ft2,kbtu_per_ft2,Solar radiation transmitted through windows during heating per unit floor area
 results.csv,simulation_output_report.annual_peak_electric_demand_kw,out.electricity.total.peak_demand,TRUE,FALSE,float,kw,kw,Building annual peak electric demand
 results.csv,simulation_output_report.applicable,,FALSE,FALSE,boolean,,,Specifies if simulation output reporting is applicable
 results.csv,simulation_output_report.district_cooling_cooling_therm,out.district_cooling.cooling.energy_consumption,TRUE,FALSE,float,therm,kwh,Building annual district cooling energy consumption for cooling end use
@@ -2264,3 +2349,45 @@ calculated,in.as_simulated_census_division_name,in.as_simulated_census_division_
 calculated,in.as_simulated_nhgis_county_gisjoin,in.as_simulated_nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_tract_gisjoin,in.as_simulated_nhgis_tract_gisjoin,TRUE,FALSE,string,,,"Census tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_state_gisjoin,in.as_simulated_nhgis_state_gisjoin,TRUE,FALSE,string,,,"State tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+calculated,calc.weighted.loads.clg.door,calc.weighted.loads.clg.door,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through doors during cooling
+calculated,calc.weighted.loads.flt.door,calc.weighted.loads.flt.door,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through doors during floating
+calculated,calc.weighted.loads.htg.door,calc.weighted.loads.htg.door,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through doors during heating
+calculated,calc.weighted.loads.clg.equip_gain,calc.weighted.loads.clg.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during cooling
+calculated,calc.weighted.loads.flt.equip_gain,calc.weighted.loads.flt.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during floating
+calculated,calc.weighted.loads.htg.equip_gain,calc.weighted.loads.htg.equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted equipment heat gain during heating
+calculated,calc.weighted.loads.clg.equip_gain,calc.weighted.loads.clg.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during cooling
+calculated,calc.weighted.loads.flt.equip_gain,calc.weighted.loads.flt.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during floating
+calculated,calc.weighted.loads.htg.equip_gain,calc.weighted.loads.htg.ref_equip_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted refrigeration equipment heat gain during heating
+calculated,calc.weighted.loads.clg.ext_flr,calc.weighted.loads.clg.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during cooling
+calculated,calc.weighted.loads.flt.ext_flr,calc.weighted.loads.flt.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during floating
+calculated,calc.weighted.loads.htg.ext_flr,calc.weighted.loads.htg.ext_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior floors during heating
+calculated,calc.weighted.loads.clg.ext_wall,calc.weighted.loads.clg.ext_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior walls during cooling
+calculated,calc.weighted.loads.flt.ext_wall,calc.weighted.loads.flt.ext_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior walls during floating
+calculated,calc.weighted.loads.htg.ext_wall,calc.weighted.loads.htg.ext_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through exterior walls during heating
+calculated,calc.weighted.loads.clg.fnd_wall,calc.weighted.loads.clg.fnd_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through foundation walls during cooling
+calculated,calc.weighted.loads.flt.fnd_wall,calc.weighted.loads.flt.fnd_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through foundation walls during floating
+calculated,calc.weighted.loads.htg.fnd_wall,calc.weighted.loads.htg.fnd_wall,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through foundation walls during heating
+calculated,calc.weighted.loads.clg.gnd_flr,calc.weighted.loads.clg.gnd_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through ground contact floors during cooling
+calculated,calc.weighted.loads.flt.gnd_flr,calc.weighted.loads.flt.gnd_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through ground contact floors during floating
+calculated,calc.weighted.loads.htg.gnd_flr,calc.weighted.loads.htg.gnd_flr,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through ground contact floors during heating
+calculated,calc.weighted.loads.clg.infil,calc.weighted.loads.clg.infil,TRUE,FALSE,float,kbtu,kbtu,Weighted infiltration heat gain during cooling
+calculated,calc.weighted.loads.flt.infil,calc.weighted.loads.flt.infil,TRUE,FALSE,float,kbtu,kbtu,Weighted infiltration heat gain during floating
+calculated,calc.weighted.loads.htg.infil,calc.weighted.loads.htg.infil,TRUE,FALSE,float,kbtu,kbtu,Weighted infiltration heat gain during heating
+calculated,calc.weighted.loads.clg.light_gain,calc.weighted.loads.clg.light_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted lighting heat gain during cooling
+calculated,calc.weighted.loads.flt.light_gain,calc.weighted.loads.flt.light_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted lighting heat gain during floating
+calculated,calc.weighted.loads.htg.light_gain,calc.weighted.loads.htg.light_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted lighting heat gain during heating
+calculated,calc.weighted.loads.clg.people_gain,calc.weighted.loads.clg.people_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted people heat gain during cooling
+calculated,calc.weighted.loads.flt.people_gain,calc.weighted.loads.flt.people_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted people heat gain during floating
+calculated,calc.weighted.loads.htg.people_gain,calc.weighted.loads.htg.people_gain,TRUE,FALSE,float,kbtu,kbtu,Weighted people heat gain during heating
+calculated,calc.weighted.loads.clg.roof,calc.weighted.loads.clg.roof,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through roof during cooling
+calculated,calc.weighted.loads.flt.roof,calc.weighted.loads.flt.roof,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through roof during floating
+calculated,calc.weighted.loads.htg.roof,calc.weighted.loads.htg.roof,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through roof during heating
+calculated,calc.weighted.loads.clg.vent,calc.weighted.loads.clg.vent,TRUE,FALSE,float,kbtu,kbtu,Weighted ventilation heat gain during floating
+calculated,calc.weighted.loads.flt.vent,calc.weighted.loads.flt.vent,TRUE,FALSE,float,kbtu,kbtu,Weighted ventilation heat gain during floating
+calculated,calc.weighted.loads.htg.vent,calc.weighted.loads.htg.vent,TRUE,FALSE,float,kbtu,kbtu,Weighted ventilation heat gain during floating
+calculated,calc.weighted.loads.clg.win_cond,calc.weighted.loads.clg.win_cond,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through windows during cooling
+calculated,calc.weighted.loads.flt.win_cond,calc.weighted.loads.flt.win_cond,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through windows during floating
+calculated,calc.weighted.loads.htg.win_cond,calc.weighted.loads.htg.win_cond,TRUE,FALSE,float,kbtu,kbtu,Weighted heat conducted through windows during heating
+calculated,calc.weighted.loads.clg.win_sol,calc.weighted.loads.clg.win_sol,TRUE,FALSE,float,kbtu,kbtu,Weighted solar radiation transmitted through windows during cooling
+calculated,calc.weighted.loads.flt.win_sol,calc.weighted.loads.flt.win_sol,TRUE,FALSE,float,kbtu,kbtu,Weighted solar radiation transmitted through windows during floating
+calculated,calc.weighted.loads.htg.win_sol,calc.weighted.loads.htg.win_sol,TRUE,FALSE,float,kbtu,kbtu,Weighted solar radiation transmitted through windows during heating
