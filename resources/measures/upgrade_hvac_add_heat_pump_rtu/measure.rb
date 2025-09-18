@@ -2736,79 +2736,131 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       if unitary_systems.empty?
         runner.registerWarning('No AirLoopHVACUnitarySystem found for EMS control')
       else
-        unitary = unitary_systems.first
-        
-        model.getSchedules.each do |sch|
-          runner.registerInfo("Schedule in model: #{sch.nameString}")
-        end
-
-        # 1. EMS Sensor: reads the peak schedule (0 or 1)
+        # create EMS sensor to read peak schedule (binary values)
         peak_sch = model.getScheduleByName('Peak Schedule for DR Adjustments')
         if peak_sch.empty?
           runner.registerError('Peak Schedule for DR Adjustments not found in model.')
           return false
         end
         sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
-        sensor.setName('DR_Flag')
+        sensor.setName('DR_Adjustment_Sensor')
         sensor.setKeyName(peak_sch.get.nameString)
 
         runner.registerInfo("sensor = #{sensor}")
 
-        # 2. EMS Actuator: controls DX coil speed
-        actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
-          unitary,                                     # component
-          'Coil Speed Control',                        # control type
-          'Unitary System DX Coil Speed Value'         # actuator name
-        )
-        actuator.setName('DX_Spd_Act')
+        # loop through unitary systems
+        unitary_systems.each do |unitary|
+          runner.registerInfo("Adding compressor speed EMS to unitary system: #{unitary.name}")
 
-        runner.registerInfo("actuator = #{actuator}")
+          # HEATING COIL 
+          # create EMS Actuator to control DX coil speed
+          htg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
+            unitary,                                     # component
+            'Coil Speed Control',                        # control type
+            'Unitary System DX Coil Speed Value'         # actuator name
+          )
+          htg_actuator.setName("DX_Spd_Act_Htg_#{unitary.name.to_s.gsub("-", "")}")
 
-        # 3. Auto-detect number of speeds from cooling coil
-        num_speeds = nil
-        if unitary.coolingCoil.is_initialized
-          coil = unitary.coolingCoil.get
-          if coil.to_CoilCoolingDXMultiSpeed.is_initialized
-            num_speeds = coil.to_CoilCoolingDXMultiSpeed.get.stages.size
-            runner.registerInfo("num_speeds = #{num_speeds}")
-          else
-            runner.registerWarning("Cooling coil type #{coil.iddObjectType.valueName} does not support multi speed EMS speed control")
+          runner.registerInfo("actuator = #{htg_actuator}")
+
+          # determine number of speeds from heating coil
+          num_htg_speeds = nil
+          if unitary.heatingCoil.is_initialized
+            htg_coil = unitary.heatingCoil.get
+            if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
+              num_htg_speeds = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.size
+              runner.registerInfo("number of speeds in heating = #{num_htg_speeds}")
+            else
+              runner.registerWarning("Heating coil type #{htg_coil.iddObjectType.valueName} does not support multi speed EMS speed control")
+            end
           end
-        end
 
-        if num_speeds.nil?
-          runner.registerWarning('Could not determine number of DX coil speeds; EMS program not created')
-        else
-          limit_val = max_compressor_frac * num_speeds
-          runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of #{limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
+          if num_htg_speeds.nil?
+            runner.registerWarning('Could not determine number of DX coil speeds; EMS program not created')
+          else
+            htg_limit_val = max_compressor_frac * num_htg_speeds
+            runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of heating coil to #{htg_limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{htg_limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
 
-          # SET limit_val = @MIN limit_val num_speeds
-          # SET limit_val = @MAX limit_val 1
-          # SET limit_val = @FLOOR limit_val
-          limit_val = [limit_val, num_speeds].min
-          limit_val = [limit_val, 1].max
-          limit_val = limit_val.floor
+            htg_limit_val = [htg_limit_val, num_htg_speeds].min
+            htg_limit_val = [htg_limit_val, 1].max
+            htg_limit_val = htg_limit_val.floor
 
-          # 4. EMS Program
-          program_body = <<~EMS
-            IF (#{sensor.name} > 0.5),
-              SET #{actuator.name} = #{limit_val},
-            ELSE,
-              SET #{actuator.name} = Null,
-            ENDIF
-          EMS
+            # EMS Program
+            htg_coil_program_body = <<~EMS
+              IF (#{sensor.name} > 0.5),
+                SET #{htg_actuator.name} = #{htg_limit_val},
+              ELSE,
+                SET #{htg_actuator.name} = Null,
+              ENDIF
+            EMS
 
-          program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          program.setName('DR_Limit_DX_Speed')
-          program.setBody(program_body)
+            htg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+            htg_coil_program.setName("DR_Limit_DX_Speed_Htg_#{unitary.name.to_s.gsub("-", "")}")
+            htg_coil_program.setBody(htg_coil_program_body)
 
-          # 5. EMS ProgramCallingManager
-          pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-          pcm.setName('DR Peak DX Limit Manager')
-          pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-          pcm.addProgram(program)
+            # EMS ProgramCallingManager
+            htg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+            htg_coil_pcm.setName("DR Peak DX Limit Manager Heating #{unitary.name.to_s.gsub("-", "")}")
+            htg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+            htg_coil_pcm.addProgram(htg_coil_program)
 
-          runner.registerInfo("EMS will cap DX compressor speed at 60% (#{limit_val} out of #{num_speeds} speeds) during peak periods.")
+            runner.registerInfo("EMS will cap DX compressor heating speed at 60% (#{htg_limit_val} out of #{num_htg_speeds} speeds) during peak periods.")
+          end
+
+          # COOLING COIL 
+          # create EMS Actuator to control DX coil speed
+          clg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
+            unitary,                                     # component
+            'Coil Speed Control',                        # control type
+            'Unitary System DX Coil Speed Value'         # actuator name
+          )
+          clg_actuator.setName("DX_Spd_Act_Clg_#{unitary.name.to_s.gsub("-", "")}")
+
+          runner.registerInfo("actuator = #{clg_actuator}")
+
+          # determine number of speeds from heating coil
+          num_clg_speeds = nil
+          if unitary.coolingCoil.is_initialized
+            clg_coil = unitary.coolingCoil.get
+            if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
+              num_clg_speeds = clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.size
+              runner.registerInfo("number of speeds in cooling = #{num_clg_speeds}")
+            else
+              runner.registerWarning("Cooling coil type #{clg_coil.iddObjectType.valueName} does not support multi speed EMS speed control")
+            end
+          end
+
+          if num_clg_speeds.nil?
+            runner.registerWarning('Could not determine number of DX coil speeds; EMS program not created')
+          else
+            clg_limit_val = max_compressor_frac * num_clg_speeds
+            runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of cooling coil to #{clg_limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{clg_limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
+
+            clg_limit_val = [clg_limit_val, num_clg_speeds].min
+            clg_limit_val = [clg_limit_val, 1].max
+            clg_limit_val = clg_limit_val.floor
+
+            # EMS Program
+            clg_coil_program_body = <<~EMS
+              IF (#{sensor.name} > 0.5),
+                SET #{clg_actuator.name} = #{clg_limit_val},
+              ELSE,
+                SET #{clg_actuator.name} = Null,
+              ENDIF
+            EMS
+
+            clg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+            clg_coil_program.setName("DR_Limit_DX_Speed_Clg_#{unitary.name.to_s.gsub("-", "")}")
+            clg_coil_program.setBody(clg_coil_program_body)
+
+            # EMS ProgramCallingManager
+            clg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+            clg_coil_pcm.setName("DR Peak DX Limit Manager Cooling #{unitary.name.to_s.gsub("-", "")}")
+            clg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+            clg_coil_pcm.addProgram(clg_coil_program)
+
+            runner.registerInfo("EMS will cap DX compressor cooling speed at 60% (#{clg_limit_val} out of #{num_clg_speeds} speeds) during peak periods.")
+          end
         end
       end
     end
@@ -2846,6 +2898,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           next
         end
 
+        runner.registerInfo("Adding backup heat EMS to unitary system: #{unitary.name}")
+
         # Actuator: Unitary System Supplemental Coil Stage Level
         sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
           unitary,
@@ -2856,7 +2910,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         # For most RTUs the supplemental electric coil is single-stage (N=1)
         # Leaving N=1 lets fractional values act as cycling ratio (e.g., 0.5 = 50%).
-        num_sup_stages = 1
+        num_sup_stages = 2
         if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
           num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
         end
@@ -2890,10 +2944,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     #   'Air System Mixed Air Mass Flow Rate',
     #   'Fan Air Mass Flow Rate',
     #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    #   'Cooling Coil Total Cooling Rate',
+       'Cooling Coil Total Cooling Rate',
     #   'Cooling Coil Electricity Rate',
     #   'Cooling Coil Runtime Fraction',
-    #   'Heating Coil Heating Rate',
+       'Heating Coil Heating Rate',
     #   'Heating Coil Electricity Rate',
     #   'Heating Coil Runtime Fraction',
     #   'Unitary System DX Coil Cycling Ratio',
