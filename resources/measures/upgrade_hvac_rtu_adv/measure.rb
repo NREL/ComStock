@@ -480,11 +480,11 @@ class UpgradeHvacRtuAdv < OpenStudio::Measure::ModelMeasure
   def self.get_shr(runner, stage_number)
     case stage_number
     when 3
-      return 0.7279780362307693
+      return 0.626 # 0.7279780362307693
     when 2
-      return 0.7402533904615385
+      return 0.637 # 0.7402533904615385
     when 1
-      return 0.8136649204374999
+      return 0.7 # 0.8136649204374999
     else
       runner.registerError("Invalid stage number: #{stage_number}. Must be 1, 2, or 3.")
       return nil
