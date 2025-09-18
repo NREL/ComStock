@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>loads_summary</name>
   <uid>82d9a22a-80ea-4fa7-a57f-77ce8fa4be76</uid>
-  <version_id>2b244038-8dc1-47f4-9367-50270cdd0503</version_id>
-  <version_modified>2025-09-11T19:37:33Z</version_modified>
+  <version_id>39d399b1-21cc-4d50-a382-827a223aa685</version_id>
+  <version_modified>2025-09-18T22:14:08Z</version_modified>
   <xml_checksum>58F01CAA</xml_checksum>
   <class_name>LoadsSummary</class_name>
   <display_name>loads_summary</display_name>
@@ -97,6 +97,18 @@
       <checksum>3F69E3FB</checksum>
     </file>
     <file>
+      <filename>CZ2A_retail.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>08E55C90</checksum>
+    </file>
+    <file>
+      <filename>CZ2A_retail_adiabatic.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>AFD177FC</checksum>
+    </file>
+    <file>
       <filename>CZ3C_small_office_10001_25000_PTHP.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -133,6 +145,12 @@
       <checksum>8FDBC3A8</checksum>
     </file>
     <file>
+      <filename>G1300990.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7FD44901</checksum>
+    </file>
+    <file>
       <filename>G3500010.epw</filename>
       <filetype>epw</filetype>
       <usage_type>test</usage_type>
@@ -166,7 +184,7 @@
       <filename>loads_summary_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>D786D25E</checksum>
+      <checksum>048AD5AE</checksum>
     </file>
     <file>
       <filename>simple_test.osm</filename>

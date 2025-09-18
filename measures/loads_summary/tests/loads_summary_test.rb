@@ -282,5 +282,43 @@ class LoadsSummaryTest < Minitest::Test
 
     return true
   end
+
+  def test_cz2A_retail
+    test_name = 'test_cz2A_retail'
+    test_model_name = 'CZ2A_retail.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G1300990.epw"
+
+    # set the arguments to test
+    args_hash = {
+    }
+
+    # run the measure
+    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
+    # test with timeseries output
+
+    run_in_workflow("#{test_name}_timeseries", test_model_path, {'timeseries_output' => true}, epw_path)
+
+    return true
+  end
+
+  def test_cz2A_retail_adiabatic
+    test_name = 'test_cz2A_retail_adiabatic'
+    test_model_name = 'CZ2A_retail_adiabatic.osm'
+    test_model_path =  "#{__dir__}/#{test_model_name}"
+    epw_path = "#{__dir__}/G1300990.epw"
+
+    # set the arguments to test
+    args_hash = {
+    }
+
+    # run the measure
+    run_in_workflow(test_name, test_model_path, args_hash, epw_path)
+    # test with timeseries output
+
+    run_in_workflow("#{test_name}_timeseries", test_model_path, {'timeseries_output' => true}, epw_path)
+
+    return true
+  end
 end
 
