@@ -19,8 +19,7 @@ ModelMeasure
 ## Arguments
 
 
-### Add outdoor air temperature reset"\
-    " for chilled/hot water supply temperature?
+### Add outdoor air temperature reset for chilled/hot water supply temperature?
 
 **Name:** chw_hw_oat_reset,
 **Type:** Boolean,
@@ -29,8 +28,7 @@ ModelMeasure
 **Model Dependent:** false
 
 
-### Add outdoor air temperature reset"\
-    " for condenser water temperature?
+### Add outdoor air temperature reset for condenser water temperature?
 
 **Name:** cw_oat_reset,
 **Type:** Boolean,
@@ -39,8 +37,7 @@ ModelMeasure
 **Model Dependent:** false
 
 
-### Print out detailed debugging logs"\
-    " if this parameter is true
+### Print out detailed debugging logs if this parameter is true
 
 **Name:** debug_verbose,
 **Type:** Boolean,

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>a9a75112-5f4e-4839-b6d0-a8a79086481d</version_id>
-  <version_modified>2025-08-18T19:53:00Z</version_modified>
+  <version_id>90b7ddc6-5cea-4b8c-8289-5653ed3c1804</version_id>
+  <version_modified>2025-09-18T11:00:42Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -13,8 +13,7 @@
   <arguments>
     <argument>
       <name>chw_hw_oat_reset</name>
-      <display_name>Add outdoor air temperature reset"\
-    " for chilled/hot water supply temperature?</display_name>
+      <display_name>Add outdoor air temperature reset for chilled/hot water supply temperature?</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -32,8 +31,7 @@
     </argument>
     <argument>
       <name>cw_oat_reset</name>
-      <display_name>Add outdoor air temperature reset"\
-    " for condenser water temperature?</display_name>
+      <display_name>Add outdoor air temperature reset for condenser water temperature?</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -51,8 +49,7 @@
     </argument>
     <argument>
       <name>debug_verbose</name>
-      <display_name>Print out detailed debugging logs"\
-    " if this parameter is true</display_name>
+      <display_name>Print out detailed debugging logs if this parameter is true</display_name>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -202,7 +199,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>7B3C7774</checksum>
+      <checksum>FC42845F</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -219,7 +216,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>4C8FCF6D</checksum>
+      <checksum>CBE6A2F5</checksum>
     </file>
     <file>
       <filename>310_vav_chiller_with_gas_boiler_reheat.osm</filename>
@@ -273,7 +270,7 @@
       <filename>upgrade_hvac_pump_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>CF68A6C5</checksum>
+      <checksum>BF7D179B</checksum>
     </file>
   </files>
 </measure>
