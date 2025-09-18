@@ -869,15 +869,9 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
     # populate argument with specified hash value if specified
-    arguments.each_with_index do |arg, idx|
+    arguments.each do |arg|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
-        hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
-        argument_map[arg.name] = hprtu_scenario
-      else
-        argument_map[arg.name] = temp_arg_var
-      end
+      argument_map[arg.name] = temp_arg_var
     end
 
     # get initial number of applicable air loops
