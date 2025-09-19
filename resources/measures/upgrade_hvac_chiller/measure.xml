@@ -3,13 +3,13 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_chiller</name>
   <uid>54c1432f-b483-4700-95fd-a11c570a5391</uid>
-  <version_id>a22983dd-a80c-4a95-86cc-28add0ba886e</version_id>
-  <version_modified>2025-04-08T21:41:31Z</version_modified>
+  <version_id>b755b8ce-fc2d-4cec-a532-217f626fa56f</version_id>
+  <version_modified>2025-07-23T23:00:34Z</version_modified>
   <xml_checksum>7B6EEA4F</xml_checksum>
   <class_name>UpgradeHvacChiller</class_name>
   <display_name>upgrade_hvac_chiller</display_name>
-  <description>tbd</description>
-  <modeler_description>tbd</modeler_description>
+  <description>The UpgradeHvacChiller measure is designed to improve the energy efficiency and performance of HVAC systems by upgrading chillers, pumps, and control strategies in a building model. This measure reflects the latest performance of chillers in the current market (as of 2025 May) and provides options for upgrading air-cooled and water-cooled chillers, optimizing pump performance, and implementing advanced control strategies.</description>
+  <modeler_description>Chiller Upgrades: Replaces existing chillers with high-efficiency models. Supports both air-cooled and water-cooled chillers. Updates performance curves and adjusts reference COPs to reflect improved efficiency. Pump Upgrades: Updates pump motor efficiencies to meet ASHRAE 90.1-2019 standards. Optimizes part-load performance for variable-speed pumps. Control Strategy Enhancements: Adds outdoor air temperature reset for chilled water supply temperature. Implements condenser water temperature reset based on Appendix G of ASHRAE 90.1-2019. Detailed Reporting: Provides pre- and post-upgrade specifications for chillers, pumps, and control systems. Includes debugging options for detailed logs during measure execution.</modeler_description>
   <arguments>
     <argument>
       <name>upgrade_pump</name>
@@ -147,7 +147,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>78FC88EF</checksum>
+      <checksum>E0528169</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -170,7 +170,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>592D9902</checksum>
+      <checksum>5F3C4850</checksum>
     </file>
     <file>
       <filename>100ton_centrifugal_variablespd_wcc/results.idf</filename>
@@ -212,7 +212,7 @@
       <filename>upgrade_hvac_chiller_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>B90FCA53</checksum>
+      <checksum>AD5AF553</checksum>
     </file>
   </files>
 </measure>

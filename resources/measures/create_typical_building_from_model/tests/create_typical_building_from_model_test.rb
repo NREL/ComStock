@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2024 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # dependencies
@@ -95,6 +95,12 @@ class CreateTypicalBuildingFromModelTest < Minitest::Test
 
   def test_small_office
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), {}, 'SmallOffice.osm', nil, nil)
+  end
+
+  def test_grocery_store
+    args = {}
+    args['refrigeration_template'] = 'old'
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SuperMarket.osm', nil, nil)
   end
 
   def test_quick_service_restaurant_no_attic

@@ -263,6 +263,13 @@ class DFLoadShedTest < Minitest::Test
       # assert(apply_measure.setValue(true))#
       # argument_map['apply_measure'] = apply_measure
 
+      # actual hourly timestep
+      if demand_flexibility_objective.valueAsString == 'grid peak load' or demand_flexibility_objective.valueAsString == 'emissions'
+        timestep = 1
+      else
+        timestep = num_timesteps_in_hr.valueAsInteger
+      end
+
       # store baseline schedule for check later
       lights = model.getLightss
       light_schedules = {}
@@ -272,7 +279,7 @@ class DFLoadShedTest < Minitest::Test
 
         schedule = light_sch.get.clone(model)
         schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
-                                                                          8760 * num_timesteps_in_hr.valueAsInteger)
+                                                                          8760 * timestep)
         light_schedules[light_sch.get.name.to_s] = schedule_ts
       end
       puts('-----------------------------------------------------------------')
@@ -294,7 +301,7 @@ class DFLoadShedTest < Minitest::Test
           if !heat_sch.empty? && !heat_schedules.key?(heat_sch.get.name.to_s)
             schedule = heat_sch.get.clone(model)
             schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
-                                                                              8760 * num_timesteps_in_hr.valueAsInteger)
+                                                                              8760 * timestep)
             heat_schedules[heat_sch.get.name.to_s] = schedule_ts
           end
         end
@@ -305,7 +312,7 @@ class DFLoadShedTest < Minitest::Test
 
         schedule = cool_sch.get.clone(model)
         schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
-                                                                          8760 * num_timesteps_in_hr.valueAsInteger)
+                                                                          8760 * timestep)
         cool_schedules[cool_sch.get.name.to_s] = schedule_ts
       end
       puts("heat_schedules.key=#{heat_schedules.keys}")
@@ -391,15 +398,15 @@ class DFLoadShedTest < Minitest::Test
           counts = counts.sort.to_h
           puts('-----------------------------------------------------------------')
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-          puts("--- cooling schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
+          puts("--- cooling schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / timestep.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
           counts.each do |value, count|
-            next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+            next if value.abs < 1e-6 || count < timestep.to_f
 
-            puts("--- cooling schedule changes #{value}C in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+            puts("--- cooling schedule changes #{value}C in #{count / peak_len.valueAsInteger.to_f / timestep.to_f} days")
             assert(value.abs <= sp_adjustment.valueAsDouble,
                    "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
           end
-          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / timestep.to_f
           assert(total_days < 367 && total_days > 360,
                  "cooling schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
         end
@@ -412,15 +419,15 @@ class DFLoadShedTest < Minitest::Test
           counts = counts.sort.to_h
           puts('-----------------------------------------------------------------')
           # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-          puts("--- heating schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
+          puts("--- heating schedule changes on average #{diff.sum / 365.0 / peak_len.valueAsInteger.to_f / timestep.to_f}C/hr for #{peak_len.valueAsInteger} hours everyday")
           counts.each do |value, count|
-            next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+            next if value.abs < 1e-6 || count < timestep.to_f
 
-            puts("--- heating schedule changes #{value} in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+            puts("--- heating schedule changes #{value} in #{count / peak_len.valueAsInteger.to_f / timestep.to_f} days")
             assert(value.abs <= sp_adjustment.valueAsDouble,
                    "Hourly change should not exceed the input #{sp_adjustment.valueAsDouble.round(1)}")
           end
-          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+          total_days = counts[sp_adjustment.valueAsDouble] / peak_len.valueAsInteger.to_f / timestep.to_f
           assert(total_days < 367 && total_days > 360,
                  "heating schedule changes with input #{sp_adjustment.valueAsDouble}C in #{total_days} days")
         end
@@ -434,21 +441,21 @@ class DFLoadShedTest < Minitest::Test
         counts = counts.sort.to_h
         puts('-----------------------------------------------------------------')
         # puts("--- hourly light schedules changes #{diff*100.0}% everyday")
-        puts("--- light schedule changes on average #{(diff.sum / 3.650 / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f).round(2)}%/hr for #{peak_len.valueAsInteger} hours everyday")
+        puts("--- light schedule changes on average #{(diff.sum / 3.650 / peak_len.valueAsInteger.to_f / timestep.to_f).round(2)}%/hr for #{peak_len.valueAsInteger} hours everyday")
         total_count = 0
         counts.each do |value, count|
-          next if value.abs < 1e-6 || count < num_timesteps_in_hr.valueAsInteger.to_f
+          next if value.abs < 1e-6 || count < timestep.to_f
 
-          puts("--- light schedule changes #{(value * 100.0).round(1)}% in #{count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f} days")
+          puts("--- light schedule changes #{(value * 100.0).round(1)}% in #{count / peak_len.valueAsInteger.to_f / timestep.to_f} days")
           assert(value <= light_adjustment.valueAsDouble,
                  "Hourly change should not exceed the input #{light_adjustment.valueAsDouble.round(1)}")
           total_count += count
         end
-        total_days = total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f
+        total_days = total_count / peak_len.valueAsInteger.to_f / timestep.to_f
         puts("--- Number of days with setpoint changed: #{total_days}")
         assert(total_days <= 366, 'Number of days should not exceed 366')
         assert(total_days > 100,
-               "Number of days with valid adjusted setpoints (#{total_count / peak_len.valueAsInteger.to_f / num_timesteps_in_hr.valueAsInteger.to_f}) too small")
+               "Number of days with valid adjusted setpoints (#{total_count / peak_len.valueAsInteger.to_f / timestep.to_f}) too small")
       end
       puts('=================================================================')
     end

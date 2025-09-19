@@ -29,6 +29,17 @@ lib/
 report.xml
 resources/Gemfile.lock
 
+# Non-template postprocessing scripts
+postprocessing/compare_comstock_to_ami.py
+postprocessing/compare_comstock_to_cbecs.py
+postprocessing/compare_comstock_to_eia.py
+postprocessing/compare_runs.py
+postprocessing/compare_upgrades.py
+postprocessing/extract_models_and_errors.py
+
 # Rubocop output
 /.rubocop
 /.rubocop-http*
+
+# test results
+test/reports

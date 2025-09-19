@@ -3,14 +3,126 @@
   <schema_version>3.1</schema_version>
   <name>qoi_report</name>
   <uid>be0bfc7f-25c6-435a-9acd-2f5fa8ac817d</uid>
-  <version_id>0a0bd981-5b59-4dcd-aa06-dd4348c556ac</version_id>
-  <version_modified>2025-07-11T19:17:31Z</version_modified>
+  <version_id>c0e94787-a0e1-4d8e-9848-2f8bf26c12c6</version_id>
+  <version_modified>2025-07-16T21:53:32Z</version_modified>
   <xml_checksum>15BF4E57</xml_checksum>
   <class_name>QOIReport</class_name>
   <display_name>QOI Report</display_name>
   <description>Reports uncertainty quantification quantities of interest.</description>
   <modeler_description>TODO</modeler_description>
-  <arguments />
+  <arguments>
+    <argument>
+      <name>grid_region</name>
+      <display_name>Grid Region</display_name>
+      <description>Cambium electric grid region, or eGrid region for Alaska and Hawaii</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>Lookup from model</default_value>
+      <choices>
+        <choice>
+          <value>AZNMc</value>
+          <display_name>AZNMc</display_name>
+        </choice>
+        <choice>
+          <value>AKGD</value>
+          <display_name>AKGD</display_name>
+        </choice>
+        <choice>
+          <value>AKMS</value>
+          <display_name>AKMS</display_name>
+        </choice>
+        <choice>
+          <value>CAMXc</value>
+          <display_name>CAMXc</display_name>
+        </choice>
+        <choice>
+          <value>ERCTc</value>
+          <display_name>ERCTc</display_name>
+        </choice>
+        <choice>
+          <value>FRCCc</value>
+          <display_name>FRCCc</display_name>
+        </choice>
+        <choice>
+          <value>HIMS</value>
+          <display_name>HIMS</display_name>
+        </choice>
+        <choice>
+          <value>HIOA</value>
+          <display_name>HIOA</display_name>
+        </choice>
+        <choice>
+          <value>MROEc</value>
+          <display_name>MROEc</display_name>
+        </choice>
+        <choice>
+          <value>MROWc</value>
+          <display_name>MROWc</display_name>
+        </choice>
+        <choice>
+          <value>NEWEc</value>
+          <display_name>NEWEc</display_name>
+        </choice>
+        <choice>
+          <value>NWPPc</value>
+          <display_name>NWPPc</display_name>
+        </choice>
+        <choice>
+          <value>NYSTc</value>
+          <display_name>NYSTc</display_name>
+        </choice>
+        <choice>
+          <value>RFCEc</value>
+          <display_name>RFCEc</display_name>
+        </choice>
+        <choice>
+          <value>RFCMc</value>
+          <display_name>RFCMc</display_name>
+        </choice>
+        <choice>
+          <value>RFCWc</value>
+          <display_name>RFCWc</display_name>
+        </choice>
+        <choice>
+          <value>RMPAc</value>
+          <display_name>RMPAc</display_name>
+        </choice>
+        <choice>
+          <value>SPNOc</value>
+          <display_name>SPNOc</display_name>
+        </choice>
+        <choice>
+          <value>SPSOc</value>
+          <display_name>SPSOc</display_name>
+        </choice>
+        <choice>
+          <value>SRMVc</value>
+          <display_name>SRMVc</display_name>
+        </choice>
+        <choice>
+          <value>SRMWc</value>
+          <display_name>SRMWc</display_name>
+        </choice>
+        <choice>
+          <value>SRSOc</value>
+          <display_name>SRSOc</display_name>
+        </choice>
+        <choice>
+          <value>SRTVc</value>
+          <display_name>SRTVc</display_name>
+        </choice>
+        <choice>
+          <value>SRVCc</value>
+          <display_name>SRVCc</display_name>
+        </choice>
+        <choice>
+          <value>Lookup from model</value>
+          <display_name>Lookup from model</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
   <outputs>
     <output>
       <name>average_minimum_daily_use_winter_kw</name>
@@ -1049,7 +1161,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A30582C3</checksum>
+      <checksum>0D3A4DB8</checksum>
     </file>
     <file>
       <filename>cambium/Load_MidCase_2035/AZNMc.csv</filename>
@@ -1187,7 +1299,7 @@
       <filename>bldg0000025.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>25F2C0A6</checksum>
+      <checksum>6424860A</checksum>
     </file>
     <file>
       <filename>cold_climate.epw</filename>
@@ -1199,19 +1311,19 @@
       <filename>cold_climate.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>C7F46119</checksum>
+      <checksum>5A665111</checksum>
     </file>
     <file>
       <filename>qoi_report_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>45B35351</checksum>
+      <checksum>51650933</checksum>
     </file>
     <file>
       <filename>retail_2010.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
-      <checksum>25F2C0A6</checksum>
+      <checksum>6424860A</checksum>
     </file>
   </files>
 </measure>

@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 
 # *******************************************************************************
@@ -221,6 +221,10 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     site.setLongitude(weather_lon)
     site.setTimeZone(weather_time)
     site.setElevation(weather_elev)
+
+    # set site terrain assumption for wind speed modifications for infiltration
+    terrain = 'City' # default for now
+    site.setTerrain(terrain)
 
     runner.registerInfo("city is #{epw_file.city}. State is #{epw_file.state}")
 

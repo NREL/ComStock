@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 class UnitsMixin():
     class UNIT:
@@ -21,6 +21,10 @@ class UnitsMixin():
 
         class MASS:
             CO2E_MMT = 'co2e_mmt'
+            NOX_KG = 'nox_kg'
+            CO_KG = 'co_kg'
+            PM_KG = 'pm_kg'
+            SO2_KG = 'so2_kg'
 
         class DIMLESS:
             PERCENT = 'percent'

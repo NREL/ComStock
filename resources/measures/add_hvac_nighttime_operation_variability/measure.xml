@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>add_hvac_nighttime_operation_variability</name>
   <uid>d3f16ec3-96d1-4379-ba46-04c78dc04342</uid>
-  <version_id>d7bcc4f0-3848-4a67-9f1a-bc5b53039e18</version_id>
-  <version_modified>2024-10-16T15:53:07Z</version_modified>
+  <version_id>84d023d0-df35-4986-a17c-7fadd08e9c6d</version_id>
+  <version_modified>2025-08-28T21:19:32Z</version_modified>
   <xml_checksum>356BE47F</xml_checksum>
   <class_name>AddHvacNighttimeOperationVariability</class_name>
   <display_name>add_hvac_nighttime_operation_variability</display_name>
@@ -100,13 +100,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>2D64F46A</checksum>
+      <checksum>CE80E40C</checksum>
+    </file>
+    <file>
+      <filename>exhaust_fan_schedules.csv</filename>
+      <filetype>csv</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2876FEF0</checksum>
     </file>
     <file>
       <filename>add_hvac_nighttime_operation_variability_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>F6AD60DF</checksum>
+      <checksum>DD7D8990</checksum>
+    </file>
+    <file>
+      <filename>restaurant.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>7CB95EBB</checksum>
     </file>
   </files>
 </measure>

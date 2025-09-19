@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 import re
@@ -25,7 +25,17 @@ color_interquartile = "#6A9AC3"
 class PlottingMixin():
 
     # plot energy consumption by fuel type and enduse
-    def plot_energy_by_enduse_and_fuel_type(self, df, column_for_grouping, color_map, output_dir):
+    
+    """
+    Plot a stacked bar graph of end uses by column_for_grouping
+    Args:
+        df: dataset with a comstock run
+        column_for_grouping (str): discrete column for breaking out results, either by dataset or upgrade
+        color_map: hash with dataset names as the keys
+        output_dir (str): output directory
+        applicability (str): 'stock' for the whole stock, 'applicable_only' for just applicable buildings, and 'both' for both.
+    """
+    def plot_energy_by_enduse_and_fuel_type(self, df, column_for_grouping, color_map, output_dir, applicability='both'):
 
         # ghg columns; uses Cambium low renewable energy cost 15-year for electricity
         cols_enduse_ann_en = self.COLS_ENDUSE_ANN_ENGY
@@ -37,7 +47,14 @@ class PlottingMixin():
 
 
         # plots for both applicable and total stock
-        for applicable_scenario in ['stock', 'applicable_only']:
+        if applicability == 'both':
+            scenarios = ['stock', 'applicable_only']
+        if applicability == 'stock':
+            scenarios = ['stock']
+        if applicability == 'applicable_only':
+            scenarios = ['applicable_only']
+
+        for applicable_scenario in scenarios:
 
             df_scen = df.copy()
 
@@ -75,6 +92,8 @@ class PlottingMixin():
             pattern_dict = {
                 'Electricity': "",
                 'Natural Gas':"/",
+                'Propane': 'p',
+                'Fuel Oil No 2': '$',
                 'District Cooling':"x",
                 'District Heating':".",
                 'Other Fuel':'+'
@@ -99,6 +118,8 @@ class PlottingMixin():
                 'Fuel Type': [
                             'Electricity',
                             'Natural Gas',
+                            'Propane',
+                            'Fuel Oil No 2'
                             'District Cooling',
                             'District Heating',
                             'Other Fuel',
@@ -113,13 +134,13 @@ class PlottingMixin():
             # formatting and saving image
             title = 'ann_energy_by_enduse_and_fuel'
             # format title and axis
-            # update plot width based on number of upgrades
-            upgrade_count = df_emi_gb_long[column_for_grouping].nunique()
+            # update plot width based on number of datasets (comstock versions or upgrades)
+            set_count = df_emi_gb_long[column_for_grouping].nunique()
             plot_width=550
-            if upgrade_count <= 2:
+            if set_count <= 2:
                 plot_width = 550
             else:
-                extra_elements = upgrade_count - 2
+                extra_elements = set_count - 2
                 plot_width = 550 * (1 + 0.15 * extra_elements)
 
             fig.update_traces(textposition='inside', width=0.5, textangle=0)
@@ -157,6 +178,7 @@ class PlottingMixin():
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
             fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
+            df_emi_gb_long.to_csv(os.path.join(fig_sub_dir, f'{title.replace(" ", "_").lower()}_{applicable_scenario}.csv'), index=False)
 
     # plot for GHG emissions by fuel type for baseline and upgrade
     def plot_emissions_by_fuel_type(self, df, column_for_grouping, color_map, output_dir):

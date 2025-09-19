@@ -1,4 +1,4 @@
-# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import re
 import matplotlib.colors as mcolors
@@ -34,6 +34,7 @@ class NamingMixin():
     COMP_STATUS = 'completed_status'
     DIVISION = 'Division'
     MONTH = 'Month'
+    UTIL_ID = 'in.electric_utility_eia_code'
 
     # As-simulated geography variables
     TRACT_ID_AS_SIM = 'in.as_simulated_nhgis_tract_gisjoin'
@@ -121,7 +122,8 @@ class NamingMixin():
     ANN_TOT_ENGY_KBTU = 'out.site_energy.total.energy_consumption..kwh'
     ANN_TOT_ELEC_KBTU = 'out.electricity.total.energy_consumption..kwh'
     ANN_TOT_GAS_KBTU = 'out.natural_gas.total.energy_consumption..kwh'
-    ANN_TOT_OTHFUEL_KBTU = 'out.other_fuel.total.energy_consumption..kwh'
+    ANN_TOT_PROPANE_KBTU = 'out.propane.total.energy_consumption..kwh'
+    ANN_TOT_FUELOIL_KBTU = 'out.fuel_oil.total.energy_consumption..kwh'
     ANN_TOT_DISTHTG_KBTU = 'out.district_heating.total.energy_consumption..kwh'
     ANN_TOT_DISTCLG_KBTU = 'out.district_cooling.total.energy_consumption..kwh'
 
@@ -145,6 +147,16 @@ class NamingMixin():
     ANN_GAS_SWH_KBTU = 'out.natural_gas.water_systems.energy_consumption..kwh'
     ANN_GAS_COOL_KBTU = 'out.natural_gas.cooling.energy_consumption..kwh'
 
+    # End use energy - propane
+    ANN_PROPANE_HEAT_KBTU = 'out.propane.heating.energy_consumption..kwh'
+    ANN_PROPANE_INTEQUIP_KBTU = 'out.propane.interior_equipment.energy_consumption..kwh'
+    ANN_PROPANE_SWH_KBTU = 'out.propane.water_systems.energy_consumption..kwh'
+
+    # End use energy - fuel oil no 2
+    ANN_FUELOIL_HEAT_KBTU = 'out.fuel_oil.heating.energy_consumption..kwh'
+    ANN_FUELOIL_INTEQUIP_KBTU = 'out.fuel_oil.interior_equipment.energy_consumption..kwh'
+    ANN_FUELOIL_SWH_KBTU = 'out.fuel_oil.water_systems.energy_consumption..kwh'
+
     # End use energy - district cooling
     ANN_DISTCLG_COOL_KBTU = 'out.district_cooling.cooling.energy_consumption..kwh'
 
@@ -153,12 +165,6 @@ class NamingMixin():
     ANN_DISTHTG_SWH_KBTU = 'out.district_heating.water_systems.energy_consumption..kwh'
     ANN_DISTHTG_INTEQUIP_KBTU = 'out.district_heating.interior_equipment.energy_consumption..kwh'
     ANN_DISTHTG_COOL_KBTU = 'out.district_heating.cooling.energy_consumption..kwh'
-
-    # End use energy - other fuels (sum of propane and fuel oil)
-    ANN_OTHER_HEAT_KBTU = 'out.other_fuel.heating.energy_consumption..kwh'
-    ANN_OTHER_SWH_KBTU = 'out.other_fuel.water_systems.energy_consumption..kwh'
-    ANN_OTHER_INTEQUIP_KBTU = 'out.other_fuel.interior_equipment.energy_consumption..kwh'
-    ANN_OTHER_COOL_KBTU = 'out.other_fuel.cooling.energy_consumption..kwh'
 
     # End use group energy - all fuels
     ANN_HEAT_GROUP_KBTU = 'calc.enduse_group.site_energy.heating.energy_consumption..kwh'
@@ -181,6 +187,16 @@ class NamingMixin():
     ANN_GAS_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.natural_gas.interior_equipment.energy_consumption..kwh'
     ANN_GAS_SWH_GROUP_KBTU = 'calc.enduse_group.natural_gas.water_systems.energy_consumption..kwh'
 
+    # End use group energy - propane
+    ANN_PROPANE_HVAC_GROUP_KBTU = 'calc.enduse_group.propane.hvac.energy_consumption..kwh'
+    ANN_PROPANE_SWH_GROUP_KBTU = 'calc.enduse_group.propane.water_systems.energy_consumption..kwh'
+    ANN_PROPANE_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.propane.interior_equipment.energy_consumption..kwh'
+
+    # End use group energy - fuel oil
+    ANN_FUELOIL_HVAC_GROUP_KBTU = 'calc.enduse_group.fuel_oil.hvac.energy_consumption..kwh'
+    ANN_FUELOIL_SWH_GROUP_KBTU = 'calc.enduse_group.fuel_oil.water_systems.energy_consumption..kwh'
+    ANN_FUELOIL_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.fuel_oil.interior_equipment.energy_consumption..kwh'
+
     # End use group energy - district heating
     ANN_DISTHTG_HVAC_GROUP_KBTU = 'calc.enduse_group.district_heating.hvac.energy_consumption..kwh'
     ANN_DISTHTG_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.district_heating.interior_equipment.energy_consumption..kwh'
@@ -188,11 +204,6 @@ class NamingMixin():
 
     # End use group energy - district cooling
     ANN_DISTCLG_HVAC_GROUP_KBTU = 'calc.enduse_group.district_cooling.hvac.energy_consumption..kwh'
-
-    # End use group energy - other fuels
-    ANN_OTHER_HVAC_GROUP_KBTU = 'calc.enduse_group.other_fuel.hvac.energy_consumption..kwh'
-    ANN_OTHER_SWH_GROUP_KBTU = 'calc.enduse_group.other_fuel.water_systems.energy_consumption..kwh'
-    ANN_OTHER_INTEQUIP_GROUP_KBTU = 'calc.enduse_group.other_fuel.interior_equipment.energy_consumption..kwh'
 
     # Unmet hours columns
     COOLING_HOURS_UNMET = 'out.params.hours_cooling_setpoint_not_met..hr'
@@ -217,13 +228,16 @@ class NamingMixin():
         ANN_GAS_HVAC_GROUP_KBTU,
         ANN_GAS_INTEQUIP_GROUP_KBTU,
         ANN_GAS_SWH_GROUP_KBTU,
+        ANN_PROPANE_HVAC_GROUP_KBTU,
+        ANN_PROPANE_SWH_GROUP_KBTU,
+        ANN_PROPANE_INTEQUIP_GROUP_KBTU,
+        ANN_FUELOIL_HVAC_GROUP_KBTU,
+        ANN_FUELOIL_SWH_GROUP_KBTU,
+        ANN_FUELOIL_INTEQUIP_GROUP_KBTU,
         ANN_DISTHTG_HVAC_GROUP_KBTU,
         ANN_DISTHTG_INTEQUIP_GROUP_KBTU,
         ANN_DISTHTG_SWH_GROUP_KBTU,
-        ANN_DISTCLG_HVAC_GROUP_KBTU,
-        ANN_OTHER_HVAC_GROUP_KBTU,
-        ANN_OTHER_SWH_GROUP_KBTU,
-        ANN_OTHER_INTEQUIP_GROUP_KBTU
+        ANN_DISTCLG_HVAC_GROUP_KBTU
     ]
 
     # Utility bills
@@ -354,7 +368,6 @@ class NamingMixin():
         'out.emissions.district_cooling..co2e_kg',
         'out.emissions.district_heating..co2e_kg',
         'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
-
     ]
 
     # GHG emissions seasonal daily average from electricity consumption columns for eGrid
@@ -477,10 +490,26 @@ class NamingMixin():
     GHG_NATURAL_GAS = 'out.emissions.natural_gas..co2e_kg'
     GHG_FUEL_OIL = 'out.emissions.fuel_oil..co2e_kg'
     GHG_PROPANE = 'out.emissions.propane..co2e_kg'
+    GHG_DISTCLG = 'out.emissions.district_cooling..co2e_kg'
+    GHG_DISTHTG = 'out.emissions.district_heating..co2e_kg'
     GHG_LRMER_LOW_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_low_re_cost_15_2023_start..co2e_kg'
     GHG_LRMER_MID_CASE_15_ELEC = 'out.emissions.electricity.lrmer_mid_case_15_2023_start..co2e_kg'
     GHG_LRMER_HIGH_RE_COST_15_ELEC = 'out.emissions.electricity.lrmer_high_re_cost_15_2023_start..co2e_kg'
     GHG_ELEC_EGRID = 'out.emissions.electricity.egrid_2021_subregion..co2e_kg'
+
+    # Criteria pollutant emissions columns
+    NOX_NATURAL_GAS = 'out.nox_emissions.natural_gas..nox_kg'
+    CO_NATURAL_GAS = 'out.co_emissions.natural_gas..co_kg'
+    PM_NATURAL_GAS = 'out.pm_emissions.natural_gas..pm_kg'
+    SO2_NATURAL_GAS = 'out.so2_emissions.natural_gas..so2_kg'
+    NOX_FUEL_OIL = 'out.nox_emissions.fuel_oil..nox_kg'
+    CO_FUEL_OIL = 'out.co_emissions.fuel_oil..co_kg'
+    PM_FUEL_OIL = 'out.pm_emissions.fuel_oil..pm_kg'
+    SO2_FUEL_OIL = 'out.so2_emissions.fuel_oil..so2_kg'
+    NOX_PROPANE = 'out.nox_emissions.propane..nox_kg'
+    CO_PROPANE = 'out.co_emissions.propane..co_kg'
+    PM_PROPANE = 'out.pm_emissions.propane..pm_kg'
+    SO2_PROPANE = 'out.so2_emissions.propane..so2_kg'
 
     # Addressable segment columns
     SEG_A = 'A: Non Food-Service Buildings with Small Packaged Units'
@@ -521,7 +550,8 @@ class NamingMixin():
         ANN_TOT_NET_ENGY_KBTU,
         ANN_TOT_NET_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]
@@ -530,7 +560,8 @@ class NamingMixin():
     COLS_PURCHASED_ANN_ENGY = [
         ANN_PURCHASED_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]
@@ -540,7 +571,8 @@ class NamingMixin():
         ANN_TOT_ENGY_KBTU,
         ANN_TOT_ELEC_KBTU,
         ANN_TOT_GAS_KBTU,
-        ANN_TOT_OTHFUEL_KBTU,
+        ANN_TOT_FUELOIL_KBTU,
+        ANN_TOT_PROPANE_KBTU,
         ANN_TOT_DISTHTG_KBTU,
         ANN_TOT_DISTCLG_KBTU
     ]
@@ -563,15 +595,17 @@ class NamingMixin():
         ANN_GAS_INTEQUIP_KBTU,
         ANN_GAS_SWH_KBTU,
         ANN_GAS_COOL_KBTU,
+        ANN_PROPANE_HEAT_KBTU,
+        ANN_PROPANE_INTEQUIP_KBTU,
+        ANN_PROPANE_SWH_KBTU,
+        ANN_FUELOIL_HEAT_KBTU,
+        ANN_FUELOIL_INTEQUIP_KBTU,
+        ANN_FUELOIL_SWH_KBTU,
         ANN_DISTCLG_COOL_KBTU,
         ANN_DISTHTG_HEAT_KBTU,
         ANN_DISTHTG_INTEQUIP_KBTU,
         ANN_DISTHTG_SWH_KBTU,
         ANN_DISTHTG_COOL_KBTU,
-        ANN_OTHER_HEAT_KBTU,
-        ANN_OTHER_SWH_KBTU,
-        ANN_OTHER_INTEQUIP_KBTU,
-        ANN_OTHER_COOL_KBTU
     ]
 
     # List of natural gas end use columns
@@ -602,8 +636,9 @@ class NamingMixin():
     COLS_HEAT_ENDUSE = [
         ANN_ELEC_HEAT_KBTU,
         ANN_GAS_HEAT_KBTU,
-        ANN_DISTHTG_HEAT_KBTU,
-        ANN_OTHER_HEAT_KBTU
+        ANN_PROPANE_HEAT_KBTU,
+        ANN_FUELOIL_HEAT_KBTU,
+        ANN_DISTHTG_HEAT_KBTU
     ]
 
     # List of cooling end use columns
@@ -611,8 +646,7 @@ class NamingMixin():
         ANN_ELEC_COOL_KBTU,
         ANN_GAS_COOL_KBTU,
         ANN_DISTHTG_COOL_KBTU,
-        ANN_DISTCLG_COOL_KBTU,
-        ANN_OTHER_COOL_KBTU
+        ANN_DISTCLG_COOL_KBTU
     ]
 
     # List of HVAC, electricity end use columns
@@ -631,6 +665,16 @@ class NamingMixin():
         ANN_GAS_HEAT_KBTU
     ]
 
+    # List of HVAC, propane end use columns
+    COLS_HVAC_PROPANE_ENDUSE = [
+        ANN_PROPANE_HEAT_KBTU
+    ]
+
+    # List of HVAC, fuel oil end use columns
+    COLS_HVAC_FUELOIL_ENDUSE = [
+        ANN_FUELOIL_HEAT_KBTU
+    ]
+
     # List of HVAC, district_heating end use columns
     COLS_HVAC_DISTHTG_ENDUSE = [
         ANN_DISTHTG_COOL_KBTU,
@@ -640,12 +684,6 @@ class NamingMixin():
     # List of HVAC, district_cooling end use columns
     COLS_HVAC_DISTCLG_ENDUSE = [
         ANN_DISTCLG_COOL_KBTU
-    ]
-
-    # List of HVAC, other_fuel end use columns
-    COLS_HVAC_OTHER_ENDUSE = [
-        ANN_OTHER_COOL_KBTU,
-        ANN_OTHER_HEAT_KBTU
     ]
 
     # List of Lighting, electricity end use columns
@@ -664,14 +702,19 @@ class NamingMixin():
         ANN_GAS_INTEQUIP_KBTU
     ]
 
+    # List of Interior Equipment, propane end use columns
+    COLS_INTEQUIP_PROPANE_ENDUSE = [
+        ANN_PROPANE_INTEQUIP_KBTU
+    ]
+
+    # List of Interior Equipment, fuel oil no 2 end use columns
+    COLS_INTEQUIP_FUELOIL_ENDUSE = [
+        ANN_FUELOIL_INTEQUIP_KBTU
+    ]
+
     # List of Interior Equipment, district_heating end use columns
     COLS_INTEQUIP_DISTHTG_ENDUSE = [
         ANN_DISTHTG_INTEQUIP_KBTU
-    ]
-
-    # List of Interior Equipment, other_fuel end use columns
-    COLS_INTEQUIP_OTHER_ENDUSE = [
-        ANN_OTHER_INTEQUIP_KBTU
     ]
 
     # List of Water Heating, electricity end use columns
@@ -684,14 +727,19 @@ class NamingMixin():
         ANN_GAS_SWH_KBTU
     ]
 
+    # List of Water Heating, propane end use columns
+    COLS_SWH_PROPANE_ENDUSE = [
+        ANN_PROPANE_SWH_KBTU
+    ]
+
+    # List of Water Heating, fuel oil end use columns
+    COLS_SWH_FUELOIL_ENDUSE = [
+        ANN_FUELOIL_SWH_KBTU
+    ]
+
     # List of Water Heating, district_heating end use columns
     COLS_SWH_DISTHTG_ENDUSE = [
         ANN_DISTHTG_SWH_KBTU
-    ]
-
-    # List of Water Heating, other_fuel end use columns
-    COLS_SWH_OTHER_ENDUSE = [
-        ANN_OTHER_SWH_KBTU
     ]
 
     # List of Refrigeration, electricity end use columns
@@ -700,22 +748,24 @@ class NamingMixin():
     ]
 
     # List of HVAC end use group columns
-    COLS_HVAC_ENERGY = COLS_HVAC_ELEC_ENDUSE + COLS_HVAC_GAS_ENDUSE + COLS_HVAC_DISTHTG_ENDUSE + COLS_HVAC_DISTCLG_ENDUSE + COLS_HVAC_OTHER_ENDUSE
+    COLS_HVAC_ENERGY = COLS_HVAC_ELEC_ENDUSE + COLS_HVAC_GAS_ENDUSE + COLS_HVAC_PROPANE_ENDUSE + COLS_HVAC_FUELOIL_ENDUSE + COLS_HVAC_DISTHTG_ENDUSE + COLS_HVAC_DISTCLG_ENDUSE
 
     # List of Equipment end use group columns
     COLS_INTEQUIP_ENERGY = [
         ANN_ELEC_INTEQUIP_KBTU,
         ANN_GAS_INTEQUIP_KBTU,
-        ANN_DISTHTG_INTEQUIP_KBTU,
-        ANN_OTHER_INTEQUIP_KBTU
+        ANN_PROPANE_INTEQUIP_KBTU,
+        ANN_FUELOIL_INTEQUIP_KBTU,
+        ANN_DISTHTG_INTEQUIP_KBTU
     ]
 
     # List of Water Heating end use group columns
     COLS_SWH_ENERGY = [
         ANN_ELEC_SWH_KBTU,
         ANN_GAS_SWH_KBTU,
-        ANN_DISTHTG_SWH_KBTU,
-        ANN_OTHER_SWH_KBTU
+        ANN_PROPANE_SWH_KBTU,
+        ANN_FUELOIL_SWH_KBTU,
+        ANN_DISTHTG_SWH_KBTU
     ]
 
     QOI_MAX_DAILY_TIMING_COLS = [
@@ -752,6 +802,8 @@ class NamingMixin():
         GHG_NATURAL_GAS,
         GHG_FUEL_OIL,
         GHG_PROPANE,
+        GHG_DISTCLG,
+        GHG_DISTHTG,
         GHG_LRMER_LOW_RE_COST_15_ELEC,
         #GHG_LRMER_MID_CASE_15_ELEC,
         GHG_LRMER_HIGH_RE_COST_15_ELEC,
@@ -790,6 +842,26 @@ class NamingMixin():
                             ANN_GHG_EGRID,
                             ANN_GHG_CAMBIUM]),
             'weighted_units': 'co2e_mmt'
+        },
+        # NOX Emissions
+        {
+            'cols': ([NOX_NATURAL_GAS, NOX_FUEL_OIL, NOX_PROPANE]),
+            'weighted_units': 'nox_kg'
+        },
+        # CO Emissions
+        {
+            'cols': ([CO_NATURAL_GAS, CO_FUEL_OIL, CO_PROPANE]),
+            'weighted_units': 'co_kg'
+        },
+        # PM Emissions
+        {
+            'cols': ([PM_NATURAL_GAS, PM_FUEL_OIL, PM_PROPANE]),
+            'weighted_units': 'pm_kg'
+        },
+        # SO2 Emissions
+        {
+            'cols': ([SO2_NATURAL_GAS, SO2_FUEL_OIL, SO2_PROPANE]),
+            'weighted_units': 'so2_kg'
         }
     ]
 
@@ -870,7 +942,8 @@ class NamingMixin():
             'Hospital',
             'SmallHotel',
             'LargeHotel',
-            'Warehouse'],
+            'Warehouse',
+            'Grocery'],
 
          HVAC_SYS: [
              'Baseboard electric',
@@ -932,7 +1005,9 @@ class NamingMixin():
         'Hospital': 'hospital',
         'SmallHotel': 'small_hotel',
         'LargeHotel': 'large_hotel',
-        'Warehouse': 'warehouse'
+        'Warehouse': 'warehouse',
+        'Grocery': 'grocery',
+        'SuperMarket': 'grocery'
     }
 
     BLDG_TYPE_TO_ABBRV = {
@@ -949,7 +1024,8 @@ class NamingMixin():
         'Hospital': 'HSP',
         'SmallHotel': 'SMHOT',
         'LargeHotel': 'LGHOT',
-        'Warehouse': 'WH'
+        'Warehouse': 'WH',
+        'Grocery': 'GROC'
     }
 
     END_USES = [
@@ -1134,6 +1210,14 @@ class NamingMixin():
             converted_col_name = converted_col_name.replace('maximum_daily_use_', 'peak_savings_')
         elif ".emissions." in converted_col_name:
             converted_col_name = converted_col_name.replace('.emissions.', '.emissions.savings.')
+        elif ".nox_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.nox_emissions.', '.nox_emissions.savings.')
+        elif ".co_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.co_emissions.', '.co_emissions.savings.')
+        elif ".pm_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.pm_emissions.', '.pm_emissions.savings.')
+        elif ".so2_emissions." in converted_col_name:
+            converted_col_name = converted_col_name.replace('.so2_emissions.', '.so2_emissions.savings.')
 
         if converted_col_name == col_name:
             raise ValueError(f"Cannot convert column name {col_name} to savings column")
@@ -1174,6 +1258,10 @@ class NamingMixin():
         col_name = col_name.replace('_daily_peak_', '_daily_peak_intensity_')
         col_name = col_name.replace('maximum_daily_use_', 'peak_intensity_')
         col_name = col_name.replace('.emissions.', '.emissions.intensity.')
+        col_name = col_name.replace('.nox_emissions.', '.nox_emissions.intensity.')
+        col_name = col_name.replace('.co_emissions.', '.co_emissions.intensity.')
+        col_name = col_name.replace('.pm_emissions.', '.pm_emissions.intensity.')
+        col_name = col_name.replace('.so2_emissions.', '.so2_emissions.intensity.')
         area_units = 'ft2'
         intensity_units = f'{units}_per_{area_units}'
         col_name = col_name.replace(f'..{units}', f'..{intensity_units}')

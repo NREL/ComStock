@@ -1,4 +1,4 @@
-'# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.'
+'# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.'
 # See top level LICENSE.txt file for license terms.
 import os
 import s3fs
@@ -73,7 +73,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
         self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
-        self.tract_to_util_map_file_name = 'tract_to_elec_util.csv'
+        self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
         self.rename_upgrades_file_name = 'rename_upgrades.json'
@@ -99,11 +99,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.states = states
         self.unweighted_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
-        # TODO our currect credential setup aren't playing well with this approach but does with the s3 ServiceResource
+        # TODO our current credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
-        # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-        # self.s3_resource = boto3.resource('s3')
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
@@ -121,7 +121,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        if not isinstance(self.output_dir['fs'], s3fs.core.S3FileSystem):
+        if not isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             if not os.path.exists(self.output_dir['fs_path']):
                 os.makedirs(self.output_dir['fs_path'])
 
@@ -164,6 +164,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         logger.info(f'Skipping reload for upgrade {up_id}')
                         continue
                     logger.info(f'Reloading data from: {file_path}')
+                    # Handling for polars url encoding issue (it was turning '=' into '%3D' and failing to find the files in S3)
                     upgrade_dfs.append(file_path)
                 self.data = pl.scan_parquet(upgrade_dfs, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
             else:
@@ -202,6 +203,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
                 self.set_column_data_types()
+                self.fix_supermarket_building_type_name()
                 self.remove_unused_as_simulated_geog_cols()
                 # Calculate/generate columns based on imported columns
                 # self.add_aeo_nems_building_type_column()  # TODO POLARS figure out apply function
@@ -221,6 +223,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_addressable_segments_columns()
                 self.combine_emissions_cols()
                 self.add_emissions_intensity_columns()
+                self.add_criteria_pollutant_emissions_intensity_columns()
                 self.get_comstock_unscaled_monthly_energy_consumption()
                 self.add_unweighted_savings_columns()
                 # Downselect the self.data to just the upgrade
@@ -238,9 +241,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.info(f'Caching to: {file_path}')
                 self.data = self.data.select(self.reorder_columns(self.data.columns))
                 self.data = self.data.drop('upgrade')  # upgrade column will be read from hive partition dir name
-                self.data = self.reduce_df_memory(self.data)
                 with self.output_dir['fs'].open(file_path, "wb") as f:
-                    self.data.write_parquet(f)
+                    self.data.write_parquet(f, use_pyarrow=True, pyarrow_options={"use_dictionary": False})
                 up_lazyframes.append(file_path)
 
             # Create a single LazyFrame that includes all upgrades
@@ -248,13 +250,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self._aggregate_failure_summaries()
 
     def _aggregate_failure_summaries(self):
-        #sinece we are generating summary of falures based on
+        #since we are generating summary of failures based on
         #each upgrade_id(in load_data()), we should aggregate
         #the summary of failures for each upgrade_id into one
 
         path = self.output_dir['fs_path']
 
-        alLines = list()
+        allLines = list()
         #find all the failure_summary files like with failure_summary_0.csv
         # failure_summary_1.csv ... failure_summary_k.csv
         for file in os.listdir(path):
@@ -262,49 +264,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 #open the file and read the content
                 with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
                     for line in f:
-                        if line not in alLines:
-                            alLines.append(line)
+                        if line not in allLines:
+                            allLines.append(line)
                  #delete the file
                 os.remove(os.path.join(path, file))
 
         #write the aggregated summary of failures to a new file
         with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
-            for line in alLines:
+            for line in allLines:
                 f.write(line)
-
-    def reduce_df_memory(self, df):
-
-        logger.info(f'Memory before reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
-        # Set dtypes to reduce in-memory size
-
-        # Float64 -> Float32
-        df = df.cast({pl.Float64: pl.Float32})
-
-        # String -> Categorical
-        for col, dt in df.schema.items():
-            # Only consider categorizing string columns
-            # because they have the biggest memory footprint
-            if not dt == pl.Utf8:
-                continue
-            # Check the first value in the column
-            first_val = df.get_column(col).head(1).to_list()[0]
-            # print(f'For {col}, first_val `{first_val}` is a {type(first_val)}')
-            # If the first value is None, don't categorize
-            if first_val is None:
-                continue
-            # If the first value is numeric, don't categorize
-            try:
-                if '_' in first_val:
-                    first_val = f'{first_val}_is_string_in_comstock'
-                float(first_val)
-            except ValueError as e:
-                # if len(df.get_column(col).unique()) < 20:
-                # print(f'Converting {col} to Categorical, first_val `{first_val}` is a string')
-                df = df.with_columns(pl.col(col).cast(pl.Categorical))
-
-        logger.info(f'Memory after reduce_df_memory: {df.estimated_size("gb"):.2f} GB')
-
-        return df
 
     def download_data(self):
 
@@ -341,26 +309,28 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get data on the s3 resource to download data from:
         if self.s3_inpath is None:
-            logger.info('The s3 path provided in the ComStock object initalization is invalid.')
+            logger.info('The s3 path provided in the ComStock object initialization is invalid.')
             return #skip the strip calling.
 
         s3_path_items = self.s3_inpath.lstrip('s3://').split('/')
         bucket_name = s3_path_items[0]
         prfx = '/'.join(s3_path_items[1:])
 
+        s3_resource = boto3.resource('s3')
+
         # baseline/results_up00.parquet
         results_data_path = os.path.join(self.data_dir, self.results_file_name)
         if not os.path.exists(results_data_path):
             baseline_parquet_path = f"{prfx}/baseline/{self.results_file_name}"
             try:
-                self.s3_resource.Object(bucket_name, baseline_parquet_path).load()
+                s3_resource.Object(bucket_name, baseline_parquet_path).load()
             except botocore.exceptions.ClientError:
                 logger.error(f'Could not find results_up00.parquet at {baseline_parquet_path} in bucket {bucket_name}')
                 raise FileNotFoundError(
                     f'Missing results_up00.parquet file. Manually download and place at {results_data_path}'
                 )
             logger.info(f'Downloading {baseline_parquet_path} from the {bucket_name} bucket')
-            self.s3_resource.Object(bucket_name, baseline_parquet_path).download_file(results_data_path)
+            s3_resource.Object(bucket_name, baseline_parquet_path).download_file(results_data_path)
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
@@ -370,7 +340,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 'cannot check for results_up**.parquet files to download')
                 else:
                     upgrade_parquet_path = f'{prfx}/upgrades'
-                    resp = self.s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
+                    resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
                     for obj in list(resp):
                         obj_path = obj.key
                         obj_name = obj_path.split('/')[-1]
@@ -384,7 +354,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         results_data_path = os.path.join(self.data_dir, obj_name)
                         if not os.path.exists(results_data_path):
                             logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
-                            self.s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
+                            s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
 
         # buildstock.csv
         #1. check the file in the data_dir
@@ -395,14 +365,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             s3_path = f"{self.s3_inpath}/buildstock_csv/buildstock.csv"
             bldstk_s3_path = f'{prfx}/buildstock_csv/buildstock.csv'
             try:
-                self.s3_resource.Object(bucket_name, bldstk_s3_path).load()
+                s3_resource.Object(bucket_name, bldstk_s3_path).load()
             except botocore.exceptions.ClientError:
                 logger.error(f'Could not find buildstock.csv at {bldstk_s3_path} in bucket {bucket_name}')
                 raise FileNotFoundError(
                     f'Missing buildstock.csv file. Manually download and place at {buildstock_csv_path}'
                 )
             logger.info(f'Downloading {bldstk_s3_path} from the {bucket_name} bucket')
-            self.s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
+            s3_resource.Object(bucket_name, bldstk_s3_path).download_file(buildstock_csv_path)
 
 
         # Electric Utility Data
@@ -721,7 +691,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             fs = up_res.get_column(VERIFIED_COMP_STATUS).value_counts()
             dat = [fs.get_column('count').to_list()]
             sch = fs.get_column(VERIFIED_COMP_STATUS).to_list()
-            fs = pl.DataFrame(data=dat, schema=sch)
+            fs = pl.DataFrame(data=dat, schema=sch, orient="row")
 
             # Add upgrade ID and name to failure summary
             fs = fs.with_columns([pl.lit(upgrade_id).alias(str(self.UPGRADE_ID))])
@@ -1257,7 +1227,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Define building type groups relevant to segmentation
         non_food_svc = ['RetailStandalone', 'Warehouse','SmallOffice', 'LargeHotel', 'MediumOffice', 'PrimarySchool',
-            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice']
+            'Hospital', 'SmallHotel', 'Outpatient', 'SecondarySchool', 'LargeOffice', 'Grocery']
 
         food_svc = ['QuickServiceRestaurant', 'FullServiceRestaurant']
 
@@ -1266,7 +1236,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         non_lodging = ['QuickServiceRestaurant', 'RetailStripmall', 'RetailStandalone', 'Warehouse',
             'SmallOffice', 'MediumOffice', 'PrimarySchool',
             'FullServiceRestaurant', 'Hospital', 'Outpatient',
-            'SecondarySchool', 'LargeOffice']
+            'SecondarySchool', 'LargeOffice', 'Grocery', 'SuperMarket']
 
         lodging = ['SmallHotel', 'LargeHotel']
 
@@ -1361,9 +1331,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # HVAC columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_ELEC_ENDUSE).alias(self.ANN_ELEC_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_GAS_ENDUSE).alias(self.ANN_GAS_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_PROPANE_ENDUSE).alias(self.ANN_PROPANE_HVAC_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_HVAC_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_DISTCLG_ENDUSE).alias(self.ANN_DISTCLG_HVAC_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_HVAC_OTHER_ENDUSE).alias(self.ANN_OTHER_HVAC_GROUP_KBTU))
 
         # Lighting column
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_LTG_ELEC_ENDUSE).alias(self.ANN_ELEC_LTG_GROUP_KBTU))
@@ -1371,8 +1342,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Interior equipment columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_ELEC_ENDUSE).alias(self.ANN_ELEC_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_GAS_ENDUSE).alias(self.ANN_GAS_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_PROPANE_ENDUSE).alias(self.ANN_PROPANE_INTEQUIP_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_INTEQUIP_OTHER_ENDUSE).alias(self.ANN_OTHER_INTEQUIP_GROUP_KBTU))
 
         # Refrigeration columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_REFRIG_ELEC_ENDUSE).alias(self.ANN_ELEC_REFRIG_GROUP_KBTU))
@@ -1380,25 +1352,29 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # SWH columns
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_ELEC_ENDUSE).alias(self.ANN_ELEC_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_GAS_ENDUSE).alias(self.ANN_GAS_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_PROPANE_ENDUSE).alias(self.ANN_PROPANE_SWH_GROUP_KBTU))
+        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_FUELOIL_ENDUSE).alias(self.ANN_FUELOIL_SWH_GROUP_KBTU))
         self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_DISTHTG_ENDUSE).alias(self.ANN_DISTHTG_SWH_GROUP_KBTU))
-        self.data = self.data.with_columns(pl.sum_horizontal(self.COLS_SWH_OTHER_ENDUSE).alias(self.ANN_OTHER_SWH_GROUP_KBTU))
 
         col_names = [
             self.ANN_ELEC_HVAC_GROUP_KBTU,
             self.ANN_GAS_HVAC_GROUP_KBTU,
+            self.ANN_PROPANE_HVAC_GROUP_KBTU,
+            self.ANN_FUELOIL_HVAC_GROUP_KBTU,
             self.ANN_DISTHTG_HVAC_GROUP_KBTU,
             self.ANN_DISTCLG_HVAC_GROUP_KBTU,
-            self.ANN_OTHER_HVAC_GROUP_KBTU,
             self.ANN_ELEC_LTG_GROUP_KBTU,
             self.ANN_ELEC_INTEQUIP_GROUP_KBTU,
             self.ANN_DISTHTG_INTEQUIP_GROUP_KBTU,
-            self.ANN_OTHER_INTEQUIP_GROUP_KBTU,
             self.ANN_GAS_INTEQUIP_GROUP_KBTU,
+            self.ANN_PROPANE_INTEQUIP_GROUP_KBTU,
+            self.ANN_FUELOIL_INTEQUIP_GROUP_KBTU,
             self.ANN_ELEC_REFRIG_GROUP_KBTU,
             self.ANN_ELEC_SWH_GROUP_KBTU,
             self.ANN_GAS_SWH_GROUP_KBTU,
-            self.ANN_DISTHTG_SWH_GROUP_KBTU,
-            self.ANN_OTHER_SWH_GROUP_KBTU
+            self.ANN_PROPANE_SWH_GROUP_KBTU,
+            self.ANN_FUELOIL_SWH_GROUP_KBTU,
+            self.ANN_DISTHTG_SWH_GROUP_KBTU
         ]
 
         self.convert_units(col_names)
@@ -1751,6 +1727,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # when determining unique in.foo values for SightGlass filters.
         self.data = self.data.with_columns(pl.col(self.YEAR_BUILT).cast(pl.Utf8))
 
+    def fix_supermarket_building_type_name(self):
+        # ComStock grocery stores are noted as SuperMarket
+        self.data = self.data.with_columns(pl.col('in.comstock_building_type').replace('SuperMarket', 'Grocery'))
+
     def remove_unused_as_simulated_geog_cols(self):
         as_sim_geog_cols_to_keep = [
             self.COUNTY_ID_AS_SIM,
@@ -1840,6 +1820,27 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.GHG_ELEC_EGRID,
             self.ANN_GHG_EGRID,
             self.ANN_GHG_CAMBIUM
+            ]):
+            # Divide emissions by area to create intensity
+            per_area_col = self.col_name_to_area_intensity(emissions_col)
+            self.data = self.data.with_columns(
+                (pl.col(emissions_col) / pl.col(self.FLR_AREA)).alias(per_area_col))
+
+    def add_criteria_pollutant_emissions_intensity_columns(self):
+        # Create criteria pollutant emissions per area column for each criteria pollutant emissions column
+        for emissions_col in ([
+            self.NOX_NATURAL_GAS,
+            self.CO_NATURAL_GAS,
+            self.PM_NATURAL_GAS,
+            self.SO2_NATURAL_GAS,
+            self.NOX_FUEL_OIL,
+            self.CO_FUEL_OIL,
+            self.PM_FUEL_OIL,
+            self.SO2_FUEL_OIL,
+            self.NOX_PROPANE,
+            self.CO_PROPANE,
+            self.PM_PROPANE,
+            self.SO2_PROPANE
             ]):
             # Divide emissions by area to create intensity
             per_area_col = self.col_name_to_area_intensity(emissions_col)
@@ -1983,6 +1984,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         bldg_type_groups = {
             'FullServiceRestaurant': 'Food Service',
             'QuickServiceRestaurant': 'Food Service',
+            'Grocery': 'Food Sales',
             'RetailStripmall': 'Mercantile',
             'RetailStandalone': 'Mercantile',
             'SmallOffice': 'Office',
@@ -2486,7 +2488,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         )
 
         alloc_wts = alloc_wts.with_columns(
-            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS]
+            [pl.col(column).cast(pl.Int64) for column in self.UTIL_ELEC_BILL_COSTS + [self.UTIL_ELEC_BILL_NUM_BILLS]]
         )
 
         # Create combined utility column for mean electricity rate
@@ -2535,7 +2537,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         elapsed_time = (collect_tend - collect_tstart).total_seconds()
         logger.info(f"Collect time for upgrade {upgrade_id}: {elapsed_time} seconds")
         alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
-        alloc_wts = self.reduce_df_memory(alloc_wts)
         logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {alloc_wts_bills_dir}')
         # Cache by state to enable faster reading
         state_pqts = []
@@ -2578,8 +2579,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get the bill labels, only applicable at the tract level of aggregation
         bill_label_cols = []
+        eia_id_cols = []
         if geographic_aggregation_levels == ['in.nhgis_tract_gisjoin']:
             bill_label_cols = self.UTIL_ELEC_BILL_LABEL
+            eia_id_cols = [self.UTIL_BILL_EIA_ID]
 
         # Sum the weights and weighted utility bills by building IDs within each geography
         wtd_agg_outs = alloc_wts.select(
@@ -2594,6 +2597,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + cost_cols
             + [self.UTIL_ELEC_BILL_NUM_BILLS]
             + bill_label_cols
+            + eia_id_cols
         ).group_by(
             [
                 pl.col(self.UPGRADE_ID),
@@ -2603,7 +2607,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         ).agg(
             [
                 pl.col([self.BLDG_WEIGHT] + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
-                pl.col([self.FLR_AREA] + bill_label_cols).first(),
+                pl.col([self.FLR_AREA] + bill_label_cols + eia_id_cols).first()
             ]
         )
 
@@ -2680,6 +2684,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
         # Downselect and order columns
+        logger.info(f"Downselecting columns using option: {column_downselection}")
         ordered_cols = self.reorder_columns(self.columns_for_export(wtd_agg_outs, column_downselection))
         wtd_agg_outs = wtd_agg_outs.select(ordered_cols)
 
@@ -3261,7 +3266,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         input_lf = input_lf.with_columns(
                 (pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT)).alias(new_area_col))
 
-        #generate the weighted columns with coventions for Emission, Utility, Energy Enduse group.
+        #generate the weighted columns with conventions for Emission, Utility, Energy Enduse group.
         old_unit_to_new_unit = {
             'co2e_kg': self.weighted_ghg_units, #Emission, default : co2e_kg -> co2e_mmt
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
@@ -3320,9 +3325,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug('Adding enduse group emissions columns')
         for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY + self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY):
             fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
-            if fuel in ['district_heating', 'district_cooling']:
-                continue  # ComStock has no emissions for district heating or cooling
-
             tot_engy = f'calc.weighted.{fuel}.total.energy_consumption..tbtu'
             enduse_gp_engy = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}.energy_consumption..tbtu'
             tot_ghg = f'calc.weighted.emissions.{fuel}..co2e_mmt'
@@ -3331,28 +3333,20 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if fuel == 'electricity':
                 enduse_gp_ghg_col = f'calc.weighted.enduse_group.{fuel}.{enduse_gp}.emissions.egrid_2021_subregion..co2e_mmt'
                 tot_ghg = 'calc.weighted.emissions.electricity.egrid_2021_subregion..co2e_mmt'
+            elif fuel == 'propane':
+                tot_ghg = 'calc.weighted.emissions.propane..co2e_mmt'
+            elif fuel == 'fuel_oil':
+                tot_ghg = 'calc.weighted.emissions.fuel_oil..co2e_mmt'
             elif fuel == 'site_energy':
                 tot_ghg = f'calc.weighted.emissions.total_with_egrid..co2e_mmt'
 
             # enduse group emissions = total emissions * (enduse group energy / total energy)
-            if fuel == 'other_fuel':
-                # Add propane and fuel oil emissions together because energy is reported combined as other_fuel
-                propane_ghg = f'calc.weighted.emissions.propane..co2e_mmt'
-                fuel_oil_ghg = f'calc.weighted.emissions.fuel_oil..co2e_mmt'
-                tot_ghg_expr = (pl.col(propane_ghg).add(pl.col(fuel_oil_ghg)))
-                input_lf = input_lf.with_columns([
-                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
-                    .then((tot_ghg_expr.mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
-                    .otherwise(0.0)
-                    .alias(enduse_gp_ghg_col),
-                ])
-            else:
-                input_lf = input_lf.with_columns([
-                    pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
-                    .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
-                    .otherwise(0.0)
-                    .alias(enduse_gp_ghg_col)
-                ])
+            input_lf = input_lf.with_columns([
+                pl.when((pl.col(tot_engy) > 0))  # Avoid divide-by-zero
+                .then((pl.col(tot_ghg).mul(pl.col(enduse_gp_engy)).truediv(pl.col(tot_engy))))
+                .otherwise(0.0)
+                .alias(enduse_gp_ghg_col)
+            ])
 
         assert isinstance(input_lf, pl.LazyFrame)
 
@@ -3783,11 +3777,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             elif fuel == 'total':
                 tot_engy_col = self.col_name_to_weighted(self.ANN_TOT_ENGY_KBTU, self.weighted_energy_units)
                 tot_ghg_col = self.col_name_to_weighted(self.ANN_GHG_EGRID, self.weighted_ghg_units)
-            elif fuel in ['other_fuel', 'district_heating', 'district_cooling']:
-                # TODO revise if district emissions added
-                # Other is sum of propane and fuel_oil columns, and district cols have no emissions columns
-                # Checked as part of checking total
-                continue
+
             # Energy check
             if fuel == 'total':
                 tot_engy_long = engy_emis.select(pl.sum(engy_val_col)).item()
@@ -3942,6 +3932,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 'units': col_def['new_units'],
                 'field_description': col_def['field_description'],
                 'allowable_enumeration': '|'.join(col_enums),
+                'in_full_metadata_file': col_def['full_metadata'],
+                'in_basic_metadata_file': col_def['basic_metadata']
             })
 
         data_dictionary = pl.from_dicts(col_dicts)
