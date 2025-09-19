@@ -93,6 +93,7 @@ class LoadsSummary < OpenStudio::Measure::ReportingMeasure
       'Surface Window Inside Face Shade Net Infrared Heat Transfer Rate',
       'Surface Window Inside Face Gap between Shade and Glazing Zone Convection Heat Gain Rate',
       'Surface Inside Face Convection Heat Gain Energy',
+      'Surface Inside Face Net Surface Thermal Radiation Heat Gain Energy',
       'Zone Infiltration Sensible Heat Gain Energy',
       'Zone Infiltration Sensible Heat Loss Energy',
       'Zone Mechanical Ventilation Heating Load Increase Energy',
