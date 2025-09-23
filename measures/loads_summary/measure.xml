@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>loads_summary</name>
   <uid>82d9a22a-80ea-4fa7-a57f-77ce8fa4be76</uid>
-  <version_id>39d399b1-21cc-4d50-a382-827a223aa685</version_id>
-  <version_modified>2025-09-18T22:14:08Z</version_modified>
+  <version_id>316aa018-05a3-4771-810f-5cf86d3b2108</version_id>
+  <version_modified>2025-09-19T21:24:10Z</version_modified>
   <xml_checksum>58F01CAA</xml_checksum>
   <class_name>LoadsSummary</class_name>
   <display_name>loads_summary</display_name>
@@ -82,13 +82,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>5401B2CA</checksum>
+      <checksum>A61EEA7E</checksum>
     </file>
     <file>
       <filename>python_plugin.py.erb</filename>
       <filetype>erb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>C3AF5967</checksum>
+      <checksum>7E6D707F</checksum>
     </file>
     <file>
       <filename>report.html.in</filename>

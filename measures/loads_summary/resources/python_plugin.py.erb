@@ -101,6 +101,7 @@ WIN_CONV_VARS = {k: val for k, val in WIN_OUT_VAR_MAP.items() if val[0] in ['swi
 
 SURF_OUT_VAR_MAP = {
     0: ('sifchge', 'Surface Inside Face Convection Heat Gain Energy'),
+    1: ('sifnstrhge', 'Surface Inside Face Net Surface Thermal Radiation Heat Gain Energy')
     }
 
 SURF_MAP = {
@@ -560,71 +561,82 @@ class LoadSummary(EnergyPlusPlugin):
 
             # subtract area-weighted delayed internal and windows gains from internal surface convections gains
             int_surf_total_conv = 0
-            for var_key in SURF_OUT_VAR_MAP:
-                for surf_type_key in INT_SURF_KEYS:
-                    for surf_key, surf_name in self.surf_name_map[z][surf_type_key].items():
-                        if surf_name:
-                            # get surface area fraction
-                            frac = self.all_surf_frac_map[z][surf_type_key][surf_key]
-                            # get convection gain value
-                            surf_conv = self.surf_out_var_dict[z][surf_type_key][surf_key][var_key][1]
-                            if surf_type_key in FLR_KEYS:
-                                # for floor surfaces, subtract delayed window solar radiation
-                                int_surf_total_conv += (
-                                    surf_conv * -1
-                                    ) - (
-                                    (tot_del_int_gains + win_del_ir_gains) * frac
-                                    ) - (
-                                    win_rts_solar_rad * self.flr_surf_frac_map[z][surf_type_key][surf_key]
-                                )
-                            else:
-                                # subtract delayed internal gains
-                                int_surf_total_conv += (
-                                    surf_conv * -1
-                                    ) - (
-                                    (tot_del_int_gains + win_del_ir_gains) * frac
-                                )
+            for surf_type_key in INT_SURF_KEYS:
+                for surf_key, surf_name in self.surf_name_map[z][surf_type_key].items():
+                    if surf_name:
+                        # get surface area fraction
+                        frac = self.all_surf_frac_map[z][surf_type_key][surf_key]
+                        # get convection gain value
+                        var_key = 0 # Surface Inside Face Convection Heat Gain Energy
+                        surf_conv = self.surf_out_var_dict[z][surf_type_key][surf_key][var_key][1]
+                        var_key = 1 # Surface Inside Face Net Surface Thermal Radiation Heat Gain Energy
+                        surf_rad = self.surf_out_var_dict[z][surf_type_key][surf_key][var_key][1]
+                        if surf_type_key in FLR_KEYS:
+                            # for floor surfaces, subtract delayed window solar radiation
+                            int_surf_total_conv += (
+                                surf_conv * -1
+                                ) + (
+                                surf_rad * -1
+                                ) - (
+                                (tot_del_int_gains + win_del_ir_gains) * frac
+                                ) - (
+                                win_rts_solar_rad * self.flr_surf_frac_map[z][surf_type_key][surf_key]
+                            )
+                        else:
+                            # subtract delayed internal gains
+                            int_surf_total_conv += (
+                                surf_conv * -1
+                                ) + (
+                                surf_rad * -1
+                                ) - (
+                                (tot_del_int_gains + win_del_ir_gains) * frac
+                            )
 
             ext_surf_conv = {}
-            for var_key in SURF_OUT_VAR_MAP:
-                for ext_surf_type_key in EXT_SURF_KEYS:
-                    ext_surf_conv[ext_surf_type_key] = 0
-                    for ext_surf_key, surf_name in self.surf_name_map[z][ext_surf_type_key].items():
-                        if surf_name:
-                            # get surface area fraction
-                            all_surf_frac = self.all_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
-                            ext_surf_frac = self.ext_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
-                            # get convection gain value
-                            surf_conv = self.surf_out_var_dict[z][ext_surf_type_key][ext_surf_key][var_key][1]
-                            # subtract delayed internal gains
-                            if ext_surf_type_key in WIN_KEYS:
-                                # for window surfaces, add gap between shade and glazing convective gain
-                                for win_var in WIN_CONV_VARS:
-                                    ext_surf_conv[ext_surf_type_key] += ((
-                                    surf_conv * -1                                                                          # reported surface convection
-                                    ) - (
-                                    tot_del_int_gains * all_surf_frac                                                       # subtract delayed internal gains
-                                    ) + (
-                                    self.sec_per_ts * self.win_out_var_dict[z][ext_surf_type_key][ext_surf_key][win_var][1] # add gap between shade and glazing convective gain
-                                    ) + (
-                                    int_surf_total_conv * ext_surf_frac                                                     # add exterior surface-weighted internal surface convection
-                                    ))
+            for ext_surf_type_key in EXT_SURF_KEYS:
+                ext_surf_conv[ext_surf_type_key] = 0
+                for ext_surf_key, surf_name in self.surf_name_map[z][ext_surf_type_key].items():
+                    if surf_name:
+                        # get surface area fraction
+                        all_surf_frac = self.all_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                        ext_surf_frac = self.ext_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                        # get convection gain value
+                        var_key = 0 # Surface Inside Face Convection Heat Gain Energy
+                        surf_conv = self.surf_out_var_dict[z][ext_surf_type_key][ext_surf_key][var_key][1]
+                        var_key = 1 # Surface Inside Face Net Surface Thermal Radiation Heat Gain Energy
+                        surf_rad = self.surf_out_var_dict[z][ext_surf_type_key][ext_surf_key][var_key][1]
+                        # subtract delayed internal gains
+                        if ext_surf_type_key in WIN_KEYS:
+                            # for window surfaces, add gap between shade and glazing convective gain
+                            for win_var in WIN_CONV_VARS:
+                                ext_surf_conv[ext_surf_type_key] += ((
+                                surf_conv * -1                                                                          # reported surface convection
+                                ) + (
+                                surf_rad * -1                                                                           # reported surface radiation
+                                ) - (
+                                tot_del_int_gains * all_surf_frac                                                       # subtract delayed internal gains
+                                ) + (
+                                self.sec_per_ts * self.win_out_var_dict[z][ext_surf_type_key][ext_surf_key][win_var][1] # add gap between shade and glazing convective gain
+                                ) + (
+                                int_surf_total_conv * ext_surf_frac                                                     # add exterior surface-weighted internal surface convection
+                                ))
 
-                            else:
-                                ext_surf_conv[ext_surf_type_key] += (
-                                    surf_conv * -1
-                                    ) - (
-                                    (tot_del_int_gains + win_del_ir_gains) * all_surf_frac
-                                    ) + (
-                                    int_surf_total_conv * ext_surf_frac
+                        else:
+                            ext_surf_conv[ext_surf_type_key] += (
+                                surf_conv * -1
+                                ) + (
+                                surf_rad * -1
+                                ) - (
+                                (tot_del_int_gains + win_del_ir_gains) * all_surf_frac
+                                ) + (
+                                int_surf_total_conv * ext_surf_frac
+                            )
+                            if surf_type_key in FLR_KEYS:
+                                # for floor surfaces, subtract delayed window solar radiation multiplied by floor surface fraction
+                                flr_surf_frac = self.flr_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
+                                ext_surf_conv[ext_surf_type_key] -= (
+                                    win_rts_solar_rad * flr_surf_frac
                                 )
-                                if surf_type_key in FLR_KEYS:
-                                    # for floor surfaces, subtract delayed window solar radiation multiplied by floor surface fraction
-                                    flr_surf_frac = self.flr_surf_frac_map[z][ext_surf_type_key][ext_surf_key]
-                                    ext_surf_conv[ext_surf_type_key] -= (
-                                        win_rts_solar_rad * flr_surf_frac
-                                    )
-
 
             # update component dict
             sys_rate = 0
