@@ -44,7 +44,7 @@ module OsLib_SqlFile
     time_series_array = []
     key_value = key_value.upcase  #upper cases the key_value b/c it is always uppercased in the sql file.
     time_series = sql.timeSeries(env_period, timestep, variable_name, key_value)
-    if time_series.is_initialized #checks to see if time_series exists 
+    if time_series.is_initialized #checks to see if time_series exists
       time_series = time_series.get
       # Check the units
       unless expected_units.nil?
@@ -53,10 +53,7 @@ module OsLib_SqlFile
         end
       end
 
-      time_series = time_series.values
-      for i in 0..(time_series.size - 1)
-        time_series_array << time_series[i]
-      end
+      time_series_array = time_series.values.to_a
     else
       # Query is not valid.
       time_series_array = Array.new(num_timesteps, 0.0)

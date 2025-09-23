@@ -1042,6 +1042,36 @@ class NamingMixin():
         'refrigeration'
     ]
 
+    LOAD_COMPONENTS = [
+        'people_gain',
+        'light_gain',
+        'equip_gain',
+        'ref_equip_gain',
+        'win_sol',
+        'ext_wall',
+        'fnd_wall',
+        'roof',
+        'ext_flr',
+        'gnd_flr',
+        'win_cond',
+        'door',
+        'infil',
+        'vent'
+    ]
+
+    LOAD_PERIODS = [
+        'htg',
+        'clg',
+        'flt'
+    ]
+
+    LOAD_FUELS = [
+        'natural_gas',
+        'electricity',
+        'district_cooling',
+        'district_heating'
+    ]
+
     END_USES_TIMESERIES_DICT = {
         'exterior_lighting': 'electricity_exterior_lighting_kwh',
         'interior_lighting': 'electricity_interior_lighting_kwh',
@@ -1248,6 +1278,7 @@ class NamingMixin():
         units = self.units_from_col_name(col_name)
         col_name = col_name.replace('energy_consumption', 'energy_consumption_intensity')
         col_name = col_name.replace('energy_savings', 'energy_savings_intensity')
+        col_name = col_name.replace('loads', 'loads_intensity')
         col_name = col_name.replace('bill_state_average', 'bill_state_average_intensity')
         col_name = col_name.replace('bill_min', 'bill_min_intensity')
         col_name = col_name.replace('bill_max', 'bill_max_intensity')
@@ -1398,3 +1429,12 @@ class NamingMixin():
         col_name = col_name.replace("_normalized", '')
 
         return col_name
+
+    def load_component_cols(self):
+        loads_cols = []
+        for period in (self.LOAD_PERIODS):
+            for component in (self.LOAD_COMPONENTS):
+                pre = 'out.loads'
+                unit = '..gj'
+                loads_cols.append(f"{pre}.{period}.{component}{unit}")
+        return loads_cols

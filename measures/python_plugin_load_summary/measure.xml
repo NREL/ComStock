@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>python_plugin_load_summary</name>
+  <uid>43529957-d29b-4f5a-9ea2-8ca171569220</uid>
+  <version_id>aa0cc1ce-6ebb-4a06-86a6-75c06443a2c2</version_id>
+  <version_modified>2025-01-27T20:28:46Z</version_modified>
+  <xml_checksum>85664254</xml_checksum>
+  <class_name>PythonPluginLoadSummary</class_name>
+  <display_name>Python Plugin Loads Summary</display_name>
+  <description>Breaks out the building load and HVAC energy by end-use</description>
+  <modeler_description>Python plugin to report building load and HVAC energy by component</modeler_description>
+  <arguments />
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>HVAC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>EnergyPlusMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>ComStock</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.3.0</identifier>
+        <min_compatible>2.3.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>029A6D8B</checksum>
+    </file>
+    <file>
+      <filename>__pycache__/in.cpython-38.pyc</filename>
+      <filetype>pyc</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3C20A3D7</checksum>
+    </file>
+    <file>
+      <filename>in.py</filename>
+      <filetype>py</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7C5815A2</checksum>
+    </file>
+    <file>
+      <filename>python_plugin.py.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>4B85EDF3</checksum>
+    </file>
+  </files>
+</measure>
