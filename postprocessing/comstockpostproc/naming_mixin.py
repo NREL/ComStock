@@ -846,22 +846,22 @@ class NamingMixin():
         # NOX Emissions
         {
             'cols': ([NOX_NATURAL_GAS, NOX_FUEL_OIL, NOX_PROPANE]),
-            'weighted_units': 'nox_kg'
+            'weighted_units': 'nox_mmt'
         },
         # CO Emissions
         {
             'cols': ([CO_NATURAL_GAS, CO_FUEL_OIL, CO_PROPANE]),
-            'weighted_units': 'co_kg'
+            'weighted_units': 'co_mmt'
         },
         # PM Emissions
         {
             'cols': ([PM_NATURAL_GAS, PM_FUEL_OIL, PM_PROPANE]),
-            'weighted_units': 'pm_kg'
+            'weighted_units': 'pm_mmt'
         },
         # SO2 Emissions
         {
             'cols': ([SO2_NATURAL_GAS, SO2_FUEL_OIL, SO2_PROPANE]),
-            'weighted_units': 'so2_kg'
+            'weighted_units': 'so2_mmt'
         }
     ]
 
