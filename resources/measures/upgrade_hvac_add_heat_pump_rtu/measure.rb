@@ -2471,27 +2471,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
       if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
-        if backup_heat_reduction_during_peak == true
-          new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectricMultiStage.new(model)
-          
-          stage1 = OpenStudio::Model::CoilHeatingElectricMultiStageStageData.new(model)
-          new_backup_heating_coil.addStage(stage1)
-          stage1.setEfficiency(1.0)
-          stage1.setNominalCapacity(orig_htg_coil_gross_cap_old * 0.5)
-          
-          stage2 = OpenStudio::Model::CoilHeatingElectricMultiStageStageData.new(model)
-          new_backup_heating_coil.addStage(stage2)
-          stage2.setEfficiency(1.0)
-          stage2.setNominalCapacity(orig_htg_coil_gross_cap_old)
-        
-          new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance multistage backup coil")
-        else
-          new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
-          new_backup_heating_coil.setEfficiency(1.0)
-          new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
-          # set capacity of backup heat to meet full heating load
-          new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
-        end
+        new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
+        new_backup_heating_coil.setEfficiency(1.0)
+        new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
+        # set capacity of backup heat to meet full heating load
+        new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
       else
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
         new_backup_heating_coil.setGasBurnerEfficiency(0.80)
@@ -2750,6 +2734,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         # loop through unitary systems
         unitary_systems.each do |unitary|
+          # skip kitchens
+          next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
+
           runner.registerInfo("Adding compressor speed EMS to unitary system: #{unitary.name}")
 
           # HEATING COIL 
@@ -2881,7 +2868,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     if backup_heat_reduction_during_peak == true
       # 1. Sensor on your existing peak schedule
-      peak_sch = model.getScheduleByName('Peak Schedule for DR Adjustments') # or your schedule name
+      peak_sch = model.getScheduleByName('Peak Schedule for DR Adjustments')
       if peak_sch.empty?
         runner.registerError('Peak schedule not found for supplemental heat EMS.')
         return false
@@ -2898,6 +2885,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           next
         end
 
+        # skip kitchens
+        next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
+
         runner.registerInfo("Adding backup heat EMS to unitary system: #{unitary.name}")
 
         # Actuator: Unitary System Supplemental Coil Stage Level
@@ -2908,22 +2898,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         )
         sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
 
-        # For most RTUs the supplemental electric coil is single-stage (N=1)
-        # Leaving N=1 lets fractional values act as cycling ratio (e.g., 0.5 = 50%).
-        num_sup_stages = 2
-        if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
-          num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
-        end
-
         # EMS program body: during peak, cap to backup_heat_frac * N; else release control
         program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
         program.setBody(<<~EMS)
-          SET sup_lim = #{(backup_heat_frac).round(3)} * #{num_sup_stages}
+          SET sup_lim = #{(backup_heat_frac).round(3)}
           IF (#{dr_flag.name} > 0.5),
             SET #{sup_act.name} = sup_lim,   ! e.g., 0.5 on a 1-stage coil = 50%
           ELSE,
-            SET #{sup_act.name} = Null,      ! release to normal control off-peak
+            SET #{sup_act.name} = 1.0,      ! release to normal control off-peak
           ENDIF
         EMS
 
@@ -2959,7 +2942,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # #   'HVAC System Solver Iteration Count',
     # #   'Site Outdoor Air Drybulb Temperature',
     # #   'Heating Coil Crankcase Heater Electricity Rate',
-    # #   'Heating Coil Defrost Electricity Rate'
+    # #   'Heating Coil Defrost Electricity Rate',
+    # #   'Zone Air Temperature',
+    # #   'Lights Total Heating Energy',
+    # #   'Electric Equipment Total Heating Energy',
+    # #   'People Total Heating Rate',
+    # #   'System Node Temperature'
     # ]
     # out_vars.each do |out_var_name|
     #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
