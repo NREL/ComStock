@@ -25,7 +25,6 @@ color_interquartile = "#6A9AC3"
 class PlottingMixin():
 
     # plot energy consumption by fuel type and enduse
-    
     """
     Plot a stacked bar graph of end uses by column_for_grouping
     Args:
@@ -92,11 +91,10 @@ class PlottingMixin():
             pattern_dict = {
                 'Electricity': "",
                 'Natural Gas':"/",
-                'Propane': 'p',
-                'Fuel Oil No 2': '$',
                 'District Cooling':"x",
                 'District Heating':".",
-                'Other Fuel':'+'
+                'Fuel Oil': '+',
+                'Propane': '-',
             }
 
             # set category orders by end use
@@ -118,11 +116,10 @@ class PlottingMixin():
                 'Fuel Type': [
                             'Electricity',
                             'Natural Gas',
-                            'Propane',
-                            'Fuel Oil No 2'
                             'District Cooling',
                             'District Heating',
-                            'Other Fuel',
+                            'Fuel Oil',
+                            'Propane',
                 ]
             }
 
