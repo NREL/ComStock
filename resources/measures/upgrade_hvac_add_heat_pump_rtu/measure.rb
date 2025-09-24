@@ -2784,6 +2784,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
             htg_limit_val = max_compressor_frac * num_htg_speeds
             runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of heating coil to #{htg_limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{htg_limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
 
+            #implement fractional speeds here using json file of speeds
             htg_limit_val = [htg_limit_val, num_htg_speeds].min
             htg_limit_val = [htg_limit_val, 1].max
             htg_limit_val = htg_limit_val.floor
@@ -2925,7 +2926,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
         program.setBody(<<~EMS)
-          SET sup_lim = #{(backup_heat_frac).round(3)}* #{num_sup_stages}
+          SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
           IF (#{dr_flag.name} > 0.5),
             SET #{sup_act.name} = sup_lim,   ! e.g., 0.5 on a 1-stage coil = 50%
           ELSE,
@@ -2936,7 +2937,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # Call inside HVAC iteration loop
         pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
         pcm.setName("PCM_DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
-        pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+        pcm.setCallingPoint('AfterPredictorAfterHVACManagers')
         pcm.addProgram(program)
 
         runner.registerInfo("Supplemental heat on '#{unitary.name}' will be capped to #{(backup_heat_frac*100).round}% during peak periods.")
@@ -2970,7 +2971,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # #   'Lights Total Heating Energy',
     # #   'Electric Equipment Total Heating Energy',
     # #   'People Total Heating Rate',
-    #    'Heating Coil Total Heating Energy'
+    #    'Heating Coil Total Heating Energy',
+    #    'Zone Thermostat Heating Setpoint Temperature',
+    #    'Zone Thermostat Cooling Setpoint Temperature'
     # ]
     # out_vars.each do |out_var_name|
     #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
