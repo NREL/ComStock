@@ -3010,6 +3010,18 @@ class PlottingMixin():
         plt.savefig(output_path, bbox_inches='tight')
 
 
+    # create weights table on S3 based on allocation outcomes
+    def clone_weights_table_on_s3(self, df, state, bldg_type_col, weight_col):
+        """
+        This method clones the weights table created during allocation on S3 so it can be reused for weighting timeseries profiles on S3.
+        The weights table is for the full baseline run at full resolution.
+        """
+        self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
+
+
+
+
+
     # get weighted load profiles
     def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
         """
@@ -3538,7 +3550,10 @@ class PlottingMixin():
             dfs_merged=None
 
             if not os.path.exists(file_path):
+
+                ######### This is where we get the weighted data
                 dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+                #########
 
                 # merge into single dataframe
                 dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
