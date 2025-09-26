@@ -981,6 +981,43 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # Parse stage fraction strings into Ruby hashes
+  def parse_stage_fractions(str)
+    # Example input: "{4 => 1, 3 => 0.67, 2 => 0.51, 1 => 0.36}"
+    str.gsub(/[{}]/, '').split(',').map do |pair|
+      k, v = pair.split('=>').map(&:strip)
+      [k.to_i, v.to_f]
+    end.to_h
+  end
+
+  # map stage capacity fractions to stage values for EMS
+def nonlinear_stage_value(desired_frac, stage_caps)
+  sorted = stage_caps.sort.to_h
+  stages = sorted.keys
+
+  cap_min = sorted[stages.first]
+  cap_max = sorted[stages.last]
+
+  # --- allow fractions below stage 1 ---
+  if desired_frac <= cap_min
+    # scale desired fraction relative to stage 1 capacity
+    return desired_frac / cap_min
+  end
+
+  # --- clamp high ---
+  return stages.last.to_f if desired_frac >= cap_max
+
+  # --- interpolate between adjacent stages ---
+  stages.each_cons(2) do |s1, s2|
+    cap1 = sorted[s1]
+    cap2 = sorted[s2]
+    if desired_frac >= cap1 && desired_frac <= cap2
+      f = (desired_frac - cap1) / (cap2 - cap1)
+      return s1 + f
+    end
+  end
+end
+
   #### End predefined functions
 
   # define what happens when the measure is run
@@ -2721,17 +2758,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     ############### START COMPRESSOR PEAK ADJUSTMENT ###################
     
-    #convert peak compressor reduction % input to a fraction
+    # --- User input for compressor reduction (already fraction 0–1) ---
     max_compressor_frac = 1
     if peak_compressor_reduction_value == '0%'
-      max_compressor_frac = 1
+      max_compressor_frac = 1.0
     elsif peak_compressor_reduction_value == '15%'
       max_compressor_frac = 0.85
     elsif peak_compressor_reduction_value == '40%'
       max_compressor_frac = 0.6
     end
 
+    # read performance data for cchp to determine compressor peak reduction
+    cchp_performance_map_path = "#{File.dirname(__FILE__)}/resources/performance_map_CCHP_spec_2027.json"
+    cchp_json_data = JSON.parse(File.read(cchp_performance_map_path))
+    cchp_staging = cchp_json_data["tables"]["curves"]["table"].find { |t| t["name"] == "staging_data" }
+
+    stage_caps_htg = parse_stage_fractions(cchp_staging["stage_cap_fractions_heating"])
+    stage_caps_clg = parse_stage_fractions(cchp_staging["stage_cap_fractions_cooling"])
+
     if compressor_reduction_during_peak == true
+      
       unitary_systems = model.getAirLoopHVACUnitarySystems
       if unitary_systems.empty?
         runner.registerWarning('No AirLoopHVACUnitarySystem found for EMS control')
@@ -2746,124 +2792,85 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         sensor.setName('DR_Adjustment_Sensor')
         sensor.setKeyName(peak_sch.get.nameString)
 
-        runner.registerInfo("sensor = #{sensor}")
-
         # loop through unitary systems
         unitary_systems.each do |unitary|
           # skip kitchens
           next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
 
-          runner.registerInfo("Adding compressor speed EMS to unitary system: #{unitary.name}")
-
           # HEATING COIL 
-          # create EMS Actuator to control DX coil speed
-          htg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
-            unitary,                                     # component
-            'Coil Speed Control',                        # control type
-            'Unitary System DX Coil Speed Value'         # actuator name
-          )
-          htg_actuator.setName("DX_Spd_Act_Htg_#{unitary.name.to_s.gsub("-", "")}")
-
-          runner.registerInfo("actuator = #{htg_actuator}")
-
-          # determine number of speeds from heating coil
-          num_htg_speeds = nil
           if unitary.heatingCoil.is_initialized
             htg_coil = unitary.heatingCoil.get
             if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
               num_htg_speeds = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.size
-              runner.registerInfo("number of speeds in heating = #{num_htg_speeds}")
-            else
-              runner.registerWarning("Heating coil type #{htg_coil.iddObjectType.valueName} does not support multi speed EMS speed control")
+
+              # nonlinear mapping
+              htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
+              htg_limit_val = [htg_limit_val, num_htg_speeds].min
+
+              runner.registerInfo("Heating coil #{unitary.name} limited to EMS value #{htg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
+
+              htg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
+                unitary,
+                'Coil Speed Control',
+                'Unitary System DX Coil Speed Value'
+              )
+              htg_actuator.setName("DX_Spd_Act_Htg_#{unitary.name.to_s.gsub("-", "")}")
+
+              htg_coil_program_body = <<~EMS
+                IF (#{sensor.name} > 0.5),
+                  SET #{htg_actuator.name} = #{htg_limit_val},
+                ELSE,
+                  SET #{htg_actuator.name} = Null,
+                ENDIF
+              EMS
+
+              htg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+              htg_coil_program.setName("DR_Limit_DX_Speed_Htg_#{unitary.name.to_s.gsub("-", "")}")
+              htg_coil_program.setBody(htg_coil_program_body)
+
+              htg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+              htg_coil_pcm.setName("DR Peak DX Limit Manager Heating #{unitary.name.to_s.gsub("-", "")}")
+              htg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+              htg_coil_pcm.addProgram(htg_coil_program)
             end
           end
 
-          if num_htg_speeds.nil?
-            runner.registerWarning('Could not determine number of DX coil speeds; EMS program not created')
-          else
-            htg_limit_val = max_compressor_frac * num_htg_speeds
-            runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of heating coil to #{htg_limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{htg_limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
-
-            #implement fractional speeds here using json file of speeds
-            htg_limit_val = [htg_limit_val, num_htg_speeds].min
-            htg_limit_val = [htg_limit_val, 1].max
-            htg_limit_val = htg_limit_val.floor
-
-            # EMS Program
-            htg_coil_program_body = <<~EMS
-              IF (#{sensor.name} > 0.5),
-                SET #{htg_actuator.name} = #{htg_limit_val},
-              ELSE,
-                SET #{htg_actuator.name} = Null,
-              ENDIF
-            EMS
-
-            htg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-            htg_coil_program.setName("DR_Limit_DX_Speed_Htg_#{unitary.name.to_s.gsub("-", "")}")
-            htg_coil_program.setBody(htg_coil_program_body)
-
-            # EMS ProgramCallingManager
-            htg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-            htg_coil_pcm.setName("DR Peak DX Limit Manager Heating #{unitary.name.to_s.gsub("-", "")}")
-            htg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-            htg_coil_pcm.addProgram(htg_coil_program)
-
-            runner.registerInfo("EMS will cap DX compressor heating speed at 60% (#{htg_limit_val} out of #{num_htg_speeds} speeds) during peak periods.")
-          end
-
           # COOLING COIL 
-          # create EMS Actuator to control DX coil speed
-          clg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
-            unitary,                                     # component
-            'Coil Speed Control',                        # control type
-            'Unitary System DX Coil Speed Value'         # actuator name
-          )
-          clg_actuator.setName("DX_Spd_Act_Clg_#{unitary.name.to_s.gsub("-", "")}")
-
-          runner.registerInfo("actuator = #{clg_actuator}")
-
-          # determine number of speeds from heating coil
-          num_clg_speeds = nil
           if unitary.coolingCoil.is_initialized
             clg_coil = unitary.coolingCoil.get
             if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
               num_clg_speeds = clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.size
-              runner.registerInfo("number of speeds in cooling = #{num_clg_speeds}")
-            else
-              runner.registerWarning("Cooling coil type #{clg_coil.iddObjectType.valueName} does not support multi speed EMS speed control")
+
+              # nonlinear mapping
+              clg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_clg)
+              clg_limit_val = [clg_limit_val, num_clg_speeds].min
+
+              runner.registerInfo("Cooling coil #{unitary.name} limited to EMS value #{clg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
+
+              clg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
+                unitary,
+                'Coil Speed Control',
+                'Unitary System DX Coil Speed Value'
+              )
+              clg_actuator.setName("DX_Spd_Act_Clg_#{unitary.name.to_s.gsub("-", "")}")
+
+              clg_coil_program_body = <<~EMS
+                IF (#{sensor.name} > 0.5),
+                  SET #{clg_actuator.name} = #{clg_limit_val},
+                ELSE,
+                  SET #{clg_actuator.name} = Null,
+                ENDIF
+              EMS
+
+              clg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+              clg_coil_program.setName("DR_Limit_DX_Speed_Clg_#{unitary.name.to_s.gsub("-", "")}")
+              clg_coil_program.setBody(clg_coil_program_body)
+
+              clg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+              clg_coil_pcm.setName("DR Peak DX Limit Manager Cooling #{unitary.name.to_s.gsub("-", "")}")
+              clg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+              clg_coil_pcm.addProgram(clg_coil_program)
             end
-          end
-
-          if num_clg_speeds.nil?
-            runner.registerWarning('Could not determine number of DX coil speeds; EMS program not created')
-          else
-            clg_limit_val = max_compressor_frac * num_clg_speeds
-            runner.registerInfo("User specified compressor reduction of #{peak_compressor_reduction_value} during peak periods results in limit of cooling coil to #{clg_limit_val} speeds. Cannot have fractional number of speeds so rounding down to #{clg_limit_val.floor} speeds. The remaining speeds will not be used during peak periods.")
-
-            clg_limit_val = [clg_limit_val, num_clg_speeds].min
-            clg_limit_val = [clg_limit_val, 1].max
-            clg_limit_val = clg_limit_val.floor
-
-            # EMS Program
-            clg_coil_program_body = <<~EMS
-              IF (#{sensor.name} > 0.5),
-                SET #{clg_actuator.name} = #{clg_limit_val},
-              ELSE,
-                SET #{clg_actuator.name} = Null,
-              ENDIF
-            EMS
-
-            clg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-            clg_coil_program.setName("DR_Limit_DX_Speed_Clg_#{unitary.name.to_s.gsub("-", "")}")
-            clg_coil_program.setBody(clg_coil_program_body)
-
-            # EMS ProgramCallingManager
-            clg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-            clg_coil_pcm.setName("DR Peak DX Limit Manager Cooling #{unitary.name.to_s.gsub("-", "")}")
-            clg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-            clg_coil_pcm.addProgram(clg_coil_program)
-
-            runner.registerInfo("EMS will cap DX compressor cooling speed at 60% (#{clg_limit_val} out of #{num_clg_speeds} speeds) during peak periods.")
           end
         end
       end
@@ -2894,7 +2901,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       dr_flag.setName('DR_Flag_SupHeat')
       dr_flag.setKeyName(peak_sch.get.nameString)
 
-      # 2. Loop unitary systems and add the supplemental-heat actuator + program
+      # Loop unitary systems and add the supplemental-heat actuator + program
       model.getAirLoopHVACUnitarySystems.each do |unitary|
         # Make sure there is a supplemental heating coil (often CoilHeatingElectric)
         unless unitary.supplementalHeatingCoil.is_initialized
@@ -2905,7 +2912,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # skip kitchens
         next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
 
-        runner.registerInfo("Adding backup heat EMS to unitary system: #{unitary.name}")
+        runner.registerInfo("Adding backup heat EMS with safety logic to unitary system: #{unitary.name}")
 
         # Actuator: Unitary System Supplemental Coil Stage Level
         sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
@@ -2915,22 +2922,79 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         )
         sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
 
-        # For most RTUs the supplemental electric coil is single-stage (N=1)
-        # Leaving N=1 lets fractional values act as cycling ratio (e.g., 0.5 = 50%).
+        # Determine number of supplemental stages (default 1 for cycling coil)
         num_sup_stages = 2
         if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
           num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
         end
 
-        # EMS program body: during peak, cap to backup_heat_frac * N; else release control
+        #### EMS Scenario 1: reduce backup heat during peak, no safety ####
+        # # EMS program body: during peak, cap to backup_heat_frac * N; else release control 
+        # program = OpenStudio::Model::EnergyManagementSystemProgram.new(model) 
+        # program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}") 
+        # program.setBody(<<~EMS) 
+        #   SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages} 
+        #   IF (#{dr_flag.name} > 0.5), 
+        #     SET #{sup_act.name} = sup_lim, ! e.g., 0.5 on a 1-stage coil = 50% 
+        #   ELSE, 
+        #     SET #{sup_act.name} = Null, ! release to normal control off-peak 
+        #   ENDIF
+        # EMS
+
+        # #### EMS Scenario 2: reduce backup heat during peak with safety of 4F below setpoint ####
+        # # --- Add Zone Sensors ---
+        # # This assumes the unitary serves only one thermal zone
+        # if unitary.controllingZoneorThermostatLocation.is_initialized
+        #   zone = unitary.controllingZoneorThermostatLocation.get
+
+        #   zone_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Mean Air Temperature')
+        #   zone_t.setKeyName(zone.nameString)
+        #   zone_t.setName("Tzone_#{zone.nameString.gsub(/\W/,'_')}")
+
+        #   zone_htg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Heating Setpoint Temperature')
+        #   zone_htg_sp.setKeyName(zone.nameString)
+        #   zone_htg_sp.setName("Tsp_#{zone.nameString.gsub(/\W/,'_')}")
+        # else
+        #   runner.registerWarning("Unitary '#{unitary.name}' has no controlling zone; skipping safety logic.")
+        #   next
+        # end
+
+        # # --- EMS program with safety check ---
+        # program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+        # program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
+        # program.setBody(<<~EMS)
+        #   SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
+        #   SET safety_sp = #{zone_htg_sp.name} - 4.0
+        #   IF (#{dr_flag.name} > 0.5),
+        #     IF (#{zone_t.name} < safety_sp),
+        #       SET #{sup_act.name} = Null,     ! release control if too cold
+        #     ELSE,
+        #       SET #{sup_act.name} = sup_lim,  ! otherwise enforce limit
+        #     ENDIF,
+        #   ELSE,
+        #     SET #{sup_act.name} = Null,       ! off-peak: release control
+        #   ENDIF
+        # EMS
+
+        #### EMS Scenario 3: dont reduce backup heat during peak if heat pump is locked out (<-10F) ####
+        # --- Outdoor Air Temperature Sensor ---
+        oa_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
+        oa_t.setKeyName('Environment')
+        oa_t.setName('T_OA')
+
         program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
         program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
         program.setBody(<<~EMS)
           SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
-          IF (#{dr_flag.name} > 0.5),
-            SET #{sup_act.name} = sup_lim,   ! e.g., 0.5 on a 1-stage coil = 50%
+
+          IF (#{dr_flag.name} > 0.5),                 ! peak period
+            IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_f}),                ! heat pump locked out -> allow full backup
+              SET #{sup_act.name} = Null,
+            ELSE,
+              SET #{sup_act.name} = sup_lim,          ! otherwise enforce cap
+            ENDIF,
           ELSE,
-            SET #{sup_act.name} = Null,      ! release to normal control off-peak
+            SET #{sup_act.name} = Null,               ! off-peak: release control
           ENDIF
         EMS
 
@@ -2940,97 +3004,98 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         pcm.setCallingPoint('AfterPredictorAfterHVACManagers')
         pcm.addProgram(program)
 
-        runner.registerInfo("Supplemental heat on '#{unitary.name}' will be capped to #{(backup_heat_frac*100).round}% during peak periods.")
+        runner.registerInfo("Supplemental heat on '#{unitary.name}' capped to #{(backup_heat_frac*100).round}% during peak, but released if zone falls >4°F below setpoint.")
       end
     end
 
     ################# ADD EMS OUTPUT VARIABLES ################
    
-    # # adding output variables (for debugging)
-    # out_vars = [
-    # #   'Air System Mixed Air Mass Flow Rate',
-    # #   'Fan Air Mass Flow Rate',
-    # #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    # #   'Cooling Coil Total Cooling Rate',
-    # #   'Cooling Coil Electricity Rate',
-    # #   'Cooling Coil Runtime Fraction',
-    #    'Heating Coil Heating Rate',
-    # #   'Heating Coil Electricity Rate',
-    # #   'Heating Coil Runtime Fraction',
-    # #   'Unitary System DX Coil Cycling Ratio',
-    # #   'Unitary System DX Coil Speed Ratio',
-    # #   'Unitary System DX Coil Speed Level',
-    # #   'Unitary System Total Cooling Rate',
-    # #   'Unitary System Total Heating Rate',
-    # #   'Unitary System Electricity Rate',
-    # #   'HVAC System Solver Iteration Count',
-    # #   'Site Outdoor Air Drybulb Temperature',
-    # #   'Heating Coil Crankcase Heater Electricity Rate',
-    # #   'Heating Coil Defrost Electricity Rate',
-    #    'Zone Air Temperature',
-    # #   'Lights Total Heating Energy',
-    # #   'Electric Equipment Total Heating Energy',
-    # #   'People Total Heating Rate',
-    #    'Heating Coil Total Heating Energy',
-    #    'Zone Thermostat Heating Setpoint Temperature',
-    #    'Zone Thermostat Cooling Setpoint Temperature'
-    # ]
-    # out_vars.each do |out_var_name|
-    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #   ov.setKeyValue('*')
-    #   ov.setReportingFrequency('timestep')
-    #   ov.setVariableName(out_var_name)
-    # end
+    # adding output variables (for debugging)
+    out_vars = [
+      'Site Outdoor Air Drybulb Temperature',
+    #   'Air System Mixed Air Mass Flow Rate',
+    #   'Fan Air Mass Flow Rate',
+    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #   'Cooling Coil Total Cooling Rate',
+    #   'Cooling Coil Electricity Rate',
+    #   'Cooling Coil Runtime Fraction',
+       'Heating Coil Heating Rate',
+    #   'Heating Coil Electricity Rate',
+    #   'Heating Coil Runtime Fraction',
+    #   'Unitary System DX Coil Cycling Ratio',
+       'Unitary System DX Coil Speed Ratio',
+       'Unitary System DX Coil Speed Level',
+    #   'Unitary System Total Cooling Rate',
+    #   'Unitary System Total Heating Rate',
+    #   'Unitary System Electricity Rate',
+    #   'HVAC System Solver Iteration Count',
+    #   'Site Outdoor Air Drybulb Temperature',
+    #   'Heating Coil Crankcase Heater Electricity Rate',
+    #   'Heating Coil Defrost Electricity Rate',
+       'Zone Air Temperature',
+    #   'Lights Total Heating Energy',
+    #   'Electric Equipment Total Heating Energy',
+    #   'People Total Heating Rate',
+       'Heating Coil Total Heating Energy',
+       'Zone Thermostat Heating Setpoint Temperature',
+       'Zone Thermostat Cooling Setpoint Temperature'
+    ]
+    out_vars.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('detailed')
+      ov.setVariableName(out_var_name)
+    end
 
-    # # Peak schedule value (to verify EMS trigger timing)
-    # peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
-    # peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
-    # peak_sch_outvar.setReportingFrequency('Hourly')
+    # Peak schedule value (to verify EMS trigger timing)
+    peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
+    peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
+    peak_sch_outvar.setReportingFrequency('Hourly')
 
-    # runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
+    runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
 
-    # # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-    # output_EMS = model.getOutputEnergyManagementSystem
-    # output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    # output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
-    # output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    output_EMS = model.getOutputEnergyManagementSystem
+    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-    # timeseriesnames = []
+    timeseriesnames = []
 
-    # # Get EMS variables created by the measure
-    # li_ems_act_oa_flow = []
-    # model.getEnergyManagementSystemActuators.each do |ems_actuator|
-    #   li_ems_act_oa_flow << ems_actuator
-    # end
-    # model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
-    #   li_ems_act_oa_flow << glo_var
-    # end
+    # Get EMS variables created by the measure
+    li_ems_act_oa_flow = []
+    model.getEnergyManagementSystemActuators.each do |ems_actuator|
+      li_ems_act_oa_flow << ems_actuator
+    end
+    model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+      li_ems_act_oa_flow << glo_var
+    end
     
-    # # Create output var for EMS variables
-    # ems_output_variable_list = []
-    # li_ems_act_oa_flow.each do |act|
-    #   name = act.name
-    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-    #   ems_act_oa_flow.setUpdateFrequency('timestep')
-    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
-    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
-    # end
+    # Create output var for EMS variables
+    ems_output_variable_list = []
+    li_ems_act_oa_flow.each do |act|
+      name = act.name
+      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+      ems_act_oa_flow.setUpdateFrequency('timestep')
+      ems_act_oa_flow.setName("#{name}_ems_outvar")
+      ems_output_variable_list << ems_act_oa_flow.name.to_s
+    end
     
-    # # Add EMS output variables to regular output variables
-    # ems_output_variable_list.each do |variable|
-    #   output = OpenStudio::Model::OutputVariable.new(variable,model)
-    #   output.setKeyValue("*")
-    #   output.setReportingFrequency('timestep')
-    #   timeseriesnames << variable
-    # end
+    # Add EMS output variables to regular output variables
+    ems_output_variable_list.each do |variable|
+      output = OpenStudio::Model::OutputVariable.new(variable,model)
+      output.setKeyValue("*")
+      output.setReportingFrequency('timestep')
+      timeseriesnames << variable
+    end
 
-    # # Add output vars for simulation after measure implementation
-    # timeseriesnames.each do |out_var_name|
-    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #   ov.setKeyValue('*')
-    #   ov.setReportingFrequency('timestep')
-    #   ov.setVariableName(out_var_name)
-    # end
+    # Add output vars for simulation after measure implementation
+    timeseriesnames.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
+    end
 
     # report final condition of model
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
