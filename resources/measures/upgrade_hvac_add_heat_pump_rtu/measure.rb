@@ -2757,7 +2757,7 @@ end
     end
 
     ############### START COMPRESSOR PEAK ADJUSTMENT ###################
-    
+
     # --- User input for compressor reduction (already fraction 0–1) ---
     max_compressor_frac = 1
     if peak_compressor_reduction_value == '0%'
@@ -2797,45 +2797,50 @@ end
           # skip kitchens
           next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
 
-          # HEATING COIL 
+          htg_limit_val = 4
+          clg_limit_val = 4
+          
+          # if controlling zone available, add zone sensors
+          if unitary.controllingZoneorThermostatLocation.is_initialized
+            zone = unitary.controllingZoneorThermostatLocation.get
+
+            zone_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Mean Air Temperature')
+            zone_t.setKeyName(zone.nameString)
+            zone_t.setName("Tzone_#{zone.nameString.gsub(/\W/,'_')}")
+
+            zone_htg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Heating Setpoint Temperature')
+            zone_htg_sp.setKeyName(zone.nameString)
+            zone_htg_sp.setName("TspHtg_#{zone.nameString.gsub(/\W/,'_')}")
+
+            zone_clg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Cooling Setpoint Temperature')
+            zone_clg_sp.setKeyName(zone.nameString)
+            zone_clg_sp.setName("TspClg_#{zone.nameString.gsub(/\W/,'_')}")
+
+            #detect heating or cooling mode
+            mode_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+              model,
+              'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate'
+            )
+            mode_sensor.setKeyName(unitary.nameString)
+            mode_sensor.setName("USys_Load_#{unitary.name.to_s.gsub(/\W/,'_')}")
+          else
+            runner.registerWarning("Unitary '#{unitary.name}' has no controlling zone; skipping safety logic.")
+            next
+          end
+
+          # get heating stages to set limit during peak periods
           if unitary.heatingCoil.is_initialized
             htg_coil = unitary.heatingCoil.get
             if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
               num_htg_speeds = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.size
 
-              # nonlinear mapping
               htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
               htg_limit_val = [htg_limit_val, num_htg_speeds].min
-
               runner.registerInfo("Heating coil #{unitary.name} limited to EMS value #{htg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
-
-              htg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
-                unitary,
-                'Coil Speed Control',
-                'Unitary System DX Coil Speed Value'
-              )
-              htg_actuator.setName("DX_Spd_Act_Htg_#{unitary.name.to_s.gsub("-", "")}")
-
-              htg_coil_program_body = <<~EMS
-                IF (#{sensor.name} > 0.5),
-                  SET #{htg_actuator.name} = #{htg_limit_val},
-                ELSE,
-                  SET #{htg_actuator.name} = Null,
-                ENDIF
-              EMS
-
-              htg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-              htg_coil_program.setName("DR_Limit_DX_Speed_Htg_#{unitary.name.to_s.gsub("-", "")}")
-              htg_coil_program.setBody(htg_coil_program_body)
-
-              htg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-              htg_coil_pcm.setName("DR Peak DX Limit Manager Heating #{unitary.name.to_s.gsub("-", "")}")
-              htg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-              htg_coil_pcm.addProgram(htg_coil_program)
             end
           end
 
-          # COOLING COIL 
+          # get cooling stages to set limit during peak periods
           if unitary.coolingCoil.is_initialized
             clg_coil = unitary.coolingCoil.get
             if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
@@ -2846,37 +2851,63 @@ end
               clg_limit_val = [clg_limit_val, num_clg_speeds].min
 
               runner.registerInfo("Cooling coil #{unitary.name} limited to EMS value #{clg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
-
-              clg_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
-                unitary,
-                'Coil Speed Control',
-                'Unitary System DX Coil Speed Value'
-              )
-              clg_actuator.setName("DX_Spd_Act_Clg_#{unitary.name.to_s.gsub("-", "")}")
-
-              clg_coil_program_body = <<~EMS
-                IF (#{sensor.name} > 0.5),
-                  SET #{clg_actuator.name} = #{clg_limit_val},
-                ELSE,
-                  SET #{clg_actuator.name} = Null,
-                ENDIF
-              EMS
-
-              clg_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-              clg_coil_program.setName("DR_Limit_DX_Speed_Clg_#{unitary.name.to_s.gsub("-", "")}")
-              clg_coil_program.setBody(clg_coil_program_body)
-
-              clg_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-              clg_coil_pcm.setName("DR Peak DX Limit Manager Cooling #{unitary.name.to_s.gsub("-", "")}")
-              clg_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
-              clg_coil_pcm.addProgram(clg_coil_program)
             end
           end
+
+          dx_coil_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
+              unitary,
+              'Coil Speed Control',
+              'Unitary System DX Coil Speed Value'
+              )
+          dx_coil_actuator.setName("DX_Spd_Act_#{unitary.name.to_s.gsub("-", "")}")
+
+          program_body = <<~EMS
+            SET htg_safety_sp = #{zone_htg_sp.name} - 2.22
+            SET clg_safety_sp = #{zone_clg_sp.name} + 2.22
+
+            IF (#{sensor.name} > 0.5),   ! only during peak
+
+              ! heating mode: load > 0
+              IF (#{mode_sensor.name} > 0),
+                IF (#{zone_t.name} < htg_safety_sp),
+                  SET #{dx_coil_actuator.name} = Null,      ! release if too cold
+                ELSE,
+                  SET #{dx_coil_actuator.name} = #{htg_limit_val},
+                ENDIF,
+
+              ! cooling mode: load < 0
+              ELSEIF (#{mode_sensor.name} < 0),
+                IF (#{zone_t.name} > clg_safety_sp),
+                  SET #{dx_coil_actuator.name} = Null,      ! release if too hot
+                ELSE,
+                  SET #{dx_coil_actuator.name} = #{clg_limit_val},
+                ENDIF,
+
+              ! deadband: load ~ 0
+              ELSE,
+                SET #{dx_coil_actuator.name} = Null,
+              ENDIF,
+
+            ELSE,
+              SET #{dx_coil_actuator.name} = Null,   ! off-peak
+            ENDIF
+          EMS
+
+          dx_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          dx_coil_program.setName("DR_Limit_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
+          dx_coil_program.setBody(program_body)
+
+          dx_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+          dx_coil_pcm.setName("DR Peak DX Limit Manager #{unitary.name.to_s.gsub("-", "")}")
+          dx_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+          dx_coil_pcm.addProgram(dx_coil_program)
+
+          runner.registerInfo("Added EMS to limit compressor capacity during peak to unitary system: #{unitary.name}")
         end
       end
     end
-        
-    ################# END COMPRESSOR PEAK ADJUSTMENT ################
+
+    ################ END COMPRESSOR PEAK ADJUSTMENT ################
 
     ################# START BACKUP HEAT PEAK ADJUSTMENT ################
 
@@ -3016,7 +3047,7 @@ end
     #   'Air System Mixed Air Mass Flow Rate',
     #   'Fan Air Mass Flow Rate',
     #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    #   'Cooling Coil Total Cooling Rate',
+       'Cooling Coil Total Cooling Rate',
     #   'Cooling Coil Electricity Rate',
     #   'Cooling Coil Runtime Fraction',
        'Heating Coil Heating Rate',
@@ -3036,14 +3067,14 @@ end
     #   'Lights Total Heating Energy',
     #   'Electric Equipment Total Heating Energy',
     #   'People Total Heating Rate',
-       'Heating Coil Total Heating Energy',
+    #   'Heating Coil Total Heating Energy',
        'Zone Thermostat Heating Setpoint Temperature',
        'Zone Thermostat Cooling Setpoint Temperature'
     ]
     out_vars.each do |out_var_name|
       ov = OpenStudio::Model::OutputVariable.new('ov', model)
       ov.setKeyValue('*')
-      ov.setReportingFrequency('detailed')
+      ov.setReportingFrequency('timestep')
       ov.setVariableName(out_var_name)
     end
 
