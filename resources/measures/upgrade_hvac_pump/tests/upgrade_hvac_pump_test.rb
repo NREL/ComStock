@@ -325,7 +325,10 @@ class UpgradeHvacPumpTest < Minitest::Test
         fraction_cw_oat_reset_enabled_a
       }")
     refute_equal(fraction_chw_hw_oat_reset_enabled_b, fraction_chw_hw_oat_reset_enabled_a)
-    if instance_test_name.include?('air_cooled')
+    if instance_test_name.include?('air_cooled') ||
+       instance_test_name.include?('district') ||
+       instance_test_name.include?('water_source') ||
+       instance_test_name.include?('ground_source')
       assert_equal(fraction_cw_oat_reset_enabled_a, 0.0,
                    'Fraction CW OAT Reset Enabled A is not equal to 0.0')
     else
@@ -379,6 +382,42 @@ class UpgradeHvacPumpTest < Minitest::Test
     # test: 380_vav_chiller_with_gas_boiler_reheat
     test_sets << {
       model: '380_vav_chiller_with_gas_boiler_reheat',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_vav_district_chilled_water_with_district_hot_water_reheat
+    test_sets << {
+      model: '310_vav_district_chilled_water_with_district_hot_water_reheat',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_doas_with_water_source_heat_pumps_with_ground_source_heat_pump
+    test_sets << {
+      model: '310_doas_with_water_source_heat_pumps_with_ground_source_heat_pump',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_psz_ac_with_district_hot_water
+    test_sets << {
+      model: '310_psz_ac_with_district_hot_water',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_doas_with_fan_coil_district_chilled_water_with_district_hot_water
+    test_sets << {
+      model: '310_doas_with_fan_coil_district_chilled_water_with_district_hot_water',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_pvav_with_district_hot_water_reheat
+    test_sets << {
+      model: '310_pvav_with_district_hot_water_reheat',
+      weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
+      result: 'Success'
+    }
+    # test: 310_doas_with_fan_coil_district_chilled_water_with_baseboard_electric
+    test_sets << {
+      model: '310_doas_with_fan_coil_district_chilled_water_with_baseboard_electric',
       weather: 'NY_New_York_John_F_Ke_744860_16', # weather file does not matter with current tests
       result: 'Success'
     }
