@@ -302,7 +302,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   # get control specifications
   def self.control_specifications(model)
     # initialize variables
-    total_count_spm_chw = 0.0
+    total_count_spm_chw_hw = 0.0
     total_count_spm_cw = 0.0
     fraction_chw_hw_oat_reset_enabled_sum = 0.0
     fraction_cw_oat_reset_enabled_sum = 0.0
@@ -323,7 +323,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       when 'Cooling'
         # get control specifications
         spms.each do |spm|
-          total_count_spm_chw += 1
+          total_count_spm_chw_hw += 1
           if spm.to_SetpointManagerOutdoorAirReset.is_initialized
             fraction_chw_hw_oat_reset_enabled_sum += 1
           end
@@ -336,13 +336,20 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
             fraction_cw_oat_reset_enabled_sum += 1
           end
         end
-      # TODO: add when for Heating
+      when 'Heating'
+        # get control specifications
+        spms.each do |spm|
+          total_count_spm_chw_hw += 1
+          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
+            fraction_chw_hw_oat_reset_enabled_sum += 1
+          end
+        end
       end
     end
 
     # calculate fractions
-    fraction_chw_hw_oat_reset_enabled = if total_count_spm_chw > 0.0
-                                       fraction_chw_hw_oat_reset_enabled_sum / total_count_spm_chw
+    fraction_chw_hw_oat_reset_enabled = if total_count_spm_chw_hw > 0.0
+                                       fraction_chw_hw_oat_reset_enabled_sum / total_count_spm_chw_hw
                                      else
                                        0.0
                                      end
