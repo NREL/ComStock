@@ -349,10 +349,10 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
     # calculate fractions
     fraction_chw_hw_oat_reset_enabled = if total_count_spm_chw_hw > 0.0
-                                       fraction_chw_hw_oat_reset_enabled_sum / total_count_spm_chw_hw
-                                     else
-                                       0.0
-                                     end
+                                          fraction_chw_hw_oat_reset_enabled_sum / total_count_spm_chw_hw
+                                        else
+                                          0.0
+                                        end
     fraction_cw_oat_reset_enabled = if total_count_spm_cw > 0.0
                                       fraction_cw_oat_reset_enabled_sum / total_count_spm_cw
                                     else
@@ -817,7 +817,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # Enable supply water temperature reset for chilled/hot water loops
     if chw_hw_oat_reset
       if debug_verbose
-        runner.registerInfo("### enabling CHW/HW supply water temperature reset")
+        runner.registerInfo('### enabling CHW/HW supply water temperature reset')
       end
 
       model.getPlantLoops.each do |plant_loop|
@@ -833,7 +833,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # Apply condenser water temperature reset based on Appendix G
     if cw_oat_reset
       if debug_verbose
-        runner.registerInfo("### applying condenser water temperature reset (CW)")
+        runner.registerInfo('### applying condenser water temperature reset (CW)')
       end
 
       model.getPlantLoops.each do |plant_loop|
@@ -845,7 +845,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
         end
       end
     end
-
 
     # ------------------------------------------------
     # get pump specifications after upgrade
