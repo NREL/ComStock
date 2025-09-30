@@ -114,7 +114,10 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
            sc.to_BoilerHotWater.is_initialized ||
            sc.to_CoolingTowerSingleSpeed.is_initialized ||
            sc.to_CoolingTowerTwoSpeed.is_initialized ||
-           sc.to_CoolingTowerVariableSpeed.is_initialized
+           sc.to_CoolingTowerVariableSpeed.is_initialized ||
+           sc.to_DistrictCooling.is_initialized ||
+           sc.to_DistrictHeating.is_initialized ||
+           sc.to_PlantComponentTemperatureSource.is_initialized
           chw_cw_hw_pump = true
         end
       end
@@ -333,6 +336,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
             fraction_cw_oat_reset_enabled_sum += 1
           end
         end
+      # TODO: add when for Heating
       end
     end
 
@@ -810,11 +814,12 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       end
 
       model.getPlantLoops.each do |plant_loop|
-        if debug_verbose
-          runner.registerInfo("--- updating plant loop for CHW/HW reset: '#{plant_loop.name}'")
+        unless plant_loop.name.get.downcase.include?('service water loop')
+          if debug_verbose
+            runner.registerInfo("--- updating plant loop for CHW/HW reset: '#{plant_loop.name}'")
+          end
+          std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
         end
-
-        std.plant_loop_enable_supply_water_temperature_reset(plant_loop)
       end
     end
 
@@ -825,11 +830,12 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       end
 
       model.getPlantLoops.each do |plant_loop|
-        if debug_verbose
-          runner.registerInfo("--- updating plant loop for CW reset: '#{plant_loop.name}'")
+        unless plant_loop.name.get.downcase.include?('service water loop')
+          if debug_verbose
+            runner.registerInfo("--- updating plant loop for CW reset: '#{plant_loop.name}'")
+          end
+          plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
         end
-
-        plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
       end
     end
 
