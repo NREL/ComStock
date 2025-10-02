@@ -73,7 +73,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     chw_hw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('chw_hw_oat_reset', true)
     chw_hw_oat_reset.setDisplayName('Add outdoor air temperature reset' \
     ' for chilled/hot water supply temperature?')
-    chw_hw_oat_reset.setDefaultValue(true)
+    chw_hw_oat_reset.setDefaultValue(false)
     args << chw_hw_oat_reset
 
     # add outdoor air temperature reset for condenser water temperature

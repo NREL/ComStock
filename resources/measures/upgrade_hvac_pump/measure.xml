@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_hvac_pump</name>
   <uid>221bc9b4-586d-4083-baaa-624959df407c</uid>
-  <version_id>90b7ddc6-5cea-4b8c-8289-5653ed3c1804</version_id>
-  <version_modified>2025-09-18T11:00:42Z</version_modified>
+  <version_id>2ecc3fbc-6f33-4354-8161-4a4b5c71ac7b</version_id>
+  <version_modified>2025-10-02T12:10:28Z</version_modified>
   <xml_checksum>C1EBC06E</xml_checksum>
   <class_name>UpgradeHvacPump</class_name>
   <display_name>upgrade_hvac_pump</display_name>
@@ -17,7 +17,7 @@
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -193,7 +193,7 @@
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
+      <checksum>413DD5CC</checksum>
     </file>
     <file>
       <filename>README.md</filename>
@@ -216,13 +216,49 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>CBE6A2F5</checksum>
+      <checksum>B1EF5F45</checksum>
+    </file>
+    <file>
+      <filename>310_doas_with_fan_coil_district_chilled_water_with_baseboard_electric.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>D4FA05E0</checksum>
+    </file>
+    <file>
+      <filename>310_doas_with_fan_coil_district_chilled_water_with_district_hot_water.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1735D68C</checksum>
+    </file>
+    <file>
+      <filename>310_doas_with_water_source_heat_pumps_with_ground_source_heat_pump.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>84B712CA</checksum>
+    </file>
+    <file>
+      <filename>310_psz_ac_with_district_hot_water.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C2B916EF</checksum>
+    </file>
+    <file>
+      <filename>310_pvav_with_district_hot_water_reheat.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>5E078E73</checksum>
     </file>
     <file>
       <filename>310_vav_chiller_with_gas_boiler_reheat.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
       <checksum>57DE17D0</checksum>
+    </file>
+    <file>
+      <filename>310_vav_district_chilled_water_with_district_hot_water_reheat.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>18A78D5C</checksum>
     </file>
     <file>
       <filename>380_doas_with_fan_coil_air_cooled_chiller_with_boiler.osm</filename>
@@ -270,7 +306,7 @@
       <filename>upgrade_hvac_pump_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>BF7D179B</checksum>
+      <checksum>D3F3C43D</checksum>
     </file>
   </files>
 </measure>
