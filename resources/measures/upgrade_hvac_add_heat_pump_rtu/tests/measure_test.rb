@@ -251,7 +251,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('window', arguments[11].name)
     assert_equal('sizing_run', arguments[12].name)
     assert_equal('debug_verbose', arguments[13].name)
-	assert_equal('modify_setbacks', arguments[14].name)
+    assert_equal('modify_setbacks', arguments[14].name)
     assert_equal('setback_value', arguments[15].name)
   end
 
@@ -2070,7 +2070,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal(ervs_baseline, ervs_upgrade)
   end
 
- def test_confirm_heating_setback_change_square_wave
+  def test_confirm_heating_setback_change_square_wave
     # confirm that any heating setbacks are now 2F
     osm_name = 'Retail_PSZ-AC.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
@@ -2160,7 +2160,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     true
   end
 
-def test_confirm_heating_setback_change_opt_start
+  def test_confirm_heating_setback_change_opt_start
     # confirm that any heating setbacks are now 2F
     osm_name = 'Retail_PSZ-AC_updated_39_opt_start.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
@@ -2252,7 +2252,7 @@ def test_confirm_heating_setback_change_opt_start
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
 	
 	
-	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
+    puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
 
     assert_equal(deltas_out_of_range, false)
 	
