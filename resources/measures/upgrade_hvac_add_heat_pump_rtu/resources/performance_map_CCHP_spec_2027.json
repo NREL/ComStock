@@ -641,7 +641,7 @@
                     "maximum_independent_variable_2": 19.444444,
                     "minimum_dependent_variable_output": 0.122898,
                     "maximum_dependent_variable_output": 0.151752
-                }
+                },
                 {
                     "name": "staging_data",
                     "num_heating_stages": 4,
