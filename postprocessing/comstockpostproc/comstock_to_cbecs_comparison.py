@@ -227,7 +227,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 lazy_frame=lazy_frame.clone(),
                 columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.HVAC_SYS, self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
 
-    # def make_enduse_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir):
+    def make_enduse_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,
             'color_map': color_map,
