@@ -239,7 +239,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_by_enduse_and_fuel_type,
                                             lazy_frame=lazy_frame.clone(),
                                             columns=([self.DATASET] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
-        
+
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,

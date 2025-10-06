@@ -73,7 +73,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
-        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
+        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v10.csv'
         self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades

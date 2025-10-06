@@ -146,7 +146,7 @@ def main():
 
     # Specify the tract value as the gisjoin value for the spatial lookup
     df_buildstock.loc[:, 'gisjoin'] = df_buildstock.loc[:, 'tract']
-    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v8.csv'))
+    df_geospatial_lkup = pd.read_csv(os.path.join('resources', 'spatial_tract_lookup_table_publish_v10.csv'))
     to_resample = df_buildstock.loc[~df_buildstock.gisjoin.isin(df_geospatial_lkup.nhgis_tract_gisjoin), :]
     print(f'Resampling {to_resample.shape[0]} tracts that are not contained in the geospatial lookup file')
 
