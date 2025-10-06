@@ -381,17 +381,17 @@ class AddHeatPumpRtuTest < Minitest::Test
     json_files = Dir.glob(path_to_jsons)
 
     json_files.each do |file_path|
-      content = File.read(file_path)
-      hash = JSON.parse(content, symbolize_names: true)
+      begin
+        content = File.read(file_path)
+        hash = JSON.parse(content, symbolize_names: true)
 
-      assert(hash[:tables], "Missing :tables key in #{file_path}")
+        assert(hash[:tables], "Missing :tables key in #{file_path}")
 
-      # Check lookup table format
-      biquadratic_format_check(hash, file_path)
-
-    rescue JSON::ParserError => e
-      flunk "JSON parsing failed for #{file_path}: #{e.message}"
-    end
+        # Check lookup table format
+        biquadratic_format_check(hash, file_path)
+      rescue JSON::ParserError => e
+        flunk "JSON parsing failed for #{file_path}: #{e.message}"
+      end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
