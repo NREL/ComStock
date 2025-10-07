@@ -325,7 +325,7 @@ Although faults (e.g., damper fully closed) are implemented with fixed prevalenc
 
 \subsection{Furnaces}
 
-Furnaces are used in a variety of HVAC equipment for space heating through the direct combustion of a fuel. For ComStock models, the fuel type can be natural gas, propane, or fuel oil. The following ComStock system types use furnaces: direct evaporative coolers with forced air furnace, gas unit heaters, PSZ-AC with gas coil, PTAC with gas coil, residential AC with residential forced air furnace, and residential forced air furnace.
+Furnaces are used in a variety of HVAC equipment for space heating through the direct combustion of a fuel. For ComStock models, the fuel type can be natural gas, propane, or fuel oil. The following ComStock system types use furnaces: PSZ-AC with electric coil, PSZ-AC with gas coil, PTAC with electric coil, PTAC with gas coil, residential AC with residential forced air furnace, and residential forced air furnace.
 
 \subsubsection{Furnace Efficiencies}
 
@@ -339,7 +339,7 @@ Furnaces in ComStock do not use any performance curves, so there is no change in
 
 \subsection{Boilers}
 
-Boilers create hot water for heating in buildings. The following ComStock HVAC types use boilers for heating: baseboard gas boiler, DOAS with fan coil air-cooled chiller with boiler, DOAS with fan coil chiller with boiler, DOAS with fan coil district chilled water with boiler, DOAS with water source heat pumps cooling tower with boiler, direct evaporative coolers with baseboard gas boiler, PSZ-AC with gas boiler, PTAC with gas boiler, PVAV with gas boiler reheat, VAV air-cooled chiller with gas boiler reheat, VAV chiller with gas boiler reheat, and VAV district chilled water with gas boiler reheat.
+Boilers create hot water for heating in buildings. The following ComStock HVAC types use boilers for heating: DOAS with fan coil air-cooled chiller with boiler, DOAS with fan coil chiller with boiler, DOAS with water source heat pumps cooling tower with boiler, PSZ-AC with gas boiler, PTAC with gas boiler, PVAV with gas boiler reheat, VAV air-cooled chiller with gas boiler reheat, and VAV chiller with gas boiler reheat.
 
 \subsubsection{Boiler Efficiencies}
 At this time, boiler systems in ComStock are all gas-fired (or other combustible fuels) storage tank non-condensing units. A single boiler is used to meet the hot water load for the entire building. Rated efficiency assignments are a function of the HVAC code year and boiler capacity, mirroring the requirements of ASHRAE-90.1, and are summarized in Table~\ref{tab:boiler_eff_table}.
@@ -362,7 +362,8 @@ ComStock boilers use 180°F hot water loops with flow that leaves the set point 
 
 \subsection{Direct Expansion Cooling}
 
-Standard air-cooled direct expansion (DX) cooling is the most prevalent cooling equipment type in commercial buildings. The following ComStock HVAC system types use DX cooling: PSZ-AC with district hot water, PSZ-AC with electric coil, PSZ-AC with gas boiler, PSZ-AC with gas coil, PSZ-HP, PTAC with baseboard district hot water, PTAC with electric coil, PTAC with gas boiler, PTAC with gas coil, PTHP, PVAV with PFP boxes, PVAV with district hot water reheat, PVAV with gas boiler reheat, PVAV with gas heat with electric reheat, and residential AC with residential forced air furnace.
+Standard air-cooled direct expansion (DX) cooling is the most prevalent cooling equipment type in commercial buildings. The following ComStock HVAC system types use DX cooling: PSZ-AC with district hot water, PSZ-AC with electric coil, PSZ-AC with gas boiler, PSZ-AC with gas coil, PSZ-HP, PTAC with electric coil, PTAC with gas boiler, PTAC with gas coil, PTHP
+PVAV with PFP boxes, PVAV with district hot water reheat, PVAV with gas boiler reheat, PVAV with gas heat with electric reheat, residential AC with residential forced air furnace.
 
 \subsubsection{DX Cooling Rated Performance}
 
@@ -392,7 +393,7 @@ Similar to DX cooling equipment, the performance of ASHP equipment changes based
 
 \subsection{Air-Cooled Chillers}
 
-Air-cooled chillers (ACCs) provide chilled water for building cooling systems and use an air-cooled condenser for heat rejection. Therefore, no condenser water loop is required for ACCs. The following ComStock HVAC types use ACCs: DOAS with fan coil air-cooled chiller with baseboard electric, DOAS with fan coil air-cooled chiller with boiler, DOAS with fan coil air-cooled chiller with district hot water, DOAS with fan coil chiller with baseboard electric, VAV air-cooled chiller with PFP boxes, VAV air-cooled chiller with district hot water reheat, and VAV air-cooled chiller with gas boiler reheat.
+Air-cooled chillers (ACCs) provide chilled water for building cooling systems and use an air-cooled condenser for heat rejection. Therefore, no condenser water loop is required for ACCs. The following ComStock HVAC types use ACCs: DOAS with fan coil air-cooled chiller with boiler, VAV air-cooled chiller with PFP boxes, VAV air-cooled chiller with district hot water reheat, and VAV air-cooled chiller with gas boiler reheat.
 
 %TODO CHRIS: add in loop temperatures and setpoint managers.
 %TODO CHRIS: chiller condenser type fixed in Standards. Update documentation. This removes the scroll chiller curves.
@@ -411,7 +412,7 @@ ACCs vary in capacity and efficiency under different operating conditions. ComSt
 
 \subsection{Water-Cooled Chillers}
 
-Water-cooled chillers (WCCs) provide chilled water for building cooling systems and use a water-cooled condenser for heat rejection. Therefore, a condenser water loop is required for WCCs, generally conditioned by a boiler and cooling tower. The following ComStock HVAC types use WCCs: DOAS with fan coil chiller with baseboard electric, DOAS with fan coil chiller with boiler, DOAS with fan coil chiller with district hot water, DOAS with fan coil chiller with baseboard electric, VAV chiller with PFP boxes, VAV chiller with district hot water reheat, and VAV chiller with gas boiler reheat.
+Water-cooled chillers (WCCs) provide chilled water for building cooling systems and use a water-cooled condenser for heat rejection. Therefore, a condenser water loop is required for WCCs, generally conditioned by a boiler and cooling tower. The following ComStock HVAC types use WCCs: DOAS with fan coil chiller with baseboard electric, DOAS with fan coil chiller with boiler, DOAS with fan coil chiller with district hot water, VAV chiller with PFP boxes, VAV chiller with district hot water reheat, and VAV chiller with gas boiler reheat.
 
 \subsubsection{Water-Cooled Chiller Rated Performance}
 
