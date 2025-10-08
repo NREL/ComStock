@@ -1,0 +1,24 @@
+\begin{table}[bbt!]
+  \caption{Mapping of CEC climate zones to ComStock sampling regions.}
+  \label{tbl:cec_climate_zone_to_sampling_region}
+  \centering \begin{tabular}{|l|l|}
+    \hline
+    \textbf{CEC Climate Zone} & \textbf{Sampling Region} \\ \hline
+    1                         & 100                      \\ \hline
+    2                         & 100                      \\ \hline
+    3                         & 101                      \\ \hline
+    4                         & 102                      \\ \hline
+    5                         & 102                      \\ \hline
+    6                         & 103                      \\ \hline
+    7                         & 103                      \\ \hline
+    8                         & 104                      \\ \hline
+    9                         & 105                      \\ \hline
+    10                        & 106                      \\ \hline
+    11                        & 107                      \\ \hline
+    12                        & 107                      \\ \hline
+    13                        & 108                      \\ \hline
+    14                        & 109                      \\ \hline
+    15                        & 109                      \\ \hline
+    16                        & 110                      \\ \hline
+    \end{tabular}
+\end{table}

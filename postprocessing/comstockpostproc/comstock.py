@@ -33,6 +33,7 @@ from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
 from buildstock_query import BuildStockQuery
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 COLUMN_DEFINITION_FILE_NAME = 'comstock_column_definitions.csv'
 ENUM_DEFINITION_FILE_NAME = 'comstock_enumeration_definitions.csv'
@@ -72,7 +73,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.ejscreen_file_name = 'EJSCREEN_Tract_2020_USPR.csv'
         self.egrid_file_name = 'egrid_emissions_2019.csv'
         self.cejst_file_name = '1.0-communities.csv'
-        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v9.csv'
+        self.geospatial_lookup_file_name = 'spatial_tract_lookup_table_publish_v10.csv'
         self.tract_to_util_map_file_name = 'tract_to_elec_util_v2.csv'
         self.hvac_metadata_file_name = 'hvac_metadata.csv'
         self.rename_upgrades = rename_upgrades
@@ -85,6 +86,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.monthly_data_gap = None
         self.ami_timeseries_data = None
         self.data_long = None
+        self.loads_data_long = None
         self.color = color_hex
         self.building_type_weights = None
         self.weighted_energy_units = weighted_energy_units
@@ -210,6 +212,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_missing_energy_columns()
                 self.add_enduse_total_energy_columns()
                 self.add_energy_intensity_columns()
+                self.add_load_intensity_columns()
                 self.add_normalized_qoi_columns()
                 self.add_peak_intensity_columns()
                 self.add_vintage_column()
@@ -384,7 +387,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
         if reload_from_csv:
             file_name = f'Timeseries for AMI long.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.join(self.output_dir["fs_path"], file_name)
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
@@ -395,7 +398,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
             for region in ami.ami_region_map:
-                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                region_file_path_long = os.path.join(self.output_dir["fs_path"], region['source_name'] + '_building_type_timeseries_long.csv')
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
                     logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
@@ -407,7 +410,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     # Convert bigint to timestamp type if necessary
                     ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
 
-                # region_file_path_wide = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_wide.csv')
+                # region_file_path_wide = os.path.join(self.output_dir["fs_path"], region['source_name'] + '_building_type_timeseries_wide.csv')
                 # ts_agg.to_csv(region_file_path_wide, index=False)
                 # logger.info(f"Saved enduse timeseries in wide format for {region['source_name']} to {region_file_path_wide}")
 
@@ -415,7 +418,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 timeseries_df['region_name'] = region['source_name']
                 all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
 
-            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            data_path = os.path.join(self.output_dir["fs_path"], 'Timeseries for AMI long.csv')
             all_timeseries_df.to_csv(data_path, index=True)
             self.ami_timeseries_data = all_timeseries_df
 
@@ -500,7 +503,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
         size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
         size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
-        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
+        # file_path = os.path.join(self.output_dir["fs_path"], output_name + '_building_type_size.csv')
         # size_df.write_csv(file_path)
 
         weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
@@ -513,7 +516,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # save out long data format
         if save_individual_region:
-            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            output_file_path = os.path.join(self.output_dir["fs_path"], output_name + '_building_type_timeseries_long.csv')
             agg_df.to_csv(output_file_path, index=True)
             logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
 
@@ -1535,6 +1538,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         out_qoi = []
         out_params = []
         calc = []
+        loads = []
 
         for c in oth_cols:
             if c.startswith('applicability.'):
@@ -1574,10 +1578,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                   or c.endswith('.energy_savings_intensity')
                   or c.endswith('.energy_savings_intensity..kwh_per_ft2')):
                 out_intensity.append(c)
+            elif c.startswith('out.loads'):
+                loads.append(c)
             else:
                 logger.error(f'Didnt find an order for column: {c}')
 
-        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_gen + out_intensity + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
+        sorted_cols = front_cols + applicability + geogs + ins + out_engy_cons_svgs + out_peak + out_gen + out_intensity + loads + out_qoi + out_ghg_emissions + out_pollution_emissions + out_utility + out_params + calc
 
         return sorted_cols
 
@@ -1776,6 +1782,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
+            
+    def add_load_intensity_columns(self):
+        # Create load intensity column for each load column
+        for load_col in self.load_component_cols():
+            # Divide load by area to create intensity
+            calc_col = load_col.replace('out.', 'calc.')
+            calc_col = calc_col.replace('..gj', '..kbtu')
+            load_intensity_col = self.col_name_to_area_intensity(calc_col)
+            conv_fact = self.conv_fact('gj', 'kbtu')
+            logger.debug(f'Adding load intensity column {load_intensity_col} for {load_col} with conversion factor {conv_fact}')
+            self.data = self.data.with_columns(
+                ((pl.col(load_col) * conv_fact )/ pl.col(self.FLR_AREA)).alias(load_intensity_col))
 
     def add_normalized_qoi_columns(self):
         dict_cols = []
@@ -2925,6 +2943,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                     combo = (geo_data_for_data_type, self.output_dir, file_type, file_path)
                                     combos_to_write.append(combo)
 
+                            self.create_and_export_long_loads_data(geo_data)
                         # Write files in parallel
                         logger.info(f'Writing {len(combos_to_write)} files in parallel')
                         write_tstart = datetime.datetime.now()
@@ -3272,6 +3291,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
             'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
             'kw': self.weighted_demand_units, #(Peak) Demand, default : kw -> gw (gigawatt)
+            'gj': 'kbtu' # Thermal Loads, default : gj -> kbtu
         }
 
         # Get the list of existing column names
@@ -3283,7 +3303,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
-                    self.COLS_ENDUSE_GROUP_ANN_ENGY):
+                    self.COLS_ENDUSE_GROUP_ANN_ENGY + 
+                    self.load_component_cols()):
 
             if not col in existing_col_names:
                 logger.warning(f'Missing column needed for adding weighted columns: {col}')
@@ -3293,7 +3314,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             old_unit = self.units_from_col_name(col)
 
             if old_unit not in old_unit_to_new_unit.keys():
-                raise Exception("The unit is not in the old_unit_to_new_unit mapping")
+                raise Exception(f"The unit {old_unit} is not in the old_unit_to_new_unit mapping for column: {col}")
 
             new_col = self.col_name_to_weighted(col, old_unit_to_new_unit[old_unit])
             conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
@@ -3800,6 +3821,86 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Assign
         self.data_long = engy_emis
 
+    def create_and_export_long_loads_data(self, geo_data):
+
+        def add_climate_zone_group(df):
+            cz_groups = {
+                '1A': 'Hot (Zones 1-3)',
+                '2A': 'Hot (Zones 1-3)',
+                '2B': 'Hot (Zones 1-3)',
+                '3A': 'Hot (Zones 1-3)',
+                '3B': 'Hot (Zones 1-3)',
+                '3C': 'Hot (Zones 1-3)',
+                '4A': 'Mixed (Zone 4)',
+                '4B': 'Mixed (Zone 4)',
+                '4C': 'Mixed (Zone 4)',
+                '5A': 'Cold (Zones 5-8)',
+                '5B': 'Cold (Zones 5-8)',
+                '6A': 'Cold (Zones 5-8)',
+                '6B': 'Cold (Zones 5-8)',
+                '7':  'Cold (Zones 5-8)',
+                '7A': 'Cold (Zones 5-8)',
+                '7B': 'Cold (Zones 5-8)',
+                '8': 'Cold (Zones 5-8)',
+                '8A': 'Cold (Zones 5-8)',
+            }
+    
+            df = df.with_columns((pl.col(self.CZ_ASHRAE).cast(pl.Utf8).replace(cz_groups, default=None)).alias('Climate Zone Group'))
+            df = df.with_columns(pl.col('Climate Zone Group').cast(pl.Categorical))
+            return df
+        
+        # add climate zone groups
+        geo_data = add_climate_zone_group(geo_data)
+
+        # convert load component data to long format, with a row for each fuel/enduse/load component group combo
+        load_cols = self.load_component_cols()
+        load_intensity_cols = []
+        for col in load_cols:
+            col = col.replace('gj', 'kbtu')
+            intensity_col = self.col_name_to_area_intensity(col).replace('out.','calc.')
+            load_intensity_cols.append(intensity_col)
+
+        # convert load intensity columns to long format
+        load_var_col = 'calc.loads_intensity.period.component..units'
+        load_val_col = 'calc.loads_intensity.component..kbtu_per_ft2'
+        pre = 'calc.loads_intensity.'
+        loads_int_long = geo_data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, self.STATE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP], value_vars=load_intensity_cols, variable_name=load_var_col, value_name=load_val_col)
+        loads_int_long = loads_int_long.with_columns(
+            pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('period'),
+            pl.col(load_var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('component')
+        )
+
+        # convert weighted load columns to long format
+        weighted_load_cols = []
+        for col in load_cols:
+            weighted_col = self.col_name_to_weighted(col, 'kbtu')
+            weighted_load_cols.append(weighted_col)
+
+        var_col = 'calc.weighted.loads.period.component..units'
+        val_col = 'calc.weighted.loads.component..kbtu'
+        pre = 'calc.weighted.loads.'
+        loads_long = geo_data.melt(id_vars=[self.BLDG_ID, self.UPGRADE_ID, self.STATE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP], value_vars=weighted_load_cols, variable_name=var_col, value_name=val_col)
+        loads_long = loads_long.with_columns(
+            pl.col(var_col).str.strip_prefix(pre).str.split('.').list.get(0).alias('period'),
+            pl.col(var_col).str.strip_prefix(pre).str.split('.').list.get(1).alias('component')
+        )
+
+        # join intensity and loads cols
+        join_cols = [self.BLDG_ID, self.UPGRADE_ID, self.STATE_ID, 'Climate Zone Group', self.BLDG_TYPE_GROUP, 'period', 'component']
+
+        loads_long = loads_long.join(loads_int_long, how='left', on=join_cols)
+        loads_long = loads_long.select(join_cols + [load_val_col, val_col])
+        loads_long = loads_long.sort(by=self.BLDG_ID)
+        # print(loads_long.head)
+        loads_data_long = loads_long
+
+        file_name = f'load_components_long.csv'
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
+        logger.info(f'Exporting to: {file_path}')
+        loads_data_long.write_csv(file_path)
+        
+        # return loads_data_long
+
     def export_to_csv_long(self):
         # Exports comstock data to CSV in long format, with rows for each fuel/enduse group combo
 
@@ -3813,13 +3914,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # for up_id in up_ids:
         #     logger.error('Got here')
         #     file_name = f'upgrade{up_id:02d}_energy_long.csv'
-        #     file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        #     file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         #     logger.info(f'Exporting to: {file_path}')
         #     self.data.filter(pl.col(self.UPGRADE_ID) == up_id).write_csv(file_path)
 
         for cached_parquet in self.cached_parquet:
             file_name = f'{cached_parquet}_energy_long.csv'
-            file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+            file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
             logger.info(f'Exporting to: {file_path}')
             self.data_long.write_csv(file_path)
 
@@ -3958,12 +4059,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Save files
         file_name = f'data_dictionary.tsv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting data dictionary to: {file_path}')
         data_dictionary.write_csv(file_path, separator='\t')
 
         file_name = f'enumeration_dictionary.tsv'
-        file_path = os.path.abspath(os.path.join(self.output_dir, file_name))
+        file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting enumeration dictionary to: {file_path}')
         enum_dictionary.write_csv(file_path, separator='\t')
 
