@@ -1337,6 +1337,111 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_building_avg_oa_fraction = total_building_avg_oa_mass_flow_rate_kg_s / total_building_avg_mass_flow_rate_kg_s
     runner.registerValue('com_report_total_building_average_outdoor_air_fraction', total_building_avg_oa_fraction)
 
+    # Collect pump specifications
+    all_pumps = []
+
+    # Helper method to classify plant loop type
+    def system_type_for(pump)
+      loop = pump.plantLoop
+      return :unknown unless loop.is_initialized
+
+      plant_loop = loop.get
+      if plant_loop.supplyComponents.any? do |comp|
+          comp.to_WaterHeaterMixed.is_initialized || comp.to_WaterHeaterStratified.is_initialized
+        end
+        :swh  # Service Water Heating
+      else
+        :hvac  # Space Heating/Cooling
+      end
+    end
+
+    # Constant speed pumps
+    model.getPumpConstantSpeeds.each do |pump|
+      flow = pump.ratedFlowRate.is_initialized ? pump.ratedFlowRate.get : nil
+      eff  = pump.motorEfficiency
+      sys  = system_type_for(pump)
+
+      all_pumps << {
+        pump: pump,
+        flow: flow,
+        efficiency: eff,
+        type: :constant,
+        system: sys
+      }
+    end
+
+    # Variable speed pumps
+    model.getPumpVariableSpeeds.each do |pump|
+      flow = pump.ratedFlowRate.is_initialized ? pump.ratedFlowRate.get : nil
+      eff  = pump.motorEfficiency
+      sys  = system_type_for(pump)
+
+      all_pumps << {
+        pump: pump,
+        flow: flow,
+        efficiency: eff,
+        type: :variable,
+        system: sys
+      }
+    end
+
+    # Rated-flow-weighted motor efficiency (overall)
+    total_flow = all_pumps.sum { |p| p[:flow].to_f }
+    weighted_eff_sum = all_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
+
+    avg_eff = total_flow.positive? ? weighted_eff_sum / total_flow : nil
+    runner.registerValue('com_report_pump_flow_weighted_avg_motor_efficiency', avg_eff, '')
+
+    # Rated-flow-weighted motor efficiency by type
+    const_pumps = all_pumps.select { |p| p[:type] == :constant }
+    var_pumps   = all_pumps.select { |p| p[:type] == :variable }
+
+    const_flow = const_pumps.sum { |p| p[:flow].to_f }
+    var_flow   = var_pumps.sum   { |p| p[:flow].to_f }
+
+    const_eff_sum = const_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
+    var_eff_sum   = var_pumps.sum   { |p| p[:flow].to_f * p[:efficiency] }
+
+    avg_eff_const = const_flow.positive? ? const_eff_sum / const_flow : nil
+    avg_eff_var   = var_flow.positive? ? var_eff_sum / var_flow : nil
+
+    runner.registerValue(
+      'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd', avg_eff_const, ''
+    )
+    runner.registerValue(
+      'com_report_pump_flow_weighted_avg_motor_efficiency_var_spd', avg_eff_var, ''
+    )
+
+    # Pump counts by system and type
+    hvac_pumps = all_pumps.select { |p| p[:system] == :hvac }
+    swh_pumps  = all_pumps.select { |p| p[:system] == :swh }
+
+    hvac_const = hvac_pumps.count { |p| p[:type] == :constant }
+    hvac_var   = hvac_pumps.count { |p| p[:type] == :variable }
+    swh_const  = swh_pumps.count  { |p| p[:type] == :constant }
+    swh_var    = swh_pumps.count  { |p| p[:type] == :variable }
+
+    runner.registerValue('com_report_pump_count_hvac_const_spd', hvac_const, '')
+    runner.registerValue('com_report_pump_count_hvac_var_spd',   hvac_var,   '')
+    runner.registerValue('com_report_pump_count_swh_const_spd',  swh_const,  '')
+    runner.registerValue('com_report_pump_count_swh_var_spd',    swh_var,    '')
+
+    # Total rated power
+    total_const_pwr_w = model.getPumpConstantSpeeds.sum do |pump|
+      pump.ratedPowerConsumption.is_initialized ? pump.ratedPowerConsumption.get : 0.0
+    end
+
+    total_var_pwr_w = model.getPumpVariableSpeeds.sum do |pump|
+      pump.ratedPowerConsumption.is_initialized ? pump.ratedPowerConsumption.get : 0.0
+    end
+
+    runner.registerValue(
+      'com_report_pump_total_constant_speed_pump_power_w', total_const_pwr_w, 'W'
+    )
+    runner.registerValue(
+      'com_report_pump_total_variable_speed_pump_power_w', total_var_pwr_w, 'W'
+    )
+
     # calculate building heating and cooling
     building_heated_zone_area_m2 = 0.0
     building_cooled_zone_area_m2 = 0.0
