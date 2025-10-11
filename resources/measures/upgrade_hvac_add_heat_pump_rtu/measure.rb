@@ -3109,92 +3109,92 @@ end
 
     ################# ADD EMS OUTPUT VARIABLES ################
    
-    # adding output variables (for debugging)
-    out_vars = [
-      'Site Outdoor Air Drybulb Temperature',
-    #   'Air System Mixed Air Mass Flow Rate',
-    #   'Fan Air Mass Flow Rate',
-    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-       'Cooling Coil Total Cooling Rate',
-    #   'Cooling Coil Electricity Rate',
-    #   'Cooling Coil Runtime Fraction',
-       'Heating Coil Heating Rate',
-    #   'Heating Coil Electricity Rate',
-    #   'Heating Coil Runtime Fraction',
-    #   'Unitary System DX Coil Cycling Ratio',
-       'Unitary System DX Coil Speed Ratio',
-       'Unitary System DX Coil Speed Level',
-    #   'Unitary System Total Cooling Rate',
-    #   'Unitary System Total Heating Rate',
-    #   'Unitary System Electricity Rate',
-    #   'HVAC System Solver Iteration Count',
+    # # adding output variables (for debugging)
+    # out_vars = [
     #   'Site Outdoor Air Drybulb Temperature',
-    #   'Heating Coil Crankcase Heater Electricity Rate',
-    #   'Heating Coil Defrost Electricity Rate',
-       'Zone Air Temperature',
-    #   'Lights Total Heating Energy',
-    #   'Electric Equipment Total Heating Energy',
-    #   'People Total Heating Rate',
-    #   'Heating Coil Total Heating Energy',
-       'Zone Thermostat Heating Setpoint Temperature',
-       'Zone Thermostat Cooling Setpoint Temperature'
-    ]
-    out_vars.each do |out_var_name|
-      ov = OpenStudio::Model::OutputVariable.new('ov', model)
-      ov.setKeyValue('*')
-      ov.setReportingFrequency('timestep')
-      ov.setVariableName(out_var_name)
-    end
+    # #   'Air System Mixed Air Mass Flow Rate',
+    # #   'Fan Air Mass Flow Rate',
+    # #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #    'Cooling Coil Total Cooling Rate',
+    # #   'Cooling Coil Electricity Rate',
+    # #   'Cooling Coil Runtime Fraction',
+    #    'Heating Coil Heating Rate',
+    # #   'Heating Coil Electricity Rate',
+    # #   'Heating Coil Runtime Fraction',
+    # #   'Unitary System DX Coil Cycling Ratio',
+    #    'Unitary System DX Coil Speed Ratio',
+    #    'Unitary System DX Coil Speed Level',
+    # #   'Unitary System Total Cooling Rate',
+    # #   'Unitary System Total Heating Rate',
+    # #   'Unitary System Electricity Rate',
+    # #   'HVAC System Solver Iteration Count',
+    # #   'Site Outdoor Air Drybulb Temperature',
+    # #   'Heating Coil Crankcase Heater Electricity Rate',
+    # #   'Heating Coil Defrost Electricity Rate',
+    #    'Zone Air Temperature',
+    # #   'Lights Total Heating Energy',
+    # #   'Electric Equipment Total Heating Energy',
+    # #   'People Total Heating Rate',
+    # #   'Heating Coil Total Heating Energy',
+    #    'Zone Thermostat Heating Setpoint Temperature',
+    #    'Zone Thermostat Cooling Setpoint Temperature'
+    # ]
+    # out_vars.each do |out_var_name|
+    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #   ov.setKeyValue('*')
+    #   ov.setReportingFrequency('timestep')
+    #   ov.setVariableName(out_var_name)
+    # end
 
-    # Peak schedule value (to verify EMS trigger timing)
-    peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
-    peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
-    peak_sch_outvar.setReportingFrequency('Hourly')
+    # # Peak schedule value (to verify EMS trigger timing)
+    # peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
+    # peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
+    # peak_sch_outvar.setReportingFrequency('Hourly')
 
-    runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
+    # runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
 
-    # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-    output_EMS = model.getOutputEnergyManagementSystem
-    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
-    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    # output_EMS = model.getOutputEnergyManagementSystem
+    # output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    # output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    # output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-    timeseriesnames = []
+    # timeseriesnames = []
 
-    # Get EMS variables created by the measure
-    li_ems_act_oa_flow = []
-    model.getEnergyManagementSystemActuators.each do |ems_actuator|
-      li_ems_act_oa_flow << ems_actuator
-    end
-    model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
-      li_ems_act_oa_flow << glo_var
-    end
+    # # Get EMS variables created by the measure
+    # li_ems_act_oa_flow = []
+    # model.getEnergyManagementSystemActuators.each do |ems_actuator|
+    #   li_ems_act_oa_flow << ems_actuator
+    # end
+    # model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+    #   li_ems_act_oa_flow << glo_var
+    # end
     
-    # Create output var for EMS variables
-    ems_output_variable_list = []
-    li_ems_act_oa_flow.each do |act|
-      name = act.name
-      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-      ems_act_oa_flow.setUpdateFrequency('timestep')
-      ems_act_oa_flow.setName("#{name}_ems_outvar")
-      ems_output_variable_list << ems_act_oa_flow.name.to_s
-    end
+    # # Create output var for EMS variables
+    # ems_output_variable_list = []
+    # li_ems_act_oa_flow.each do |act|
+    #   name = act.name
+    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+    #   ems_act_oa_flow.setUpdateFrequency('timestep')
+    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
+    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
+    # end
     
-    # Add EMS output variables to regular output variables
-    ems_output_variable_list.each do |variable|
-      output = OpenStudio::Model::OutputVariable.new(variable,model)
-      output.setKeyValue("*")
-      output.setReportingFrequency('timestep')
-      timeseriesnames << variable
-    end
+    # # Add EMS output variables to regular output variables
+    # ems_output_variable_list.each do |variable|
+    #   output = OpenStudio::Model::OutputVariable.new(variable,model)
+    #   output.setKeyValue("*")
+    #   output.setReportingFrequency('timestep')
+    #   timeseriesnames << variable
+    # end
 
-    # Add output vars for simulation after measure implementation
-    timeseriesnames.each do |out_var_name|
-      ov = OpenStudio::Model::OutputVariable.new('ov', model)
-      ov.setKeyValue('*')
-      ov.setReportingFrequency('timestep')
-      ov.setVariableName(out_var_name)
-    end
+    # # Add output vars for simulation after measure implementation
+    # timeseriesnames.each do |out_var_name|
+    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #   ov.setKeyValue('*')
+    #   ov.setReportingFrequency('timestep')
+    #   ov.setVariableName(out_var_name)
+    # end
 
     # report final condition of model
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
