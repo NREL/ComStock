@@ -121,3 +121,183 @@ For states where state-level pricing was available, these prices are used direct
 
 \subsection{District Heating and District Cooling Bills}
 No resources with utility rates for district heating and cooling were identified. Because there are several hundred district systems across the U.S., many of which are university or healthcare campuses, gathering individual rates manually was deemed impractical. Therefore, utility bills for these fuels are not calculated.
+
+\section{Commercial Gap Model}
+The Commercial Gap Model estimates the national energy consumption by commercial buildings that are not explicitly modeled in the ComStock building stock model, as well as non-building energy use reported by utilities as part of the commercial sector. The Commercial Gap Model uses publicly available data to develop an electrical load model at hourly time scales and county-level geographic resolution. 
+
+\subsection{Commercial Gap Model Formulation}
+ComStock is a highly granular, bottom-up model of the United State commercial building sector that uses advanced whole-building simulation models to estimate the annual sub-hourly energy consumption of buildings. The model derives characteristics important to the energy dynamics of buildings from a wide range of data sources, such as buildings surveys and real estate data. The scope of this data is limited, however, and as such ComStock is unable to model building typologies where the uses and energy characteristics are too variable or not sufficiently described in the available data. An estimate of the total building uses not covered in ComStock based on CBECS data shows that approximately 37\% of the commercial building total annual site energy consumption is missing from the ComStock data (Figure~\ref{fig:types_not_represented_2}).
+
+Estimating the energy use of the buildings not covered in ComStock is important to put the ComStock data, and energy savings from building stock improvements, in context of the entire buildings sector. The Commercial Gap model attempts to fill in the missing energy by taking a data-driven, rather than bottom-up, approach to modeling building energy consumption. ComStock users could take the Commercial Gap profiles calculated from a ComStock baseline run, add them onto the profiles of a ComStock-modeled upgrade measure of interest, and see the expected result of that upgrade applied to buildings modeled in ComStock on the entire commercial sector. 
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/cbecs_2018_comstock_coverage.png}
+  \caption[CBECS building types not covered by ComStock]{CBECS Principal Buildings Activity Plus building types not covered by ComStock on an energy use basis.}
+  \label{fig:types_not_represented_2}
+\end{figure}
+
+The remainer of this section describes the available truth data sources and general formulation used to generate the Commercial Gap Model. 
+
+\subsubsection{Total Balancing Authority Demand}
+Balancing Authorities (BAs) are entities in the United States electrical system that balance electrical supply and demand in a geographical area  and manage interchange of power with other balancing authorities. They are either Regional Transmission Organizations (RTOs) or electric utilities that have also taken on balancing responsibilities. 
+
+The US Energy Information Administration (EIA) collects hourly data on generation, interchange, and demand from BAs with form EIA-930. Demand values in the EIA-930 data are calculated from the difference between metered generation within the BA and net interchange between BAs, and represent the total electric load within the BA, including from all sectors, power plant consumption and transmission and distribution losses. Of the 78 total balancing authorities that report data to EIA, 53 that are active, US-based (covering the continental United States) and not generation-only were used to establish demand profiles for this analysis. The total reported megawatt hours for these BAs are shown below in Figure~\ref{fig:demand_by_balancing_authority}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/demand_by_balancing_authority.png}
+  \caption[Total 2018 Demand by Balancing Authority]{Total 2018 Demand by Balancing Authority}
+  \label{fig:demand_by_balancing_authority}
+\end{figure}
+
+\subsubsection{Annual Electric Power Industry Report}
+EIA collects total annual electricity sales and customer counts by major sectors (i.e., Commercial, Industrial, Residential and Transportation), state and BA from distribution utilities and power marketers of electricity using form EIA-861 and its monthly counterpart EIA-861M, which are published in the Sales to Ultimate Consumers dataset. Approximately 2,300 utilities submit data for EIA-861, and an additional 1,100 small utilities report aggregate sales and customer counts at state and balancing authority levels using form EIA-861S (the short form). EIA-861 defines the ‘commercial sector’ as including non-manufacturing business establishments such as:
+\begin{itemize}
+    \item Hotels
+    \item Motels
+    \item Restaurants
+    \item Wholesale businesses
+    \item Retail stores
+    \item Health, social and educational institutions
+    \item Public street and highway lighting
+    \item Municipalities
+    \item Divisions or agencies of states and federal governments under special contracts or agreements, and other utility departments, as defined by the pertinent regulatory agency and/or electric utility
+\end{itemize}
+
+\subsubsection{Gap Model Formula}
+For electricity consumption, the Commercial Gap Model uses the hourly data of total electrical demand from EIA-930 for the ComStock simulation year, subtracts hourly profiles generated for the Industrial and Residential sectors to determine what the total Commercial sector load profile should be. The Commercial Gap profile is then calculated by subtracting the ComStock modeled baseline hourly profiles from the calculated Commercial sector total. Thus, for each Balancing Authority, the Commercial Gap is calculated from the following:
+\begin{equation}
+G_{C} = D_{T} - (I + R + C)
+\end{equation}
+where:
+\begin{itemize}
+    \item $G_{C}$: Commercial Gap, hourly by BA
+    \item $D_{T}$: hourly Total Demand by BA, from EIA-930
+    \item $I$: hourly Industrial load, estimated
+    \item $R$: hourly Residential load, derived from ResStock simulation
+    \item $C$: hourly modeled ComStock load
+\end{itemize}
+
+Details of how the Industrial profile is estimated, the modeled ResStock results are adjusted, the ResStock and ComStock results are aggregated to the BA level, and how the BA-level Commercial Gap profiles distributed back to the county level, are described in the following sections.
+
+\subsection{Industrial Sector Demand Profile}
+According to data in form EIA-861, the Industrial sector makes up about a third of the national electricity demand, and includes uses for the purposes of manufacturing, construction, mining, agriculture (irrigation), fishing, and forestry establishments. Efforts to characterize industrial consumption to the county level are available for prior years than the ComStock simulation year (2018), but at the time of Commercial Gap model development, no national hourly industrial-sector power profiles exist.
+
+Electric utilities conduct load research to facilitate cost-of-service and rate design, as well as demand-side management and load settlement. In many states where electric utilities are deregulated, utilities will publish expected load profiles so that suppliers can anticipate and prepare generation capacity. This load research data can take many forms, such as typical or average customer profiles by rate class, “unitized” load (i.e. hourly fraction of total annual consumption), or sector total demand. The utilities owned by First Energy Pennsylvania (Met-Ed, Penelec, Penn Power, West Penn Power), serving the majority of central Pennsylvania, publish total hourly Commercial, Industrial and Residential load profiles for their service territories. For 2018, these utilities delivered more than 22,000 GWh to over 3,000 industrial customers. Plotting the hourly load data from these utilities for the year showed very little seasonal variation, with most of the profile variation corresponding to time of day and day of week (Figure~\ref{fig:industrial_electrical_profile}).
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/industrial_electrical_profile.png}
+  \caption[Industrial electrical profiles]{Annual industrial electrical profiles for Met Ed (blue), Penelc (red), Penn Power (green), and West Penn Power (purple).}
+  \label{fig:industrial_electrical_profile}
+\end{figure}
+
+Using the First Energy PA utility profiles as a stand-in for the industrial sector nationwide, a regression model was developed that attempted to fit the average load fraction of the four utilities’ demand with a model whose parameters depended only on the hour of day, day of week, and whether the day was a major holiday. For a dataset of this size, a Histogram-based Gradient Boosting Regression Tree model was used due to the advantages of faster training time, and improved fit over other regression techniques. The model achieved a coefficient of determination ($R^2$) of 0.85 for the First Energy PA dataset.
+
+The model output was compared to unitized load profiles available for other utilities: AES Ohio (also known as Dayton Power \& Light), which achieved an $R^2$ of 0.76, and the average unitized customer profile for two rate classes from Pacific Gas \& Electric -- Large ($>$1000 kW) Primary Voltage and Large Secondary Voltage, with an $R^2$ of 0.62. The comparison with AES Ohio showed roughly the same magnitude of daily peak and diurnal variation in the regression model output and the load data, although the variation is greater in the PG\&E data, indicating some fundamental differences in the industrial loads in California compared to Pennsylvania and Ohio. The model does capture the load drop-off during weekends and major holidays seen in the available load data.
+
+With the regression model, estimated BA-level industrial profiles were created by multiplying the sum of Industrial sales by BA from EIA-861 by the hourly load fraction values output from the regression model. 
+While the method of using a time-based regression model to generate the sector profile for all BAs benefits from simplicity, it does not account for differences in type of industrial loads in different parts of the country that may have different operating profiles. For example, industrial load in agriculture-heavy areas may have more seasonal and diurnal dependence, and less day-of-week dependence, than areas with more manufacturing load. Capturing these differences was deemed out of scope for this initial analysis and is a potential future refinement of the modeling approach.
+
+\subsection{Residential Sector Demand Profile}
+ResStock,  the residential equivalent of ComStock, models the entire residential sector; there is no missing ‘gap’ as in ComStock. Therefore, obtaining BA-level residential profiles for the Commercial Gap calculation should be a simple matter of obtaining the profiles directly from ResStock results. However, comparing ResStock net electricity (excluding consumption provided from on-site generation) to total monthly sales as reported from EIA-861M shows that ResStock overestimates electricity consumption in winter months in colder states, sometimes by as much as 50\% (Figure~\ref{fig:resstock_monthly_electricity}).
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/resstock_monthly_electricity.png}
+  \caption[ResStock monthly electricity]{Original ResStock monthly total new electricity consumption for Colorado vs. EIA-861M residential sales.}
+  \label{fig:resstock_monthly_electricity}
+\end{figure}
+
+Note that while the ResStock results align exactly to the calendar months, since they are summed directly from timeseries simulation results, the reported EIA data does not necessarily algin exactly to calendar months. The utilities surveyed have different ways of aggregating when sales occur, and what is reported for a particular month may be all customers for which the billing period ends within that month. Thus, the reported consumption may be some combination consumption from that and the previous calendar months. However, the magnitude of the error seen in the winter months likely exceeds what can be attributed to the reporting difference.
+
+The ResStock hourly results were adjusted to better match monthly electricity consumption totals reported in EIA-861M. Hourly profiles were aggregated by county and scaled using state-level residential customer counts from EIA-861 (2018) to estimate average daily demand per customer. These were compared with population-weighted temperature data to identify seasonal consumption patterns. To align the ResStock data with observed trends, temperature-sensitive relationships between demand and temperature were compared to those derived from EIA-861M data for each state. Adjustment factors were developed based on these comparisons to correct daily demand in the ResStock results, ensuring that the modeled data more closely reflected reported state-level consumption patterns. Aggregating the adjusted ResStock data to monthly totals and comparing against the EIA-861M data for 2018 shows the adjustments resulted in better alignment with reported truth data than the unmodified results (Figure~\ref{fig:modified_resstock_monthly_electricity}). 
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/modified_resstock_monthly_electricity.png}
+  \caption[Modified ResStock monthly electricity]{Modified ResStock monthly total net electricity consumption for Colorado vs EIA-861M Residential sales.}
+  \label{fig:modified_resstock_monthly_electricity}
+\end{figure}
+
+\subsection{Geographic Apportionment}
+The primary Commercial Gap calculation is done at the BA level, which covers specific geographic extents that are not easily mappable to the state and sub-state geographic levels of the ComStock and ResStock data, i.e. census tracts and counties. While the Industrial profile was calculated solely at the BA level, a method was needed to apportion the ResStock and ComStock state-level profiles to BAs, and then apportion the calculated BA commercial gap down to the county level to provide maximum utility for performing analyses with ComStock. Several methods were considered to accomplish this apportionment, and ultimately the ‘EIA/CBECS’ method, described below, was used.
+
+\subsubsection{EIA/CBECS Apportionment}
+With this apportionment method, two similar approaches were taken for aggregating state consumption to BA-level (for ResStock and ComStock) and disaggregating the Commercial Gap back down to county-level. For ResStock aggregation, EIA-861 sales data was used, grouped by state and BA code, to determine the power sold to each BA by State. ComStock was aggregated from tract to BA using the census tract to utility ID mapping developed for the ComStock Utility Bills measure, which derived from the U.S. Electric Utility Companies and Rates: Look-up by Zipcode data. With the Utility ID, the BA was found from EIA-861 reporting, allowing the tract-level ComStock profiles to be summed by BA.
+
+After the Commercial Gap BA profiles were calculated, they needed to be disaggregated down to the county level. This was done by leveraging the commercial real estate dataset used to generate the building type and size distributions for ComStock, known as the ‘StockE’ data, which includes information on all commercial buildings in the country (particularly size, type, and census tract), including those not modeled in ComStock. The non-ComStock StockE building types were paired to Principal Building Activity types from the Commercial Buildings Energy Consumption Survey (CBECS), and the electrical Energy Use Intensities (EUI) from those CBECS buildings applied to the sum of areas of the non-ComStock StockE buildings by type and census division. This provided an estimate of the total annual consumption of non-ComStock buildings found in the StockE data. The utility ID could then be joined to the StockE data by census tract, and the estimated consumption summed by BA and county, and the county proportion of the BA Commercial Gap profiles determined. This process is illustrated in Figure~\ref{fig:eia_cbecs_apportionment}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/eia_cbecs_apportionment.png}
+  \caption[EIA/CBECS apportionment method]{EIA/CBECS method for county-level gap profile allocation process.}
+  \label{fig:eia_cbecs_apportionment}
+\end{figure}
+
+The EIA/CBECS method has some drawbacks, mainly in the mapping of StockE building types to CBECS Principal Building Activities, and the assumption that CBECS reported EUIs are representative of those buildings on average across a census division. Of the several apportionment methods considered, comparing the apportioned Commercial Gap by county showed that the EIA/CBECS method resulted in the fewest counties with a negative total gap, which was interpreted as being best at allocating the gap in a realistic way. Most of the variation in apportionment methods was seen in very small rural counties, with minor differences in the apportioned Commercial Gap in larger counties.  In counties with larger populations and numbers of buildings, the error in BA assignment would be smaller, since the utilities serving larger populations are more likely to be well represented in the truth data, and the building counts from Structures and CBECS more likely to be representative of ‘average’ building size and energy consumption. Conversely, counties with smaller population/building counts may have relatively more structures erroneously tagged in the Structures dataset, have building energy consumption that differs from greatly from CBECS averages, or are less represented in the utility consumption data, and thus the calculated gap in such counties ends up significantly different with the various apportionment methods.
+
+\subsection{Commercial Gap Results}
+Hourly electric Commercial Gap profiles were calculated for each BA and apportioned down to the county level using the EIA/CBECS allocation process described above. Total Demand, Industrial, ResStock adjusted, ComStock modeled, and computed Commercial Gap profiles are shown in Figure~\ref{fig:pjm_electricity_profile_components} and Figure~\ref{fig:pjm_weekly_electricity_profiles} for the PJM (Pennsylvania-New Jersey-Maryland Interconnection). Profiles are shown stacked and as individual lines, to illustrate both the component-level contribution to the total as well as the independent profile shape. Note that all times are plotted in Eastern Standard Time.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/pjm_electricity_profile_components.png}
+  \caption[PJM Electricity Profile Components]{PJM Electricity Profile Components}
+  \label{fig:pjm_electricity_profile_components}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/pjm_weekly_electricity_profiles.png}
+  \caption[PJM Electric Load Weekly Profiles]{PJM Electric Load Weekly Profiles}
+  \label{fig:pjm_weekly_electricity_profiles}
+\end{figure}
+
+Summing the modeled profiles for all BAs by month and comparing them against the reported monthly total sales by sector from EIA-861 (Figure~\ref{fig:monthly_modeled_sector_totals}) reveals some notable features of the modeled gap, as well as the truth data. On the truth data side, there is a ‘Reported Gap’, which is the difference between the total demand as reported by EIA-930 and the sum of the Industrial, Commercial and Residential sales from EIA-861. While some of this reported gap includes the Transportation sector not included in this analysis, that sector’s sales are smaller than what is shown. Since the EIA-930 data is calculated as the difference between generation and net interchange, it is likely that the remainder of the gap between ‘Demand’ and ‘Sales’ is from transmission and distribution losses, or consumption at the utility side (for plant operation, etc.) that would not be reported as sales. 
+
+The total of the calculated profiles by component closely matches the reported EIA sector sales, which is expected since the reported data directly informed the Industrial profile and ResStock adjustment. The difference between the modeled ComStock totals and the EIA-861 Commercial sales constitutes the Commercial Gap -– the building types and non-building commercial uses (such as street and highway lighting) not directly modeled in ComStock. The ‘Uncategorized Gap’ is remaining demand that cannot be allocated to a specific use, and just like the ‘Reported Gap’ likely includes system losses and reporting discrepancies. 
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/monthly_modeled_sector_totals.png}
+  \caption[Monthly Modeled Sector Totals]{Monthly modeled sector totals and reported EIA totals.}
+  \label{fig:monthly_modeled_sector_totals}
+\end{figure}
+
+Annually, the ‘Reported Gap’ amounts to approximately 10\% of the total reported demand, and about a third of the difference between the modeled sector totals  and the EIA-930 total demand. The remaining commercial gap accounts for about 39\% of the total reported commercial sector electricity sales, slightly higher than the 36\% of missing total site energy as found in the CBECS analysis shown in Figure~\ref{fig:annual_modeled_sector_totals}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/annual_modeled_sector_totals.png}
+  \caption[Annual Modeled Sector Totals]{Annual modeled sector totals and reported sector totals.}
+  \label{fig:annual_modeled_sector_totals}
+\end{figure}
+
+\subsection{Limitations and Future Work}
+As described above, Industrial sector load profiles used in the Commercial Gap model calculations are derived from a simple time-based regression model from only three similarly located electric utilities’ load research data. This approach misses any location-based or seasonal variation in industrial load, and would be improved with a more detailed load profile model that considers the different industry makeup across the county. Additionally, by subtracting the estimated industrial load from the total demand at the Balancing Authority level and then disaggregating the remainder to the county-level might skew the gap apportionment at the county level for counties with different amounts of industrial load. Ideally, the BA-level profiles would be disaggregated to county-level total profiles, and the Commercial gap profile calculated at the individual county level, which would require better modeling of county-level industrial profiles than was available for this work.
+
+Similarly, the adjustments to ResStock simulation results used for the Residential profiles could be improved by adjusting the monthly EIA consumption data to account for the difference between reporting and billing months implicit in that data, which could potentially improve the degree-day correlation models. Alternatively, the underlying source of the heating overestimation in the ResStock simulations could be identified and rectified, allowing ResStock results to be used without alteration.
+
+Finally, the county-level commercial gap profiles could be validated against commercial sector total load profiles available from the load research data from utilities that publish to that granularity, which could perhaps shed some light on the shape of the ‘uncategorized gap’ profile.
