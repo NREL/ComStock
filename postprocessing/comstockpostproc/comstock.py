@@ -1,16 +1,13 @@
-'# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.'
+# ComStock™, Copyright (c) 2023 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 import s3fs
 from functools import lru_cache
-from fsspec.core import url_to_fs
 from joblib import Parallel, delayed
-from fsspec import register_implementation
 
 import boto3
 import botocore
 import glob
-import gzip
 import json
 import logging
 import shutil
@@ -20,7 +17,7 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
-from pathlib import Path
+from natsort import natsort_keygen, natsorted
 
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.units_mixin import UnitsMixin
@@ -195,7 +192,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             # Import columns from buildstock, results.csv, and other files
             up_lazyframes = []
-            upgrade_ids.sort()
+            upgrade_ids.sort(key=natsort_keygen())
             for upgrade_id in upgrade_ids:
                 self.data = None
                 self.load_data(upgrade_id, acceptable_failure_percentage, drop_failed_runs)
@@ -248,29 +245,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self._aggregate_failure_summaries()
 
     def _aggregate_failure_summaries(self):
-        #since we are generating summary of failures based on
-        #each upgrade_id(in load_data()), we should aggregate
-        #the summary of failures for each upgrade_id into one
+        # Aggregate and deduplicate lines from all failure_summary_*.csv files, then remove them
+        fs = self.output_dir["fs"]
+        fs_path = self.output_dir["fs_path"]
 
-        path = self.output_dir['fs_path']
-
-        allLines = list()
-        #find all the failure_summary files like with failure_summary_0.csv
-        # failure_summary_1.csv ... failure_summary_k.csv
-        for file in os.listdir(path):
+        lines = []
+        for file_path in natsorted(fs.ls(fs_path)):
+            file = os.path.basename(file_path)
             if file.startswith("failure_summary_") and file.endswith(".csv"):
-                #open the file and read the content
-                with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
+                with fs.open(file_path, "r") as f:
                     for line in f:
-                        if line not in allLines:
-                            allLines.append(line)
-                 #delete the file
-                os.remove(os.path.join(path, file))
+                        if line not in lines:
+                            lines.append(line)
+                fs.rm(file_path)
 
-        #write the aggregated summary of failures to a new file
-        with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
-            for line in allLines:
-                f.write(line)
+        with fs.open(f"{fs_path}/failure_summary_aggregated.csv", "w") as f:
+            f.writelines(lines)
 
     def download_data(self):
 
