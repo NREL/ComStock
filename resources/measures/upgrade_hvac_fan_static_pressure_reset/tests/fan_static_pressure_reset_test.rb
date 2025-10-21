@@ -191,7 +191,7 @@ class FanStaticPressureResetTest < Minitest::Test
 
     vs_fans = model.getFanVariableVolumes
 
-    for fan in vs_fans
+    vs_fans.each do |fan|
       fan = fan.to_FanVariableVolume.get
       coeff_1 = fan.fanPowerCoefficient1
       coeff_2 = fan.fanPowerCoefficient2

@@ -127,8 +127,6 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
                         sup_fan.fanPowerCoefficient3.get, sup_fan.fanPowerCoefficient4.get]
 
       diff = sp_reset_fan_coeff.zip(existing_coeff).map { |a, b| a - b }
-
-
       # Check if fan curve coefficients already match values emulating SP reset
       if diff.map(&:abs).zip(e).all? { |a, b| a < b } # difference less than the tolerance
         runner.registerAsNotApplicable('Fan curve already represents an SP reset.')
