@@ -146,7 +146,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
                                                    [min_value + setback_val, lim_value].min
                                                  else
                                                    min_value
-                                                 end 
+                                                 end
         end
       end
     end
