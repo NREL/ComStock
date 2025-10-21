@@ -107,7 +107,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     valid
   end
 
-  def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start, opt_start_len)
+  def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start, opt_start_app_loop, opt_start_len)
     schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, tstat_sched)
     sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
     schedule_annual_profile_updated = OpenStudio::DoubleVector.new
@@ -123,7 +123,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
       next if (idx < schedule_annual_profile.size - 2) && opt_start == false && opt_start_pres == true
 
       if type == 'heating'
-        if opt_start and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
+        if opt_start and opt_start_app_loop and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1) # hours reflects time to ocucpancy
           schedule_annual_profile_updated[idx] =
@@ -136,7 +136,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
                                                  end
         end
       elsif type == 'cooling'
-        if opt_start and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
+        if opt_start and opt_start_app_loop and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1)
           schedule_annual_profile_updated[idx] =
@@ -186,52 +186,52 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     has_setback
   end
 
-  def mod_schedule_setbacks_existent(schedule, type, setback_val, lim_value)
-    profiles = [schedule.defaultDaySchedule]
-    schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-    for tstat_profile in profiles
-      tstat_profile_min = tstat_profile.values.min
-      tstat_profile_max = tstat_profile.values.max
-      tstat_profile_size = tstat_profile.values.uniq.size
-      time_h = tstat_profile.times
-      if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
-        tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
-          if type == 'heating'
-            if value == tstat_profile_min
-              tstat_profile.addValue(time_h[i],
-                                     [tstat_profile_max - setback_val, lim_value].max)
-            end
-          elsif type == 'cooling'
-            if value == tstat_profile_max
-              tstat_profile.addValue(time_h[i],
-                                     [tstat_profile_max + setback_val, lim_value].min)
-            end
-          end
-        end
-      end
-      next unless tstat_profile_size > 2 # could be optimal start with ramp
+  # def mod_schedule_setbacks_existent(schedule, type, setback_val, lim_value)
+    # profiles = [schedule.defaultDaySchedule]
+    # schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
+    # for tstat_profile in profiles
+      # tstat_profile_min = tstat_profile.values.min
+      # tstat_profile_max = tstat_profile.values.max
+      # tstat_profile_size = tstat_profile.values.uniq.size
+      # time_h = tstat_profile.times
+      # if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
+        # tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
+          # if type == 'heating'
+            # if value == tstat_profile_min
+              # tstat_profile.addValue(time_h[i],
+                                     # [tstat_profile_max - setback_val, lim_value].max)
+            # end
+          # elsif type == 'cooling'
+            # if value == tstat_profile_max
+              # tstat_profile.addValue(time_h[i],
+                                     # [tstat_profile_max + setback_val, lim_value].min)
+            # end
+          # end
+        # end
+      # end
+      # next unless tstat_profile_size > 2 # could be optimal start with ramp
 
-      tstat_profile.values.each_with_index do |value, i|
-        if value == tstat_profile_min
-          if type == 'heating'
-            tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_value].max) # set min value back to desired setback
-          elsif type == 'cooling'
-            tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_value].min)
-          end
-        elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
-          if type == 'heating'
-            if value < tstat_profile_max - setback_value_c # value now less than new min
-              tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_val].max) # set so that minimum value is now equal to maximum - setback
-            end
-          elsif type == 'cooling'
-            if value > tstat_profile_max + setback_val # value now less than new max
-              tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_val].min) # set so that minimum value is now equal to maximum - setback
-            end
-          end
-        end
-      end
-    end
-  end
+      # tstat_profile.values.each_with_index do |value, i|
+        # if value == tstat_profile_min
+          # if type == 'heating'
+            # tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_value].max) # set min value back to desired setback
+          # elsif type == 'cooling'
+            # tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_value].min)
+          # end
+        # elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
+          # if type == 'heating'
+            # if value < tstat_profile_max - setback_value_c # value now less than new min
+              # tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_val].max) # set so that minimum value is now equal to maximum - setback
+            # end
+          # elsif type == 'cooling'
+            # if value > tstat_profile_max + setback_val # value now less than new max
+              # tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_val].min) # set so that minimum value is now equal to maximum - setback
+            # end
+          # end
+        # end
+      # end
+    # end
+  # end
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -290,6 +290,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     htg_min_c = (htg_min - 32).to_f * conv_factor
     clg_max_c = (clg_max - 32).to_f * conv_factor
     cfm_per_m3s = 2118.8799727597
+	opt_start_app_loop = opt_start #opt_start_app tracks whether or not optimum start is applicable for a given air loop 
     zones_with_setbacks = []
     all_zones = []
     zones_modified = []
@@ -316,7 +317,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
       end
 
       if des_sup_airflow_rate * cfm_per_m3s < 10_000 and opt_start == true # Set to false if doesn't qualify for optimum start
-        opt_start = false
+        opt_start_app_loop = false
       end
       zones = air_loop_hvac.thermalZones
       zones.sort.each do |thermal_zone|
@@ -393,7 +394,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
             clg_des_day = htg_schedule.summerDesignDaySchedule
             htg_des_day = htg_schedule.winterDesignDaySchedule
             new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c,
-                                         opt_start, opt_start_len)
+                                         opt_start, opt_start_app_loop, opt_start_len)
             # Keep design days the same as before
             new_htg_sched.setWinterDesignDaySchedule(htg_des_day)
             new_htg_sched.setSummerDesignDaySchedule(clg_des_day)
@@ -410,7 +411,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
             clg_des_day = clg_schedule.summerDesignDaySchedule
             htg_des_day = clg_schedule.winterDesignDaySchedule
             new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c,
-                                         opt_start, opt_start_len)
+                                         opt_start, opt_start_app_loop, opt_start_len)
             new_clg_sched.setWinterDesignDaySchedule(htg_des_day)
             new_clg_sched.setSummerDesignDaySchedule(clg_des_day)
             zone_thermostat.setCoolingSchedule(new_clg_sched)
