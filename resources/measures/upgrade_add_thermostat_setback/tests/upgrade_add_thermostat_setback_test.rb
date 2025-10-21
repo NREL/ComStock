@@ -215,7 +215,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
     schedule_deltas = [] # keep track of differences between min and max values in schedules
 
-
     # Loop thru zones and look at temp setbacks
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       zones = air_loop_hvac.thermalZones
@@ -248,7 +247,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > htg_setback_c + 0.2 } # add a margin for unit conversion
-
 
     puts("Temperature deltas in schedule match expected values: #{deltas_out_of_range == false}")
     puts schedule_deltas
