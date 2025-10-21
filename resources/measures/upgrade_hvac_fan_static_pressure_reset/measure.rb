@@ -96,7 +96,7 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
     e = [0.01, 0.01, 0.01, 0.01]
 
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_doas?(air_loop_hvac)
+      if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_doas?(air_loop_hvac))
         next
       end
 
@@ -107,9 +107,10 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
       end
       # skip non-VAV systems
       next if !%w[VAV PVAV].any? { |word| air_loop_hvac.name.get.include?(word) } and !vav_terminals?(air_loop_hvac)
+	  
 
       overall_sel_air_loops << air_loop_hvac
-    end
+    end 
 
     # register na if no applicable air loops
     if overall_sel_air_loops.length == 0
