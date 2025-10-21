@@ -146,7 +146,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
                                                    [min_value + setback_val, lim_value].min
                                                  else
                                                    min_value
-                                                 end end
+                                                 end 
+        end
       end
     end
     tstat_sch_limits = OpenStudio::Model::ScheduleTypeLimits.new(model)
@@ -171,7 +172,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
                  (tstat_rule.startDate.get == dec_31_date)) || ((tstat_rule.endDate.get == dec_31_date) && (tstat_rule.startDate.get == dec_30_date))
 
       tstat_rule.remove
-     end
+    end
     sch_new
   end
 
