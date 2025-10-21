@@ -96,11 +96,11 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
     e = [0.01, 0.01, 0.01, 0.01]
 
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_hvac.name.to_s.include?('DOAS') || air_loop_hvac.name.to_s.include?('doas')) || air_loop_doas?(air_loop_hvac)
+      if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_doas?(air_loop_hvac)
         next
       end
 
-      # skip based on residential being in name, or if a DOAS, or a single zone system
+      # skip based on residential being in name, or if a DOAS
       sizing_system = air_loop_hvac.sizingSystem
       if air_loop_hvac.name.to_s.include?('residential') || air_loop_hvac.name.to_s.include?('Residential') || (sizing_system.allOutdoorAirinCooling && sizing_system.allOutdoorAirinHeating)
         next
