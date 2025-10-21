@@ -3,23 +3,14 @@
   <schema_version>3.1</schema_version>
   <name>fan_static_pressure_reset</name>
   <uid>62500b92-9756-4bba-8b8e-af2a97bf512f</uid>
-  <version_id>21e869ea-15fc-472b-9b8c-8723ef186159</version_id>
-  <version_modified>2025-07-31T18:50:00Z</version_modified>
+  <version_id>2f9f466c-3c68-48f6-9568-0db3760000b1</version_id>
+  <version_modified>2025-10-21T16:22:27Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>FanStaticPressureReset</class_name>
   <display_name>Fan Static Pressure Reset</display_name>
-  <description>Replace this text with an explanation of what the measure does in terms that can be understood by a general building professional audience (building owners, architects, engineers, contractors, etc.).  This description will be used to create reports aimed at convincing the owner and/or design team to implement the measure in the actual building design.  For this reason, the description may include details about how the measure would be implemented, along with explanations of qualitative benefits associated with the measure.  It is good practice to include citations in the measure if the description is taken from a known source or if specific benefits are listed.</description>
-  <modeler_description>Replace this text with an explanation for the energy modeler specifically.  It should explain how the measure is modeled, including any requirements about how the baseline model must be set up, major assumptions, citations of references to applicable modeling resources, etc.  The energy modeler should be able to read this description and understand what changes the measure is making to the model and why these changes are being made.  Because the Modeler Description is written for an expert audience, using common abbreviations for brevity is good practice.</modeler_description>
-  <arguments>
-    <argument>
-      <name>space_name</name>
-      <display_name>New space name</display_name>
-      <description>This name will be used as the name of the new space.</description>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-    </argument>
-  </arguments>
+  <description>This measure reflects the effects of a duct static pressure reset in a VAV fan.</description>
+  <modeler_description>This measure reflects the effects of a duct static pressure reset in a VAV fan by altering the fan curve.</modeler_description>
+  <arguments />
   <outputs />
   <provenances />
   <tags>
@@ -68,7 +59,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>612FFBE8</checksum>
+      <checksum>7BF2C2E8</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -91,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>742B5D15</checksum>
+      <checksum>9193ADBE</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -103,7 +94,7 @@
       <filename>fan_static_pressure_reset_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>864604BB</checksum>
+      <checksum>B24C2561</checksum>
     </file>
   </files>
 </measure>
