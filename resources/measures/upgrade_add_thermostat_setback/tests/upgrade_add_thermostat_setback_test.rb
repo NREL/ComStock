@@ -224,7 +224,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
         zone_thermostat = thermal_zone.thermostatSetpointDualSetpoint.get
         htg_schedule = zone_thermostat.heatingSetpointTemperatureSchedule
         if htg_schedule.empty?
-          puts("Heating setpoint schedule not found for zone '#{zone.name.get}'")
+          puts("Heating setpoint schedule not found for zone '#{thermal_zone.name.get}'")
           next
         elsif htg_schedule.get.to_ScheduleRuleset.empty?
           puts("Schedule '#{htg_schedule.get.name.get}' is not a ScheduleRuleset, will not be adjusted")
