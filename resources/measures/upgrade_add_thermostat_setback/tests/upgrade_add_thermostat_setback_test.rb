@@ -218,8 +218,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
     # Loop thru zones and look at temp setbacks
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       zones = air_loop_hvac.thermalZones
-
-
       zones.sort.each do |thermal_zone|
         next unless thermal_zone.thermostatSetpointDualSetpoint.is_initialized
 
