@@ -107,7 +107,8 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     valid
   end
 
-  def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start, opt_start_app_loop, opt_start_len)
+  def mod_schedule(model, runner, tstat_sched, sched_zone_occ, type, setback_val, lim_value, opt_start,
+                   opt_start_app_loop, opt_start_len)
     schedule_annual_profile = get_8760_values_from_schedule_ruleset(model, tstat_sched)
     sch_zone_occ_annual_profile = get_8760_values_from_schedule_ruleset(model, sched_zone_occ)
     schedule_annual_profile_updated = OpenStudio::DoubleVector.new
@@ -185,7 +186,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
     has_setback
   end
-  
+
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments) # Do **NOT** remove this line
@@ -243,7 +244,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     htg_min_c = (htg_min - 32).to_f * conv_factor
     clg_max_c = (clg_max - 32).to_f * conv_factor
     cfm_per_m3s = 2118.8799727597
-	opt_start_app_loop = opt_start #opt_start_app tracks whether or not optimum start is applicable for a given air loop 
+    opt_start_app_loop = opt_start # opt_start_app tracks whether or not optimum start is applicable for a given air loop
     zones_with_setbacks = []
     all_zones = []
     zones_modified = []
