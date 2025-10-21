@@ -659,6 +659,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
+	
+	standard_air_density = 1.225 #kg/m3, TODO: get locationally specific air density 
 
     # get building floor area properties
     total_building_area_m2 = 0.0
@@ -1051,7 +1053,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_weighted_fan_static_pressure = 0.0
     air_system_weighted_fan_efficiency = 0.0
     air_system_total_vav_mass_flow = 0.0
-    air_system_total_des_flow_rate = 0.0
+    air_system_total_des_flow_rate_m3_s = 0.0
     air_system_vav_avg_flow_ratio = -999
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
@@ -1143,9 +1145,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
       if fan_var_vol
         air_system_total_vav_mass_flow += air_loop_mass_flow_rate_kg_s # Track VAV airflow separately for SP reset measure
-        air_system_total_des_flow_rate += des_flow_rate
+        air_system_total_des_flow_rate_m3_s += des_flow_rate
       end
     end
+	#convert design flow rate from volumetric to mass flow 
+	air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s*standard_air_density #TODO: add in locationally specific air density 
+	
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
@@ -1154,7 +1159,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_air_system_fan_static_pressure', air_system_fan_static_pressure, 'Pa')
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
-    air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate > 0.0 ? air_system_total_vav_mass_flow.to_f / air_system_total_des_flow_rate.to_f : 0.0
+    air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow.to_f / air_system_total_des_flow_rate_kg_s.to_f : 0.0
 
 
     # calculate economizer variables
