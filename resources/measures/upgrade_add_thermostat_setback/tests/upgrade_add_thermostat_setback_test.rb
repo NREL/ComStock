@@ -248,7 +248,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > htg_setback_c + 0.2 } # add a margin for unit conversion
 
-
     puts("Temperature deltas in schedule match expected values: #{deltas_out_of_range == false}")
     puts schedule_deltas
     puts htg_setback_c
