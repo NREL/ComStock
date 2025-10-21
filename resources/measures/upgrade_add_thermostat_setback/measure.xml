@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_thermostat_setback</name>
   <uid>5f19c384-dbef-4747-90b7-f7500d315bd8</uid>
-  <version_id>91407a33-0d0f-4894-9560-8af975f85de1</version_id>
-  <version_modified>2025-08-15T17:22:30Z</version_modified>
+  <version_id>edf853e9-fb49-4a34-8143-4a14e1d71e33</version_id>
+  <version_modified>2025-10-21T17:21:21Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>UpgradeAddThermostatSetback</class_name>
   <display_name>Upgrade_Add_Thermostat_Setback</display_name>
@@ -64,7 +64,7 @@
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>60</default_value>
+      <default_value>55</default_value>
     </argument>
     <argument>
       <name>clg_max</name>
@@ -147,7 +147,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>CF9A648F</checksum>
+      <checksum>37EA92F8</checksum>
     </file>
     <file>
       <filename>sched_methods.rb</filename>
