@@ -135,10 +135,10 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
         runner.registerAsNotApplicable('Fan curve already represents an SP reset.')
 		return true 
       else
-        sup_fan.setFanPowerCoefficient1(0.040759894)
-        sup_fan.setFanPowerCoefficient2(0.08804497)
-        sup_fan.setFanPowerCoefficient3(-0.07292612)
-        sup_fan.setFanPowerCoefficient4(0.943739823)
+        sup_fan.setFanPowerCoefficient1(sp_reset_fan_coeff[0])
+        sup_fan.setFanPowerCoefficient2(sp_reset_fan_coeff[1])
+        sup_fan.setFanPowerCoefficient3(sp_reset_fan_coeff[2])
+        sup_fan.setFanPowerCoefficient4(sp_reset_fan_coeff[3])
       end
     end
 
