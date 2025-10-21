@@ -125,7 +125,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
       if type == 'heating'
         if opt_start and opt_start_app_loop and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
-          delta_per_hour = setback_val.fdiv(opt_start_len + 1) # hours reflects time to ocucpancy
+          delta_per_hour = setback_val.fdiv(opt_start_len + 1) # hours reflects time to occupancy
           schedule_annual_profile_updated[idx] =
             [max_value - setback_val + delta_per_hour * (opt_start_len + 1 - hours), lim_value].max
         else
