@@ -185,54 +185,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
     end
     has_setback
   end
-
-  # def mod_schedule_setbacks_existent(schedule, type, setback_val, lim_value)
-    # profiles = [schedule.defaultDaySchedule]
-    # schedule.scheduleRules.each { |rule| profiles << rule.daySchedule }
-    # for tstat_profile in profiles
-      # tstat_profile_min = tstat_profile.values.min
-      # tstat_profile_max = tstat_profile.values.max
-      # tstat_profile_size = tstat_profile.values.uniq.size
-      # time_h = tstat_profile.times
-      # if tstat_profile_size == 2 # profile is square wave (2 setpoints, occupied vs unoccupied)
-        # tstat_profile.values.each_with_index do |value, i| # iterate thru profile and modify values as needed
-          # if type == 'heating'
-            # if value == tstat_profile_min
-              # tstat_profile.addValue(time_h[i],
-                                     # [tstat_profile_max - setback_val, lim_value].max)
-            # end
-          # elsif type == 'cooling'
-            # if value == tstat_profile_max
-              # tstat_profile.addValue(time_h[i],
-                                     # [tstat_profile_max + setback_val, lim_value].min)
-            # end
-          # end
-        # end
-      # end
-      # next unless tstat_profile_size > 2 # could be optimal start with ramp
-
-      # tstat_profile.values.each_with_index do |value, i|
-        # if value == tstat_profile_min
-          # if type == 'heating'
-            # tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_value].max) # set min value back to desired setback
-          # elsif type == 'cooling'
-            # tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_value].min)
-          # end
-        # elsif value > tstat_profile_min && value < tstat_profile_max # dealing with optimum start case
-          # if type == 'heating'
-            # if value < tstat_profile_max - setback_value_c # value now less than new min
-              # tstat_profile.addValue(time_h[i], [tstat_profile_max - setback_val, lim_val].max) # set so that minimum value is now equal to maximum - setback
-            # end
-          # elsif type == 'cooling'
-            # if value > tstat_profile_max + setback_val # value now less than new max
-              # tstat_profile.addValue(time_h[i], [tstat_profile_min + setback_val, lim_val].min) # set so that minimum value is now equal to maximum - setback
-            # end
-          # end
-        # end
-      # end
-    # end
-  # end
-
+  
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
     super(model, runner, user_arguments) # Do **NOT** remove this line
