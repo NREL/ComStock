@@ -181,7 +181,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
       sched_min = profile.values.min
       sched_max = profile.values.max
       has_setback = true if sched_max > sched_min
-         end
+    end
     has_setback
   end
 
