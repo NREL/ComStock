@@ -215,7 +215,6 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
     schedule_deltas = [] # keep track of differences between min and max values in schedules
 
-
     # Loop thru zones and look at temp setbacks
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       zones = air_loop_hvac.thermalZones
