@@ -229,7 +229,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           end
         end
       end
-     end
+    end
   end
 
   # define what happens when the measure is run
