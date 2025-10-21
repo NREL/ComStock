@@ -156,7 +156,7 @@ class FanStaticPressureResetTest < Minitest::Test
 
   def test_confirm_fan_curve_change
     osm_name = 'SP_reset_measure_Test.osm'
-    epw_name = 'USA_AL_Maxwell.AFB.722265_TMY3.epw'
+    epw_name = 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16.epw'
 
     test_name = 'confirm_fan_curve_change'
 
@@ -193,14 +193,15 @@ class FanStaticPressureResetTest < Minitest::Test
 
     vs_fans.each do |fan|
       fan = fan.to_FanVariableVolume.get
-      coeff_1 = fan.fanPowerCoefficient1
-      coeff_2 = fan.fanPowerCoefficient2
-      coeff_3 = fan.fanPowerCoefficient3
-      coeff_4 = fan.fanPowerCoefficient4
-      fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]
-      return false if fan_coeff_arr != reset_arr
-    end
-
-    true
+      coeff_1 = fan.fanPowerCoefficient1.get
+      coeff_2 = fan.fanPowerCoefficient2.get
+      coeff_3 = fan.fanPowerCoefficient3.get
+      coeff_4 = fan.fanPowerCoefficient4.get
+      fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]  
+	  
+	  print(coeff_1)
+	  print(coeff_2)
+       assert_equal(reset_arr, fan_coeff_arr, "Fan coefficients do not match expected reset values")
+    end 
   end
 end
