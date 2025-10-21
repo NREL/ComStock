@@ -112,7 +112,10 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
     end
 
     # register na if no applicable air loops
-    runner.registerAsNotApplicable('No applicable air loops found in model') if overall_sel_air_loops.length == 0
+    if overall_sel_air_loops.length == 0
+	   runner.registerAsNotApplicable('No applicable air loops found in model') 
+	   return true 
+	end 
 
     overall_sel_air_loops.sort.each do |air_loop_hvac|
       sup_fan = air_loop_hvac.supplyFan
@@ -130,6 +133,7 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
       # Check if fan curve coefficients already match values emulating SP reset
       if diff.map(&:abs).zip(e).all? { |a, b| a < b } # difference less than the tolerance
         runner.registerAsNotApplicable('Fan curve already represents an SP reset.')
+		return true 
       else
         sup_fan.setFanPowerCoefficient1(0.040759894)
         sup_fan.setFanPowerCoefficient2(0.08804497)
