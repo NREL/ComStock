@@ -2796,6 +2796,8 @@ end
     stage_caps_clg = parse_stage_fractions(cchp_staging["stage_cap_fractions_cooling"])
 
     if compressor_reduction_during_peak == true
+
+      sensible_heat_ratio = 0.77
       
       unitary_systems = model.getAirLoopHVACUnitarySystems
       if unitary_systems.empty?
@@ -2855,14 +2857,18 @@ end
 
               # get rated heating capacity (at highest stage)
               rated_capacity_htg_w = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.last.grossRatedHeatingCapacity.get.to_f
+              puts "rated_capacity_htg_w: #{rated_capacity_htg_w}"
 
               htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
               htg_limit_val = [htg_limit_val, num_htg_speeds].min
+              puts "htg_limit_val: #{htg_limit_val}"
 
               cap_frac_htg = nonlinear_capacity_fraction(htg_limit_val, stage_caps_htg)
-              cap_capacity_htg_w = rated_capacity_htg_w * cap_frac_htg
+              cap_capacity_htg_w = rated_capacity_htg_w * cap_frac_htg * sensible_heat_ratio
+              puts "cap_frac_htg: #{cap_frac_htg}"
+              puts "cap_capacity_htg_w: #{cap_capacity_htg_w}"
 
-              runner.registerInfo("Heating coil #{unitary.name} limited to EMS value #{htg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
+              puts "Heating coil #{unitary.name} limited to EMS value #{htg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak."
             end
           end
 
@@ -2874,15 +2880,19 @@ end
 
               # get rated cooling capacity (at highest stage)
               rated_capacity_clg_w = clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.last.grossRatedTotalCoolingCapacity.get.to_f
+              puts "rated_capacity_clg_w: #{rated_capacity_clg_w}"
 
               # nonlinear mapping
               clg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_clg)
               clg_limit_val = [clg_limit_val, num_clg_speeds].min
+              puts "clg_limit_val: #{clg_limit_val}"
 
               cap_frac_clg = nonlinear_capacity_fraction(clg_limit_val, stage_caps_clg)
-              cap_capacity_clg_w = rated_capacity_clg_w * cap_frac_clg
+              cap_capacity_clg_w = rated_capacity_clg_w * cap_frac_clg * sensible_heat_ratio
+              puts "cap_frac_clg: #{cap_frac_clg}"
+              puts "cap_capacity_clg_w: #{cap_capacity_clg_w}"
 
-              runner.registerInfo("Cooling coil #{unitary.name} limited to EMS value #{clg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak.")
+              puts "Cooling coil #{unitary.name} limited to EMS value #{clg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak."
             end
           end
 
@@ -2927,39 +2937,7 @@ end
             ELSE,
               SET #{dx_coil_actuator.name} = Null,   ! off-peak
             ENDIF
-            EMS
-
-            # 4F safety for compressor operation
-            # SET htg_safety_sp = #{zone_htg_sp.name} - 2.22
-            # SET clg_safety_sp = #{zone_clg_sp.name} + 2.22
-
-            # IF (#{sensor.name} > 0.5),   ! only during peak
-
-            #   ! heating mode: load > 0
-            #   IF (#{mode_sensor.name} > 0),
-            #     IF (#{zone_t.name} < htg_safety_sp),
-            #       SET #{dx_coil_actuator.name} = Null,      ! release if too cold
-            #     ELSE,
-            #       SET #{dx_coil_actuator.name} = #{htg_limit_val},
-            #     ENDIF,
-
-            #   ! cooling mode: load < 0
-            #   ELSEIF (#{mode_sensor.name} < 0),
-            #     IF (#{zone_t.name} > clg_safety_sp),
-            #       SET #{dx_coil_actuator.name} = Null,      ! release if too hot
-            #     ELSE,
-            #       SET #{dx_coil_actuator.name} = #{clg_limit_val},
-            #     ENDIF,
-
-            #   ! deadband: load ~ 0
-            #   ELSE,
-            #     SET #{dx_coil_actuator.name} = Null,
-            #   ENDIF,
-
-            # ELSE,
-            #   SET #{dx_coil_actuator.name} = Null,   ! off-peak
-            # ENDIF
-          # EMS
+          EMS
 
           dx_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
           dx_coil_program.setName("DR_Limit_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
@@ -3109,92 +3087,99 @@ end
 
     ################# ADD EMS OUTPUT VARIABLES ################
    
-    # # adding output variables (for debugging)
-    # out_vars = [
+    # adding output variables (for debugging)
+    out_vars = [
+      'Site Outdoor Air Drybulb Temperature',
+    #   'Air System Mixed Air Mass Flow Rate',
+    #   'Fan Air Mass Flow Rate',
+    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+       'Cooling Coil Total Cooling Rate',
+    #   'Cooling Coil Electricity Rate',
+    #   'Cooling Coil Runtime Fraction',
+       'Heating Coil Heating Rate',
+    #   'Heating Coil Electricity Rate',
+    #   'Heating Coil Runtime Fraction',
+    #   'Unitary System DX Coil Cycling Ratio',
+       'Unitary System DX Coil Speed Ratio',
+       'Unitary System DX Coil Speed Level',
+    #   'Unitary System Total Cooling Rate',
+    #   'Unitary System Total Heating Rate',
+    #   'Unitary System Electricity Rate',
+    #   'HVAC System Solver Iteration Count',
     #   'Site Outdoor Air Drybulb Temperature',
-    # #   'Air System Mixed Air Mass Flow Rate',
-    # #   'Fan Air Mass Flow Rate',
-    # #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-    #    'Cooling Coil Total Cooling Rate',
-    # #   'Cooling Coil Electricity Rate',
-    # #   'Cooling Coil Runtime Fraction',
-    #    'Heating Coil Heating Rate',
-    # #   'Heating Coil Electricity Rate',
-    # #   'Heating Coil Runtime Fraction',
-    # #   'Unitary System DX Coil Cycling Ratio',
-    #    'Unitary System DX Coil Speed Ratio',
-    #    'Unitary System DX Coil Speed Level',
-    # #   'Unitary System Total Cooling Rate',
-    # #   'Unitary System Total Heating Rate',
-    # #   'Unitary System Electricity Rate',
-    # #   'HVAC System Solver Iteration Count',
-    # #   'Site Outdoor Air Drybulb Temperature',
-    # #   'Heating Coil Crankcase Heater Electricity Rate',
-    # #   'Heating Coil Defrost Electricity Rate',
-    #    'Zone Air Temperature',
-    # #   'Lights Total Heating Energy',
-    # #   'Electric Equipment Total Heating Energy',
-    # #   'People Total Heating Rate',
-    # #   'Heating Coil Total Heating Energy',
-    #    'Zone Thermostat Heating Setpoint Temperature',
-    #    'Zone Thermostat Cooling Setpoint Temperature'
-    # ]
-    # out_vars.each do |out_var_name|
-    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #   ov.setKeyValue('*')
-    #   ov.setReportingFrequency('timestep')
-    #   ov.setVariableName(out_var_name)
-    # end
+    #   'Heating Coil Crankcase Heater Electricity Rate',
+    #   'Heating Coil Defrost Electricity Rate',
+       'Zone Air Temperature',
+    #   'Lights Total Heating Energy',
+    #   'Electric Equipment Total Heating Energy',
+    #   'People Total Heating Rate',
+    #   'Heating Coil Total Heating Energy',
+       'Zone Thermostat Heating Setpoint Temperature',
+       'Zone Thermostat Cooling Setpoint Temperature',
+       'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate'
+    ]
+    out_vars.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
+    end
 
-    # # Peak schedule value (to verify EMS trigger timing)
-    # peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
-    # peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
-    # peak_sch_outvar.setReportingFrequency('Hourly')
+    # Peak schedule value (to verify EMS trigger timing)
+    peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
+    peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
+    peak_sch_outvar.setReportingFrequency('Hourly')
 
-    # runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
+    runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
 
-    # # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-    # output_EMS = model.getOutputEnergyManagementSystem
-    # output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    # output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
-    # output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    output_EMS = model.getOutputEnergyManagementSystem
+    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-    # timeseriesnames = []
+    timeseriesnames = []
 
-    # # Get EMS variables created by the measure
-    # li_ems_act_oa_flow = []
-    # model.getEnergyManagementSystemActuators.each do |ems_actuator|
-    #   li_ems_act_oa_flow << ems_actuator
-    # end
-    # model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
-    #   li_ems_act_oa_flow << glo_var
-    # end
+    # Get EMS variables created by the measure
+    li_ems_act_oa_flow = []
+    model.getEnergyManagementSystemActuators.each do |ems_actuator|
+      li_ems_act_oa_flow << ems_actuator
+    end
+    model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+      li_ems_act_oa_flow << glo_var
+    end
     
-    # # Create output var for EMS variables
-    # ems_output_variable_list = []
-    # li_ems_act_oa_flow.each do |act|
-    #   name = act.name
-    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-    #   ems_act_oa_flow.setUpdateFrequency('timestep')
-    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
-    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
-    # end
+    # Create output var for EMS variables
+    ems_output_variable_list = [
+      'DR_Adjustment_Sensor',
+      'req_heating',
+      'req_cooling',
+      'cap_capacity_htg',
+      'cap_capacity_clg'
+]
+    li_ems_act_oa_flow.each do |act|
+      name = act.name
+      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+      ems_act_oa_flow.setUpdateFrequency('timestep')
+      ems_act_oa_flow.setName("#{name}_ems_outvar")
+      ems_output_variable_list << ems_act_oa_flow.name.to_s
+    end
     
-    # # Add EMS output variables to regular output variables
-    # ems_output_variable_list.each do |variable|
-    #   output = OpenStudio::Model::OutputVariable.new(variable,model)
-    #   output.setKeyValue("*")
-    #   output.setReportingFrequency('timestep')
-    #   timeseriesnames << variable
-    # end
+    # Add EMS output variables to regular output variables
+    ems_output_variable_list.each do |variable|
+      output = OpenStudio::Model::OutputVariable.new(variable,model)
+      output.setKeyValue("*")
+      output.setReportingFrequency('timestep')
+      timeseriesnames << variable
+    end
 
-    # # Add output vars for simulation after measure implementation
-    # timeseriesnames.each do |out_var_name|
-    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
-    #   ov.setKeyValue('*')
-    #   ov.setReportingFrequency('timestep')
-    #   ov.setVariableName(out_var_name)
-    # end
+    # Add output vars for simulation after measure implementation
+    timeseriesnames.each do |out_var_name|
+      ov = OpenStudio::Model::OutputVariable.new('ov', model)
+      ov.setKeyValue('*')
+      ov.setReportingFrequency('timestep')
+      ov.setVariableName(out_var_name)
+    end
 
     # report final condition of model
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
