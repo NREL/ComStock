@@ -1142,18 +1142,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 	  #Get airflow time series for average flow rate 
 	  ts_ahu_ma_flow_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase) # dimensionless
 	  ts_ahu_ma_flow_rate_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate)
-	  
-	  filename = 'output.csv'
-
-		# Open the CSV file in write mode ('w')
-		# The block ensures the file is automatically closed after writing
-		CSV.open(filename, 'w') do |csv|
-		  # Iterate through each row in the data array
-		  ts_ahu_ma_flow_rate_list.each do |row|
-			# Write the current row to the CSV file
-			csv << [row]
-		  end
-		end
 	
       average_non_zero_loop_mass_flow = ts_ahu_ma_flow_rate_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_list.reject(&:zero?).count
 	  
