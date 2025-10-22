@@ -1176,6 +1176,32 @@ class NamingMixin():
             '8':'8',
     }
 
+    #RSE class naming
+    RSE_METRIC = "Metric"
+    RSE_GROUP_BY = "Grouping Level"
+    RSE_GROUP_BY_VALUE = "Group Value"
+    RSE_SUBGROUP_TYPE = "Subgroup Type"
+    RSE_SUBGROUP_VALUE = "Subgroup Value"
+    RSE_REL_STD_ERR = "Relative Standard Error (RSE)"
+    RSE_CBECS_TABLE_REF = "CBECS Table Reference"
+    RSE_BLDG_TYPE = "Comstock Building Type"
+
+    #RSE mapping
+    RSE_MAPPING = {
+        'Site Energy' : ANN_TOT_ENGY_KBTU,
+        'NG Energy' : ANN_TOT_GAS_KBTU,
+        'Electric Energy' : ANN_TOT_ELEC_KBTU,
+        'Sq-FT': FLR_AREA,
+        'Total EUI': TOT_EUI,
+        'Site EUI': TOT_EUI,
+        'NG EUI': 'out.energy_consumption_intensity.natural_gas_kbtu_per_ft2',
+        'Electric EUI': 'out.energy_consumption_intensity.electricity_kbtu_per_ft2',
+        'CEN Division': CEN_DIV,
+        'Vintage': VINTAGE,
+        'Building Type': BLDG_TYPE,
+    }
+
+
     def end_use_group(self, end_use):
         # Add an End Use Group
         end_use_groups = {
