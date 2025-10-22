@@ -145,6 +145,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heat Recovery Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Mass Flow Rate,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Mixed Air Mass Flow Rate,RunPeriod;').get # kg/s
+	result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{fuel_oil} Energy,RunPeriod;").get # J
@@ -1055,6 +1056,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_total_vav_mass_flow = 0.0
     air_system_total_des_flow_rate_m3_s = 0.0
     air_system_vav_avg_flow_ratio = -999
+	des_flow_rate_m3_s = 0 
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # check if unitary system
@@ -1095,7 +1097,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           fan_efficiency = supply_fan.fanTotalEfficiency
           if supply_fan.maximumFlowRate.is_initialized
             fan_var_vol = true
-            des_flow_rate = supply_fan.maximumFlowRate.get
+            des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
           end
         else
           runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
@@ -1136,7 +1138,25 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           economizer_high_limit_enthalpy_j_per_kg: economizer_high_limit_enthalpy_j_per_kg
         }
       end
+	  
+	  #Get airflow time series for average flow rate 
+	  ts_ahu_ma_flow_rate = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase) # dimensionless
+	  ts_ahu_ma_flow_rate_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate)
+	  
+	  filename = 'output.csv'
 
+		# Open the CSV file in write mode ('w')
+		# The block ensures the file is automatically closed after writing
+		CSV.open(filename, 'w') do |csv|
+		  # Iterate through each row in the data array
+		  ts_ahu_ma_flow_rate_list.each do |row|
+			# Write the current row to the CSV file
+			csv << [row]
+		  end
+		end
+	
+      average_non_zero_loop_mass_flow = ts_ahu_ma_flow_rate_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_list.reject(&:zero?).count
+	  
       # add to weighted
       air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s
       air_system_total_oa_mass_flow_kg_s += air_loop_oa_mass_flow_rate_kg_s
@@ -1144,12 +1164,15 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
       if fan_var_vol
-        air_system_total_vav_mass_flow += air_loop_mass_flow_rate_kg_s # Track VAV airflow separately for SP reset measure
-        air_system_total_des_flow_rate_m3_s += des_flow_rate
+        air_system_total_vav_mass_flow += average_non_zero_loop_mass_flow # Track VAV airflow separately for SP reset measure
+        air_system_total_des_flow_rate_m3_s += des_flow_rate_m3_s
       end
+
+	
     end
+	
 	#convert design flow rate from volumetric to mass flow 
-	air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s*standard_air_density #TODO: add in locationally specific air density 
+	air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s*standard_air_density 
 	
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
@@ -1160,8 +1183,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
     air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow.to_f / air_system_total_des_flow_rate_kg_s.to_f : 0.0
-
-
+    
     # calculate economizer variables
     if economizer_statistics.empty?
       runner.registerValue('com_report_hvac_economizer_control_type', 'NoEconomizer')
