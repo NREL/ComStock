@@ -661,7 +661,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
 	
-	standard_air_density = 1.225 #kg/m3, TODO: get locationally specific air density 
+	standard_air_density = 1.225 #kg/m3, using standard air density since need a single value 
 
     # get building floor area properties
     total_building_area_m2 = 0.0
