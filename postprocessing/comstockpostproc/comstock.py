@@ -1786,6 +1786,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_load_intensity_columns(self):
         # Create load intensity column for each load column
         for load_col in self.load_component_cols():
+            if load_col not in self.data.columns:
+                logger.warning(f"Load column {load_col} not found, skipping load intensity calculation.")
+                continue  # Skip missing columns
             # Divide load by area to create intensity
             calc_col = load_col.replace('out.', 'calc.')
             calc_col = calc_col.replace('..gj', '..kbtu')
@@ -3308,6 +3311,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             if not col in existing_col_names:
                 logger.warning(f'Missing column needed for adding weighted columns: {col}')
+                continue
             # assert col in input_lf.columns, f'Missing column needed for adding weighted columns: {col}' # TODO ANDREW handle this
 
             #based on the unit, we use different conv factor and convert the value to the new column
@@ -3822,6 +3826,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.data_long = engy_emis
 
     def create_and_export_long_loads_data(self, geo_data):
+        for load_col in self.load_component_cols():
+            if load_col not in self.data.columns:
+                logger.info("No load columns available, skipping long loads data export.")
+                return
 
         def add_climate_zone_group(df):
             cz_groups = {
