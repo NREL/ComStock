@@ -1072,7 +1072,9 @@ end
     compressor_reduction_during_peak = runner.getBoolArgumentValue('compressor_reduction_during_peak', user_arguments)
     peak_compressor_reduction_value = runner.getStringArgumentValue('peak_compressor_reduction_value', user_arguments)
     backup_heat_reduction_during_peak = runner.getBoolArgumentValue('backup_heat_reduction_during_peak', user_arguments)
-    peak_backup_heat_reduction_value = runner.getStringArgumentValue('peak_backup_heat_reduction_value', user_arguments)   
+    peak_backup_heat_reduction_value = runner.getStringArgumentValue('peak_backup_heat_reduction_value', user_arguments)  
+    
+    hp_min_comp_lockout_temp_c = OpenStudio.convert(hp_min_comp_lockout_temp_f, 'F', 'C').get
 
     # build standard to use OS standards methods
     # ---------------------------------------------------------
@@ -2525,6 +2527,12 @@ end
 
       # add new supplemental heating coil
       new_backup_heating_coil = nil
+
+      # create backup coil schedule, initialize default value to 1; this may be modified during EMS DR section
+      backup_coil_avail_sched = OpenStudio::Model::ScheduleRuleset.new(model)
+      backup_coil_avail_sched.setName("#{air_loop_hvac.name}_avail_sched")
+      backup_coil_avail_sched.defaultDaySchedule.addValue(OpenStudio::Time.new(0, 24, 0, 0), 1)
+
       # define backup heat source TODO: set capacity to equal full heating capacity
       if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
         if backup_heat_reduction_during_peak == true
@@ -2541,12 +2549,14 @@ end
           stage2.setNominalCapacity(orig_htg_coil_gross_cap_old)
         
           new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance multistage backup coil")
+          new_backup_heating_coil.setAvailabilitySchedule(backup_coil_avail_sched)
         else
           new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
           new_backup_heating_coil.setEfficiency(1.0)
           new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
           # set capacity of backup heat to meet full heating load
           new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
+          new_backup_heating_coil.setAvailabilitySchedule(always_on)
         end
       else
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
@@ -2554,9 +2564,8 @@ end
         new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
         # set capacity of backup heat to meet full heating load
         new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
+        new_backup_heating_coil.setAvailabilitySchedule(always_on)
       end
-      # set availability schedule
-      new_backup_heating_coil.setAvailabilitySchedule(always_on)
 
       # add new fan
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
@@ -2809,9 +2818,9 @@ end
           runner.registerAsNotApplicable('Peak Schedule for DR Adjustments not found in model.')
           return false
         end
-        sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
-        sensor.setName('DR_Adjustment_Sensor')
-        sensor.setKeyName(peak_sch.get.nameString)
+        dr_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
+        dr_sensor.setName('DR_Adjustment_Sensor')
+        dr_sensor.setKeyName(peak_sch.get.nameString)
 
         # loop through unitary systems
         unitary_systems.each do |unitary|
@@ -2836,6 +2845,22 @@ end
             zone_clg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Cooling Setpoint Temperature')
             zone_clg_sp.setKeyName(zone.nameString)
             zone_clg_sp.setName("TspClg_#{zone.nameString.gsub(/\W/,'_')}")
+
+            #detect current coil speed level
+            speed_level_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+              model,
+              'Unitary System DX Coil Speed Level'
+            )
+            speed_level_sensor.setKeyName(unitary.nameString)
+            speed_level_sensor.setName("USys_Speed_Level_#{unitary.name.to_s.gsub(/\W/,'_')}")
+
+            #detect current coil speed ratio
+            speed_ratio = OpenStudio::Model::EnergyManagementSystemSensor.new(
+              model,
+              'Unitary System DX Coil Speed Ratio'
+            )
+            speed_ratio.setKeyName(unitary.nameString)
+            speed_ratio.setName("USys_Speed_Ratio_#{unitary.name.to_s.gsub(/\W/,'_')}")
 
             #detect heating or cooling mode
             mode_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
@@ -2906,24 +2931,21 @@ end
           program_body = <<~EMS
             SET cap_stage_clg = #{clg_limit_val}
             SET cap_stage_htg = #{htg_limit_val}
-            SET cap_capacity_clg = #{cap_capacity_clg_w}
-            SET cap_capacity_htg = #{cap_capacity_htg_w}
+            SET speed_level_sensor = #{speed_level_sensor.name}
+            SET speed_ratio = #{speed_ratio.name}
+            SET actual_speed_level = (#{speed_level_sensor.name} - 1 + #{speed_ratio.name})
 
-            IF (#{sensor.name} > 0.5),   ! only during peak
-
+            IF (#{dr_sensor.name} > 0.5),   ! only during peak
               ! --- Cooling mode: load < 0 ---
               IF (#{mode_sensor.name} < 0),
-                SET req_cooling = -1 * #{mode_sensor.name}
-                IF (req_cooling > cap_capacity_clg),
+                IF (actual_speed_level >= cap_stage_clg),
                   SET #{dx_coil_actuator.name} = cap_stage_clg,
                 ELSE,
                   SET #{dx_coil_actuator.name} = Null,
                 ENDIF,
-
               ! --- Heating mode: load > 0 ---
-              ELSEIF (#{mode_sensor.name} > 0),
-                SET req_heating = #{mode_sensor.name}
-                IF (req_heating > cap_capacity_htg),
+              ELSEIF (#{mode_sensor.name} > 0), 
+                IF (actual_speed_level >= cap_stage_htg),
                   SET #{dx_coil_actuator.name} = cap_stage_htg,
                 ELSE,
                   SET #{dx_coil_actuator.name} = Null,
@@ -2945,8 +2967,39 @@ end
 
           dx_coil_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
           dx_coil_pcm.setName("DR Peak DX Limit Manager #{unitary.name.to_s.gsub("-", "")}")
-          dx_coil_pcm.setCallingPoint('InsideHVACSystemIterationLoop')
+          dx_coil_pcm.setCallingPoint('AfterPredictorBeforeHVACManagers')
           dx_coil_pcm.addProgram(dx_coil_program)
+
+          # To reset actuator after timestep
+          dx_coil_program_reset_start = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          dx_coil_program_reset_start.setName("BeginningOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
+          dx_coil_program_reset_start_body = <<-EMS
+            SET #{dx_coil_actuator.name} = Null
+            SET speed_level_sensor = 0
+            SET speed_ratio = 0
+            SET actual_speed_level = 0
+          EMS
+          dx_coil_program_reset_start.setBody(dx_coil_program_reset_start_body)
+          # List of EMS program manager objects
+          programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+          programs_at_beginning_of_timestep.setCallingPoint('BeginTimestepBeforePredictor')
+          programs_at_beginning_of_timestep.addProgram(dx_coil_program_reset_start)
+
+          # To reset actuator after timestep
+          dx_coil_program_reset_finish = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          dx_coil_program_reset_finish.setName("EndOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
+          dx_coil_program_reset_finish_body = <<-EMS
+            SET #{dx_coil_actuator.name} = Null
+            SET speed_level_sensor = 0
+            SET speed_ratio = 0
+            SET actual_speed_level = 0
+          EMS
+          dx_coil_program_reset_finish.setBody(dx_coil_program_reset_finish_body)
+          # List of EMS program manager objects
+          programs_at_end_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+          programs_at_end_of_timestep.setName("EndOfTimestepResetManager_#{unitary.name.to_s.gsub("-", "")}")
+          programs_at_end_of_timestep.setCallingPoint('EndOfSystemTimestepAfterHVACReporting')
+          programs_at_end_of_timestep.addProgram(dx_coil_program_reset_finish)
 
           runner.registerInfo("Added EMS to limit compressor capacity during peak to unitary system: #{unitary.name}")
         end
@@ -2964,7 +3017,7 @@ end
     elsif peak_backup_heat_reduction_value == '50%'
       backup_heat_frac = 0.5
     elsif peak_backup_heat_reduction_value == '100%'
-      backup_heat_frac = 0.001
+      backup_heat_frac = 0.0
     end
 
     if backup_heat_reduction_during_peak == true
@@ -2980,8 +3033,12 @@ end
 
       # Loop unitary systems and add the supplemental-heat actuator + program
       model.getAirLoopHVACUnitarySystems.each do |unitary|
+        air_loop_hvac = unitary.airLoopHVAC.get.name
+
         # Make sure there is a supplemental heating coil (often CoilHeatingElectric)
-        unless unitary.supplementalHeatingCoil.is_initialized
+        if unitary.supplementalHeatingCoil.is_initialized
+          backup_coil_name = unitary.supplementalHeatingCoil.get.nameString
+        else
           runner.registerInfo("Unitary '#{unitary.name}' has no supplemental heat; skipping EMS for it.")
           next
         end
@@ -2991,90 +3048,89 @@ end
 
         runner.registerInfo("Adding backup heat EMS with safety logic to unitary system: #{unitary.name}")
 
-        # Actuator: Unitary System Supplemental Coil Stage Level
-        sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
-          unitary,
-          'Coil Speed Control',
-          'Unitary System Supplemental Coil Stage Level'
-        )
-        sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
+        # if backup heat fraction is 0, turn of schedule during peak
+        if backup_heat_frac == 0.0
+          # --- Outdoor Air Temperature Sensor ---
+          oa_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
+          oa_t.setKeyName('Environment')
+          oa_t.setName('T_OA')
 
-        # Determine number of supplemental stages (default 1 for cycling coil)
-        num_sup_stages = 2
-        if unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.is_initialized
-          num_sup_stages = unitary.supplementalHeatingCoil.get.to_CoilHeatingDXMultiSpeed.get.stages.size
+          air_loop = unitary.airLoopHVAC.get
+          avail_sched = unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.availabilitySchedule
+          
+          # Actuator: Unitary System Supplemental Coil Stage Level
+          sched_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
+            avail_sched,
+            'Schedule:Year',
+            'Schedule Value'
+          )
+          sched_act.setName("SupCoilSchedAct_#{unitary.name.to_s.gsub(/\W/,'_')}")
+          
+          program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
+          program.setBody(<<~EMS)
+            IF (#{dr_flag.name} > 0.5),                 ! peak period
+              IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_c}),                ! heat pump locked out -> allow full backup
+                SET #{sched_act.name} = 1,
+              ELSE,
+                SET #{sched_act.name} = 0,           ! otherwise turn off schedule
+              ENDIF,
+            ELSE
+              SET #{sched_act.name} = 1,                 ! off peak, release control
+            ENDIF
+          EMS
+        else
+          #detect current coil speed level
+          backup_coil_power_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+            model,
+            'Heating Coil Electricity Rate'
+          )
+          backup_coil_power_sensor.setKeyName(backup_coil_name)
+          backup_coil_power_sensor.setName("USys_Power_#{unitary.name.to_s.gsub(/\W/,'_')}")
+
+          # Actuator: Unitary System Supplemental Coil Stage Level
+          sup_act = OpenStudio::Model::EnergyManagementSystemActuator.new(
+            unitary,
+            'Coil Speed Control',
+            'Unitary System Supplemental Coil Stage Level'
+          )
+          sup_act.setName("SupCoilStage_#{unitary.name.to_s.gsub(/\W/,'_')}")
+
+          # Determine number of supplemental stages (default 1 for cycling coil)
+          num_sup_stages = 2
+          backup_coil_nominal_capacity = unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.stages[1].nominalCapacity.get.to_f
+          puts "backup coil nominal capacity = #{unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.stages[1].nominalCapacity.get.to_f}"
+
+          # --- Outdoor Air Temperature Sensor ---
+          oa_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
+          oa_t.setKeyName('Environment')
+          oa_t.setName('T_OA')
+
+          backup_heat_lim = backup_coil_nominal_capacity * backup_heat_frac.round(3)
+          puts "backup heat limit W for coil #{unitary.name} = #{backup_heat_lim}"
+
+          program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
+          program.setBody(<<~EMS)
+            SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
+            SET backup_heat_lim = #{backup_coil_nominal_capacity} * #{backup_heat_frac.round(3)}
+
+            IF (#{dr_flag.name} > 0.5),                 ! peak period
+              IF (#{backup_coil_power_sensor.name} >= backup_heat_lim),     ! backup heat is running above limit; allow limit capacity
+                IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_c}),                ! heat pump locked out -> allow full backup
+                    SET #{sup_act.name} = Null,
+                ELSE,
+                  SET #{sup_act.name} = sup_lim,
+                ENDIF,          ! otherwise enforce cap
+              ELSE
+                SET #{sup_act.name} = Null,                 ! backup heat running below limit; release control
+              ENDIF,
+            ELSE
+              SET #{sup_act.name} = Null,                 ! off peak, release control
+            ENDIF
+          EMS
         end
-
-        #### EMS Scenario 1: reduce backup heat during peak, no safety ####
-        # # EMS program body: during peak, cap to backup_heat_frac * N; else release control 
-        # program = OpenStudio::Model::EnergyManagementSystemProgram.new(model) 
-        # program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}") 
-        # program.setBody(<<~EMS) 
-        #   SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages} 
-        #   IF (#{dr_flag.name} > 0.5), 
-        #     SET #{sup_act.name} = sup_lim, ! e.g., 0.5 on a 1-stage coil = 50% 
-        #   ELSE, 
-        #     SET #{sup_act.name} = Null, ! release to normal control off-peak 
-        #   ENDIF
-        # EMS
-
-        # #### EMS Scenario 2: reduce backup heat during peak with safety of 4F below setpoint ####
-        # # --- Add Zone Sensors ---
-        # # This assumes the unitary serves only one thermal zone
-        # if unitary.controllingZoneorThermostatLocation.is_initialized
-        #   zone = unitary.controllingZoneorThermostatLocation.get
-
-        #   zone_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Mean Air Temperature')
-        #   zone_t.setKeyName(zone.nameString)
-        #   zone_t.setName("Tzone_#{zone.nameString.gsub(/\W/,'_')}")
-
-        #   zone_htg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Heating Setpoint Temperature')
-        #   zone_htg_sp.setKeyName(zone.nameString)
-        #   zone_htg_sp.setName("Tsp_#{zone.nameString.gsub(/\W/,'_')}")
-        # else
-        #   runner.registerWarning("Unitary '#{unitary.name}' has no controlling zone; skipping safety logic.")
-        #   next
-        # end
-
-        # # --- EMS program with safety check ---
-        # program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        # program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
-        # program.setBody(<<~EMS)
-        #   SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
-        #   SET safety_sp = #{zone_htg_sp.name} - 4.0
-        #   IF (#{dr_flag.name} > 0.5),
-        #     IF (#{zone_t.name} < safety_sp),
-        #       SET #{sup_act.name} = Null,     ! release control if too cold
-        #     ELSE,
-        #       SET #{sup_act.name} = sup_lim,  ! otherwise enforce limit
-        #     ENDIF,
-        #   ELSE,
-        #     SET #{sup_act.name} = Null,       ! off-peak: release control
-        #   ENDIF
-        # EMS
-
-        #### EMS Scenario 3: dont reduce backup heat during peak if heat pump is locked out (<-10F) ####
-        # --- Outdoor Air Temperature Sensor ---
-        oa_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
-        oa_t.setKeyName('Environment')
-        oa_t.setName('T_OA')
-
-        program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
-        program.setBody(<<~EMS)
-          SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
-
-          IF (#{dr_flag.name} > 0.5),                 ! peak period
-            IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_f}),                ! heat pump locked out -> allow full backup
-              SET #{sup_act.name} = Null,
-            ELSE,
-              SET #{sup_act.name} = sup_lim,          ! otherwise enforce cap
-            ENDIF,
-          ELSE,
-            SET #{sup_act.name} = Null,               ! off-peak: release control
-          ENDIF
-        EMS
-
+        
         # Call inside HVAC iteration loop
         pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
         pcm.setName("PCM_DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
@@ -3097,8 +3153,8 @@ end
     #   'Cooling Coil Electricity Rate',
     #   'Cooling Coil Runtime Fraction',
        'Heating Coil Heating Rate',
-    #   'Heating Coil Electricity Rate',
-    #   'Heating Coil Runtime Fraction',
+       'Heating Coil Electricity Rate',
+       'Heating Coil Runtime Fraction',
     #   'Unitary System DX Coil Cycling Ratio',
        'Unitary System DX Coil Speed Ratio',
        'Unitary System DX Coil Speed Level',
@@ -3135,7 +3191,7 @@ end
     # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
     output_EMS = model.getOutputEnergyManagementSystem
     output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
     output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
     timeseriesnames = []
