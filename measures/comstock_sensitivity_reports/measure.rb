@@ -1390,7 +1390,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_eff_sum = all_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
 
     avg_eff = total_flow.positive? ? weighted_eff_sum / total_flow : nil
-    runner.registerValue('com_report_pump_flow_weighted_avg_motor_efficiency', avg_eff, '')
+    runner.registerValue('com_report_pump_flow_weighted_avg_motor_efficiency', avg_eff)
 
     # Rated-flow-weighted motor efficiency by type
     const_pumps = all_pumps.select { |p| p[:type] == :constant }
@@ -1406,10 +1406,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     avg_eff_var   = var_flow.positive? ? var_eff_sum / var_flow : nil
 
     runner.registerValue(
-      'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd', avg_eff_const, ''
+      'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd', avg_eff_const
     )
     runner.registerValue(
-      'com_report_pump_flow_weighted_avg_motor_efficiency_var_spd', avg_eff_var, ''
+      'com_report_pump_flow_weighted_avg_motor_efficiency_var_spd', avg_eff_var
     )
 
     # Pump counts by system and type
@@ -1421,10 +1421,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     swh_const  = swh_pumps.count  { |p| p[:type] == :constant }
     swh_var    = swh_pumps.count  { |p| p[:type] == :variable }
 
-    runner.registerValue('com_report_pump_count_hvac_const_spd', hvac_const, '')
-    runner.registerValue('com_report_pump_count_hvac_var_spd',   hvac_var,   '')
-    runner.registerValue('com_report_pump_count_swh_const_spd',  swh_const,  '')
-    runner.registerValue('com_report_pump_count_swh_var_spd',    swh_var,    '')
+    runner.registerValue('com_report_pump_count_hvac_const_spd', hvac_const)
+    runner.registerValue('com_report_pump_count_hvac_var_spd',   hvac_var)
+    runner.registerValue('com_report_pump_count_swh_const_spd',  swh_const)
+    runner.registerValue('com_report_pump_count_swh_var_spd',    swh_var)
 
     # Total rated power
     total_const_pwr_w = model.getPumpConstantSpeeds.sum do |pump|
