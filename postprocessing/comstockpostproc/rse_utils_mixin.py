@@ -10,7 +10,7 @@ CBECS Replicate-Weight RSE Utilities
 
 This module implements Relative Standard Error (RSE) and confidence-interval
 calculations using the CBECS (Commercial Buildings Energy Consumption Survey)
-jackknife replicate weights. CBECS provides one main weight and 96 replicate
+jackknife replicate weights. CBECS provides one main weight and ~150 replicate
 weights that encode the survey’s complex sampling and stratification. Following
 the U.S. Energy Information Administration’s published variance methodology
 (see: EIA, *CBECS 2018 Technical Documentation*, "Use of Replicate Weights"),
