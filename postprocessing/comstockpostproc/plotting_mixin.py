@@ -14,6 +14,8 @@ import plotly.graph_objects as go
 from buildstock_query import BuildStockQuery
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
+from comstockpostproc.rse_utils_mixin import rse_by_group_total
+
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -611,15 +613,34 @@ class PlottingMixin():
             self.VINTAGE,
         ]
 
-        for col, agg_method in cols_to_summarize.items(): # loops through column names and provides agg function for specific column
 
-            for group_by in group_bys: # loops through group by options
-
+        # Loop through columns and group-bys for charting
+        for col, agg_method in cols_to_summarize.items():
+            for group_by in group_bys:
+                # Only calculate CI for CBECS utilizng CBECS replicate weight and RSE calculations
+                cbecs_mask = df[column_for_grouping].astype(str).str.startswith('CBECS')
+                cbecs_df = df[cbecs_mask]
+                rse_results = None
+                # Always include dataset in grouping for RSE calculation
+                if not cbecs_df.empty:
+                    if group_by is None:
+                        rse_results = rse_by_group_total(
+                            cbecs_df,
+                            value_col=col,
+                            by=column_for_grouping,  # dataset only
+                            weight_col='weight',
+                            already_weighted=True # This should always be true
+                        )
+                    else:
+                        rse_results = rse_by_group_total(
+                            cbecs_df,
+                            value_col=col,
+                            by=[group_by, column_for_grouping],  # group + dataset
+                            weight_col='weight',
+                            already_weighted=True
+                        )
                 # Summarize the data
                 if group_by is None:
-                    # assert isinstance(df, pd.DataFrame)
-                    # raise Exception
-                    # No group-by
                     g = sns.catplot(
                         data=df,
                         x=column_for_grouping,
@@ -633,8 +654,17 @@ class PlottingMixin():
                         aspect=1.5,
                         legend=False
                     )
+                    ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
+                    # Add error bars for CBECS bars only
+                    if rse_results is not None:
+                        for i, dataset in enumerate(list(color_map.keys())):
+                            if str(dataset).startswith('CBECS'):
+                                match = rse_results[rse_results[column_for_grouping] == dataset]
+                                if not match.empty:
+                                    y = match['estimate'].values[0]
+                                    yerr = [[y - match['ci95_low'].values[0]], [match['ci95_high'].values[0] - y]]
+                                    ax.errorbar(i, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
                 else:
-                    # With group-by
                     g = sns.catplot(
                         data=df,
                         y=col,
@@ -648,37 +678,38 @@ class PlottingMixin():
                         errorbar=None,
                         aspect=2
                     )
+                    ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
+                    # Add error bars for CBECS bars only
+                    if rse_results is not None:
+                        for i, cat in enumerate(self.ORDERED_CATEGORIES[group_by]):
+                            for j, dataset in enumerate(list(color_map.keys())):
+                                if str(dataset).startswith('CBECS'):
+                                    match = rse_results[(rse_results[group_by] == cat) & (rse_results[column_for_grouping] == dataset)]
+                                    if not match.empty:
+                                        y = match['estimate'].values[0]
+                                        yerr = [[y - match['ci95_low'].values[0]], [match['ci95_high'].values[0] - y]]
+                                        ax.errorbar(i - .2, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
                     g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
                 fig = g.figure
-
-                # Extract the units from the column name
                 units = self.nice_units(self.units_from_col_name(col))
-
-                # Title and axis labels
                 if group_by is None:
-                    # No group-by
                     title = f'{self.col_name_to_nice_name(col)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
-                        ax.tick_params(axis='x', labelrotation = 90)
+                        ax.tick_params(axis='x', labelrotation=90)
                 else:
-                    # With group-by
                     title = f'{self.col_name_to_nice_name(col)}\n by {self.col_name_to_nice_name(group_by)}'
                     for ax in g.axes.flatten():
                         ax.set_ylabel(f'{self.col_name_to_nice_name(col)} ({units})')
                         ax.set_xlabel(f'{self.col_name_to_nice_name(group_by)}')
-                        ax.tick_params(axis='x', labelrotation = 90)
-
-                # Formatting
+                        ax.tick_params(axis='x', labelrotation=90)
                 fig.subplots_adjust(top=0.9)
-
-                # Save figure
                 title = title.replace('\n', '')
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name = fig_name.replace('_total_energy_consumption', '')
                 fig_path = os.path.abspath(os.path.join(output_dir, fig_name))
-                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.savefig(fig_path, bbox_inches='tight')
                 plt.close()
 
     def plot_eui_boxplots(self, df, column_for_grouping, color_map, output_dir, make_hvac_plots):
@@ -928,8 +959,31 @@ class PlottingMixin():
         for col, agg_method in cols_to_summarize.items():
             for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
-                # Make a plot for each group
+                # Only calculate CI for CBECS within this building type utilizing replicate weights
+                cbecs_mask = bldg_type_ts_df[column_for_grouping].astype(str).str.startswith('CBECS')
+                cbecs_df = bldg_type_ts_df[cbecs_mask]
+                rse_results = None
+                # Always include dataset in grouping for RSE calculation
                 for group_by in group_bys:
+                    if not cbecs_df.empty:
+                        if group_by is None:
+                            rse_results = rse_by_group_total(
+                                cbecs_df,
+                                value_col=col,
+                                by=column_for_grouping,  # dataset only
+                                weight_col='weight',
+                                already_weighted=True
+                            )
+                        else:
+                            rse_results = rse_by_group_total(
+                                cbecs_df,
+                                value_col=col,
+                                by=[group_by, column_for_grouping],  # group + dataset
+                                weight_col='weight',
+                                already_weighted=True
+                            )
+
+                    # Make a plot for each group
                     if group_by is None:
                         # No group-by
                         g = sns.catplot(
@@ -945,6 +999,16 @@ class PlottingMixin():
                             aspect=1.5,
                             legend=False
                         )
+                        ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
+                        # Add error bars for CBECS bars only
+                        if rse_results is not None:
+                            for i, dataset in enumerate(list(color_map.keys())):
+                                if str(dataset).startswith('CBECS'):
+                                    match = rse_results[rse_results[column_for_grouping] == dataset]
+                                    if not match.empty:
+                                        y = match['estimate'].values[0]
+                                        yerr = [[y - match['ci95_low'].values[0]], [match['ci95_high'].values[0] - y]]
+                                        ax.errorbar(i, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
                     else:
                         # With group-by
                         g = sns.catplot(
@@ -960,6 +1024,17 @@ class PlottingMixin():
                             errorbar=None,
                             aspect=2
                         )
+                        ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
+                        # Add error bars for CBECS bars only
+                        if rse_results is not None:
+                            for i, cat in enumerate(self.ORDERED_CATEGORIES[group_by]):
+                                for j, dataset in enumerate(list(color_map.keys())):
+                                    if str(dataset).startswith('CBECS'):
+                                        match = rse_results[(rse_results[group_by] == cat) & (rse_results[column_for_grouping] == dataset)]
+                                        if not match.empty:
+                                            y = match['estimate'].values[0]
+                                            yerr = [[y - match['ci95_low'].values[0]], [match['ci95_high'].values[0] - y]]
+                                            ax.errorbar(i - 0.2, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
                         g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
                     fig = g.figure
