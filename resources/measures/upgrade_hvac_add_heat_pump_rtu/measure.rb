@@ -2846,22 +2846,84 @@ end
             zone_clg_sp.setKeyName(zone.nameString)
             zone_clg_sp.setName("TspClg_#{zone.nameString.gsub(/\W/,'_')}")
 
-            #detect current coil speed level
-            speed_level_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
-              model,
-              'Unitary System DX Coil Speed Level'
-            )
-            speed_level_sensor.setKeyName(unitary.nameString)
-            speed_level_sensor.setName("USys_Speed_Level_#{unitary.name.to_s.gsub(/\W/,'_')}")
+            # loop through heating and cooling dx coils
+            htg_temp_sensors = {}
+            htg_flow_sensors = {}
+            stage_htg_cap_values = {}
+            htg_coil = unitary.heatingCoil.get
+            if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
+              htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.each_with_index do |stage, i|
+                puts "stage = #{stage}"
+                stage_index = i + 1
+                htg_temp_curve = stage.heatingCapacityFunctionofTemperatureCurve
+                htg_flow_curve = stage.heatingCapacityFunctionofFlowFractionCurve
+                #create sensors for curve outputs
+                htg_stage_temp_curve_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+                  model,
+                  'Performance Curve Output Value'
+                )
+                htg_stage_temp_curve_sensor.setKeyName(htg_temp_curve.nameString)
+                htg_stage_temp_curve_sensor.setName("htg_stage_#{stage_index}_temp_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
+                htg_temp_sensors["#{unitary.name}_stage#{stage_index}"] = htg_stage_temp_curve_sensor.name
 
-            #detect current coil speed ratio
-            speed_ratio = OpenStudio::Model::EnergyManagementSystemSensor.new(
-              model,
-              'Unitary System DX Coil Speed Ratio'
-            )
-            speed_ratio.setKeyName(unitary.nameString)
-            speed_ratio.setName("USys_Speed_Ratio_#{unitary.name.to_s.gsub(/\W/,'_')}")
+                htg_stage_flow_curve_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+                  model,
+                  'Performance Curve Output Value'
+                )
+                htg_stage_flow_curve_sensor.setKeyName(htg_flow_curve.nameString)
+                htg_stage_flow_curve_sensor.setName("htg_stage_#{stage_index}_flow_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
+                htg_flow_sensors["#{unitary.name}_stage#{stage_index}"] = htg_stage_flow_curve_sensor.name
 
+                # store rated capacities (static values) for each stage in hash
+                rated_htg_cap = stage.grossRatedHeatingCapacity
+                puts "Rated heating capacity for #{stage_index} = #{rated_htg_cap}"
+                # Optionally store in a hash if you need it later:
+                stage_htg_cap_values["#{unitary.name}_stage#{stage_index}"] = rated_htg_cap
+              end
+            end
+            
+            clg_temp_sensors = {}
+            clg_flow_sensors = {}
+            stage_shr_values = {}
+            stage_clg_cap_values = {}
+            clg_coil = unitary.coolingCoil.get
+            if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
+              clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.each_with_index do |stage, i|
+                puts "stage = #{stage}"
+                stage_index = i + 1
+                clg_temp_curve = stage.totalCoolingCapacityFunctionofTemperatureCurve
+                clg_flow_curve = stage.totalCoolingCapacityFunctionofFlowFractionCurve
+                #create sensors for curve outputs
+                clg_stage_temp_curve_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+                  model,
+                  'Performance Curve Output Value'
+                )
+                clg_stage_temp_curve_sensor.setKeyName(clg_temp_curve.nameString)
+                clg_stage_temp_curve_sensor.setName("clg_stage_#{stage_index}_temp_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
+                clg_temp_sensors["#{unitary.name}_stage#{stage_index}"] = clg_stage_temp_curve_sensor.name
+
+                clg_stage_flow_curve_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
+                  model,
+                  'Performance Curve Output Value'
+                )
+                clg_stage_flow_curve_sensor.setKeyName(clg_flow_curve.nameString)
+                clg_stage_flow_curve_sensor.setName("clg_stage_#{stage_index}_flow_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
+                clg_flow_sensors["#{unitary.name}_stage#{stage_index}"] = clg_stage_flow_curve_sensor.name
+
+                # store sensible heat ratio (static value) for each stage in hash
+                shr = stage.grossRatedSensibleHeatRatio
+                puts "Cooling stage #{stage_index} SHR = #{shr}"
+                # Optionally store in a hash if you need it later:
+                stage_shr_values["#{unitary.name}_stage#{stage_index}"] = shr
+
+                # store rated capacities (static values) for each stage in hash
+                rated_clg_cap = stage.grossRatedTotalCoolingCapacity
+                puts "Rated cooling capacity for #{stage_index} = #{rated_clg_cap}"
+                # Optionally store in a hash if you need it later:
+                stage_clg_cap_values["#{unitary.name}_stage#{stage_index}"] = rated_clg_cap
+              end
+            end
+            
             #detect heating or cooling mode
             mode_sensor = OpenStudio::Model::EnergyManagementSystemSensor.new(
               model,
@@ -2874,53 +2936,6 @@ end
             next
           end
 
-          # get heating stages to set limit during peak periods
-          if unitary.heatingCoil.is_initialized
-            htg_coil = unitary.heatingCoil.get
-            if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
-              num_htg_speeds = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.size
-
-              # get rated heating capacity (at highest stage)
-              rated_capacity_htg_w = htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.last.grossRatedHeatingCapacity.get.to_f
-              puts "rated_capacity_htg_w: #{rated_capacity_htg_w}"
-
-              htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
-              htg_limit_val = [htg_limit_val, num_htg_speeds].min
-              puts "htg_limit_val: #{htg_limit_val}"
-
-              cap_frac_htg = nonlinear_capacity_fraction(htg_limit_val, stage_caps_htg)
-              cap_capacity_htg_w = rated_capacity_htg_w * cap_frac_htg * sensible_heat_ratio
-              puts "cap_frac_htg: #{cap_frac_htg}"
-              puts "cap_capacity_htg_w: #{cap_capacity_htg_w}"
-
-              puts "Heating coil #{unitary.name} limited to EMS value #{htg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak."
-            end
-          end
-
-          # get cooling stages to set limit during peak periods
-          if unitary.coolingCoil.is_initialized
-            clg_coil = unitary.coolingCoil.get
-            if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
-              num_clg_speeds = clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.size
-
-              # get rated cooling capacity (at highest stage)
-              rated_capacity_clg_w = clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.last.grossRatedTotalCoolingCapacity.get.to_f
-              puts "rated_capacity_clg_w: #{rated_capacity_clg_w}"
-
-              # nonlinear mapping
-              clg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_clg)
-              clg_limit_val = [clg_limit_val, num_clg_speeds].min
-              puts "clg_limit_val: #{clg_limit_val}"
-
-              cap_frac_clg = nonlinear_capacity_fraction(clg_limit_val, stage_caps_clg)
-              cap_capacity_clg_w = rated_capacity_clg_w * cap_frac_clg * sensible_heat_ratio
-              puts "cap_frac_clg: #{cap_frac_clg}"
-              puts "cap_capacity_clg_w: #{cap_capacity_clg_w}"
-
-              puts "Cooling coil #{unitary.name} limited to EMS value #{clg_limit_val} (≈ #{(max_compressor_frac*100).round}% of full cap) during peak."
-            end
-          end
-
           dx_coil_actuator = OpenStudio::Model::EnergyManagementSystemActuator.new(
               unitary,
               'Coil Speed Control',
@@ -2929,36 +2944,99 @@ end
           dx_coil_actuator.setName("DX_Spd_Act_#{unitary.name.to_s.gsub("-", "")}")
 
           program_body = <<~EMS
-            SET cap_stage_clg = #{clg_limit_val}
-            SET cap_stage_htg = #{htg_limit_val}
-            SET speed_level_sensor = #{speed_level_sensor.name}
-            SET speed_ratio = #{speed_ratio.name}
-            SET actual_speed_level = (#{speed_level_sensor.name} - 1 + #{speed_ratio.name})
+            ! --- Predict mode based on sensible load sign ---
+            SET predicted_load = #{mode_sensor.name}
+            IF (predicted_load >= 0),
+              SET abs_load = predicted_load,
+            ELSE,
+              SET abs_load = -predicted_load,
+            ENDIF
 
-            IF (#{dr_sensor.name} > 0.5),   ! only during peak
-              ! --- Cooling mode: load < 0 ---
-              IF (#{mode_sensor.name} < 0),
-                IF (actual_speed_level >= cap_stage_clg),
-                  SET #{dx_coil_actuator.name} = cap_stage_clg,
-                ELSE,
-                  SET #{dx_coil_actuator.name} = Null,
-                ENDIF,
-              ! --- Heating mode: load > 0 ---
-              ELSEIF (#{mode_sensor.name} > 0), 
-                IF (actual_speed_level >= cap_stage_htg),
-                  SET #{dx_coil_actuator.name} = cap_stage_htg,
-                ELSE,
-                  SET #{dx_coil_actuator.name} = Null,
-                ENDIF,
+            SET debug_stage_needed = 1
+            SET debug_cap_stage = 0
+            SET debug_mode = mode
+            SET debug_abs_load = abs_load
+            SET debug_predicted_load = predicted_load
 
-              ! --- Deadband: load ≈ 0 ---
+            IF (predicted_load > 0),
+              SET mode = 1    ! heating
+            ELSEIF (predicted_load < 0),
+              SET mode = -1   ! cooling
+            ELSE,
+              SET mode = 0
+            ENDIF
+
+            ! --- Effective capacities per stage (using degradation sensors) ---
+            ! Cooling (4 speeds)
+            SET eff_cap_clg_1 = #{stage_clg_cap_values["#{unitary.name}_stage1"]} * #{clg_temp_sensors["#{unitary.name}_stage1"]} * #{clg_flow_sensors["#{unitary.name}_stage1"]} * #{stage_shr_values["#{unitary.name}_stage1"]}
+            SET eff_cap_clg_2 = #{stage_clg_cap_values["#{unitary.name}_stage2"]} * #{clg_temp_sensors["#{unitary.name}_stage2"]} * #{clg_flow_sensors["#{unitary.name}_stage2"]} * #{stage_shr_values["#{unitary.name}_stage2"]}
+            SET eff_cap_clg_3 = #{stage_clg_cap_values["#{unitary.name}_stage3"]} * #{clg_temp_sensors["#{unitary.name}_stage3"]} * #{clg_flow_sensors["#{unitary.name}_stage3"]} * #{stage_shr_values["#{unitary.name}_stage3"]}
+            SET eff_cap_clg_4 = #{stage_clg_cap_values["#{unitary.name}_stage4"]} * #{clg_temp_sensors["#{unitary.name}_stage4"]} * #{clg_flow_sensors["#{unitary.name}_stage4"]} * #{stage_shr_values["#{unitary.name}_stage4"]}
+
+            ! Heating (4 speeds)
+            SET eff_cap_htg_1 = #{stage_htg_cap_values["#{unitary.name}_stage1"]} * #{htg_temp_sensors["#{unitary.name}_stage1"]} * #{htg_flow_sensors["#{unitary.name}_stage1"]}
+            SET eff_cap_htg_2 = #{stage_htg_cap_values["#{unitary.name}_stage2"]} * #{htg_temp_sensors["#{unitary.name}_stage2"]} * #{htg_flow_sensors["#{unitary.name}_stage2"]}
+            SET eff_cap_htg_3 = #{stage_htg_cap_values["#{unitary.name}_stage3"]} * #{htg_temp_sensors["#{unitary.name}_stage3"]} * #{htg_flow_sensors["#{unitary.name}_stage3"]}
+            SET eff_cap_htg_4 = #{stage_htg_cap_values["#{unitary.name}_stage4"]} * #{htg_temp_sensors["#{unitary.name}_stage4"]} * #{htg_flow_sensors["#{unitary.name}_stage4"]}
+
+            ! --- Determine required stage ---
+            SET stage_needed = 1
+            IF (mode < 0),
+              IF (abs_load > eff_cap_clg_1), 
+                SET stage_needed = 2, 
+              ENDIF
+              IF (abs_load > eff_cap_clg_2), 
+                SET stage_needed = 3, 
+              ENDIF
+              IF (abs_load > eff_cap_clg_3), 
+                SET stage_needed = 4, 
+              ENDIF
+            ELSEIF (mode > 0),
+              IF (abs_load > eff_cap_htg_1), 
+                SET stage_needed = 2, 
+              ENDIF
+              IF (abs_load > eff_cap_htg_2), 
+                SET stage_needed = 3, 
+              ENDIF
+              IF (abs_load > eff_cap_htg_3), 
+                SET stage_needed = 4, 
+              ENDIF
+            ENDIF
+
+            SET debug_stage_needed = stage_needed
+
+            ! --- Demand Response Cap ---
+            IF (#{dr_sensor.name} > 0.5),
+              IF (mode < 0),
+                SET cap_stage = #{clg_limit_val},
+              ELSEIF (mode > 0),
+                SET cap_stage = #{htg_limit_val},
+              ELSE,
+                SET cap_stage = 4,
+              ENDIF,
+
+              SET debug_cap_stage = cap_stage
+
+              ! Only cap if required stage exceeds the cap
+              IF (stage_needed > cap_stage),
+                SET #{dx_coil_actuator.name} = cap_stage,
+                SET debug_actuated = cap_stage,
               ELSE,
                 SET #{dx_coil_actuator.name} = Null,
+                SET debug_actuated = 0,
               ENDIF,
 
             ELSE,
-              SET #{dx_coil_actuator.name} = Null,   ! off-peak
+              SET #{dx_coil_actuator.name} = Null,
+              SET debug_actuated = 0,
             ENDIF
+
+            OUTPUT debug_predicted_load
+            OUTPUT debug_abs_load
+            OUTPUT debug_mode
+            OUTPUT debug_stage_needed
+            OUTPUT debug_cap_stage
+            OUTPUT debug_actuated
           EMS
 
           dx_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
@@ -2970,36 +3048,36 @@ end
           dx_coil_pcm.setCallingPoint('AfterPredictorBeforeHVACManagers')
           dx_coil_pcm.addProgram(dx_coil_program)
 
-          # To reset actuator after timestep
-          dx_coil_program_reset_start = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          dx_coil_program_reset_start.setName("BeginningOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
-          dx_coil_program_reset_start_body = <<-EMS
-            SET #{dx_coil_actuator.name} = Null
-            SET speed_level_sensor = 0
-            SET speed_ratio = 0
-            SET actual_speed_level = 0
-          EMS
-          dx_coil_program_reset_start.setBody(dx_coil_program_reset_start_body)
-          # List of EMS program manager objects
-          programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-          programs_at_beginning_of_timestep.setCallingPoint('BeginTimestepBeforePredictor')
-          programs_at_beginning_of_timestep.addProgram(dx_coil_program_reset_start)
+          # # To reset actuator after timestep
+          # dx_coil_program_reset_start = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          # dx_coil_program_reset_start.setName("BeginningOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
+          # dx_coil_program_reset_start_body = <<-EMS
+          #   SET #{dx_coil_actuator.name} = Null
+          #   SET speed_level_sensor = 0
+          #   SET speed_ratio = 0
+          #   SET actual_speed_level = 0
+          # EMS
+          # dx_coil_program_reset_start.setBody(dx_coil_program_reset_start_body)
+          # # List of EMS program manager objects
+          # programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+          # programs_at_beginning_of_timestep.setCallingPoint('BeginTimestepBeforePredictor')
+          # programs_at_beginning_of_timestep.addProgram(dx_coil_program_reset_start)
 
-          # To reset actuator after timestep
-          dx_coil_program_reset_finish = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          dx_coil_program_reset_finish.setName("EndOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
-          dx_coil_program_reset_finish_body = <<-EMS
-            SET #{dx_coil_actuator.name} = Null
-            SET speed_level_sensor = 0
-            SET speed_ratio = 0
-            SET actual_speed_level = 0
-          EMS
-          dx_coil_program_reset_finish.setBody(dx_coil_program_reset_finish_body)
-          # List of EMS program manager objects
-          programs_at_end_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-          programs_at_end_of_timestep.setName("EndOfTimestepResetManager_#{unitary.name.to_s.gsub("-", "")}")
-          programs_at_end_of_timestep.setCallingPoint('EndOfSystemTimestepAfterHVACReporting')
-          programs_at_end_of_timestep.addProgram(dx_coil_program_reset_finish)
+          # # To reset actuator after timestep
+          # dx_coil_program_reset_finish = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+          # dx_coil_program_reset_finish.setName("EndOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
+          # dx_coil_program_reset_finish_body = <<-EMS
+          #   SET #{dx_coil_actuator.name} = Null
+          #   SET speed_level_sensor = 0
+          #   SET speed_ratio = 0
+          #   SET actual_speed_level = 0
+          # EMS
+          # dx_coil_program_reset_finish.setBody(dx_coil_program_reset_finish_body)
+          # # List of EMS program manager objects
+          # programs_at_end_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+          # programs_at_end_of_timestep.setName("EndOfTimestepResetManager_#{unitary.name.to_s.gsub("-", "")}")
+          # programs_at_end_of_timestep.setCallingPoint('EndOfSystemTimestepAfterHVACReporting')
+          # programs_at_end_of_timestep.addProgram(dx_coil_program_reset_finish)
 
           runner.registerInfo("Added EMS to limit compressor capacity during peak to unitary system: #{unitary.name}")
         end
@@ -3191,7 +3269,7 @@ end
     # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
     output_EMS = model.getOutputEnergyManagementSystem
     output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('Verbose')
+    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
     output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
     timeseriesnames = []
