@@ -1451,13 +1451,15 @@ class NamingMixin():
                 loads_cols.append(f"{pre}.{period}.{component}{unit}")
         return loads_cols
 
-    # Required for RSE calculations using replicate weights used in postprocessing charts
 
+    ## Following 3 method are Required for RSE calculations using replicate weights used in postprocessing charts
 
+    # Determine if a column is a replicate-weight column
     @classmethod
     def is_replicate_weight_col(cls, col: str) -> bool:
         return bool(cls.REPL_WEIGHT_RE.match(col))
 
+    # Return all replicate-weight columns present in a frame
     @classmethod
     def list_replicate_weight_cols(
         cls, frame: Union["pl.LazyFrame", pd.DataFrame, Iterable[str]]
@@ -1474,6 +1476,7 @@ class NamingMixin():
             cols = list(frame)
         return [c for c in cols if cls.is_replicate_weight_col(c)]
 
+    # Ensure expected weight columns are present in a frame
     @classmethod
     def ensure_weight_columns_present(
         cls, frame: Union["pl.LazyFrame", pd.DataFrame, Iterable[str]],
@@ -1491,6 +1494,7 @@ class NamingMixin():
         if missing:
             raise AssertionError(f"Missing expected weight columns: {missing}")
 
+    # Build a dtype map for plotting
     @classmethod
     def build_cast_map_for_plotting(
         cls, cols: Iterable[str]
