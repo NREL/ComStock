@@ -39,7 +39,6 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.image_type = image_type
         self.name = name
         self.column_for_grouping = self.DATASET
-
         self.lazyframe_plotter: LazyFramePlotter = LazyFramePlotter()
 
         # Concatenate the datasets and create a color map
@@ -115,6 +114,28 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             common_columns = common_columns.intersection(set(df.columns))
         dfs_to_concat = [df.select(common_columns) for df in dfs_to_concat]
         self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
+        # Add Replicate Weights and Base Weight (CBECS only) for RSE calculations
+        cbecs_src = cbecs_list[0]
+        rep_cols = [self.BLDG_ID] + self.list_replicate_weight_cols(cbecs_src.data)
+        if self.BASE_WEIGHT_COL in cbecs_src.data.columns:
+            rep_cols.append(self.BASE_WEIGHT_COL)
+
+        weights_lf = cbecs_src.data.select(rep_cols)
+        # Only join weights for CBECS rows; set others to NaN
+        cbecs_dataset_name = f"CBECS {cbecs_src.year}"
+        # Add a flag column to self.data to identify CBECS rows
+        self.data = self.data.with_columns(
+            (pl.col(self.DATASET) == cbecs_dataset_name).alias("is_cbecs")
+        )
+        # Join weights only for CBECS rows
+        joined = self.data.join(weights_lf, on=self.BLDG_ID, how="left")
+        # For non-CBECS rows, set replicate/base weights to None
+        for col in rep_cols:
+            joined = joined.with_columns(
+                pl.when(pl.col("is_cbecs")).then(pl.col(col)).otherwise(None).alias(col)
+            )
+        self.data = joined.drop("is_cbecs")
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Combine just comstock runs into single dataframe for QOI plots
@@ -149,8 +170,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         if make_comparison_plots:
             self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
             # Enduse and QOI plots can only be made with comstock data because CBECS data do not have QOI columns
-            self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
-            self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
+            # self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
+            # self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
 
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
@@ -169,7 +190,9 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE +  [column_for_grouping]))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE +  [column_for_grouping]),
+            include_replicate_weights=True,
+            include_base_weight=True)(**BASIC_PARAMS)
 
         logger.info('Making EUI plots')
         LazyFramePlotter.plot_with_lazy(
@@ -181,7 +204,9 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE),
+            include_replicate_weights=True,
+            include_base_weight=True)(**BASIC_PARAMS)
 
         logger.info('Making end use totals by building type plots')
         LazyFramePlotter.plot_with_lazy(
