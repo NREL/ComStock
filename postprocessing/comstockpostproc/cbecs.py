@@ -41,7 +41,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         self.data_codebook_file_name = f'CBECS_{self.year}_microdata_codebook.csv'
         self.building_type_mapping_file_name = f'CBECS_{self.year}_to_comstock_nems_aeo_building_types.csv'
         self.data = None
-        self.rse_data = None
         self.color = color_hex
         self.weighted_energy_units = weighted_energy_units
         self.weighted_utility_units = weighted_utility_units
@@ -65,7 +64,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.data = pd.read_csv(file_path, low_memory=False)
         else:
             self.load_data()
-            self.load_rse_data()
             self.rename_columns_and_convert_units()
             self.set_column_data_types()
             self.add_dataset_column()
@@ -107,8 +105,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
-        self.rse_data = pl.from_pandas(self.rse_data).lazy()
-
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -139,15 +135,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
-        # CBECS RSE table
-        #TODO - create RSE Table for 2012 currently only 2018 available
-        file_name = f'cbecs_{self.year}_rse_summary.csv'
-        file_path = os.path.join(self.truth_data_dir, file_name)
-        if not os.path.exists(file_path):
-            s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
-            self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -231,12 +218,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 # logger.debug(f'  {decoder_map}')
                 self.data[col_name] = self.data[col_name].apply(lambda key: decode_variable(key, decoder_map))
 
-    def load_rse_data(self):
-        # Load raw RSE data
-        file_path = os.path.join(self.truth_data_dir, f'cbecs_{self.year}_rse_summary.csv')
-        self.rse_data = pd.read_csv(file_path, low_memory=False, na_values=['.'])
-
-
     def rename_columns_and_convert_units(self):
         column_map = {
             # Building characteristics
@@ -283,22 +264,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual fuel oil expenditures ($)': self.UTIL_BILL_FUEL_OIL
         }
 
-        rse_column_map = {
-            "Metric": self.RSE_METRIC,
-            "Grouping Level": self.RSE_GROUP_BY,
-            "Group Value": self.RSE_GROUP_BY_VALUE,
-            "Subgroup Type": self.RSE_SUBGROUP_TYPE,
-            "Subgroup Value": self.RSE_SUBGROUP_VALUE,
-            "Relative Standard Error (RSE)": self.RSE_REL_STD_ERR,
-            "CBECS Table Reference": self.RSE_CBECS_TABLE_REF,
-            "Comstock Building Type": self.RSE_BLDG_TYPE
-
-        }
-
         self.data.rename(columns=column_map, inplace=True)
-        self.rse_data.rename(columns=rse_column_map, inplace=True)
-
-
 
         # Combine some CBECS columns to match ComStock
         combo_cols = [
@@ -457,24 +423,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
 
         self.data[self.BLDG_TYPE] = self.data.apply(lambda row: cbecs_to_comstock_bldg_type(row, bldg_type_map), axis=1)
-
-
-        # Build a combined mapping dictionary from both columns for RSE data
-        mapping_df = pd.read_csv(file_path)
-        combined_mapping = dict(zip(mapping_df['CBECS More specific building activity'].astype(str).str.strip(), mapping_df['ComStock Intermediate Building Type']))
-        combined_mapping.update(dict(zip(mapping_df['CBECS Principal building activity'].astype(str).str.strip(), mapping_df['ComStock Intermediate Building Type'])))
-
-        # Only map rows where Group Level is 'Building Type'
-        mask = self.rse_data[self.RSE_GROUP_BY] == 'Building Type'
-        cbecs_bldg_type_series = self.rse_data[self.RSE_GROUP_BY_VALUE].astype(str).str.strip()
-        mapped = cbecs_bldg_type_series.map(combined_mapping)
-        self.rse_data[self.RSE_BLDG_TYPE] = mapped.where(mask, np.nan).fillna('Other')
-
-        # Map RSE metric, group by, and subgroup type to internal column names, case-insensitive, falling back to original value if not mapped
-        rse_mapping_lower = {str(k).lower(): v for k, v in self.RSE_MAPPING.items()}
-        self.rse_data[self.RSE_METRIC] = self.rse_data[self.RSE_METRIC].apply(lambda x: rse_mapping_lower.get(str(x).lower(), x))
-        self.rse_data[self.RSE_GROUP_BY] = self.rse_data[self.RSE_GROUP_BY].apply(lambda x: rse_mapping_lower.get(str(x).lower(), x))
-        self.rse_data[self.RSE_SUBGROUP_TYPE] = self.rse_data[self.RSE_SUBGROUP_TYPE].apply(lambda x: rse_mapping_lower.get(str(x).lower(), x))
 
     def add_aeo_nems_building_type_column(self):
         # Add the AEO and NEMS building type for each row of CBECS
