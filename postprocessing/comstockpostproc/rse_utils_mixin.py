@@ -1,3 +1,6 @@
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
 import re
 import numpy as np
 import pandas as pd
