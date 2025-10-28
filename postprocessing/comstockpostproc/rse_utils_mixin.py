@@ -37,14 +37,16 @@ References
 """
 
 
-# Regex to identify replicate weight columns
+## Regex to identify replicate weight columns (CBECS format)
 _REP_RE = re.compile(r"^Unknown Eligibility and Nonresponse Adjusted Replicate Weight (\d+)$")
 
 # Get sorted list of replicate weight columns
 def _rep_cols(df: pd.DataFrame) -> list[str]:
+    # Find all replicate weight columns in the DataFrame
     cols = [c for c in df.columns if _REP_RE.match(c)]
     if not cols:
         raise ValueError("No CBECS replicate weight columns found.")
+    # Sort columns numerically by replicate number
     cols.sort(key=lambda c: int(_REP_RE.match(c).group(1)))
     return cols
 
@@ -59,7 +61,7 @@ def _theta_and_reps(val: pd.Series, w: pd.Series, rep_w: pd.DataFrame) -> Tuple[
     rep_thetas = np.array([np.nansum(x * rep_w[c].to_numpy()) for c in rep_w.columns], float)
     return theta, rep_thetas
 
-# Compute jackknife variance
+# Jackknife variance calculation for replicate weights
 def _jk_var(theta: float, rep_thetas: np.ndarray, kappa: float) -> float:
     return float(kappa * np.sum((rep_thetas - theta) ** 2))
 
@@ -118,7 +120,7 @@ def rse_by_group_total(
     for c in reps: sub[c] = _to_num(sub[c])
     sub = sub.replace([np.inf, -np.inf], np.nan).dropna(subset=[value_col, weight_col])
 
-    # If already_weighted, recover unweighted value
+    # If already_weighted, recover unweighted value for correct RSE calculation
     if already_weighted:
         # Avoid division by zero
         sub["_unweighted_value"] = sub[value_col] / sub[weight_col].replace(0, np.nan)
@@ -130,11 +132,13 @@ def rse_by_group_total(
         R = len(reps); kappa = (R - 1) / R
 
     rows = []
+    # Group by requested columns and calculate RSE/CI for each group
     for keys, g in sub.groupby(list(by), dropna=False):
         theta, rep_thetas = _theta_and_reps(g[value_col_for_calc], g[weight_col], g[reps])
         var = _jk_var(theta, rep_thetas, kappa)
-        se = float(np.sqrt(var)); rse = 100.0 * se / theta if theta else np.nan
-        ci_low = max(theta - 1.96*se, 0)
+        se = float(np.sqrt(var))  # Standard error
+        rse = 100.0 * se / theta if theta else np.nan  # RSE as percent
+        ci_low = max(theta - 1.96*se, 0)  # CI lower bound capped at zero
         ci_high = theta + 1.96*se
         rows.append({**{b: (keys[i] if isinstance(keys, tuple) else keys) for i, b in enumerate(by)},
                      "estimate": theta, "se": se, "rse_pct": rse,
@@ -165,19 +169,21 @@ def rse_by_group_mean(
         R = len(reps); kappa = (R - 1) / R
 
     rows = []
+    # Group by requested columns and calculate weighted mean, RSE, and CI for each group
     for keys, g in sub.groupby(list(by), dropna=False):
         w = g[weight_col]; x = g[value_col]
         num = float(np.nansum(w*x)); den = float(np.nansum(w))
-        theta = num/den if den else np.nan
+        theta = num/den if den else np.nan  # Weighted mean
         rep_t = []
         for c in reps:
             wr = g[c]; num_r = float(np.nansum(wr*x)); den_r = float(np.nansum(wr))
             rep_t.append(num_r/den_r if den_r else np.nan)
-        rep_t = np.array(rep_t, float)
-        var = _jk_var(theta, rep_t, kappa)
-        se = float(np.sqrt(var)); rse = 100.0*se/theta if theta else np.nan
-        ci_low = max(theta - 1.96*se, 0)
-        ci_high = theta + 1.96*se
+        rep_t = np.array(rep_t, float) # Replicate means
+        var = _jk_var(theta, rep_t, kappa) # Calculate variance
+        se = float(np.sqrt(var)) # Standard error
+        rse = 100.0*se/theta if theta else np.nan # RSE as percent
+        ci_low = max(theta - 1.96*se, 0) # CI lower bound capped at zero
+        ci_high = theta + 1.96*se # CI upper bound
         rows.append({**{b: (keys[i] if isinstance(keys, tuple) else keys) for i, b in enumerate(by)},
                      "estimate": theta, "se": se, "rse_pct": rse,
                      "ci95_low": ci_low, "ci95_high": ci_high})
@@ -208,20 +214,22 @@ def rse_by_group_ratio(
         R = len(reps); kappa = (R - 1) / R
 
     rows = []
+    # Group by requested columns and calculate weighted ratio, RSE, and CI for each group
     for keys, g in sub.groupby(list(by), dropna=False):
         w = g[weight_col]
         num = float(np.nansum(w*g[numer_col])); den = float(np.nansum(w*g[denom_col]))
-        theta = num/den if den else np.nan
+        theta = num/den if den else np.nan  # Weighted ratio
         rep_t = []
         for c in reps:
             wr = g[c]
             num_r = float(np.nansum(wr*g[numer_col])); den_r = float(np.nansum(wr*g[denom_col]))
             rep_t.append(num_r/den_r if den_r else np.nan)
-        rep_t = np.array(rep_t, float)
-        var = _jk_var(theta, rep_t, kappa)
-        se = float(np.sqrt(var)); rse = 100.0*se/theta if theta else np.nan
-        ci_low = max(theta - 1.96*se, 0)
-        ci_high = theta + 1.96*se
+        rep_t = np.array(rep_t, float)  # Replicate ratios
+        var = _jk_var(theta, rep_t, kappa) # Calculate variance
+        se = float(np.sqrt(var)) # Standard error
+        rse = 100.0*se/theta if theta else np.nan # RSE as percent
+        ci_low = max(theta - 1.96*se, 0) # CI lower bound capped at zero
+        ci_high = theta + 1.96*se # CI upper bound
         rows.append({**{b: (keys[i] if isinstance(keys, tuple) else keys) for i, b in enumerate(by)},
                      "estimate": theta, "se": se, "rse_pct": rse,
                      "ci95_low": ci_low, "ci95_high": ci_high})
