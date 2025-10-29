@@ -613,7 +613,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    super
+    super(runner, user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
