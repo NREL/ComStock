@@ -40,7 +40,7 @@ require 'openstudio'
 require 'date'
 require 'openstudio-standards'
 
-def get_tstat_profiles_and_stats(tstat_schedule)
+def get_tstat_profiles_and_stats(tstat_schedule) #from add thermostat setpoint variability measure 
   if tstat_schedule.to_ScheduleRuleset.empty?
     runner.registerWarning("Schedule '#{tstat_schedule.name.get}' is not a ScheduleRuleset, will not be adjusted")
     false
@@ -60,7 +60,7 @@ def get_tstat_profiles_and_stats(tstat_schedule)
   end
 end
 
-def get_8760_values_from_schedule_ruleset(model, schedule_ruleset)
+def get_8760_values_from_schedule_ruleset(model, schedule_ruleset) #in a PR 
   Standard.build('90.1-2013') # build openstudio standards
   yd = model.getYearDescription
   start_date = yd.makeDate(1, 1)
