@@ -1273,9 +1273,9 @@ class PlottingMixin():
         end_use_cols = self.COLS_ENDUSE_ANN_ENGY
         wtd_end_use_cols = [self.col_name_to_weighted(c, 'tbtu') for c in end_use_cols]
 
-        # Disaggregate to these levels
+        # Disaggregate to these levels (now supports None)
         group_bys = [
-            # None,
+            None,
             self.CEN_DIV,
             # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
             # self.VINTAGE,
@@ -1289,13 +1289,31 @@ class PlottingMixin():
 
         for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE, observed=True):
             for group_by in group_bys:
+                # --- Minimal additions to support None group_by ---
+                if group_by is None:
+                    # Use a temporary single-bin x-axis
+                    _tmp_all_col = "__ALL__"
+                    bldg_type_df_local = bldg_type_df.copy()
+                    bldg_type_df_local[_tmp_all_col] = "Total"
+                    x_col = _tmp_all_col
+                    x_order = ["Total"]
+                    gb = "Total"
+                else:
+                    bldg_type_df_local = bldg_type_df
+                    x_col = group_by
+                    x_order = self.ORDERED_CATEGORIES[group_by]
+                    gb = self.col_name_to_nice_name(group_by)
+                # ---------------------------------------------------
+
                 var_name = 'End Use'
                 val_name = f'Energy Consumption ({units})'
+
+                # id_vars: include the chosen x_col instead of raw group_by
                 tots_long = pd.melt(
-                    bldg_type_df,
+                    bldg_type_df_local,
                     id_vars=[
                         column_for_grouping,
-                        group_by
+                        x_col
                     ],
                     value_vars=wtd_end_use_cols,
                     var_name=var_name,
@@ -1305,12 +1323,12 @@ class PlottingMixin():
 
                 g = sns.catplot(
                     data=tots_long,
-                    x=group_by,
+                    x=x_col,
                     y=val_name,
                     row=var_name,
                     hue=column_for_grouping,
                     estimator=agg_method,
-                    order=self.ORDERED_CATEGORIES[group_by],
+                    order=x_order,
                     hue_order=list(color_map.keys()),
                     palette=color_map.values(),
                     sharex=False,
@@ -1323,10 +1341,7 @@ class PlottingMixin():
                 fig = g.figure
 
                 # Titles and axis labels
-
-                # Formatting
-                gb = self.col_name_to_nice_name(group_by)
-                title = f"End Use Energy Consumption \n for {bldg_type.replace('_', ' ')} by {f'{gb}'}".title()
+                title = f"End Use Energy Consumption \n for {bldg_type.replace('_', ' ')} by {gb}".title()
                 for ax in g.axes.flatten():
                     # Improve the title and move to the y-axis label
                     ax_title = ax.get_title()
@@ -1337,7 +1352,7 @@ class PlottingMixin():
                     ax_title = ax_title.replace(' ', '\n')
                     ax.set_ylabel(ax_title, rotation=0, ha='right')
                     ax.set_title('')
-                ax.set_xlabel(gb)
+                    ax.set_xlabel(gb)
 
                 g.tight_layout()
 
@@ -1348,8 +1363,9 @@ class PlottingMixin():
                 if not os.path.exists(fig_sub_dir):
                     os.makedirs(fig_sub_dir)
                 fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
-                plt.savefig(fig_path, bbox_inches = 'tight')
+                plt.savefig(fig_path, bbox_inches='tight')
                 plt.close()
+
 
     def plot_eui_histograms_by_building_type(self, df, column_for_grouping, color_map, output_dir):
         # EUI histogram comparisons by building type
