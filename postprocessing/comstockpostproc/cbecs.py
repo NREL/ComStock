@@ -377,7 +377,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # Load the building type mapping file
         file_path = os.path.join(self.resource_dir, self.building_type_mapping_file_name)
         bldg_type_map = pd.read_csv(file_path, index_col='CBECS More specific building activity')
-        pba_bldg_type_map = pd.read_csv(file_path, index_col='CBECS Principal building activity')
         bldg_type_map.head()
 
         def cbecs_to_comstock_bldg_type(row, bldg_type_map):
