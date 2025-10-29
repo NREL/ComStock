@@ -58,6 +58,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         """
 
         # Initialize members
+        self.s3_base_dir = s3_base_dir
         self.comstock_run_name = comstock_run_name
         self.comstock_run_version = comstock_run_version
         self.year = comstock_year
@@ -2711,7 +2712,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(wtd_agg_outs, pl.LazyFrame)
         return wtd_agg_outs
 
-    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports, n_parallel=-1):
+    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports, n_parallel=-1, output_dir=None):
+        # Use self.output_dir if output_dir is not specified
+        if output_dir is None:
+            output_dir = self.output_dir
+
         # # Define the geographic partitions to export
         # geo_exports = [
         # {'geo_top_dir': 'national',
@@ -2777,23 +2782,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 first_geo_combos = first_geo_combos.sort(by=geo_col_names[0])
 
             # Make a directory for the geography type
-            full_geo_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
-            self.output_dir['fs'].mkdirs(full_geo_dir, exist_ok=True)
+            full_geo_dir = f"{output_dir['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
+            output_dir['fs'].mkdirs(full_geo_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             if None in aggregation_levels:
                 for data_type in data_types:
                     for file_type in file_types:
-                        self.output_dir['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
+                        output_dir['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Make an aggregates directory for the geography type
-            full_geo_agg_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
-            self.output_dir['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
+            full_geo_agg_dir = f"{output_dir['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
+            output_dir['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             for data_type in data_types:
                 for file_type in file_types:
-                    self.output_dir['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
+                    output_dir['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Builds a file path for each aggregate based on name, file type, and aggregation level
             def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
@@ -2804,7 +2809,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
                 if len(geo_levels) > 0:
                     geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
-                self.output_dir['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                output_dir['fs'].mkdirs(geo_level_dir, exist_ok=True)
                 file_name = f'upgrade{upgrade_id}'
                 # Add geography prefix to filename
                 if len(geo_prefixes) > 0:
@@ -2922,7 +2927,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 for file_type in file_types:
                                     file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
                                     logger.debug(f"Queuing {file_path}")
-                                    combo = (geo_data_for_data_type, self.output_dir, file_type, file_path)
+                                    combo = (geo_data_for_data_type, output_dir, file_type, file_path)
                                     combos_to_write.append(combo)
 
                         # Write files in parallel
@@ -2994,7 +2999,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             for file_type in file_types:
                                 file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
                                 logger.debug(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                combo = (data_type_df, self.output_dir, file_type, file_path)
+                                combo = (data_type_df, output_dir, file_type, file_path)
                                 combos_to_write.append(combo)
 
                     # Write files in parallel

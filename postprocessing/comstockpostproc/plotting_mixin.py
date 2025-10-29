@@ -11,9 +11,28 @@ from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
+import sys
 from buildstock_query import BuildStockQuery
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
+import comstockpostproc.comstock as comstock
+from comstockpostproc.comstock_query_builder import ComStockQueryBuilder
+import fsspec
+import s3fs
+from pyathena.arrow.cursor import ArrowCursor
+
+# --- put this at the VERY TOP of your main script ---
+from pyathena import connect as _orig_connect
+from pyathena.arrow.cursor import ArrowCursor
+import buildstock_query.query_core as qc  # this is what QueryCore calls
+
+def _connect_with_arrow(*args, **kwargs):
+    kwargs.setdefault("cursor_class", ArrowCursor)
+    kwargs.setdefault("cursor_kwargs", {"unload": True})  # downloads via boto3, no s3fs/fsspec involved
+    return _orig_connect(*args, **kwargs)
+
+qc.connect = _connect_with_arrow  # patch the exact symbol QueryCore uses
+# --- end patch ---
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -3010,92 +3029,206 @@ class PlottingMixin():
         plt.savefig(output_path, bbox_inches='tight')
 
 
-    # create weights table on S3 based on allocation outcomes
-    def clone_weights_table_on_s3(self, df, state, bldg_type_col, weight_col):
-        """
-        This method clones the weights table created during allocation on S3 so it can be reused for weighting timeseries profiles on S3.
-        The weights table is for the full baseline run at full resolution.
-        """
-        self.get_allocated_weights_scaled_to_cbecs_for_upgrade(0)
-
-
-
 
 
     # get weighted load profiles
-    def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
+    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, state, upgrade_name):
         """
-        This method weights the timeseries profiles.
-        Returns dataframe with weighted kWh columns.
+        This method retrieves weighted timeseries profiles from s3/athena.
+        Returns dataframe with weighted kWh columns for baseline and upgrade.
         """
-        btype_list = df[self.BLDG_TYPE].unique()
 
-        applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME].isin(upgrade_name)) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
+        # run crawler
+        run_data = BuildStockQuery(workgroup='eulp',
+                                   db_name='enduse',
+                                   table_name=self.comstock_run_name,
+                                   buildstock_type='comstock',
+                                   skip_reports=True,
+                                   metadata_table_suffix='_md_agg_national_by_state_vu', #TODO: make this more dynamic
+                                   #ts_table_suffix=f"_timeseries_vu"
+                                   )
+
+        print(run_data._tables.keys())
+
+        breakpoint()
+
+        applic_bldgs_list = list(df.loc[(df[self.UPGRADE_ID].isin(upgrade_num)) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
         applic_bldgs_list = [int(x) for x in applic_bldgs_list]
 
-        dfs_base=[]
-        dfs_up=[]
-        for btype in btype_list:
 
-            # get building weights
-            btype_wgt = dict_wgts[btype]
+        import time
+        from datetime import datetime, time
 
-            # apply weights by building type
-            def apply_wgts(df):
-                # Identify columns that contain 'kwh' in their names
-                kwh_columns = [col for col in df.columns if 'kwh' in col]
+        start_time = time()
+        start_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Apply the weight and add the suffix 'weighted'
-                weighted_df = df[kwh_columns].apply(lambda x: x * btype_wgt).rename(columns=lambda x: x + '_weighted')
-                # Concatenate the new weighted columns with the original DataFrame without the unweighted 'kwh' columns
-                df_wgt = pd.concat([df.drop(columns=kwh_columns), weighted_df], axis=1)
+        print(f"\n[{start_str}] Starting processing for state {state}")
 
-                return df_wgt
+        # loop through upgrades
+        for upgrade_id in df[self.UPGRADE_ID].unique():
 
-            # baseline load data - aggregate electricity total only
-            df_base_ts_agg = run_data.agg.aggregate_timeseries(
-                                                                upgrade_id=0,
+            print(f"\n[{start_str}] Starting processing for state {state}, upgrade id {upgrade_id}...")
+
+
+            # if there are upgrades, restrict baseline to match upgrade applicability
+            if (upgrade_id in (0, "0")) and (df[self.UPGRADE_ID].nunique() > 1):
+
+                # Create query builder and generate query
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=[
+                        ('in.state', [f"{state}"]),
+                        ('bldg_id', [19])  # match applicability of upgrade applic_bldgs_list[0]
+                    ],
+                    timestamp_grouping='hour',
+                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                )
+                
+                print("Generated Query:")
+                print("="*80)
+                print(query)
+                print("="*80)
+
+                print(f"Getting weighted baseline load profile for state {state} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings.")
+
+                ########start bsq
+                # need to replace buildstock query code with direct athena query function call
+                df_base_ts_agg_weighted = run_data.agg.aggregate_timeseries(
+                                                                upgrade_id=upgrade_id,
                                                                 enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                          ('state_abbreviation', [f"{state}"]),
-                                                                          (run_data.bs_bldgid_column, applic_bldgs_list),
-                                                                          ],
+                                                                restrict=[
+                                                                            ('in.state', [f"{state}"]),
+                                                                            (run_data.bs_bldgid_column, [19]), # match applicability of upgrade applic_bldgs_list[0]
+                                                                         ],
                                                                 timestamp_grouping_func='hour',
+                                                                weights=[self.BLDG_WEIGHT],
+                                                                get_query_only=False
+                                                                )
+            else:
+                # baseline load data when no upgrades are present, or upgrade load data
+                
+                # Create query builder and generate query for upgrade data
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=[
+                        ('in.state', [f"{state}"]),
+                        ('bldg_id', [19])
+                    ],
+                    timestamp_grouping='hour',
+                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                )
+                
+                print("Generated Upgrade Query:")
+                print("="*80)
+                print(query)
+                print("="*80)
+                
+                df_up_ts_agg_weighted = run_data.agg.aggregate_timeseries(
+                                                                upgrade_id=upgrade_id,
+                                                                enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                                                                restrict=[
+                                                                            ('in.state', [f"{state}"]),
+                                                                            (run_data.bs_bldgid_column, [19]),
+                                                                         ],
+                                                                timestamp_grouping_func='hour',
+                                                                weights=[self.BLDG_WEIGHT],
                                                                 get_query_only=False
                                                                 )
 
-            # add baseline data
-            df_base_ts_agg_weighted = apply_wgts(df_base_ts_agg)
-            df_base_ts_agg_weighted[self.UPGRADE_NAME] = 'baseline'
-            dfs_base.append(df_base_ts_agg_weighted)
 
-            for upgrade in upgrade_num:
-                # upgrade load data - all enduses
-                upgrade_ts_agg = run_data.agg.aggregate_timeseries(
-                                                                    upgrade_id=upgrade.astype(str),
-                                                                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                    restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                            ('state_abbreviation', [f"{state}"]),
-                                                                            ],
-                                                                    timestamp_grouping_func='hour',
-                                                                    get_query_only=False
-                                                                    )
+            #############end bsq
 
-                # add upgrade data
-                df_upgrade_ts_agg_weighted = apply_wgts(upgrade_ts_agg)
-                df_upgrade_ts_agg_weighted[self.UPGRADE_NAME] = self.dict_upid_to_upname[upgrade]
-                dfs_up.append(df_upgrade_ts_agg_weighted)
+            end_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[{end_str}] Finished upgrade_id {upgrade_id}")
+
+        # Initialize default values in case no data was processed
+        df_base_ts_agg_weighted = pd.DataFrame() if 'df_base_ts_agg_weighted' not in locals() else df_base_ts_agg_weighted
+        df_up_ts_agg_weighted = pd.DataFrame() if 'df_up_ts_agg_weighted' not in locals() else df_up_ts_agg_weighted
+        
+        df_base_ts_agg_weighted.to_csv('df_base_ts_agg_weighted.csv')
+        df_up_ts_agg_weighted.to_csv('df_up_ts_agg_weighted.csv')
+
+        return df_base_ts_agg_weighted, df_up_ts_agg_weighted
+
+    ## get weighted load profiles
+    #def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
+    #    """
+    #    This method weights the timeseries profiles.
+    #    Returns dataframe with weighted kWh columns.
+    #    """
+    #    #btype_list = df[self.BLDG_TYPE].unique()
+
+        #applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME].isin(upgrade_name)) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
+        #applic_bldgs_list = [int(x) for x in applic_bldgs_list]
+
+        #dfs_base=[]
+        #dfs_up=[]
+        #for btype in btype_list:
+
+        #    # get building weights
+        #    btype_wgt = dict_wgts[btype]
+
+        #    # apply weights by building type
+        #    def apply_wgts(df):
+        #        # Identify columns that contain 'kwh' in their names
+        #        kwh_columns = [col for col in df.columns if 'kwh' in col]
+
+        #        # Apply the weight and add the suffix 'weighted'
+        #        weighted_df = df[kwh_columns].apply(lambda x: x * btype_wgt).rename(columns=lambda x: x + '_weighted')
+        #        # Concatenate the new weighted columns with the original DataFrame without the unweighted 'kwh' columns
+        #        df_wgt = pd.concat([df.drop(columns=kwh_columns), weighted_df], axis=1)
+
+        #        return df_wgt
+
+    #    # baseline load data - aggregate electricity total only
+    #    df_base_ts_agg_weighted = run_data.agg.aggregate_timeseries(
+    #                                                        upgrade_id=0,
+    #                                                        enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+    #                                                        restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+    #                                                                    ('state_abbreviation', [f"{state}"]),
+    #                                                                    (run_data.bs_bldgid_column, applic_bldgs_list),
+    #                                                                    ],
+    #                                                        timestamp_grouping_func='hour',
+    #                                                        get_query_only=False
+    #                                                        )
+
+    #    # add baseline data
+    #    df_base_ts_agg_weighted[self.UPGRADE_NAME] = 'baseline'
+
+    #    dfs_base.append(df_base_ts_agg_weighted)
+
+    #    for upgrade in upgrade_num:
+    #        # upgrade load data - all enduses
+    #        upgrade_ts_agg = run_data.agg.aggregate_timeseries(
+    #                                                            upgrade_id=upgrade.astype(str),
+    #                                                            enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+    #                                                            restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
+    #                                                                    ('state_abbreviation', [f"{state}"]),
+    #                                                                    ],
+    #                                                            timestamp_grouping_func='hour',
+    #                                                            get_query_only=False
+    #                                                            )
+
+    #        # add upgrade data
+    #        df_upgrade_ts_agg_weighted = apply_wgts(upgrade_ts_agg)
+    #        df_upgrade_ts_agg_weighted[self.UPGRADE_NAME] = self.dict_upid_to_upname[upgrade]
+    #        dfs_up.append(df_upgrade_ts_agg_weighted)
 
 
-        # concatinate and combine baseline data
-        dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
-        dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
+    ## concatinate and combine baseline data
+    #dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
+    #dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
 
-        # concatinate and combine upgrade data
-        dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
-        dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
+    ## concatinate and combine upgrade data
+    #dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
+    #dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
 
-        return dfs_base_combined, dfs_upgrade_combined
+    #return dfs_base_combined, dfs_upgrade_combined
+
 
     # plot
     order_list = [
@@ -3124,175 +3257,168 @@ class PlottingMixin():
 
     def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name): #, df, region, building_type, color_map, output_dir
 
-        # run crawler
-        run_data = BuildStockQuery('eulp',
-                                   'enduse',
-                                   self.comstock_run_name,
-                                   buildstock_type='comstock',
-                                   skip_reports=False)
-
         # get upgrade ID
-        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        df_data = df.copy()
+        # coerce data type of upgrade ID - arrives as float, need str of int for querying
+        df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
+        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0") & (df_data[self.UPGRADE_ID]!=0), :]
         upgrade_num = list(df_upgrade[self.UPGRADE_ID].unique())
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
-        # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
-
         # apply queries and weighting
         for state, state_name in states.items():
-            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+            dfs_base_combined, dfs_upgrade_combined = self.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
 
-            # merge into single dataframe
-            dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
+        #    # merge into single dataframe
+        #    dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
 
-            # set index
-            dfs_merged.set_index("time", inplace=True)
-            dfs_merged['Month'] = dfs_merged.index.month
+        #    # set index
+        #    dfs_merged.set_index("time", inplace=True)
+        #    dfs_merged['Month'] = dfs_merged.index.month
 
-            def map_to_season(month):
-                if 3 <= month <= 5:
-                    return 'Spring'
-                elif 6 <= month <= 8:
-                    return 'Summer'
-                elif 9 <= month <= 11:
-                    return 'Fall'
-                else:
-                    return 'Winter'
+        #    def map_to_season(month):
+        #        if 3 <= month <= 5:
+        #            return 'Spring'
+        #        elif 6 <= month <= 8:
+        #            return 'Summer'
+        #        elif 9 <= month <= 11:
+        #            return 'Fall'
+        #        else:
+        #            return 'Winter'
 
-            # Apply the mapping function to create the "Season" column
-            dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
-            dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
-            dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
-            dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
-            dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
-            dfs_merged['Year'] = dfs_merged.index.year
-            # make dec 31st last week of year
-            dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
-            dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
-            max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh_weighted'].max()
+        #    # Apply the mapping function to create the "Season" column
+        #    dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
+        #    dfs_merged['Week_of_Year'] = dfs_merged.index.isocalendar().week
+        #    dfs_merged['Day_of_Year'] = dfs_merged.index.dayofyear
+        #    dfs_merged['Day_of_Week'] = dfs_merged.index.dayofweek
+        #    dfs_merged['Hour_of_Day'] = dfs_merged.index.hour
+        #    dfs_merged['Year'] = dfs_merged.index.year
+        #    # make dec 31st last week of year
+        #    dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
+        #    dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
+        #    max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh_weighted'].max()
 
-            # find peak week by season
-            seasons = ['Spring', 'Summer', 'Fall', 'Winter']
-            for season in seasons:
-                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh_weighted", "Week_of_Year"]]
-                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "Week_of_Year"][0]
-
-
-                # filter to the week
-                dfs_merged_pw = dfs_merged.loc[dfs_merged["Week_of_Year"]==peak_week, :].copy()
-                #dfs_merged_pw = dfs_merged_pw.loc[:, dfs_merged_pw.columns.str.contains("electricity")]
-                dfs_merged_pw.reset_index(inplace=True)
-                dfs_merged_pw = dfs_merged_pw.sort_values('time')
-
-                # rename columns
-                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
-                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
-
-                # convert hourly kWH to 15 minute MW
-                dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
-                dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
-
-                # add upgrade traces
-                # Create traces for area plot
-                traces = []
-                # add aggregate measure load
-                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
-                dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
-                # if only 1 upgrade, plot end uses and total
-                if len(upgrade_num) == 1:
-                    # loop through end uses
-                    for enduse in self.order_list:
-                        trace = go.Scatter(
-                            x=dfs_merged_pw_up['time'],
-                            y=dfs_merged_pw_up[enduse],
-                            fill='tonexty',
-                            fillcolor=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()],
-                            mode='none',
-                            line=dict(color=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()], width=0.5),
-                            name=enduse,
-                            stackgroup='stack'
-                        )
-                        traces.append(trace)
-
-                    # Create a trace for the upgrade load
-                    upgrade_trace = go.Scatter(
-                        x=dfs_merged_pw_up['time'],
-                        y=dfs_merged_pw_up['Measure Total'],
-                        mode='lines',
-                        line=dict(color='black', width=1.8, dash='solid'),
-                        name='Measure Total',
-                    )
-                    traces.append(upgrade_trace)
-                else:
-                    # if more than 1 upgrade, add only aggregate loads
-                    for upgrade in upgrade_num:
-                        dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
-                        upgrade_trace = go.Scatter(
-                        x=dfs_merged_pw_up_mult['time'],
-                        y=dfs_merged_pw_up_mult['Measure Total'],
-                        mode='lines',
-                        line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                        name=self.dict_upid_to_upname[upgrade],
-                        )
-                        traces.append(upgrade_trace)
+        #    # find peak week by season
+        #    seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+        #    for season in seasons:
+        #        peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh_weighted", "Week_of_Year"]]
+        #        peak_week = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "Week_of_Year"][0]
 
 
-                # add baseline load
-                dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
-                dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
+        #        # filter to the week
+        #        dfs_merged_pw = dfs_merged.loc[dfs_merged["Week_of_Year"]==peak_week, :].copy()
+        #        #dfs_merged_pw = dfs_merged_pw.loc[:, dfs_merged_pw.columns.str.contains("electricity")]
+        #        dfs_merged_pw.reset_index(inplace=True)
+        #        dfs_merged_pw = dfs_merged_pw.sort_values('time')
 
-                # Create a trace for the baseline load
-                baseline_trace = go.Scatter(
-                    x=dfs_merged_pw_base['time'],
-                    y=dfs_merged_pw_base['Baseline Total'],
-                    mode='lines',
-                    #line=dict(color='black', width=1.75),
-                    line=dict(color='black', width=1.8, dash='dot'),
-                    name='Baseline Total'
-                )
-                traces.append(baseline_trace)
+        #        # rename columns
+        #        dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+        #        dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
 
-                # Create the layout
-                layout = go.Layout(
-                    #title=f"{season} Peak Week - {state_name}",
-                    xaxis=dict(mirror=True, title=None, showline=True),
-                    yaxis=dict(mirror=True, title='Electricity Demand (MW)', range=[0, max_peak/1000], showline=True),
-                    legend=dict(font=dict(size=8), y=1.02, xanchor="left", x=0.0, orientation="h", yanchor="bottom", itemwidth=30),
-                    legend_traceorder="reversed",
-                    showlegend=True,
-                    template='simple_white',
-                    width=650,
-                    height=400,
-                    annotations=[
-                                dict(x=-0.1,  # Centered on the x-axis
-                                    y=-0.35,  # Adjust this value as needed to place the title correctly
-                                    xref='paper',
-                                    yref='paper',
-                                    text=f"{season} Peak Week, Applicable Buildings - {state_name}",
-                                    showarrow=False,
-                                    font=dict(
-                                        size=16
-                                    ))]
-                )
+        #        # convert hourly kWH to 15 minute MW
+        #        dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
+        #        dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
 
-                # Create the figure
-                fig = go.Figure(data=traces, layout=layout)
+        #        # add upgrade traces
+        #        # Create traces for area plot
+        #        traces = []
+        #        # add aggregate measure load
+        #        dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+        #        dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+        #        # if only 1 upgrade, plot end uses and total
+        #        if len(upgrade_num) == 1:
+        #            # loop through end uses
+        #            for enduse in self.order_list:
+        #                trace = go.Scatter(
+        #                    x=dfs_merged_pw_up['time'],
+        #                    y=dfs_merged_pw_up[enduse],
+        #                    fill='tonexty',
+        #                    fillcolor=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()],
+        #                    mode='none',
+        #                    line=dict(color=self.PLOTLY_ENDUSE_COLOR_DICT[enduse.replace('_'," ").title()], width=0.5),
+        #                    name=enduse,
+        #                    stackgroup='stack'
+        #                )
+        #                traces.append(trace)
 
-                # Save fig
-                title = f"{season}_peak_week"
-                fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
-                fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
-                if not os.path.exists(fig_sub_dir):
-                    os.makedirs(fig_sub_dir)
-                fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
-                fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+        #            # Create a trace for the upgrade load
+        #            upgrade_trace = go.Scatter(
+        #                x=dfs_merged_pw_up['time'],
+        #                y=dfs_merged_pw_up['Measure Total'],
+        #                mode='lines',
+        #                line=dict(color='black', width=1.8, dash='solid'),
+        #                name='Measure Total',
+        #            )
+        #            traces.append(upgrade_trace)
+        #        else:
+        #            # if more than 1 upgrade, add only aggregate loads
+        #            for upgrade in upgrade_num:
+        #                dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
+        #                upgrade_trace = go.Scatter(
+        #                x=dfs_merged_pw_up_mult['time'],
+        #                y=dfs_merged_pw_up_mult['Measure Total'],
+        #                mode='lines',
+        #                line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
+        #                name=self.dict_upid_to_upname[upgrade],
+        #                )
+        #                traces.append(upgrade_trace)
 
-                fig.write_image(fig_path, scale=10)
-                fig.write_html(fig_path_html)
 
-            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
+        #        # add baseline load
+        #        dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
+        #        dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
+
+        #        # Create a trace for the baseline load
+        #        baseline_trace = go.Scatter(
+        #            x=dfs_merged_pw_base['time'],
+        #            y=dfs_merged_pw_base['Baseline Total'],
+        #            mode='lines',
+        #            #line=dict(color='black', width=1.75),
+        #            line=dict(color='black', width=1.8, dash='dot'),
+        #            name='Baseline Total'
+        #        )
+        #        traces.append(baseline_trace)
+
+        #        # Create the layout
+        #        layout = go.Layout(
+        #            #title=f"{season} Peak Week - {state_name}",
+        #            xaxis=dict(mirror=True, title=None, showline=True),
+        #            yaxis=dict(mirror=True, title='Electricity Demand (MW)', range=[0, max_peak/1000], showline=True),
+        #            legend=dict(font=dict(size=8), y=1.02, xanchor="left", x=0.0, orientation="h", yanchor="bottom", itemwidth=30),
+        #            legend_traceorder="reversed",
+        #            showlegend=True,
+        #            template='simple_white',
+        #            width=650,
+        #            height=400,
+        #            annotations=[
+        #                        dict(x=-0.1,  # Centered on the x-axis
+        #                            y=-0.35,  # Adjust this value as needed to place the title correctly
+        #                            xref='paper',
+        #                            yref='paper',
+        #                            text=f"{season} Peak Week, Applicable Buildings - {state_name}",
+        #                            showarrow=False,
+        #                            font=dict(
+        #                                size=16
+        #                            ))]
+        #        )
+
+        #        # Create the figure
+        #        fig = go.Figure(data=traces, layout=layout)
+
+        #        # Save fig
+        #        title = f"{season}_peak_week"
+        #        fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
+        #        fig_name_html = f'{title.replace(" ", "_").lower()}.html'
+        #        fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+        #        if not os.path.exists(fig_sub_dir):
+        #            os.makedirs(fig_sub_dir)
+        #        fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
+        #        fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
+
+        #        fig.write_image(fig_path, scale=10)
+        #        fig.write_html(fig_path_html)
+
+        #    dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
 
     def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, color_map, comstock_run_name):
 
@@ -3512,7 +3638,7 @@ class PlottingMixin():
     def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name):
 
         # run crawler
-        run_data = BuildStockQuery('eulp', 'enduse', self.comstock_run_name, buildstock_type='comstock', skip_reports=False)
+        run_data = BuildStockQuery('eulp', 'enduse', self.comstock_run_name, buildstock_type='comstock', skip_reports=False, timeseries_table_suffix='something')
 
         # get upgrade ID
         df_upgrade = df.loc[df[self.UPGRADE_ID] != 0, :]
