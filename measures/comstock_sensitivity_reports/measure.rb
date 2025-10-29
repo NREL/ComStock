@@ -1095,10 +1095,15 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
-          if supply_fan.maximumFlowRate.is_initialized
-            fan_var_vol = true
-            des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
-          end
+        if supply_fan.autosizedMaximumFlowRate.is_initialized
+		   fan_var_vol = true
+          des_flow_rate_m3_s = supply_fan.autosizedMaximumFlowRate.get
+        elsif supply_fan.maximumFlowRate.is_initialized
+		  fan_var_vol = true
+          des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
+		else 
+		  des_flow_rate_m3_s = -999 #placeholder 
+        end
         else
           runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
