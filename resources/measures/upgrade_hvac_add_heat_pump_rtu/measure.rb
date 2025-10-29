@@ -2804,9 +2804,15 @@ end
     stage_caps_htg = parse_stage_fractions(cchp_staging["stage_cap_fractions_heating"])
     stage_caps_clg = parse_stage_fractions(cchp_staging["stage_cap_fractions_cooling"])
 
-    if compressor_reduction_during_peak == true
+    # Define debug EMS global variables upfront (so they exist for output reporting even if DR is disabled)
+    debug_predicted_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_predicted_load')
+    debug_abs_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_abs_load')
+    debug_mode_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_mode')
+    debug_stage_needed_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_stage_needed')
+    debug_cap_stage_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_cap_stage')
+    debug_actuated_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_actuated')
 
-      sensible_heat_ratio = 0.77
+    if compressor_reduction_during_peak == true
       
       unitary_systems = model.getAirLoopHVACUnitarySystems
       if unitary_systems.empty?
@@ -2827,9 +2833,17 @@ end
           # skip kitchens
           next if %w[Kitchen KITCHEN Kitchen].any? { |word| unitary.name.get.include?(word) }
 
-          htg_limit_val = 4
-          clg_limit_val = 4
-          
+          num_htg_speeds = 4
+          num_clg_speeds = 4
+
+          htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
+          htg_limit_val = [htg_limit_val, num_htg_speeds].min
+          puts "htg_limit_val: #{htg_limit_val}"
+
+          clg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_clg)
+          clg_limit_val = [clg_limit_val, num_clg_speeds].min
+          puts "clg_limit_val: #{clg_limit_val}"
+
           # if controlling zone available, add zone sensors
           if unitary.controllingZoneorThermostatLocation.is_initialized
             zone = unitary.controllingZoneorThermostatLocation.get
@@ -2952,12 +2966,6 @@ end
               SET abs_load = -predicted_load,
             ENDIF
 
-            SET debug_stage_needed = 1
-            SET debug_cap_stage = 0
-            SET debug_mode = mode
-            SET debug_abs_load = abs_load
-            SET debug_predicted_load = predicted_load
-
             IF (predicted_load > 0),
               SET mode = 1    ! heating
             ELSEIF (predicted_load < 0),
@@ -2965,6 +2973,14 @@ end
             ELSE,
               SET mode = 0
             ENDIF
+
+            ! Initialize debug variables
+            SET debug_predicted_load = predicted_load
+            SET debug_abs_load = abs_load
+            SET debug_mode = mode
+            SET debug_stage_needed = 1
+            SET debug_cap_stage = 0
+            SET debug_actuated = 0
 
             ! --- Effective capacities per stage (using degradation sensors) ---
             ! Cooling (4 speeds)
@@ -3030,13 +3046,6 @@ end
               SET #{dx_coil_actuator.name} = Null,
               SET debug_actuated = 0,
             ENDIF
-
-            OUTPUT debug_predicted_load
-            OUTPUT debug_abs_load
-            OUTPUT debug_mode
-            OUTPUT debug_stage_needed
-            OUTPUT debug_cap_stage
-            OUTPUT debug_actuated
           EMS
 
           dx_coil_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
@@ -3274,7 +3283,7 @@ end
 
     timeseriesnames = []
 
-    # Get EMS variables created by the measure
+    # Initialize list that will collect EMS actuators and globals
     li_ems_act_oa_flow = []
     model.getEnergyManagementSystemActuators.each do |ems_actuator|
       li_ems_act_oa_flow << ems_actuator
@@ -3283,14 +3292,8 @@ end
       li_ems_act_oa_flow << glo_var
     end
     
-    # Create output var for EMS variables
-    ems_output_variable_list = [
-      'DR_Adjustment_Sensor',
-      'req_heating',
-      'req_cooling',
-      'cap_capacity_htg',
-      'cap_capacity_clg'
-]
+    ems_output_variable_list = []
+
     li_ems_act_oa_flow.each do |act|
       name = act.name
       ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
