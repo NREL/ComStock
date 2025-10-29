@@ -1452,7 +1452,7 @@ class NamingMixin():
         return loads_cols
 
 
-    ## Following 3 method are Required for RSE calculations using replicate weights used in postprocessing charts
+    ## Following 3 methods are Required for RSE calculations using replicate weights used in postprocessing charts
 
     # Determine if a column is a replicate-weight column
     @classmethod
