@@ -68,36 +68,6 @@ def _theta_and_reps(val: pd.Series, w: pd.Series, rep_w: pd.DataFrame) -> Tuple[
 def _jk_var(theta: float, rep_thetas: np.ndarray, kappa: float) -> float:
     return float(kappa * np.sum((rep_thetas - theta) ** 2))
 
-## Calibrate kappa for total estimate to achieve target RSE TODO enable if needed but currently estimates appear to work well without calibration
-# def calibrate_kappa_for_total(
-#     df: pd.DataFrame,
-#     value_col: str,
-#     weight_col: str = "weight",
-#     universe_mask: Optional[pd.Series] = None,
-#     target_rse: Optional[float] = None,  # e.g. 0.031 for 3.1%
-# ) -> float:
-#     """If target_rse is None -> default JK coeff (R-1)/R. Otherwise solve for kappa."""
-#     reps = _rep_cols(df)
-#     if universe_mask is None:
-#         universe_mask = pd.Series(True, index=df.index)
-
-#     sub = df.loc[universe_mask, [value_col, weight_col] + reps].copy()
-#     sub[value_col] = _to_num(sub[value_col]); sub[weight_col] = _to_num(sub[weight_col])
-#     for c in reps: sub[c] = _to_num(sub[c])
-#     sub = sub.replace([np.inf, -np.inf], np.nan).dropna(subset=[value_col, weight_col])
-
-#     theta, rep_thetas = _theta_and_reps(sub[value_col], sub[weight_col], sub[reps])
-#     R = len(reps)
-#     if not target_rse:
-#         return (R - 1) / R
-
-#     target_var = (target_rse * theta) ** 2
-#     ss = float(np.sum((rep_thetas - theta) ** 2))
-#     if ss == 0:
-#         raise ValueError("Cannot calibrate kappa: replicate deviations are all zero.")
-#     return target_var / ss
-
-
 ## RSE calculation methods
 # Calculate RSE for total estimate by group
 def rse_by_group_total(
