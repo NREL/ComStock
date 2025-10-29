@@ -128,8 +128,8 @@ class LazyFramePlotter(NamingMixin):
         lazy_frame: pl.LazyFrame,
         columns: list[str],
         *args,
-        include_replicate_weights: bool = False,   # default off as most plots dont include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
-        include_base_weight: bool = False,   # default off as most plots dont include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        include_replicate_weights: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        include_base_weight: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
         **kwargs
     ):
         df: pd.DataFrame = LazyFramePlotter.select_columns(
