@@ -617,7 +617,7 @@ class PlottingMixin():
         # Loop through columns and group-bys for charting
         for col, agg_method in cols_to_summarize.items():
             for group_by in group_bys:
-                # Only calculate CI for CBECS utilizng CBECS replicate weight and RSE calculations
+                # Only calculate CI for CBECS utilizing CBECS replicate weight and RSE calculations
                 cbecs_mask = df[column_for_grouping].astype(str).str.startswith('CBECS')
                 cbecs_df = df[cbecs_mask]
                 rse_results = None
@@ -688,7 +688,7 @@ class PlottingMixin():
                                     if not match.empty:
                                         y = match['estimate'].values[0]
                                         yerr = [[y - match['ci95_low'].values[0]], [match['ci95_high'].values[0] - y]]
-                                        ax.errorbar(i - .2, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
+                                        ax.errorbar(i - 0.2, y, yerr=np.array(yerr), fmt='none', ecolor='black', capsize=4)
                     g._legend.set_title(self.col_name_to_nice_name(column_for_grouping))
 
                 fig = g.figure
@@ -1028,7 +1028,7 @@ class PlottingMixin():
                         # Add error bars for CBECS bars only
                         if rse_results is not None:
                             for i, cat in enumerate(self.ORDERED_CATEGORIES[group_by]):
-                                for j, dataset in enumerate(list(color_map.keys())):
+                                for _, dataset in enumerate(list(color_map.keys())):
                                     if str(dataset).startswith('CBECS'):
                                         match = rse_results[(rse_results[group_by] == cat) & (rse_results[column_for_grouping] == dataset)]
                                         if not match.empty:
