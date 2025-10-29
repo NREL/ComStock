@@ -77,7 +77,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
   # Warning: Do not change the name of this method to be snake_case. The method must be lowerCamelCase.
   def energyPlusOutputRequests(runner, user_arguments)
-    super
+    super(runner, user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
@@ -612,7 +612,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    super
+    super(runner, user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments, user_arguments)
