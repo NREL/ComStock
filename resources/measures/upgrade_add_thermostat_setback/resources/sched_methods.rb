@@ -60,7 +60,7 @@ def get_tstat_profiles_and_stats(tstat_schedule) #from add thermostat setpoint v
   end
 end
 
-def get_8760_values_from_schedule_ruleset(model, schedule_ruleset) #in a PR 
+def get_8760_values_from_schedule_ruleset(model, schedule_ruleset) #from a PR to standards, can call directly in the future 
   Standard.build('90.1-2013') # build openstudio standards
   yd = model.getYearDescription
   start_date = yd.makeDate(1, 1)
