@@ -1366,10 +1366,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     zones_with_clg_setbacks = []
     zones_htg_tstats = [] # zones w heating thermostats
     zones_clg_tstats = [] # zones w clg thermostats
-    has_clg_setback_all_tstats = 'NA'
-    has_htg_setback_all_tstats = 'NA'
-    at_least_one_clg_setback = 'NA' #at least one zone with a cooling setback
-    at_least_one_htg_setback = 'NA' #at least one zone with a htg setback
+    has_clg_setback_all_tstats = false 
+    has_htg_setback_all_tstats = false
+    at_least_one_clg_setback = false #at least one zone with a cooling setback
+    at_least_one_htg_setback = false #at least one zone with a htg setback
 
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
@@ -1384,7 +1384,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           htg_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
           if htg_min_max['max'] > htg_min_max['min']
             zones_with_htg_setbacks << zone # Add to list of zones with setbacks
-            at_least_one_htg_setback = 'true'
+            at_least_one_htg_setback = true
           end
           weighted_thermostat_heating_min_c += htg_min_max['min'] * floor_area_m2
           weighted_thermostat_heating_max_c += htg_min_max['max'] * floor_area_m2
@@ -1395,7 +1395,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           interval_values_array = ts.values
           if interval_values_array.max > interval_values_array.min
             zones_with_htg_setbacks << zone # Add to list of zones with setbacks
-            at_least_one_htg_setback = 'true'
+            at_least_one_htg_setback = true
           end
           weighted_thermostat_heating_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_heating_max_c += interval_values_array.max * floor_area_m2
@@ -1419,7 +1419,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           weighted_thermostat_cooling_area_m2 += floor_area_m2
           if cool_min_max['max'] > cool_min_max['min']
             zones_with_clg_setbacks << zone # Add to list of zones with setbacks
-            at_least_one_clg_setback = 'true'
+            at_least_one_clg_setback = true
           end
         elsif thermostat_cooling_schedule.to_ScheduleInterval.is_initialized
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleInterval.get
@@ -1427,7 +1427,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           interval_values_array = ts.values
           if interval_values_array.max > interval_values_array.min
             zones_with_clg_setbacks << zone # Add to list of zones with setbacks
-            at_least_one_clg_setback = 'true'
+            at_least_one_clg_setback = true
           end
           weighted_thermostat_cooling_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_cooling_max_c += interval_values_array.max * floor_area_m2
@@ -1438,15 +1438,15 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # Set setback variable reporting
     if zones_with_clg_setbacks & zones_clg_tstats == zones_clg_tstats
-      has_clg_setback_all_tstats = 'true'
+      has_clg_setback_all_tstats = true
     else
-      has_clg_setback_all_tstats = 'false'
+      has_clg_setback_all_tstats = false
     end
 
     if zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats
-      has_htg_setback_all_tstats = 'true'
+      has_htg_setback_all_tstats = true
     else
-      has_htg_setback_all_tstats = 'false'
+      has_htg_setback_all_tstats = false
     end
 
     runner.registerValue('com_report_has_htg_setback_all_tstats', has_htg_setback_all_tstats)
