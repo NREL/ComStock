@@ -84,7 +84,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
-        #Convert columns with name in self.FLR_AREA or weight to numeric 
+        #Convert columns with name in self.FLR_AREA or weight to numeric
         numeric_patterns = [
             self.FLR_AREA,
             self.BLDG_WEIGHT,
@@ -94,7 +94,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'sqft',
             'intensity'
         ]
- 
+
         for col in self.data.columns:
             if any(pattern in col for pattern in numeric_patterns):
                 try:
@@ -105,7 +105,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
-        
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -136,7 +135,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -265,6 +263,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual natural gas expenditures ($)': self.UTIL_BILL_GAS,
             'Annual fuel oil expenditures ($)': self.UTIL_BILL_FUEL_OIL
         }
+
         self.data.rename(columns=column_map, inplace=True)
 
         # Combine some CBECS columns to match ComStock
@@ -420,6 +419,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
                 assert cstock_bldg_type != 'Office'  # Offices must be assigned a size
 
             return cstock_bldg_type
+
 
         self.data[self.BLDG_TYPE] = self.data.apply(lambda row: cbecs_to_comstock_bldg_type(row, bldg_type_map), axis=1)
 

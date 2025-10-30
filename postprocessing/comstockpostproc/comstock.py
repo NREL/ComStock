@@ -1782,7 +1782,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             eui_col = self.col_name_to_eui(engy_col)
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
-            
+
     def add_load_intensity_columns(self):
         # Create load intensity column for each load column
         for load_col in self.load_component_cols():
@@ -3306,7 +3306,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
-                    self.COLS_ENDUSE_GROUP_ANN_ENGY + 
+                    self.COLS_ENDUSE_GROUP_ANN_ENGY +
                     self.load_component_cols()):
 
             if not col in existing_col_names:
@@ -3852,11 +3852,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 '8': 'Cold (Zones 5-8)',
                 '8A': 'Cold (Zones 5-8)',
             }
-    
+
             df = df.with_columns((pl.col(self.CZ_ASHRAE).cast(pl.Utf8).replace(cz_groups, default=None)).alias('Climate Zone Group'))
             df = df.with_columns(pl.col('Climate Zone Group').cast(pl.Categorical))
             return df
-        
+
         # add climate zone groups
         geo_data = add_climate_zone_group(geo_data)
 
@@ -3906,7 +3906,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         file_path = os.path.abspath(os.path.join(self.output_dir["fs_path"], file_name))
         logger.info(f'Exporting to: {file_path}')
         loads_data_long.write_csv(file_path)
-        
+
         # return loads_data_long
 
     def export_to_csv_long(self):

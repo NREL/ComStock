@@ -67,50 +67,85 @@ class LazyFramePlotter(NamingMixin):
         self.UNMET_HOURS_COLS = list(set(self.UNMET_HOURS_COLS))
 
     @staticmethod
-    def select_columns(lazy_frame: pl.LazyFrame, columns: list[str]) -> pd.DataFrame:
-        columns = list(set(columns))
-        missing_columns = [
-            col for col in columns if col not in lazy_frame.columns]
-        assert len(
-            missing_columns) == 0, f"Columns {missing_columns} not in lazy_frame columns"
+    def select_columns(
+        lazy_frame: pl.LazyFrame,
+        columns: list[str],
+        *,
+        include_replicate_weights: bool = False,
+        include_base_weight: bool = True,
+    ) -> pd.DataFrame:
+        # start from requested columns
+        cols = list(set(columns))
 
+        # optionally include base weight
+        if include_base_weight and NamingMixin.BASE_WEIGHT_COL in lazy_frame.columns:
+            if NamingMixin.BASE_WEIGHT_COL not in cols:
+                cols.append(NamingMixin.BASE_WEIGHT_COL)
+
+        # optionally include all replicate weights
+        if include_replicate_weights:
+            rep_cols = NamingMixin.list_replicate_weight_cols(lazy_frame)
+            cols = list(set(cols + rep_cols))
+
+        # sanity check
+        NamingMixin.ensure_weight_columns_present(
+            cols,
+            require_base=include_base_weight,
+            require_reps=include_replicate_weights,
+        )
+
+        missing_columns = [c for c in cols if c not in lazy_frame.columns]
+        assert not missing_columns, f"Columns {missing_columns} not in lazy_frame columns"
+
+        # collect
         time_start = pd.Timestamp.now()
-        pandas_df = lazy_frame.clone().select(columns).collect().to_pandas()
+        pandas_df = lazy_frame.clone().select(cols).collect().to_pandas()
         time_end = pd.Timestamp.now()
         logger.info(
-            f"Collecting dataframe and converting to Pandas for plotting took {time_end - time_start}. Dataframe shape: {pandas_df.shape}")
+            f"Collecting dataframe and converting to Pandas for plotting took {time_end - time_start}. "
+            f"Dataframe shape: {pandas_df.shape}"
+        )
 
-        false_list = []
-        for col in columns:
+        # cast types (centralized via mixin)
+        cast_map = NamingMixin.build_cast_map_for_plotting(cols)
+        failed = []
+        for col, dtype in cast_map.items():
             try:
-                if col not in NamingMixin.COL_TYPE_SCHEMA:
-                    pandas_df = pandas_df.astype({col: 'float64'})
-                else:
-                    pandas_df = pandas_df.astype({col: NamingMixin.COL_TYPE_SCHEMA[col]})
+                pandas_df = pandas_df.astype({col: dtype})
             except Exception as e:
-                false_list.append((col, e))
-            finally:
-                pass
-
-        types = pandas_df.dtypes
-        if false_list:
-            raise Exception(f"Columns {false_list} \n are not castable to float64 {lazy_frame.select(columns).schema} \n {types}")
+                failed.append((col, dtype, str(e)))
+        if failed:
+            raise Exception(
+                f"Type casting failures: {failed}\n"
+                f"Polars schema: {lazy_frame.select(cols).schema}\n"
+                f"Pandas dtypes: {pandas_df.dtypes}"
+            )
         return pandas_df
 
     @staticmethod
-    def plot_with_lazy(plot_method: Callable, lazy_frame: pl.LazyFrame, columns: list[str], *args, **kwargs):
+    def plot_with_lazy(
+        plot_method: Callable,
+        lazy_frame: pl.LazyFrame,
+        columns: list[str],
+        *args,
+        include_replicate_weights: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        include_base_weight: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        **kwargs
+    ):
         df: pd.DataFrame = LazyFramePlotter.select_columns(
-            lazy_frame, columns)  # convert lazy frame to pandas dataframe
+            lazy_frame,
+            columns,
+            include_replicate_weights=include_replicate_weights,
+            include_base_weight=include_base_weight,
+        )
 
-        def inner(*args, **kwargs):
-            # pass the filtered dataframe to the plotting method
+        def inner(*args2, **kwargs2):
             time_start = pd.Timestamp.now()
-            kwargs['df'] = df
+            kwargs2.update(kwargs)
+            kwargs2["df"] = df
             assert df is not None, "df is None"
-            result = plot_method(*args, **kwargs)
-            time_end = pd.Timestamp.now()
-            logger.info(
-                f"{plot_method.__name__} took {time_end - time_start} to plot.")
+            result = plot_method(*args2, **kwargs2)
+            logger.info(f"{plot_method.__name__} took {pd.Timestamp.now() - time_start} to plot.")
             return result
 
         return inner

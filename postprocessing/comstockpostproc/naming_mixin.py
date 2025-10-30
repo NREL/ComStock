@@ -1,8 +1,12 @@
 # ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
+from __future__ import annotations
 import re
 import matplotlib.colors as mcolors
 import polars as pl
+import pandas as pd
+from typing import Iterable, Dict, List, Union
+
 class NamingMixin():
     # Column aliases for code readability
     # Add to this list for commonly-used columns
@@ -1176,6 +1180,14 @@ class NamingMixin():
             '8':'8',
     }
 
+    #Naming for RSE calculations
+    BASE_WEIGHT_COL: str = "weight"
+    REPL_WEIGHT_RE: re.Pattern = re.compile(
+        r"^Unknown Eligibility and Nonresponse Adjusted Replicate Weight \d+$"
+    )
+    ALL_TOKEN: str = "All"
+
+
     def end_use_group(self, end_use):
         # Add an End Use Group
         end_use_groups = {
@@ -1438,3 +1450,71 @@ class NamingMixin():
                 unit = '..gj'
                 loads_cols.append(f"{pre}.{period}.{component}{unit}")
         return loads_cols
+
+
+    ## Following 3 methods are Required for RSE calculations using replicate weights used in postprocessing charts
+
+    # Determine if a column is a replicate-weight column
+    @classmethod
+    def is_replicate_weight_col(cls, col: str) -> bool:
+        return bool(cls.REPL_WEIGHT_RE.match(col))
+
+    # Return all replicate-weight columns present in a frame
+    @classmethod
+    def list_replicate_weight_cols(
+        cls, frame: Union["pl.LazyFrame", pd.DataFrame, Iterable[str]]
+    ) -> List[str]:
+        """
+        Return all replicate-weight columns (151 expected) present in:
+        - polars LazyFrame,
+        - pandas DataFrame,
+        - or a plain list/iterable of column names.
+        """
+        if hasattr(frame, "columns"):
+            cols = list(frame.columns)  # works for polars and pandas
+        else:
+            cols = list(frame)
+        return [c for c in cols if cls.is_replicate_weight_col(c)]
+
+    # Ensure expected weight columns are present in a frame
+    @classmethod
+    def ensure_weight_columns_present(
+        cls, frame: Union["pl.LazyFrame", pd.DataFrame, Iterable[str]],
+        require_base: bool = True,
+        require_reps: bool = False,
+    ) -> None:
+        cols = list(frame.columns) if hasattr(frame, "columns") else list(frame)
+        missing = []
+        if require_base and cls.BASE_WEIGHT_COL not in cols:
+            missing.append(cls.BASE_WEIGHT_COL)
+        if require_reps:
+            reps = cls.list_replicate_weight_cols(cols)
+            if not reps:
+                missing.append("replicate weights (151)")
+        if missing:
+            raise AssertionError(f"Missing expected weight columns: {missing}")
+
+    # Build a dtype map for plotting
+    @classmethod
+    def build_cast_map_for_plotting(
+        cls, cols: Iterable[str]
+    ) -> Dict[str, str]:
+        """
+        Build a dtype map for plotting:
+        - use schema if known,
+        - else float64 for numeric-ish columns,
+        - always float64 for base weight + replicate weights.
+        """
+        cast_map: Dict[str, str] = {}
+        for c in cols:
+            if c in cls.COL_TYPE_SCHEMA:
+                cast_map[c] = cls.COL_TYPE_SCHEMA[c]
+            elif c == cls.BASE_WEIGHT_COL or cls.is_replicate_weight_col(c):
+                cast_map[c] = "float64"
+            else:
+                # default behavior: let caller decide; many plotting numerics prefer float64
+                cast_map[c] = "float64"
+        return cast_map
+
+
+
