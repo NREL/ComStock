@@ -2959,6 +2959,12 @@ end
 
           program_body = <<~EMS
             ! --- Predict mode based on sensible load sign ---
+            SET zone_air_temp = #{zone_t.name}
+            SET zone_htg_sp = #{zone_htg_sp.name}
+            SET zone_safety_htg_sp = (#{zone_htg_sp.name} - 2.22)
+            SET zone_clg_sp = #{zone_clg_sp.name}
+            SET zone_safety_clg_sp = (#{zone_clg_sp.name} + 2.22)
+            
             SET predicted_load = #{mode_sensor.name}
             IF (predicted_load >= 0),
               SET abs_load = predicted_load,
@@ -3023,8 +3029,10 @@ end
 
             ! --- Demand Response Cap ---
             IF (#{dr_sensor.name} > 0.5),
+              ! --- Cooling Mode ---
               IF (mode < 0),
                 SET cap_stage = #{clg_limit_val},
+              ! --- Heating Mode ---
               ELSEIF (mode > 0),
                 SET cap_stage = #{htg_limit_val},
               ELSE,
@@ -3035,8 +3043,18 @@ end
 
               ! Only cap if required stage exceeds the cap
               IF (stage_needed > cap_stage),
-                SET #{dx_coil_actuator.name} = cap_stage,
-                SET debug_actuated = cap_stage,
+                ! --- In cooling, if zone temp is higher than cooling setpoint + 4F, allow full operation ---
+                IF zone_air_temp > zone_safety_clg_sp && mode < 0,
+                  SET #{dx_coil_actuator.name} = Null,
+                  SET debug_actuated = 0,
+                ! --- In heating, if zone temp is lower than heating setpoint - 4F, allow full operation ---
+                ELSEIF zone_air_temp < zone_safety_htg_sp && mode > 0,
+                  SET #{dx_coil_actuator.name} = Null, 
+                  SET debug_actuated = 0,
+                ELSE,
+                  SET #{dx_coil_actuator.name} = cap_stage,
+                  SET debug_actuated = cap_stage,
+                ENDIF,
               ELSE,
                 SET #{dx_coil_actuator.name} = Null,
                 SET debug_actuated = 0,
@@ -3056,37 +3074,6 @@ end
           dx_coil_pcm.setName("DR Peak DX Limit Manager #{unitary.name.to_s.gsub("-", "")}")
           dx_coil_pcm.setCallingPoint('AfterPredictorBeforeHVACManagers')
           dx_coil_pcm.addProgram(dx_coil_program)
-
-          # # To reset actuator after timestep
-          # dx_coil_program_reset_start = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          # dx_coil_program_reset_start.setName("BeginningOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
-          # dx_coil_program_reset_start_body = <<-EMS
-          #   SET #{dx_coil_actuator.name} = Null
-          #   SET speed_level_sensor = 0
-          #   SET speed_ratio = 0
-          #   SET actual_speed_level = 0
-          # EMS
-          # dx_coil_program_reset_start.setBody(dx_coil_program_reset_start_body)
-          # # List of EMS program manager objects
-          # programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-          # programs_at_beginning_of_timestep.setCallingPoint('BeginTimestepBeforePredictor')
-          # programs_at_beginning_of_timestep.addProgram(dx_coil_program_reset_start)
-
-          # # To reset actuator after timestep
-          # dx_coil_program_reset_finish = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-          # dx_coil_program_reset_finish.setName("EndOfTimestepReset_DX_Speed_#{unitary.name.to_s.gsub("-", "")}")
-          # dx_coil_program_reset_finish_body = <<-EMS
-          #   SET #{dx_coil_actuator.name} = Null
-          #   SET speed_level_sensor = 0
-          #   SET speed_ratio = 0
-          #   SET actual_speed_level = 0
-          # EMS
-          # dx_coil_program_reset_finish.setBody(dx_coil_program_reset_finish_body)
-          # # List of EMS program manager objects
-          # programs_at_end_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-          # programs_at_end_of_timestep.setName("EndOfTimestepResetManager_#{unitary.name.to_s.gsub("-", "")}")
-          # programs_at_end_of_timestep.setCallingPoint('EndOfSystemTimestepAfterHVACReporting')
-          # programs_at_end_of_timestep.addProgram(dx_coil_program_reset_finish)
 
           runner.registerInfo("Added EMS to limit compressor capacity during peak to unitary system: #{unitary.name}")
         end
@@ -3122,6 +3109,19 @@ end
       model.getAirLoopHVACUnitarySystems.each do |unitary|
         air_loop_hvac = unitary.airLoopHVAC.get.name
 
+        if unitary.controllingZoneorThermostatLocation.is_initialized
+          zone = unitary.controllingZoneorThermostatLocation.get
+          zone = unitary.controllingZoneorThermostatLocation.get
+
+          zone_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Mean Air Temperature')
+          zone_t.setKeyName(zone.nameString)
+          zone_t.setName("Tzone_#{zone.nameString.gsub(/\W/,'_')}")
+
+          zone_htg_sp = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Zone Thermostat Heating Setpoint Temperature')
+          zone_htg_sp.setKeyName(zone.nameString)
+          zone_htg_sp.setName("TspHtg_#{zone.nameString.gsub(/\W/,'_')}")
+        end
+
         # Make sure there is a supplemental heating coil (often CoilHeatingElectric)
         if unitary.supplementalHeatingCoil.is_initialized
           backup_coil_name = unitary.supplementalHeatingCoil.get.nameString
@@ -3156,8 +3156,14 @@ end
           program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
           program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
           program.setBody(<<~EMS)
+            SET zone_air_temp = #{zone_t.name}
+            SET zone_htg_sp = #{zone_htg_sp.name}
+            SET zone_safety_htg_sp = (#{zone_htg_sp.name} - 2.22)
+
             IF (#{dr_flag.name} > 0.5),                 ! peak period
               IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_c}),                ! heat pump locked out -> allow full backup
+                SET #{sched_act.name} = 1,
+              ELSEIF (zone_air_temp < zone_safety_htg_sp),   ! zone below setpoint - 4F -> allow full backup
                 SET #{sched_act.name} = 1,
               ELSE,
                 SET #{sched_act.name} = 0,           ! otherwise turn off schedule
@@ -3201,11 +3207,16 @@ end
           program.setBody(<<~EMS)
             SET sup_lim = #{(backup_heat_frac).round(3)}*#{num_sup_stages}
             SET backup_heat_lim = #{backup_coil_nominal_capacity} * #{backup_heat_frac.round(3)}
+            SET zone_air_temp = #{zone_t.name}
+            SET zone_htg_sp = #{zone_htg_sp.name}
+            SET zone_safety_htg_sp = (#{zone_htg_sp.name} - 2.22)
 
             IF (#{dr_flag.name} > 0.5),                 ! peak period
               IF (#{backup_coil_power_sensor.name} >= backup_heat_lim),     ! backup heat is running above limit; allow limit capacity
                 IF (#{oa_t.name} < #{hp_min_comp_lockout_temp_c}),                ! heat pump locked out -> allow full backup
-                    SET #{sup_act.name} = Null,
+                  SET #{sup_act.name} = Null,
+                ELSEIF (zone_air_temp < zone_safety_htg_sp),   ! zone below setpoint - 4F -> allow full backup
+                  SET #{sup_act.name} = Null,
                 ELSE,
                   SET #{sup_act.name} = sup_lim,
                 ENDIF,          ! otherwise enforce cap
