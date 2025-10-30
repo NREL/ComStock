@@ -1,16 +1,30 @@
 \documentclass[]{nrel}
 \usepackage{multirow}
 \usepackage{longtable}
-\usepackage{hyperref}
 \usepackage{float}
-\usepackage{cleveref}
-\usepackage{multirow}
 \usepackage[section]{placeins}
 \usepackage{pdflscape}
 \usepackage{soul}
 \usepackage{biblatex}
 \usepackage{threeparttable}
-\hypersetup{colorlinks=true}
+\usepackage{bookmark}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=blue,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    bookmarksopen=true,
+    bookmarksopenlevel=1,
+    pdfstartview=FitH,
+    pdftitle={ComStock Reference Documentation: 2025 Release 3},
+    pdfauthor={Andrew Parker and others},
+    pdfsubject={ComStock Building Energy Modeling},
+    pdfkeywords={ComStock; Building Energy; Commercial Buildings; Energy Modeling}
+}
+\usepackage{cleveref}
 
 % -----------------------------------
 % DOCUMENT PROPERTIES
@@ -34,13 +48,14 @@
 \include{0_2_acknowledgements}
 \include{0_3_acronyms}
 
-\mainmatter
 \tableofcontents
 
 \listoffigures
 
 \listoftables
 
+\mainmatter
+\bookmarksetup{startatroot}
 % Chapters and large sections are broken out in separate .tex files to make edits easier
 \include{1_introduction}
 \include{2_workflow}
@@ -60,8 +75,7 @@
 
 \cleardoublepage
 \label{sec:Bib}
-\printbibliography[title={\LARGE References}]
-\addcontentsline{toc}{chapter}{References}
+\printbibliography[title={\LARGE References},heading=bibintoc]
 \begin{appendices} %<--------- All chapters after this will be labeled as appendices
 
 \include{6_AppendixA}
