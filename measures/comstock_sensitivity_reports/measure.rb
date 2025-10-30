@@ -1146,8 +1146,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 	  #Get airflow time series for average flow rate 
 	  ts_ahu_ma_flow_rate_kg_s = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase) # dimensionless
 	  ts_ahu_ma_flow_rate_kg_s_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate_kg_s)
-	
-      average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
+	  
+	  unless ts_ahu_ma_flow_rate_kg_s_list.nil? 
+        average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
+	  else 
+	    average_non_zero_loop_mass_flow_kg_s = -999
+	  end 
 	
       # add to weighted
       air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s
@@ -1174,7 +1178,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_air_system_fan_static_pressure', air_system_fan_static_pressure, 'Pa')
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
-    air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow_kg_s.to_f / air_system_total_des_flow_rate_kg_s.to_f : 0.0
+    air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow_kg_s.to_f / air_system_total_des_flow_rate_kg_s.to_f : -999
 	
     
     # calculate economizer variables
