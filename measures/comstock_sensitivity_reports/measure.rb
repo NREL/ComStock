@@ -1389,7 +1389,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     total_flow = all_pumps.sum { |p| p[:flow].to_f }
     weighted_eff_sum = all_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
 
-    avg_eff = total_flow.positive? ? weighted_eff_sum / total_flow : nil
+    avg_eff = total_flow.positive? ? weighted_eff_sum / total_flow : 0.0
     runner.registerValue('com_report_pump_flow_weighted_avg_motor_efficiency', avg_eff)
 
     # Rated-flow-weighted motor efficiency by type
@@ -1402,8 +1402,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     const_eff_sum = const_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
     var_eff_sum   = var_pumps.sum   { |p| p[:flow].to_f * p[:efficiency] }
 
-    avg_eff_const = const_flow.positive? ? const_eff_sum / const_flow : nil
-    avg_eff_var   = var_flow.positive? ? var_eff_sum / var_flow : nil
+    avg_eff_const = const_flow.positive? ? const_eff_sum / const_flow : 0.0
+    avg_eff_var   = var_flow.positive? ? var_eff_sum / var_flow : 0.0
 
     runner.registerValue(
       'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd', avg_eff_const
