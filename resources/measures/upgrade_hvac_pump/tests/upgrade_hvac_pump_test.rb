@@ -102,14 +102,14 @@ class UpgradeHvacPumpTest < Minitest::Test
 
   # supporting method: return file paths to test models in test directory
   def models_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), './*.osm'))
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
     paths = paths.map { |path| File.expand_path(path) }
     return paths
   end
 
   # supporting method: return file paths to epw files in test directory
   def epws_for_tests
-    paths = Dir.glob(File.join(File.dirname(__FILE__), './*.epw'))
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
     paths = paths.map { |path| File.expand_path(path) }
     return paths
   end
