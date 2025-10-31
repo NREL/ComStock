@@ -25,4 +25,5 @@ resources/measures/upgrade_hvac_vrf_hr_doas/tests/measure_test.rb
 resources/measures/upgrade_light_led/tests/light_led_test.rb
 resources/measures/upgrade_ppl_electric_kitchen_equipment/tests/kitchen_equip_measure_test.rb
 resources/measures/upgrade_unoccupied_oa_controls/tests/unoccupied_oa_controls_measure_test.rb
+resources/measures/upgrade_hvac_rtu_adv/tests/measure_test.rb
 resources/measures/upgrade_hvac_pump/tests/upgrade_hvac_pump_test.rb
