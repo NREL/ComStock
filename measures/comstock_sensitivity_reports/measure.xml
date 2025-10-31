@@ -217,6 +217,12 @@
       <checksum>2747EBA8</checksum>
     </file>
     <file>
+      <filename>bldg0006100.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>1735D68C</checksum>
+    </file>
+    <file>
       <filename>bldg0146294.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -232,7 +238,7 @@
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>1644F3A7</checksum>
+      <checksum>BA366C89</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>
