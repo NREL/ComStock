@@ -251,7 +251,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal('window', arguments[11].name)
     assert_equal('sizing_run', arguments[12].name)
     assert_equal('debug_verbose', arguments[13].name)
-	assert_equal('modify_setbacks', arguments[14].name)
+    assert_equal('modify_setbacks', arguments[14].name)
     assert_equal('setback_value', arguments[15].name)
   end
 
@@ -312,6 +312,86 @@ class AddHeatPumpRtuTest < Minitest::Test
         flunk "JSON parsing failed for #{file_path}: #{e.message}"
       end
     end
+  end
+
+  def biquadratic_format_check(lookup_table_in_hash, file_path)
+    tables = lookup_table_in_hash[:tables][:curves][:table]
+
+    # Add the curve name and its related mode (heating or cooling)
+    list_of_biquadratic_curves_to_check = {
+      'cool_cap_ft1' => 'cooling',
+      'cool_cap_ft2' => 'cooling',
+      'cool_cap_ft3' => 'cooling',
+      'cool_cap_ft4' => 'cooling',
+      'cool_eir_ft1' => 'cooling',
+      'cool_eir_ft2' => 'cooling',
+      'cool_eir_ft3' => 'cooling',
+      'cool_eir_ft4' => 'cooling',
+      'defrost_eir'  => 'heating',
+      'heat_cap_ft1' => 'heating',
+      'heat_cap_ft2' => 'heating',
+      'heat_cap_ft3' => 'heating',
+      'heat_cap_ft4' => 'heating',
+      'heat_eir_ft1' => 'heating',
+      'heat_eir_ft2' => 'heating',
+      'heat_eir_ft3' => 'heating',
+      'heat_eir_ft4' => 'heating'
+    }
+
+    tables.each do |table|
+      next unless table[:form] == 'BiQuadratic'
+      next unless list_of_biquadratic_curves_to_check.key?(table[:name])
+
+      mode = list_of_biquadratic_curves_to_check[table[:name]]
+
+      case mode
+      when 'cooling'
+        puts("--- checking biquadratic cooling curve format: #{table[:name]}")
+        max_oat = table[:maximum_independent_variable_2]
+        max_iat = table[:maximum_independent_variable_1]
+
+        assert(
+          max_oat > max_iat,
+          "Maximum OAT (#{max_oat}) for cooling curve seems to be lower than " \
+          "Maximum IAT (#{max_iat}). Check curve (#{table[:name]}) or " \
+          "mode classification in list_of_biquadratic_curves_to_check. File: #{file_path}"
+        )
+
+      when 'heating'
+        puts("--- checking biquadratic heating curve format: #{table[:name]}")
+        min_oat = table[:minimum_independent_variable_2]
+        min_iat = table[:minimum_independent_variable_1]
+
+        assert(
+          min_oat < min_iat,
+          "Minimum OAT (#{min_oat}) for heating curve seems to be higher than " \
+          "Minimum IAT (#{min_iat}). Check curve (#{table[:name]}) or " \
+          "mode classification in list_of_biquadratic_curves_to_check. File: #{file_path}"
+        )
+      end
+    end
+  end
+
+  def test_biquadratic_format
+    # This test ensures the format of biquadratic curves used in DX units
+    test_name = 'test_biquadratic_format'
+    puts "\n######\nTEST: #{test_name}\n######\n"
+
+    path_to_jsons = "#{__dir__}/../resources/*.json"
+    json_files = Dir.glob(path_to_jsons)
+
+    json_files.each do |file_path|
+      begin
+        content = File.read(file_path)
+        hash = JSON.parse(content, symbolize_names: true)
+
+        assert(hash[:tables], "Missing :tables key in #{file_path}")
+
+        # Check lookup table format
+        biquadratic_format_check(hash, file_path)
+      rescue JSON::ParserError => e
+        flunk "JSON parsing failed for #{file_path}: #{e.message}"
+      end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -2070,7 +2150,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     assert_equal(ervs_baseline, ervs_upgrade)
   end
 
- def test_confirm_heating_setback_change_square_wave
+  def test_confirm_heating_setback_change_square_wave
     # confirm that any heating setbacks are now 2F
     osm_name = 'Retail_PSZ-AC.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
@@ -2160,7 +2240,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     true
   end
 
-def test_confirm_heating_setback_change_opt_start
+  def test_confirm_heating_setback_change_opt_start
     # confirm that any heating setbacks are now 2F
     osm_name = 'Retail_PSZ-AC_updated_39_opt_start.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
@@ -2252,7 +2332,7 @@ def test_confirm_heating_setback_change_opt_start
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
 	
 	
-	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
+    puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
 
     assert_equal(deltas_out_of_range, false)
 	

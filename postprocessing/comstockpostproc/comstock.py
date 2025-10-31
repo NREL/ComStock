@@ -319,7 +319,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         s3_resource = boto3.resource('s3')
 
         # baseline/results_up00.parquet
-        results_data_path = os.path.join(self.data_dir, self.results_file_name)
+        results_data_path = os.path.normpath(os.path.join(self.data_dir, self.results_file_name))
         if not os.path.exists(results_data_path):
             baseline_parquet_path = f"{prfx}/baseline/{self.results_file_name}"
             try:
