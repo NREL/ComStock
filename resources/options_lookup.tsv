@@ -4709,7 +4709,7 @@ hvac_add_heat_pump_rtu	std_perf_no_sb	upgrade_hvac_add_heat_pump_rtu	backup_ht_f
 hvac_enable_ideal_air_loads	ideal_air_loads	upgrade_hvac_enable_ideal_air_loads
 gen_pv	pv_20pct	upgrade_add_pvwatts	pv_area_fraction=0.2	incl_batt_storage=false
 gen_pv	pv_40pct	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=false
-gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false	
+gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false
 gen_pv	pv_40pct_w_batt	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=true
 ppl_electric_kitchen_equip	electric_kitchen_equip	upgrade_ppl_electric_kitchen_equipment
 hvac_add_multispeed_coil_min_flow	multispeed_min_flow_default	upgrade_hvac_multispeed_minimum_flow
@@ -4796,6 +4796,9 @@ df_precooling	precooling_12to4pm_yearround	precooling	cooling_adjustment=-4.0	st
 hvac_rtu	upgrade_rtu	upgrade_hvac_rtu_adv	hr=false	dcv=false	debug_verbose=false
 hvac_rtu	upgrade_rtu_hr	upgrade_hvac_rtu_adv	hr=true	dcv=false	debug_verbose=false
 hvac_rtu	upgrade_rtu_hr_dcv	upgrade_hvac_rtu_adv	hr=true	dcv=true	debug_verbose=false
+hvac_pump	upgrade_pump	upgrade_hvac_pump	chw_hw_oat_reset=false	cw_oat_reset=false	debug_verbose=false
+hvac_pump	upgrade_pump_chwhwreset	upgrade_hvac_pump	chw_hw_oat_reset=true	cw_oat_reset=false	debug_verbose=false
+hvac_pump	upgrade_pump_chwhwreset_cwctrl	upgrade_hvac_pump	chw_hw_oat_reset=true	cw_oat_reset=true	debug_verbose=false
 state_id	*
 energy_code_compliance_during_original_building_construction	*
 energy_code_compliance_interior_lighting	*
