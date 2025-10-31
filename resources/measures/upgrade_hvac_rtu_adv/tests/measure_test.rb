@@ -131,19 +131,19 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
     stage_number = 1
     shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
     puts("--- DEBUGGING: shr = #{shr}")
-    assert_in_epsilon(0.8136649204374999, shr, 0.001)
+    assert_in_epsilon(0.7, shr, 0.001)
 
     # test: 2
     stage_number = 2
     shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
     puts("--- DEBUGGING: shr = #{shr}")
-    assert_in_epsilon(0.7402533904615385, shr, 0.001)
+    assert_in_epsilon(0.637, shr, 0.001)
 
     # test: 3
     stage_number = 3
     shr = UpgradeHvacRtuAdv.get_shr(@runner, stage_number)
     puts("--- DEBUGGING: shr = #{shr}")
-    assert_in_epsilon(0.7279780362307693, shr, 0.001)
+    assert_in_epsilon(0.626, shr, 0.001)
 
     # test: 4
     stage_number = 4
@@ -268,11 +268,11 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def model_input_path(osm_name)
-    File.join(File.dirname(__FILE__), osm_name)
+    File.join(File.dirname(__FILE__), "../../../tests/models/#{osm_name}")
   end
 
   def epw_input_path(epw_name)
-    File.join(File.dirname(__FILE__), epw_name)
+    File.join(File.dirname(__FILE__), "../../../tests/weather/#{epw_name}")
   end
 
   def model_output_path(test_name)
