@@ -2836,7 +2836,10 @@ end
           num_htg_speeds = 4
           num_clg_speeds = 4
 
-          htg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_htg)
+          # for heating, base the % reduction off stage 4 (139% capacity) instead of stage 2 (100% capacity)
+          max_stage_cap = stage_caps_htg.values.max
+          desired_frac = max_compressor_frac * max_stage_cap
+          htg_limit_val = nonlinear_stage_value(desired_frac, stage_caps_htg)
           htg_limit_val = [htg_limit_val, num_htg_speeds].min
           puts "htg_limit_val: #{htg_limit_val}"
 
@@ -2867,7 +2870,6 @@ end
             htg_coil = unitary.heatingCoil.get
             if htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized
               htg_coil.to_CoilHeatingDXMultiSpeed.get.stages.each_with_index do |stage, i|
-                puts "stage = #{stage}"
                 stage_index = i + 1
                 htg_temp_curve = stage.heatingCapacityFunctionofTemperatureCurve
                 htg_flow_curve = stage.heatingCapacityFunctionofFlowFractionCurve
@@ -2903,7 +2905,6 @@ end
             clg_coil = unitary.coolingCoil.get
             if clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized
               clg_coil.to_CoilCoolingDXMultiSpeed.get.stages.each_with_index do |stage, i|
-                puts "stage = #{stage}"
                 stage_index = i + 1
                 clg_temp_curve = stage.totalCoolingCapacityFunctionofTemperatureCurve
                 clg_flow_curve = stage.totalCoolingCapacityFunctionofFlowFractionCurve
