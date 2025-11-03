@@ -529,10 +529,8 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
          # Read CSV file into a DataFrame
          hvac_df = pd.read_csv(file_path)
 
-
          # Select 'PUBID' and 'cstock_sys_type' columns
          hvac_df = hvac_df[['PUBID', 'cstock_sys_type']]
-
 
          # Rename 'PUBID' to 'bldg_id'
          hvac_df = hvac_df.rename(columns={'PUBID': 'bldg_id'})
