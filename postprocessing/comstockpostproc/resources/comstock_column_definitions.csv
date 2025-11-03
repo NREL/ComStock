@@ -145,10 +145,10 @@ results.csv,build_existing_model.add_thermostat_setpoint_variability_clg_delta_f
 results.csv,build_existing_model.add_thermostat_setpoint_variability_clg_sp_f,in.tstat_clg_sp_f,TRUE,FALSE,float,f,f,Cooling thermostat occupied setpoint. A value of '999' indicates default values were used for model
 results.csv,build_existing_model.add_thermostat_setpoint_variability_htg_delta_f,in.tstat_htg_delta_f,TRUE,FALSE,float,delta_f,delta_f,Heating thermostat unnoccupied setpoint temperature delta from primary occupied heating setpoint. A value of '999' indicates default values were used for model
 results.csv,build_existing_model.add_thermostat_setpoint_variability_htg_sp_f,in.tstat_htg_sp_f,TRUE,FALSE,float,f,f,Heating thermostat occupied setpoint. A value of '999' indicates default values were used for model
-results.csv,com_stock_sensitivity_reports.has_htg_setback_all_tstats,in.has_htg_setback_all_tstats,TRUE,FALSE,boolean,,,"Heating setbacks present in all thermostats, or not"
-results.csv,com_stock_sensitivity_reports.has_clg_setback_all_tstats,in.has_clg_setback_all_tstats,TRUE,FALSE,boolean,,,"Cooling setbacks present in all thermostats, or not"
-results.csv,com_stock_sensitivity_reports.at_least_one_htg_setback,in.at_least_one_htg_setback,TRUE,FALSE,boolean,,,"Heating setbacks present in at least one zone, or not"
-results.csv,com_stock_sensitivity_reports.at_least_one_clg_setback,in.at_least_one_clg_setback,TRUE,FALSE,boolean,,,"Cooling setbacks present in at least one zone, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_htg_setback_all_tstats,in.tstat_all_htg_setback,TRUE,FALSE,boolean,,,"Heating setbacks present in all thermostats, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_clg_setback_all_tstats,in.tstat_all_clg_setback,TRUE,FALSE,boolean,,,"Cooling setbacks present in all thermostats, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_at_least_one_htg_setback,in.tstat_htg_setback_at_least_one,TRUE,FALSE,boolean,,,"Heating setbacks present in at least one zone, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_at_least_one_clg_setback,in.tstat_clg_setback_at_least_one,TRUE,FALSE,boolean,,,"Cooling setbacks present in at least one zone, or not"
 results.csv,build_existing_model.airtightness,,FALSE,FALSE,float,,,6-sided air leakage rate at 75 Pa
 results.csv,build_existing_model.applicable,,FALSE,FALSE,boolean,,,Applicability status of build existing model measure
 results.csv,build_existing_model.aspect_ratio,in.aspect_ratio,TRUE,FALSE,float,,,Aspect ratio of building geometry which is the ratio of North/South Facade Length Relative to East/West Facade Length
@@ -2278,4 +2278,3 @@ calculated,in.as_simulated_census_division_name,in.as_simulated_census_division_
 calculated,in.as_simulated_nhgis_county_gisjoin,in.as_simulated_nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_tract_gisjoin,in.as_simulated_nhgis_tract_gisjoin,TRUE,FALSE,string,,,"Census tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_state_gisjoin,in.as_simulated_nhgis_state_gisjoin,TRUE,FALSE,string,,,"State tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
-calculated,calc.air_system_vav_avg_flow_ratio,calc.air_system_vav_avg_flow_ratio,FALSE,FALSE,float,,,Average airflow ratio across VAV systems in the model
