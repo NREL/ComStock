@@ -395,7 +395,7 @@ results.csv,build_existing_model.year_of_simulation,,FALSE,FALSE,integer,,,Speci
 results.csv,building_id,bldg_id,TRUE,TRUE,integer,,,ID number for model
 results.csv,com_stock_sensitivity_reports.applicable,,FALSE,FALSE,boolean,,,Specifies if ComStock sensitivity reports are applicable
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_power_minimum_flow_fraction,out.params.air_system_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power design minimum airflow fraction for air systems
-results.csv,com_stock_sensitivity_reports.air_system_vav_avg_flow_ratio,out.params.air_system_vav_avg_flow_ratio,TRUE,FALSE,float,,,Average airflow ratio across VAV systems
+results.csv,com_stock_sensitivity_reports.com_report_air_sys_vav_avg_flow_ratio,out.params.air_system_vav_avg_flow_ratio,TRUE,FALSE,float,,,Average airflow ratio across VAV systems
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_static_pressure,out.params.air_system_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure for air systems in pascals
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_total_efficiency,out.params.air_system_fan_total_efficiency,TRUE,FALSE,float,,,Total air system fan efficiency
 results.csv,com_stock_sensitivity_reports.com_report_annual_hot_water_m_3,out.params.hot_water_volume,TRUE,FALSE,float,m3,m3,Annual hot water usage by volume
