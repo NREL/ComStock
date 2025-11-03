@@ -130,7 +130,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # CBECS HVAC to Comstock System Type Mapping table
-        file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+        file_name = f'cbecs_{self.year}_w_cstock_hvac_v3.csv'
         file_path = os.path.join(self.truth_data_dir, file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
@@ -518,7 +518,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     def add_primary_system_type_column(self):
          # CBECS HVAC Data
-         file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+         file_name = f'cbecs_{self.year}_w_cstock_hvac_v3.csv'
          file_path = os.path.join(self.truth_data_dir, file_name)
 
          # Check if file exists
@@ -535,7 +535,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
          # Rename 'PUBID' to 'bldg_id'
          hvac_df = hvac_df.rename(columns={'PUBID': 'bldg_id'})
          hvac_df = hvac_df.rename(columns={'cstock_sys_type':'in.hvac_system_type'})
-
          # Merge HVAC data with existing data
          self.data = pd.merge(self.data, hvac_df, on='bldg_id', how='left')
 
