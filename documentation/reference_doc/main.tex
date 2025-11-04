@@ -26,6 +26,20 @@
 }
 \usepackage{cleveref}
 
+% Fix frontmatter TOC indentation
+\makeatletter
+\let\oldfrontmatter\frontmatter
+\renewcommand{\frontmatter}{%
+    \oldfrontmatter
+    \addtocontents{toc}{\protect\setlength{\protect\cftchapnumwidth}{0pt}}
+}
+\let\oldmainmatter\mainmatter
+\renewcommand{\mainmatter}{%
+    \addtocontents{toc}{\protect\setlength{\protect\cftchapnumwidth}{1.5em}}
+    \oldmainmatter
+}
+\makeatother
+
 % -----------------------------------
 % DOCUMENT PROPERTIES
 % -----------------------------------
@@ -44,11 +58,11 @@
 \begin{document}
 \frontmatter
 
+\tableofcontents
+
 \include{0_1_exec_summary}
 \include{0_2_acknowledgements}
 \include{0_3_acronyms}
-
-\tableofcontents
 
 \listoffigures
 
@@ -75,7 +89,9 @@
 
 \cleardoublepage
 \label{sec:Bib}
-\printbibliography[title={\LARGE References},heading=bibintoc]
+\printbibliography[title={\LARGE References}]
+\addcontentsline{toc}{chapter}{References}
+
 \begin{appendices} %<--------- All chapters after this will be labeled as appendices
 
 \include{6_AppendixA}
