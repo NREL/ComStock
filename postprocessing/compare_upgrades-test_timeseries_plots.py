@@ -22,12 +22,6 @@ for m in mods:
     except Exception as e:
         print(f"{m:12} NOT IMPORTABLE: {e}")
 
-# Python version details
-print("python exe:", sys.executable)
-print("python implementation:", platform.python_implementation())
-print("python version:", platform.python_version())
-print("sys.version:", sys.version.replace("\n", " "))
-print("sys.version_info:", sys.version_info)
 
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
@@ -101,41 +95,6 @@ def create_sightglass_tables(
             logger.info(f"Crawler state: {crawler_info['Crawler']['State']}")
         glue.delete_crawler(Name=crawler_name)
         logger.info(f"Deleting Crawler {crawler_name}")
-
-    ## Crawl the timeseries targets with one crawler
-    #logger.info(f"Creating Crawler for timeseries data")
-    #crawler_name = f'{crawler_name_base}_ts'
-    #tbl_prefix = f'{tbl_prefix_base}_ts_'
-
-    #crawler_params["Name"] = crawler_name
-    #crawler_params["TablePrefix"] = tbl_prefix
-    #crawler_params["Targets"]["S3Targets"] = []
-    #for ts_path in fs.ls(f"{fs_path}/timeseries_individual_buildings/"):
-    #    crawler_params["Targets"]["S3Targets"].append(
-    #        {"Path": f"s3://{ts_path}", "SampleSize": 1}
-    #    )
-
-    #breakpoint()
-    #try:
-    #    crawler_info = glue.get_crawler(Name=crawler_name)
-    #except glue.exceptions.EntityNotFoundException as ex:
-    #    logger.info(f"Creating Crawler {crawler_name}")
-    #    glue.create_crawler(**crawler_params)
-    #else:
-    #    logger.info(f"Updating Crawler {crawler_name}")
-    #    glue.update_crawler(**crawler_params)
-
-    #logger.info(f"Running crawler {crawler_name} on: {ts_path}")
-    #glue.start_crawler(Name=crawler_name)
-    #time.sleep(10)
-
-    #crawler_info = glue.get_crawler(Name=crawler_name)
-    #while crawler_info["Crawler"]["State"] != "READY":
-    #    time.sleep(10)
-    #    crawler_info = glue.get_crawler(Name=crawler_name)
-    #    logger.info(f"Crawler state: {crawler_info['Crawler']['State']}")
-    #glue.delete_crawler(Name=crawler_name)
-    #logger.info(f"Deleting Crawler {crawler_name}")
 
     return dataset_name
 
@@ -418,21 +377,9 @@ def create_views(
             'puma_west': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'}
         }
 
-        # Create a map of column names to aliases for partition columns
-        #col_to_alias = { aliases[by]['col']: aliases[by]['alias'] for by in bys if aliases[by] }
-
         # Select columns for the metadata, aliasing partition columns
         cols = []
         for col in metadata_tbl.columns:
-            # Identify partition column and find alias
-            # col_name = str(col).replace(f'{metadata_tblname}.', '')
-            # if col_name in col_to_alias:
-            #     # logger.debug(f"Aliasing {col} as {col_to_alias[col_name]}")
-            #     cols.insert(
-            #         2, metadata_tbl.c[col_name].label(col_to_alias[col_name])
-            #     )
-            # else:
-            #     cols.append(col)
             cols.append(col)
 
             continue
@@ -590,12 +537,12 @@ def main():
         upgrade_ids_to_skip=[2,3], # Use [1, 3] etc. to exclude certain upgrades
         make_timeseries_plots=True,
         states={
-                #'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
+                'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
                 'MA':'Massachusetts',
-                #'OR': 'Oregon',
-                #'LA': 'Louisiana',
-                #'AZ': 'Arizona',
-                #'TN': 'Tennessee'
+                'OR': 'Oregon',
+                'LA': 'Louisiana',
+                'AZ': 'Arizona',
+                'TN': 'Tennessee'
                 },
         # [('state',['VA','AZ'])
         upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5

@@ -172,14 +172,27 @@ class ComStockQueryBuilder:
         # Handle restrictions - these are typically filters on the weight view table
         if restrictions:
             for column, values in restrictions:
+                # Determine if this is a numeric column that shouldn't be quoted
+                numeric_columns = ['bldg_id', 'building_id', 'upgrade', 'upgrade_id']
+                is_numeric = column in numeric_columns
+
                 if isinstance(values, (list, tuple)):
                     if len(values) == 1:
-                        where_conditions.append(f'{weight_view_table}."{column}" = \'{values[0]}\'')
+                        if is_numeric:
+                            where_conditions.append(f'{weight_view_table}."{column}" = {values[0]}')
+                        else:
+                            where_conditions.append(f'{weight_view_table}."{column}" = \'{values[0]}\'')
                     else:
-                        value_list = ', '.join([f"'{v}'" for v in values])
+                        if is_numeric:
+                            value_list = ', '.join([str(v) for v in values])
+                        else:
+                            value_list = ', '.join([f"'{v}'" for v in values])
                         where_conditions.append(f'{weight_view_table}."{column}" IN ({value_list})')
                 else:
-                    where_conditions.append(f'{weight_view_table}."{column}" = \'{values}\'')
+                    if is_numeric:
+                        where_conditions.append(f'{weight_view_table}."{column}" = {values}')
+                    else:
+                        where_conditions.append(f'{weight_view_table}."{column}" = \'{values}\'')
 
         where_clause = ' AND '.join(where_conditions)
 
@@ -312,6 +325,70 @@ class ComStockQueryBuilder:
             FROM
                 "{self.baseline_table}"
             {where_clause}
+        """
+
+        return query.strip()
+
+    def get_applicability_query(self,
+                               upgrade_ids: List[Union[int, str]],
+                               state: Optional[str] = None,
+                               columns: Optional[List[str]] = None,
+                               weight_view_table: Optional[str] = None) -> str:
+        """
+        Build query to get applicable buildings and their characteristics from the weight view.
+
+        Args:
+            upgrade_ids: List of upgrade IDs to filter on
+            state: State abbreviation to filter on (optional)
+            columns: Specific columns to select (optional, defaults to common applicability columns)
+            weight_view_table: Name of the weight view table (optional, uses default naming)
+
+        Returns:
+            SQL query string
+        """
+        
+        # If no weight view table provided, construct default name
+        if weight_view_table is None:
+            weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu"
+
+        # Default columns for applicability queries
+        if columns is None:
+            columns = [
+                'dataset',
+                '"in.state"',
+                'bldg_id', 
+                'upgrade',
+                'applicability'
+            ]
+
+        # Build SELECT clause
+        select_clause = ',\n            '.join(columns)
+
+        # Build WHERE clause
+        where_conditions = []
+        
+        # Filter by upgrade IDs
+        if len(upgrade_ids) == 1:
+            where_conditions.append(f'upgrade = {upgrade_ids[0]}')
+        else:
+            upgrade_list = ','.join(map(str, upgrade_ids))
+            where_conditions.append(f'upgrade IN ({upgrade_list})')
+        
+        # Filter by applicability
+        where_conditions.append('applicability = true')
+        
+        # Filter by state if provided
+        if state:
+            where_conditions.append(f'"in.state" = \'{state}\'')
+
+        where_clause = ' AND '.join(where_conditions)
+
+        query = f"""
+        SELECT DISTINCT 
+            {select_clause}
+        FROM {weight_view_table}
+        WHERE {where_clause}
+        ORDER BY bldg_id
         """
 
         return query.strip()
