@@ -170,7 +170,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         if make_comparison_plots:
             self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
             # Enduse and QOI plots can only be made with comstock data because CBECS data do not have QOI columns TODO fix these plots to work currently do not.
-            # self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
+            self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
             # self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
 
         else:
