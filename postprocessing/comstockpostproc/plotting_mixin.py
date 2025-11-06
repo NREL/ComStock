@@ -3028,120 +3028,6 @@ class PlottingMixin():
         output_path = os.path.abspath(os.path.join(output_dir, filename))
         plt.savefig(output_path, bbox_inches='tight')
 
-
-
-
-    # get weighted load profiles
-    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, state, upgrade_name):
-        """
-        This method retrieves weighted timeseries profiles from s3/athena.
-        Returns dataframe with weighted kWh columns for baseline and upgrade.
-        """
-
-        # run crawler
-        athena_client = BuildStockQuery(workgroup='eulp',
-                                   db_name='enduse',
-                                   table_name=self.comstock_run_name,
-                                   buildstock_type='comstock',
-                                   skip_reports=True,
-                                   metadata_table_suffix='_md_agg_national_by_state_vu', #TODO: make this more dynamic for geo resolution
-                                   #ts_table_suffix=f"_timeseries_vu"
-                                   )
-
-        print(athena_client._tables.keys())
-
-        # generate applicability for upgrade
-        # if there are multiple upgrades, applicability is based on first upgrade only
-        builder = ComStockQueryBuilder(self.comstock_run_name)
-        applicability_query = builder.get_applicability_query(
-            upgrade_ids=upgrade_num,
-            state=state,
-            columns=[
-                'dataset',
-                '"in.state"',
-                'bldg_id',
-                'upgrade',
-                'applicability'
-            ]
-        )
-
-        #print("Applicability Query:")
-        #print("="*80)
-        #print(applicability_query)
-        #print("="*80)
-
-        # Execute query to get applicable buildings
-        applic_df = athena_client.execute(applicability_query)
-        applic_bldgs_list = list(applic_df['bldg_id'].unique())
-        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
-
-        import time
-        from datetime import datetime, time
-
-        # loop through upgrades
-        for upgrade_id in df[self.UPGRADE_ID].unique():
-
-            # if there are upgrades, restrict baseline to match upgrade applicability
-            if (upgrade_id in (0, "0")) and (df[self.UPGRADE_ID].nunique() > 1):
-
-                # Create query builder and generate query
-                builder = ComStockQueryBuilder(self.comstock_run_name)
-                query = builder.get_timeseries_aggregation_query(
-                    upgrade_id=upgrade_id,
-                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                    restrictions=[
-                        ('in.state', [f"{state}"]),
-                        ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
-                    ],
-                    timestamp_grouping='hour',
-                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
-                )
-
-                #print("Generated Query:")
-                #print("="*80)
-                #print(query)
-                #print("="*80)
-
-                print(f"Getting weighted baseline load profile for state {state} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings.")
-
-                # temp save figure
-                df_base_ts_agg_weighted = athena_client.execute(query)
-                df_base_ts_agg_weighted[self.UPGRADE_NAME] = self.dict_upid_to_upname[0]
-                df_base_ts_agg_weighted.to_csv('comstock_unscaled_data.csv', index=False)
-
-            else:
-                # baseline load data when no upgrades are present, or upgrade load data
-
-
-                ## Create query builder and generate query for upgrade data
-                builder = ComStockQueryBuilder(self.comstock_run_name)
-                query = builder.get_timeseries_aggregation_query(
-                    upgrade_id=upgrade_id,
-                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                    restrictions=[
-                        ('in.state', [f"{state}"]),
-                        ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
-                    ],
-                    timestamp_grouping='hour',
-                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
-                )
-
-                df_up_ts_agg_weighted = athena_client.execute(query)
-                df_up_ts_agg_weighted[self.UPGRADE_NAME] = self.dict_upid_to_upname[int(upgrade_num[0])]
-                df_up_ts_agg_weighted.to_csv('comstock_unscaled_upgrade_data.csv', index=False)
-
-                #print("Generated Upgrade Query:")
-                #print("="*80)
-                #print(query)
-                #print("="*80)
-
-
-        # Initialize default values in case no data was processed
-        df_base_ts_agg_weighted = pd.DataFrame() if 'df_base_ts_agg_weighted' not in locals() else df_base_ts_agg_weighted
-        df_up_ts_agg_weighted = pd.DataFrame() if 'df_up_ts_agg_weighted' not in locals() else df_up_ts_agg_weighted
-
-        return df_base_ts_agg_weighted, df_up_ts_agg_weighted
-
     # plot
     order_list = [
                 'interior_equipment',
@@ -3167,7 +3053,7 @@ class PlottingMixin():
         else:
             return 'Winter'
 
-    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name): #, df, region, building_type, color_map, output_dir
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None): #, df, region, building_type, color_map, output_dir
 
         # get upgrade ID
         df_data = df.copy()
@@ -3179,7 +3065,7 @@ class PlottingMixin():
 
         # apply queries and weighting
         for state, state_name in states.items():
-            dfs_base_combined, dfs_upgrade_combined = self.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+            dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
 
             # merge into single dataframe
             dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3214,7 +3100,7 @@ class PlottingMixin():
             seasons = ['Spring', 'Summer', 'Fall', 'Winter']
             for season in seasons:
                 peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh", "Week_of_Year"]]
-                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh"] == peak_week["total_site_electricity_kwh"].max(), "Week_of_Year"][0]
+                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh"] == peak_week["total_site_electricity_kwh"].max(), "Week_of_Year"].iloc[0]
 
 
                 # filter to the week
@@ -3334,7 +3220,7 @@ class PlottingMixin():
             print(f"{fig_sub_dir}/timeseries_data_{state_name})")
             dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
 
-    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, color_map, comstock_run_name):
+    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
         df_data = df.copy()
@@ -3370,7 +3256,7 @@ class PlottingMixin():
             file_path = os.path.join(fig_sub_dir, f"timeseries_data_{state_name}.csv")
             dfs_merged=None
             if not os.path.exists(file_path):
-                dfs_base_combined, dfs_upgrade_combined = self.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
 
                 # merge into single dataframe
                 dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3542,7 +3428,7 @@ class PlottingMixin():
             fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
 
-    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name):
+    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
         df_data = df.copy()
@@ -3582,7 +3468,7 @@ class PlottingMixin():
             if not os.path.exists(file_path):
 
                 ######### This is where we get the weighted data
-                dfs_base_combined, dfs_upgrade_combined = self.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
                 #########
 
                 # merge into single dataframe

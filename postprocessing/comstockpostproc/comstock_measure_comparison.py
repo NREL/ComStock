@@ -28,6 +28,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.data = comstock_object.plotting_data.clone() #not really a deep copy, only schema is copied but not data.
         assert isinstance(self.data, pl.LazyFrame)
 
+        # Store reference to ComStock object for use in plotting methods
+        self.comstock_object = comstock_object
+
         self.color_map = {}
         self.image_type = image_type
         self.name = name
@@ -192,14 +195,14 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         if make_timeseries_plots:
             TIMESERIES_PARAMS = {'comstock_run_name': self.comstock_run_name, 'states': states, 'color_map': color_map,
-                                 'output_dir': output_dir}
+                                 'output_dir': output_dir, 'comstock_obj': self.comstock_object}
 
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_peak_week_by_state, lazy_frame=lazy_frame.clone(),
                                             columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT,
-            #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_season_average_by_state, lazy_frame=lazy_frame.clone(),
-            #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
-            #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_season_average_by_state, lazy_frame=lazy_frame.clone(),
-            #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
+            LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_season_average_by_state, lazy_frame=lazy_frame.clone(),
+                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
+            LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_annual_average_by_state_and_enduse, lazy_frame=lazy_frame.clone(),
+                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
         time_end = pd.Timestamp.now()
         logger.info(f"Time taken to make plots is {time_end - time_start}")
 

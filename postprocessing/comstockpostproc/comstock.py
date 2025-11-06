@@ -35,6 +35,7 @@ from comstockpostproc.comstock_apportionment import Apportion
 from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
 from buildstock_query import BuildStockQuery
+from .comstock_query_builder import ComStockQueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -4545,3 +4546,117 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 logger.debug('Columns in view:')
                 for c in cols:
                     logger.debug(c)
+
+        # get weighted load profiles
+
+    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, state, upgrade_name):
+        """
+        This method retrieves weighted timeseries profiles from s3/athena.
+        Returns dataframe with weighted kWh columns for baseline and upgrade.
+        """
+
+        # run crawler
+        athena_client = BuildStockQuery(workgroup='eulp',
+                                   db_name='enduse',
+                                   table_name=self.comstock_run_name,
+                                   buildstock_type='comstock',
+                                   skip_reports=True,
+                                   metadata_table_suffix='_md_agg_national_by_state_vu', #TODO: make this more dynamic for geo resolution
+                                   #ts_table_suffix=f"_timeseries_vu"
+                                   )
+
+        # Create upgrade ID to name mapping from existing data
+        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().sort(self.UPGRADE_ID).to_dict(as_series=False)
+        dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
+
+        print(athena_client._tables.keys())
+
+        # generate applicability for upgrade
+        # if there are multiple upgrades, applicability is based on first upgrade only
+        builder = ComStockQueryBuilder(self.comstock_run_name)
+        applicability_query = builder.get_applicability_query(
+            upgrade_ids=upgrade_num,
+            state=state,
+            columns=[
+                'dataset',
+                '"in.state"',
+                'bldg_id',
+                'upgrade',
+                'applicability'
+            ]
+        )
+
+        #print("Applicability Query:")
+        #print("="*80)
+        #print(applicability_query)
+        #print("="*80)
+
+        # Execute query to get applicable buildings
+        applic_df = athena_client.execute(applicability_query)
+        applic_bldgs_list = list(applic_df['bldg_id'].unique())
+        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
+
+        import time
+        from datetime import datetime, time
+
+        # loop through upgrades
+        for upgrade_id in df[self.UPGRADE_ID].unique():
+
+            # if there are upgrades, restrict baseline to match upgrade applicability
+            if (upgrade_id in (0, "0")) and (df[self.UPGRADE_ID].nunique() > 1):
+
+                # Create query builder and generate query
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=[
+                        ('in.state', [f"{state}"]),
+                        ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
+                    ],
+                    timestamp_grouping='hour',
+                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                )
+
+                #print("Generated Query:")
+                #print("="*80)
+                #print(query)
+                #print("="*80)
+
+                print(f"Getting weighted baseline load profile for state {state} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings.")
+
+                # temp save figure
+                df_base_ts_agg_weighted = athena_client.execute(query)
+                df_base_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[0]
+
+            else:
+                # baseline load data when no upgrades are present, or upgrade load data
+
+
+                ## Create query builder and generate query for upgrade data
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=[
+                        ('in.state', [f"{state}"]),
+                        ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
+                    ],
+                    timestamp_grouping='hour',
+                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                )
+
+                df_up_ts_agg_weighted = athena_client.execute(query)
+                df_up_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[int(upgrade_num[0])]
+
+                #print("Generated Upgrade Query:")
+                #print("="*80)
+                #print(query)
+                #print("="*80)
+
+
+        # Initialize default values in case no data was processed
+        df_base_ts_agg_weighted = pd.DataFrame() if 'df_base_ts_agg_weighted' not in locals() else df_base_ts_agg_weighted
+        df_up_ts_agg_weighted = pd.DataFrame() if 'df_up_ts_agg_weighted' not in locals() else df_up_ts_agg_weighted
+
+        return df_base_ts_agg_weighted, df_up_ts_agg_weighted
