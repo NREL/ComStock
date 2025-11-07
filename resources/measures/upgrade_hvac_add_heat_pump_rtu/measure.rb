@@ -2811,6 +2811,19 @@ end
     debug_stage_needed_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_stage_needed')
     debug_cap_stage_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_cap_stage')
     debug_actuated_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_actuated')
+    eff_cap_clg_4 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_4')
+    eff_cap_clg_3 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_3')
+    eff_cap_clg_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_2')
+    eff_cap_clg_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_1')
+    fractional_stage_needed = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'fractional_stage_needed')
+    # debug_temp_curve_stage1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage1')
+    # debug_flow_curve_stage1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_flow_curve_stage1')
+    # debug_temp_curve_stage2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage2')
+    # debug_flow_curve_stage2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_flow_curve_stage2')
+    # debug_temp_curve_stage3 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage3')
+    # debug_flow_curve_stage3 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_flow_curve_stage3')
+    # debug_temp_curve_stage4 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage4')
+    # debug_flow_curve_stage4 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_flow_curve_stage4')
 
     if compressor_reduction_during_peak == true
       
@@ -2878,7 +2891,7 @@ end
                   model,
                   'Performance Curve Output Value'
                 )
-                htg_stage_temp_curve_sensor.setKeyName(htg_temp_curve.nameString)
+                htg_stage_temp_curve_sensor.setKeyName(htg_temp_curve.name.get)
                 htg_stage_temp_curve_sensor.setName("htg_stage_#{stage_index}_temp_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
                 htg_temp_sensors["#{unitary.name}_stage#{stage_index}"] = htg_stage_temp_curve_sensor.name
 
@@ -2886,7 +2899,7 @@ end
                   model,
                   'Performance Curve Output Value'
                 )
-                htg_stage_flow_curve_sensor.setKeyName(htg_flow_curve.nameString)
+                htg_stage_flow_curve_sensor.setKeyName(htg_flow_curve.name.get)
                 htg_stage_flow_curve_sensor.setName("htg_stage_#{stage_index}_flow_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
                 htg_flow_sensors["#{unitary.name}_stage#{stage_index}"] = htg_stage_flow_curve_sensor.name
 
@@ -2913,7 +2926,7 @@ end
                   model,
                   'Performance Curve Output Value'
                 )
-                clg_stage_temp_curve_sensor.setKeyName(clg_temp_curve.nameString)
+                clg_stage_temp_curve_sensor.setKeyName(clg_temp_curve.name.get)
                 clg_stage_temp_curve_sensor.setName("clg_stage_#{stage_index}_temp_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
                 clg_temp_sensors["#{unitary.name}_stage#{stage_index}"] = clg_stage_temp_curve_sensor.name
 
@@ -2921,7 +2934,7 @@ end
                   model,
                   'Performance Curve Output Value'
                 )
-                clg_stage_flow_curve_sensor.setKeyName(clg_flow_curve.nameString)
+                clg_stage_flow_curve_sensor.setKeyName(clg_flow_curve.name.get)
                 clg_stage_flow_curve_sensor.setName("clg_stage_#{stage_index}_flow_curve_sensor_#{unitary.name.to_s.gsub(/\W/,'_')}")
                 clg_flow_sensors["#{unitary.name}_stage#{stage_index}"] = clg_stage_flow_curve_sensor.name
 
@@ -2965,7 +2978,7 @@ end
             SET zone_safety_htg_sp = (#{zone_htg_sp.name} - 2.22)
             SET zone_clg_sp = #{zone_clg_sp.name}
             SET zone_safety_clg_sp = (#{zone_clg_sp.name} + 2.22)
-            
+
             SET predicted_load = #{mode_sensor.name}
             IF (predicted_load >= 0),
               SET abs_load = predicted_load,
@@ -2981,13 +2994,16 @@ end
               SET mode = 0
             ENDIF
 
-            ! Initialize debug variables
+            ! --- Debug variables ---
             SET debug_predicted_load = predicted_load
             SET debug_abs_load = abs_load
             SET debug_mode = mode
             SET debug_stage_needed = 1
             SET debug_cap_stage = 0
             SET debug_actuated = 0
+            SET debug_release_flag = release_flag
+            SET debug_temp_curve_stage1 = #{clg_temp_sensors["#{unitary.name}_stage1"]}
+            SET debug_flow_curve_stage1 = #{clg_flow_sensors["#{unitary.name}_stage1"]}
 
             ! --- Effective capacities per stage (using degradation sensors) ---
             ! Cooling (4 speeds)
@@ -3007,63 +3023,85 @@ end
             IF (mode < 0),
               IF (abs_load > eff_cap_clg_1), 
                 SET stage_needed = 2, 
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_1) / (eff_cap_clg_2 - eff_cap_clg_1),
+                SET fractional_stage_needed = 1 + speed_ratio_needed,
               ENDIF
               IF (abs_load > eff_cap_clg_2), 
-                SET stage_needed = 3, 
+                SET stage_needed = 3,
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_2) / (eff_cap_clg_3 - eff_cap_clg_2),
+                SET fractional_stage_needed = 2 + speed_ratio_needed,
               ENDIF
               IF (abs_load > eff_cap_clg_3), 
                 SET stage_needed = 4, 
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_3) / (eff_cap_clg_4 - eff_cap_clg_3),
+                SET fractional_stage_needed = 3 + speed_ratio_needed,
               ENDIF
             ELSEIF (mode > 0),
               IF (abs_load > eff_cap_htg_1), 
-                SET stage_needed = 2, 
+                SET stage_needed = 2,
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_1) / (eff_cap_htg_2 - eff_cap_htg_1),
+                SET fractional_stage_needed = 1 + speed_ratio_needed, 
               ENDIF
               IF (abs_load > eff_cap_htg_2), 
                 SET stage_needed = 3, 
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_2) / (eff_cap_htg_3 - eff_cap_htg_2),
+                SET fractional_stage_needed = 2 + speed_ratio_needed,
               ENDIF
               IF (abs_load > eff_cap_htg_3), 
                 SET stage_needed = 4, 
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_3) / (eff_cap_htg_4 - eff_cap_htg_3),
+                SET fractional_stage_needed = 3 + speed_ratio_needed,
               ENDIF
             ENDIF
-
             SET debug_stage_needed = stage_needed
 
-            ! --- Demand Response Cap ---
-            IF (#{dr_sensor.name} > 0.5),
-              ! --- Cooling Mode ---
-              IF (mode < 0),
-                SET cap_stage = #{clg_limit_val},
-              ! --- Heating Mode ---
-              ELSEIF (mode > 0),
-                SET cap_stage = #{htg_limit_val},
-              ELSE,
-                SET cap_stage = 4,
-              ENDIF,
-
-              SET debug_cap_stage = cap_stage
-
-              ! Only cap if required stage exceeds the cap
-              IF (stage_needed > cap_stage),
-                ! --- In cooling, if zone temp is higher than cooling setpoint + 4F, allow full operation ---
-                IF zone_air_temp > zone_safety_clg_sp && mode < 0,
-                  SET #{dx_coil_actuator.name} = Null,
-                  SET debug_actuated = 0,
-                ! --- In heating, if zone temp is lower than heating setpoint - 4F, allow full operation ---
-                ELSEIF zone_air_temp < zone_safety_htg_sp && mode > 0,
-                  SET #{dx_coil_actuator.name} = Null, 
-                  SET debug_actuated = 0,
-                ELSE,
-                  SET #{dx_coil_actuator.name} = cap_stage,
-                  SET debug_actuated = cap_stage,
-                ENDIF,
-              ELSE,
-                SET #{dx_coil_actuator.name} = Null,
-                SET debug_actuated = 0,
-              ENDIF,
-
-            ELSE,
+            ! --- Demand Response and Comfort Release Logic ---
+            IF (#{dr_sensor.name} < 0.5),
+              ! --- DR inactive: reset and release ---
+              SET release_flag = 0,
               SET #{dx_coil_actuator.name} = Null,
               SET debug_actuated = 0,
+            ELSE,
+              ! --- DR is active ---
+              ! --- Check for comfort violation ---
+              IF (mode < 0),  ! cooling
+                IF zone_air_temp > zone_safety_clg_sp,
+                  SET release_flag = 1,
+                ENDIF
+              ELSEIF (mode > 0),  ! heating
+                IF zone_air_temp < zone_safety_htg_sp,
+                  SET release_flag = 1,
+                ENDIF
+              ENDIF
+
+              SET debug_release_flag = release_flag
+
+              ! --- If comfort violation occurred, release control for rest of DR ---
+              IF (release_flag == 1),
+                SET #{dx_coil_actuator.name} = Null,
+                SET debug_actuated = 0,
+
+              ! --- Otherwise apply DR limits normally ---
+              ELSE,
+                ! --- Mode-specific cap ---
+                IF (mode < 0),
+                  SET cap_stage = #{clg_limit_val},
+                ELSEIF (mode > 0),
+                  SET cap_stage = #{htg_limit_val},
+                ELSE,
+                  SET cap_stage = 4,
+                ENDIF
+                SET debug_cap_stage = cap_stage
+
+                ! --- Apply cap if needed ---
+                IF (fractional_stage_needed > cap_stage),
+                  SET #{dx_coil_actuator.name} = cap_stage,
+                  SET debug_actuated = cap_stage,
+                ELSE,
+                  SET #{dx_coil_actuator.name} = Null,
+                  SET debug_actuated = 0,
+                ENDIF,
+              ENDIF,
             ENDIF
           EMS
 
