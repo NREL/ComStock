@@ -2804,18 +2804,18 @@ end
     stage_caps_htg = parse_stage_fractions(cchp_staging["stage_cap_fractions_heating"])
     stage_caps_clg = parse_stage_fractions(cchp_staging["stage_cap_fractions_cooling"])
 
-    # Define debug EMS global variables upfront (so they exist for output reporting even if DR is disabled)
-    debug_predicted_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_predicted_load')
-    debug_abs_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_abs_load')
-    debug_mode_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_mode')
-    debug_stage_needed_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_stage_needed')
-    debug_cap_stage_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_cap_stage')
-    debug_actuated_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_actuated')
-    eff_cap_clg_4 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_4')
-    eff_cap_clg_3 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_3')
-    eff_cap_clg_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_2')
-    eff_cap_clg_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_1')
-    fractional_stage_needed = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'fractional_stage_needed')
+    # # Define debug EMS global variables upfront (so they exist for output reporting even if DR is disabled)
+    # debug_predicted_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_predicted_load')
+    # debug_abs_load_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_abs_load')
+    # debug_mode_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_mode')
+    # debug_stage_needed_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_stage_needed')
+    # debug_cap_stage_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_cap_stage')
+    # debug_actuated_var = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_actuated')
+    # eff_cap_clg_4 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_4')
+    # eff_cap_clg_3 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_3')
+    # eff_cap_clg_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_2')
+    # eff_cap_clg_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'eff_cap_clg_1')
+    # fractional_stage_needed = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'fractional_stage_needed')
     # debug_temp_curve_stage1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage1')
     # debug_flow_curve_stage1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_flow_curve_stage1')
     # debug_temp_curve_stage2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, 'debug_temp_curve_stage2')
@@ -2854,11 +2854,11 @@ end
           desired_frac = max_compressor_frac * max_stage_cap
           htg_limit_val = nonlinear_stage_value(desired_frac, stage_caps_htg)
           htg_limit_val = [htg_limit_val, num_htg_speeds].min
-          puts "htg_limit_val: #{htg_limit_val}"
+          #puts "htg_limit_val: #{htg_limit_val}"
 
           clg_limit_val = nonlinear_stage_value(max_compressor_frac, stage_caps_clg)
           clg_limit_val = [clg_limit_val, num_clg_speeds].min
-          puts "clg_limit_val: #{clg_limit_val}"
+          #puts "clg_limit_val: #{clg_limit_val}"
 
           # if controlling zone available, add zone sensors
           if unitary.controllingZoneorThermostatLocation.is_initialized
@@ -2905,7 +2905,7 @@ end
 
                 # store rated capacities (static values) for each stage in hash
                 rated_htg_cap = stage.grossRatedHeatingCapacity
-                puts "Rated heating capacity for #{stage_index} = #{rated_htg_cap}"
+                #puts "Rated heating capacity for #{stage_index} = #{rated_htg_cap}"
                 # Optionally store in a hash if you need it later:
                 stage_htg_cap_values["#{unitary.name}_stage#{stage_index}"] = rated_htg_cap
               end
@@ -2940,13 +2940,13 @@ end
 
                 # store sensible heat ratio (static value) for each stage in hash
                 shr = stage.grossRatedSensibleHeatRatio
-                puts "Cooling stage #{stage_index} SHR = #{shr}"
+                #puts "Cooling stage #{stage_index} SHR = #{shr}"
                 # Optionally store in a hash if you need it later:
                 stage_shr_values["#{unitary.name}_stage#{stage_index}"] = shr
 
                 # store rated capacities (static values) for each stage in hash
                 rated_clg_cap = stage.grossRatedTotalCoolingCapacity
-                puts "Rated cooling capacity for #{stage_index} = #{rated_clg_cap}"
+                #puts "Rated cooling capacity for #{stage_index} = #{rated_clg_cap}"
                 # Optionally store in a hash if you need it later:
                 stage_clg_cap_values["#{unitary.name}_stage#{stage_index}"] = rated_clg_cap
               end
@@ -2994,6 +2994,26 @@ end
               SET mode = 0
             ENDIF
 
+            ! --- Ignore DF control for very small loads (neutral zone) ---
+            SET total_clg_cap = #{stage_clg_cap_values["#{unitary.name}_stage4"]}
+            SET total_htg_cap = #{stage_htg_cap_values["#{unitary.name}_stage4"]}
+            SET rel_threshold = 0.05     ! 5% of full capacity (adjustable)
+            SET clg_threshold = total_clg_cap * rel_threshold
+            SET htg_threshold = total_htg_cap * rel_threshold
+
+            IF (predicted_load > -clg_threshold) && (predicted_load < htg_threshold),
+              SET mode = 0
+            ENDIF
+
+            ! --- Predict mode based on sensible load sign ---
+            IF (predicted_load > htg_threshold),
+              SET mode = 1    ! heating
+            ELSEIF (predicted_load < -clg_threshold),
+              SET mode = -1   ! cooling
+            ELSE,
+              SET mode = 0    ! neutral
+            ENDIF
+
             ! --- Debug variables ---
             SET debug_predicted_load = predicted_load
             SET debug_abs_load = abs_load
@@ -3004,15 +3024,22 @@ end
             SET debug_release_flag = release_flag
             SET debug_temp_curve_stage1 = #{clg_temp_sensors["#{unitary.name}_stage1"]}
             SET debug_flow_curve_stage1 = #{clg_flow_sensors["#{unitary.name}_stage1"]}
+            SET debug_temp_curve_stage2 = #{clg_temp_sensors["#{unitary.name}_stage2"]}
+            SET debug_flow_curve_stage2 = #{clg_flow_sensors["#{unitary.name}_stage2"]}
+            SET debug_temp_curve_stage3 = #{clg_temp_sensors["#{unitary.name}_stage3"]}
+            SET debug_flow_curve_stage3 = #{clg_flow_sensors["#{unitary.name}_stage3"]}
+            SET debug_temp_curve_stage4 = #{clg_temp_sensors["#{unitary.name}_stage4"]} 
+            SET debug_flow_curve_stage4 = #{clg_flow_sensors["#{unitary.name}_stage4"]}
 
             ! --- Effective capacities per stage (using degradation sensors) ---
+            ! Cooling (4 speeds)
             ! Cooling (4 speeds)
             SET eff_cap_clg_1 = #{stage_clg_cap_values["#{unitary.name}_stage1"]} * #{clg_temp_sensors["#{unitary.name}_stage1"]} * #{clg_flow_sensors["#{unitary.name}_stage1"]} * #{stage_shr_values["#{unitary.name}_stage1"]}
             SET eff_cap_clg_2 = #{stage_clg_cap_values["#{unitary.name}_stage2"]} * #{clg_temp_sensors["#{unitary.name}_stage2"]} * #{clg_flow_sensors["#{unitary.name}_stage2"]} * #{stage_shr_values["#{unitary.name}_stage2"]}
             SET eff_cap_clg_3 = #{stage_clg_cap_values["#{unitary.name}_stage3"]} * #{clg_temp_sensors["#{unitary.name}_stage3"]} * #{clg_flow_sensors["#{unitary.name}_stage3"]} * #{stage_shr_values["#{unitary.name}_stage3"]}
             SET eff_cap_clg_4 = #{stage_clg_cap_values["#{unitary.name}_stage4"]} * #{clg_temp_sensors["#{unitary.name}_stage4"]} * #{clg_flow_sensors["#{unitary.name}_stage4"]} * #{stage_shr_values["#{unitary.name}_stage4"]}
 
-            ! Heating (4 speeds)
+            ! Heating (4 speeds) 
             SET eff_cap_htg_1 = #{stage_htg_cap_values["#{unitary.name}_stage1"]} * #{htg_temp_sensors["#{unitary.name}_stage1"]} * #{htg_flow_sensors["#{unitary.name}_stage1"]}
             SET eff_cap_htg_2 = #{stage_htg_cap_values["#{unitary.name}_stage2"]} * #{htg_temp_sensors["#{unitary.name}_stage2"]} * #{htg_flow_sensors["#{unitary.name}_stage2"]}
             SET eff_cap_htg_3 = #{stage_htg_cap_values["#{unitary.name}_stage3"]} * #{htg_temp_sensors["#{unitary.name}_stage3"]} * #{htg_flow_sensors["#{unitary.name}_stage3"]}
@@ -3024,33 +3051,33 @@ end
               IF (abs_load > eff_cap_clg_1), 
                 SET stage_needed = 2, 
                 SET speed_ratio_needed = (abs_load - eff_cap_clg_1) / (eff_cap_clg_2 - eff_cap_clg_1),
-                SET fractional_stage_needed = 1 + speed_ratio_needed,
+                SET fractional_stage_needed = (1 + speed_ratio_needed - 0.1),
               ENDIF
               IF (abs_load > eff_cap_clg_2), 
                 SET stage_needed = 3,
                 SET speed_ratio_needed = (abs_load - eff_cap_clg_2) / (eff_cap_clg_3 - eff_cap_clg_2),
-                SET fractional_stage_needed = 2 + speed_ratio_needed,
+                SET fractional_stage_needed = (2 + speed_ratio_needed - 0.1),
               ENDIF
               IF (abs_load > eff_cap_clg_3), 
                 SET stage_needed = 4, 
                 SET speed_ratio_needed = (abs_load - eff_cap_clg_3) / (eff_cap_clg_4 - eff_cap_clg_3),
-                SET fractional_stage_needed = 3 + speed_ratio_needed,
+                SET fractional_stage_needed = (3 + speed_ratio_needed - 0.1),
               ENDIF
             ELSEIF (mode > 0),
               IF (abs_load > eff_cap_htg_1), 
                 SET stage_needed = 2,
                 SET speed_ratio_needed = (abs_load - eff_cap_htg_1) / (eff_cap_htg_2 - eff_cap_htg_1),
-                SET fractional_stage_needed = 1 + speed_ratio_needed, 
+                SET fractional_stage_needed = (1 + speed_ratio_needed - 0.1),
               ENDIF
               IF (abs_load > eff_cap_htg_2), 
                 SET stage_needed = 3, 
                 SET speed_ratio_needed = (abs_load - eff_cap_htg_2) / (eff_cap_htg_3 - eff_cap_htg_2),
-                SET fractional_stage_needed = 2 + speed_ratio_needed,
+                SET fractional_stage_needed = (2 + speed_ratio_needed - 0.1),
               ENDIF
               IF (abs_load > eff_cap_htg_3), 
                 SET stage_needed = 4, 
                 SET speed_ratio_needed = (abs_load - eff_cap_htg_3) / (eff_cap_htg_4 - eff_cap_htg_3),
-                SET fractional_stage_needed = 3 + speed_ratio_needed,
+                SET fractional_stage_needed = (3 + speed_ratio_needed - 0.1),
               ENDIF
             ENDIF
             SET debug_stage_needed = stage_needed
@@ -3085,11 +3112,20 @@ end
               ELSE,
                 ! --- Mode-specific cap ---
                 IF (mode < 0),
-                  SET cap_stage = #{clg_limit_val},
+                  IF (zone_air_temp < (zone_clg_sp - 0.2)),  ! If in cooling mode but zone temp is already cooler than setpoint, do not limit
+                    SET cap_stage = 4,
+                  ELSE,
+                    SET cap_stage = #{clg_limit_val},
+                  ENDIF,
                 ELSEIF (mode > 0),
-                  SET cap_stage = #{htg_limit_val},
-                ELSE,
+                  IF (zone_air_temp > (zone_htg_sp + 0.2)),  ! If in heating mode but zone temp is already higher than setpoint, do not limit
+                    SET cap_stage = 4,
+                  ELSE,
+                    SET cap_stage = #{htg_limit_val},
+                  ENDIF,
                   SET cap_stage = 4,
+                ELSE,
+                  SET cap_stage = 4,  ! if no mode, no limit
                 ENDIF
                 SET debug_cap_stage = cap_stage
 
@@ -3231,7 +3267,7 @@ end
           # Determine number of supplemental stages (default 1 for cycling coil)
           num_sup_stages = 2
           backup_coil_nominal_capacity = unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.stages[1].nominalCapacity.get.to_f
-          puts "backup coil nominal capacity = #{unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.stages[1].nominalCapacity.get.to_f}"
+          #puts "backup coil nominal capacity = #{unitary.supplementalHeatingCoil.get.to_CoilHeatingElectricMultiStage.get.stages[1].nominalCapacity.get.to_f}"
 
           # --- Outdoor Air Temperature Sensor ---
           oa_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Site Outdoor Air Drybulb Temperature')
@@ -3239,7 +3275,7 @@ end
           oa_t.setName('T_OA')
 
           backup_heat_lim = backup_coil_nominal_capacity * backup_heat_frac.round(3)
-          puts "backup heat limit W for coil #{unitary.name} = #{backup_heat_lim}"
+          #puts "backup heat limit W for coil #{unitary.name} = #{backup_heat_lim}"
 
           program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
           program.setName("DR_Limit_SuppHeat_#{unitary.name.to_s.gsub(/\W/,'_')}")
@@ -3280,93 +3316,95 @@ end
 
     ################# ADD EMS OUTPUT VARIABLES ################
    
-    # adding output variables (for debugging)
-    out_vars = [
-      'Site Outdoor Air Drybulb Temperature',
-    #   'Air System Mixed Air Mass Flow Rate',
-    #   'Fan Air Mass Flow Rate',
-    #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
-       'Cooling Coil Total Cooling Rate',
-    #   'Cooling Coil Electricity Rate',
-    #   'Cooling Coil Runtime Fraction',
-       'Heating Coil Heating Rate',
-       'Heating Coil Electricity Rate',
-       'Heating Coil Runtime Fraction',
-    #   'Unitary System DX Coil Cycling Ratio',
-       'Unitary System DX Coil Speed Ratio',
-       'Unitary System DX Coil Speed Level',
-    #   'Unitary System Total Cooling Rate',
-    #   'Unitary System Total Heating Rate',
-    #   'Unitary System Electricity Rate',
-    #   'HVAC System Solver Iteration Count',
+    # # adding output variables (for debugging)
+    # out_vars = [
     #   'Site Outdoor Air Drybulb Temperature',
-    #   'Heating Coil Crankcase Heater Electricity Rate',
-    #   'Heating Coil Defrost Electricity Rate',
-       'Zone Air Temperature',
-    #   'Lights Total Heating Energy',
-    #   'Electric Equipment Total Heating Energy',
-    #   'People Total Heating Rate',
-    #   'Heating Coil Total Heating Energy',
-       'Zone Thermostat Heating Setpoint Temperature',
-       'Zone Thermostat Cooling Setpoint Temperature',
-       'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate'
-    ]
-    out_vars.each do |out_var_name|
-      ov = OpenStudio::Model::OutputVariable.new('ov', model)
-      ov.setKeyValue('*')
-      ov.setReportingFrequency('timestep')
-      ov.setVariableName(out_var_name)
-    end
+    # #   'Air System Mixed Air Mass Flow Rate',
+    # #   'Fan Air Mass Flow Rate',
+    # #   'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #    'Cooling Coil Total Cooling Rate',
+    #    'Cooling Coil Electricity Rate',
+    # #   'Cooling Coil Runtime Fraction',
+    #    'Heating Coil Heating Rate',
+    #    'Heating Coil Electricity Rate',
+    # #   'Unitary System DX Coil Cycling Ratio',
+    #    'Unitary System DX Coil Speed Ratio',
+    #    'Unitary System DX Coil Speed Level',
+    # #   'Unitary System Total Cooling Rate',
+    # #   'Unitary System Total Heating Rate',
+    # #   'Unitary System Electricity Rate',
+    # #   'HVAC System Solver Iteration Count',
+    # #   'Site Outdoor Air Drybulb Temperature',
+    # #   'Heating Coil Crankcase Heater Electricity Rate',
+    # #   'Heating Coil Defrost Electricity Rate',
+    #    'Zone Air Temperature',
+    # #   'Lights Total Heating Energy',
+    # #   'Electric Equipment Total Heating Energy',
+    # #   'People Total Heating Rate',
+    # #   'Heating Coil Total Heating Energy',
+    #    'Zone Thermostat Heating Setpoint Temperature',
+    #    'Zone Thermostat Cooling Setpoint Temperature',
+    #    'Unitary System Predicted Sensible Load to Setpoint Heat Transfer Rate',
+    #    'Cooling Coil Sensible Cooling Rate',
+    #    'Unitary System Sensible Cooling Rate',
+    #    'Fan Electricity Rate'
+    # ]
+    # out_vars.each do |out_var_name|
+    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #   ov.setKeyValue('*')
+    #   ov.setReportingFrequency('timestep')
+    #   ov.setVariableName(out_var_name)
+    # end
 
-    # Peak schedule value (to verify EMS trigger timing)
-    peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
-    peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
-    peak_sch_outvar.setReportingFrequency('Hourly')
+    # # Peak schedule value (to verify EMS trigger timing)
+    # peak_sch_outvar = OpenStudio::Model::OutputVariable.new('Schedule Value', model)
+    # peak_sch_outvar.setKeyValue('Peak Schedule for DR Adjustments')
+    # peak_sch_outvar.setReportingFrequency('Hourly')
 
-    runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
+    # runner.registerInfo('Added EMS output variables for DX speed, supplemental coil stage, and peak schedule.')
 
-    # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
-    output_EMS = model.getOutputEnergyManagementSystem
-    output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
-    output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
-    output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
+    # # Create OutputEnergyManagementSystem object (a 'unique' object) and configure to allow EMS reporting
+    # output_EMS = model.getOutputEnergyManagementSystem
+    # output_EMS.setInternalVariableAvailabilityDictionaryReporting('Verbose')
+    # output_EMS.setEMSRuntimeLanguageDebugOutputLevel('None')
+    # output_EMS.setActuatorAvailabilityDictionaryReporting('Verbose')
 
-    timeseriesnames = []
+    # timeseriesnames = []
 
-    # Initialize list that will collect EMS actuators and globals
-    li_ems_act_oa_flow = []
-    model.getEnergyManagementSystemActuators.each do |ems_actuator|
-      li_ems_act_oa_flow << ems_actuator
-    end
-    model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
-      li_ems_act_oa_flow << glo_var
-    end
+    # # Initialize list that will collect EMS actuators and globals
+    # li_ems_act_oa_flow = []
+    # model.getEnergyManagementSystemActuators.each do |ems_actuator|
+    #   li_ems_act_oa_flow << ems_actuator
+    # end
+    # model.getEnergyManagementSystemGlobalVariables.each do |glo_var|
+    #   li_ems_act_oa_flow << glo_var
+    # end
     
-    ems_output_variable_list = []
+    # ems_output_variable_list = []
 
-    li_ems_act_oa_flow.each do |act|
-      name = act.name
-      ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
-      ems_act_oa_flow.setUpdateFrequency('timestep')
-      ems_act_oa_flow.setName("#{name}_ems_outvar")
-      ems_output_variable_list << ems_act_oa_flow.name.to_s
-    end
+    # li_ems_act_oa_flow.each do |act|
+    #   name = act.name
+    #   ems_act_oa_flow = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model, act)
+    #   ems_act_oa_flow.setUpdateFrequency('timestep')
+    #   ems_act_oa_flow.setName("#{name}_ems_outvar")
+    #   ems_output_variable_list << ems_act_oa_flow.name.to_s
+    # end
     
-    # Add EMS output variables to regular output variables
-    ems_output_variable_list.each do |variable|
-      output = OpenStudio::Model::OutputVariable.new(variable,model)
-      output.setKeyValue("*")
-      output.setReportingFrequency('timestep')
-      timeseriesnames << variable
-    end
+    # # Add EMS output variables to regular output variables
+    # ems_output_variable_list.each do |variable|
+    #   output = OpenStudio::Model::OutputVariable.new(variable,model)
+    #   output.setKeyValue("*")
+    #   output.setReportingFrequency('timestep')
+    #   timeseriesnames << variable
+    # end
 
-    # Add output vars for simulation after measure implementation
-    timeseriesnames.each do |out_var_name|
-      ov = OpenStudio::Model::OutputVariable.new('ov', model)
-      ov.setKeyValue('*')
-      ov.setReportingFrequency('timestep')
-      ov.setVariableName(out_var_name)
-    end
+    # # Add output vars for simulation after measure implementation
+    # timeseriesnames.each do |out_var_name|
+    #   ov = OpenStudio::Model::OutputVariable.new('ov', model)
+    #   ov.setKeyValue('*')
+    #   ov.setReportingFrequency('timestep')
+    #   ov.setVariableName(out_var_name)
+    # end
 
     # report final condition of model
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
