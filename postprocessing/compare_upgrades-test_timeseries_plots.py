@@ -47,16 +47,16 @@ def main():
         timeseries_locations_to_plot={
                                         'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
                                         #'MA':'Massachusetts',
-                                        ('MA', 'NH', 'CT', 'VT', 'RI'): 'New England', # example of multiple states together - using tuples as keys
                                         #'OR': 'Oregon',
                                         #'LA': 'Louisiana',
                                         #'AZ': 'Arizona',
                                         #'TN': 'Tennessee',
-                                        #'G2500250': 'Boston', # if specifying a county, you must export county level data to S3
+                                        ('MA', 'NH', 'CT', 'VT', 'RI'): 'New England', # example of multiple states together - using tuples as keys
                                         #'G4900350': 'Salt Lake City',
+                                        #'G2500250': 'Boston', # if specifying a county, you must export county level data to S3
                                         #'G4804530': 'Austin',
                                         ('G2500250', 'G4804530'):'Baustin'  # multiple counties together - using tuples as keys
-    },
+                                    },
 
         upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
         #output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
