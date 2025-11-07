@@ -331,8 +331,8 @@ class ComStockQueryBuilder:
 
     def get_applicability_query(self,
                                upgrade_ids: List[Union[int, str]],
-                               state: Optional[str] = None,
-                               county: Optional[str] = None,
+                               state: Optional[Union[str, List[str]]] = None,
+                               county: Optional[Union[str, List[str]]] = None,
                                columns: Optional[List[str]] = None,
                                weight_view_table: Optional[str] = None) -> str:
         """
@@ -340,8 +340,8 @@ class ComStockQueryBuilder:
 
         Args:
             upgrade_ids: List of upgrade IDs to filter on
-            state: State abbreviation to filter on (optional)
-            county: County GISJOIN to filter on (optional)
+            state: State abbreviation(s) to filter on (optional, can be single string or list)
+            county: County GISJOIN(s) to filter on (optional, can be single string or list)
             columns: Specific columns to select (optional, defaults to common applicability columns)
             weight_view_table: Name of the weight view table (optional, uses default naming)
 
@@ -381,11 +381,25 @@ class ComStockQueryBuilder:
         # Filter by applicability
         where_conditions.append('applicability = true')
 
-        # Filter by geographic location (state or county)
+        # Filter by geographic location (state or county) - support single values or lists
         if state:
-            where_conditions.append(f'"in.state" = \'{state}\'')
+            if isinstance(state, str):
+                where_conditions.append(f'"in.state" = \'{state}\'')
+            elif isinstance(state, (list, tuple)):
+                if len(state) == 1:
+                    where_conditions.append(f'"in.state" = \'{state[0]}\'')
+                else:
+                    state_list = "', '".join(state)
+                    where_conditions.append(f'"in.state" IN (\'{state_list}\')')
         elif county:
-            where_conditions.append(f'"in.nhgis_county_gisjoin" = \'{county}\'')
+            if isinstance(county, str):
+                where_conditions.append(f'"in.nhgis_county_gisjoin" = \'{county}\'')
+            elif isinstance(county, (list, tuple)):
+                if len(county) == 1:
+                    where_conditions.append(f'"in.nhgis_county_gisjoin" = \'{county[0]}\'')
+                else:
+                    county_list = "', '".join(county)
+                    where_conditions.append(f'"in.nhgis_county_gisjoin" IN (\'{county_list}\')')
 
         where_clause = ' AND '.join(where_conditions)
 

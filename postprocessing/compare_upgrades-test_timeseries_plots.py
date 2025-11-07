@@ -45,9 +45,9 @@ def main():
         upgrade_ids_to_skip=[2,3], # Use [1, 3] etc. to exclude certain upgrades
         make_timeseries_plots=True,
         timeseries_locations_to_plot={
-  #                                      'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
+                                        'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
                                         #'MA':'Massachusetts',
-                                        ['MA', 'NH', 'CT', 'VT', 'RI']: 'New England', # example of multiple states together
+                                        ('MA', 'NH', 'CT', 'VT', 'RI'): 'New England', # example of multiple states together - using tuples as keys
                                         #'OR': 'Oregon',
                                         #'LA': 'Louisiana',
                                         #'AZ': 'Arizona',
@@ -55,7 +55,7 @@ def main():
                                         #'G2500250': 'Boston', # if specifying a county, you must export county level data to S3
                                         #'G4900350': 'Salt Lake City',
                                         #'G4804530': 'Austin',
-                                        ['G2500250', 'G4804530']:'Baustin'
+                                        ('G2500250', 'G4804530'):'Baustin'  # multiple counties together - using tuples as keys
     },
 
         upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
