@@ -959,12 +959,12 @@ class PlottingMixin():
         for col, agg_method in cols_to_summarize.items():
             for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
-                # Only calculate CI for CBECS within this building type utilizing replicate weights
-                cbecs_mask = bldg_type_ts_df[column_for_grouping].astype(str).str.startswith('CBECS')
-                cbecs_df = bldg_type_ts_df[cbecs_mask]
-                rse_results = None
                 # Always include dataset in grouping for RSE calculation
                 for group_by in group_bys:
+                    # Only calculate CI for CBECS within this building type utilizing replicate weights
+                    cbecs_mask = bldg_type_ts_df[column_for_grouping].astype(str).str.startswith('CBECS')
+                    cbecs_df = bldg_type_ts_df[cbecs_mask]
+                    rse_results = None
                     if not cbecs_df.empty:
                         if group_by is None:
                             rse_results = rse_by_group_total(
