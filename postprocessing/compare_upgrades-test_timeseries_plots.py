@@ -12,15 +12,15 @@ from sqlalchemy_views import CreateView
 import re
 
 
-import sys, inspect, importlib, site, platform, shutil, subprocess, os
+#import sys, inspect, importlib, site, platform, shutil, subprocess, os
 
-mods = ["pyathena","s3fs","fsspec","botocore","aiobotocore","boto3","pandas"]
-for m in mods:
-    try:
-        mod = importlib.import_module(m)
-        print(f"{m:12} {getattr(mod,'__version__','?'):>10}  @ {inspect.getfile(mod)}")
-    except Exception as e:
-        print(f"{m:12} NOT IMPORTABLE: {e}")
+#mods = ["pyathena","s3fs","fsspec","botocore","aiobotocore","boto3","pandas"]
+#for m in mods:
+#    try:
+#        mod = importlib.import_module(m)
+#        print(f"{m:12} {getattr(mod,'__version__','?'):>10}  @ {inspect.getfile(mod)}")
+#    except Exception as e:
+#        print(f"{m:12} NOT IMPORTABLE: {e}")
 
 
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
@@ -44,14 +44,19 @@ def main():
         include_upgrades=True,  # False if not looking at upgrades
         upgrade_ids_to_skip=[2,3], # Use [1, 3] etc. to exclude certain upgrades
         make_timeseries_plots=True,
-        states={
-                'MN': 'Minnesota',  # specify state to use for timeseries plots in dictionary format. State ID must correspond correctly.
-                'MA':'Massachusetts',
-                'OR': 'Oregon',
-                'LA': 'Louisiana',
-                'AZ': 'Arizona',
-                'TN': 'Tennessee'
-                },
+        timeseries_locations_to_plot={
+  #                                      'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
+                                        #'MA':'Massachusetts',
+                                        ['MA', 'NH', 'CT', 'VT', 'RI']: 'New England', # example of multiple states together
+                                        #'OR': 'Oregon',
+                                        #'LA': 'Louisiana',
+                                        #'AZ': 'Arizona',
+                                        #'TN': 'Tennessee',
+                                        #'G2500250': 'Boston', # if specifying a county, you must export county level data to S3
+                                        #'G4900350': 'Salt Lake City',
+                                        #'G4804530': 'Austin',
+                                        ['G2500250', 'G4804530']:'Baustin'
+    },
 
         upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
         #output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
@@ -88,36 +93,44 @@ def main():
         # up_alloc_wts = comstock.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
          comstock.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id)
 
-    # Export metadata files
-    geo_exports = [
-        #{'geo_top_dir': 'by_state_and_county',
-        #    'partition_cols': {
-        #        comstock.STATE_ABBRV: 'state',
-        #        comstock.COUNTY_ID: 'county',
-        #    },
-        #    'aggregation_levels': ['in.nhgis_tract_gisjoin'], # , comstock.COUNTY_ID],  # Full tract resolution (agg=in.nhgis_tract_gisjoin)
-        #    'data_types': ['full', 'basic'],
-        #    'file_types': ['csv', 'parquet'],
-        #},
-        {'geo_top_dir': 'national_by_state',
-           'partition_cols': {},
-           'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
-           'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
-           'file_types': ['parquet'], # other options:'parquet'
-        }
-            ]
+    # Specify geo exports
 
-    for geo_export in geo_exports:
-        for upgrade_id in comstock.upgrade_ids_to_process:
-            # if upgrade_id == 0:
-            #     continue
-            # comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
+    # county resolution, files by state and county
+    county_resolution =  {
+                        'geo_top_dir': 'by_state_and_county',
+                        'partition_cols': {
+                            comstock.STATE_ABBRV: 'state',
+                            comstock.COUNTY_ID: 'county',
+                        },
+                        'aggregation_levels': [comstock.COUNTY_ID], # , comstock.COUNTY_ID],  # Full tract resolution (agg=in.nhgis_tract_gisjoin)
+                        'data_types': ['full'],
+                        'file_types': ['parquet'],
+                        }
 
-            # Also write to S3 if making timeseries plots
-            if comstock.make_timeseries_plots:
-                s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
-                s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
-                comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)
+    # state level resolution, one single national file
+    state_resolution = {
+                        'geo_top_dir': 'national_by_state',
+                        'partition_cols': {},
+                        'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+                        'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+                        'file_types': ['parquet'], # other options:'parquet'
+                        }
+
+    # specify the export level
+    # IMPORTANT: if making county level timeseries plots, must export county level data to S3. This does not occur automatically.
+    geo_exports = [county_resolution] #state_resolution
+
+    #for geo_export in geo_exports:
+    #    for upgrade_id in comstock.upgrade_ids_to_process:
+    #        if upgrade_id == 0:
+    #            continue
+    #        comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
+
+    #        # Also write to S3 if making timeseries plots
+    #        if comstock.make_timeseries_plots: TODO: force geo exports to county data if couunty timeseries is requested.
+    #            s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
+    #            s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
+    #            comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)
 
 
     # write select results to S3 for Athena/Glue when needed for timeseries plots
@@ -132,15 +145,15 @@ def main():
         # Export parquet files to S3 for Athena/Glue
         # TODO: modify so that county data can be used for timeseries plots
         # TODO: Modify geo export structure to specify parquet files only for this part of the workflow
-        comstock.create_sightglass_tables(s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
-                                            dataset_name=crawler_name,
-                                            database_name=database,
-                                            glue_service_role=glue_service_role)
-        comstock.fix_timeseries_tables(crawler_name, database)
-        comstock.create_views(crawler_name, database, workgroup)
+        #comstock.create_sightglass_tables(s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
+        #                                    dataset_name=crawler_name,
+        #                                    database_name=database,
+        #                                    glue_service_role=glue_service_role)
+        #comstock.fix_timeseries_tables(crawler_name, database)
+        #comstock.create_views(crawler_name, database, workgroup)
 
     # Create measure run comparisons; only use if run has measures
-    comparison = cspp.ComStockMeasureComparison(comstock, states=comstock.states, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)
+    comparison = cspp.ComStockMeasureComparison(comstock, timeseries_locations_to_plot=comstock.timeseries_locations_to_plot, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)
 
     # Export dictionaries corresponding to the exported columns
     #comstock.export_data_and_enumeration_dictionary()

@@ -332,6 +332,7 @@ class ComStockQueryBuilder:
     def get_applicability_query(self,
                                upgrade_ids: List[Union[int, str]],
                                state: Optional[str] = None,
+                               county: Optional[str] = None,
                                columns: Optional[List[str]] = None,
                                weight_view_table: Optional[str] = None) -> str:
         """
@@ -340,23 +341,26 @@ class ComStockQueryBuilder:
         Args:
             upgrade_ids: List of upgrade IDs to filter on
             state: State abbreviation to filter on (optional)
+            county: County GISJOIN to filter on (optional)
             columns: Specific columns to select (optional, defaults to common applicability columns)
             weight_view_table: Name of the weight view table (optional, uses default naming)
 
         Returns:
             SQL query string
         """
-        
+
         # If no weight view table provided, construct default name
         if weight_view_table is None:
             weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu"
 
         # Default columns for applicability queries
         if columns is None:
+            # Choose geographic column based on which filter is being used
+            geo_column = '"in.nhgis_county_gisjoin"' if county else '"in.state"'
             columns = [
                 'dataset',
-                '"in.state"',
-                'bldg_id', 
+                geo_column,
+                'bldg_id',
                 'upgrade',
                 'applicability'
             ]
@@ -366,25 +370,27 @@ class ComStockQueryBuilder:
 
         # Build WHERE clause
         where_conditions = []
-        
+
         # Filter by upgrade IDs
         if len(upgrade_ids) == 1:
             where_conditions.append(f'upgrade = {upgrade_ids[0]}')
         else:
             upgrade_list = ','.join(map(str, upgrade_ids))
             where_conditions.append(f'upgrade IN ({upgrade_list})')
-        
+
         # Filter by applicability
         where_conditions.append('applicability = true')
-        
-        # Filter by state if provided
+
+        # Filter by geographic location (state or county)
         if state:
             where_conditions.append(f'"in.state" = \'{state}\'')
+        elif county:
+            where_conditions.append(f'"in.nhgis_county_gisjoin" = \'{county}\'')
 
         where_clause = ' AND '.join(where_conditions)
 
         query = f"""
-        SELECT DISTINCT 
+        SELECT DISTINCT
             {select_clause}
         FROM {weight_view_table}
         WHERE {where_clause}

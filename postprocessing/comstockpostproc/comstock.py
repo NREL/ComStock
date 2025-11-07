@@ -49,7 +49,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_demand_units='gw', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
-        reload_from_cache=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
+        reload_from_cache=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], timeseries_locations_to_plot={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -102,7 +102,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.upgrade_ids_to_process = []
-        self.states = states
+        self.timeseries_locations_to_plot = timeseries_locations_to_plot
         self.unweighted_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
         # TODO our current credential setup aren't playing well with this approach but does with the s3 ServiceResource
@@ -397,6 +397,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             logger.info(f'Reloading from CSV: {file_path}')
             self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
+
+            ########## REVISE TO USE NEW TIMESERIES FUNCTIONALITY
             athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
@@ -405,10 +407,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
                     logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
-
                 ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
                                                                      group_by=['build_existing_model.building_type', 'time'],
                                                                      restrict=[('build_existing_model.county_id', region['county_ids'])])
+
+                ######################## END REVISED SECTION
+
                 if ts_agg['time'].dtype == 'Int64':
                     # Convert bigint to timestamp type if necessary
                     ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
@@ -4549,42 +4553,104 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # get weighted load profiles
 
-    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, state, upgrade_name):
+    def determine_state_or_county_timeseries_table(self, location_id, location_name=None):
+        """
+        Determine if a single location key-value pair represents a state or county request.
+
+        Args:
+            location_id (str): The location ID (e.g., 'MN', 'G123456')
+            location_name (str, optional): The location name (e.g., 'Minnesota', 'Boston')
+
+        Returns:
+            str: 'state' for state-level locations, 'county' for county-level locations
+        """
+
+        # Analyze the location ID format
+        if len(location_id) == 2 and location_id.isalpha():
+            # State ID: 2-letter alphabetic code (e.g., 'MN', 'CA', 'TX')
+            timeseries_geo_type = 'state'
+        elif location_id.startswith('G') and len(location_id) > 2:
+            # County ID: starts with 'G' followed by numbers (e.g., 'G123456')
+            timeseries_geo_type = 'county'
+        else:
+            # Handle other potential formats - default to state
+            print(f"Warning: Unrecognized location ID format: {location_id}, defaulting to state")
+            timeseries_geo_type = 'state'
+
+        return timeseries_geo_type
+
+
+
+    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, location_id, upgrade_name):
         """
         This method retrieves weighted timeseries profiles from s3/athena.
         Returns dataframe with weighted kWh columns for baseline and upgrade.
+
+        Args:
+            location_id: Either a state ID (e.g., 'MN') or county ID (e.g., 'G123456')
         """
 
+        # Determine table type based on the ENTIRE request set, not just this location
+        # If ANY location in timeseries_locations_to_plot is a county, use county table for ALL
+        requires_county_table = False
+        for loc_id in self.timeseries_locations_to_plot.keys():
+            if self.determine_state_or_county_timeseries_table(loc_id) == 'county':
+                requires_county_table = True
+                break
+
+        # Set up table configuration based on whether counties are needed anywhere
+        if requires_county_table:
+            agg = 'county'
+            metadata_table_suffix = '_md_agg_by_state_and_county_vu'
+            weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_and_county_vu'
+        else:
+            agg = 'state'
+            metadata_table_suffix = '_md_agg_national_by_state_vu'
+            weight_view_table = f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+
+        # Determine the geographic type for this specific location (for query building)
+        location_geo_type = self.determine_state_or_county_timeseries_table(location_id)
+
         # run crawler
+        # Determine which metadata table suffix to use based on what's available
+        # Prefer county-level data if available, otherwise use state-level
+        # Try county-level first
         athena_client = BuildStockQuery(workgroup='eulp',
-                                   db_name='enduse',
-                                   table_name=self.comstock_run_name,
-                                   buildstock_type='comstock',
-                                   skip_reports=True,
-                                   metadata_table_suffix='_md_agg_national_by_state_vu', #TODO: make this more dynamic for geo resolution
-                                   #ts_table_suffix=f"_timeseries_vu"
-                                   )
+                                    db_name='enduse',
+                                    table_name=self.comstock_run_name,
+                                    buildstock_type='comstock',
+                                    skip_reports=True,
+                                    metadata_table_suffix=metadata_table_suffix,
+                                    )
 
         # Create upgrade ID to name mapping from existing data
         upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().sort(self.UPGRADE_ID).to_dict(as_series=False)
         dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
 
-        print(athena_client._tables.keys())
-
         # generate applicability for upgrade
         # if there are multiple upgrades, applicability is based on first upgrade only
         builder = ComStockQueryBuilder(self.comstock_run_name)
-        applicability_query = builder.get_applicability_query(
-            upgrade_ids=upgrade_num,
-            state=state,
-            columns=[
-                'dataset',
-                '"in.state"',
-                'bldg_id',
-                'upgrade',
-                'applicability'
-            ]
-        )
+
+        # Build query parameters based on what we're actually querying for this location
+        query_params = {
+            'upgrade_ids': upgrade_num,
+            'columns': [
+                self.DATASET,
+                f'"{self.STATE_NAME}"' if location_geo_type == 'state' else f'"{self.COUNTY_ID}"',
+                self.BLDG_ID,
+                self.UPGRADE_ID,
+                self.UPGRADE_APPL
+            ],
+            'weight_view_table': weight_view_table
+        }
+
+        # Add geographic filter based on THIS location's type (not the table type)
+        if location_geo_type == 'state':
+            query_params['state'] = location_id  # location_id is the state code (e.g., 'MN')
+        elif location_geo_type == 'county':
+            query_params['county'] = location_id  # location_id is the county code (e.g., 'G123456')
+
+        applicability_query = builder.get_applicability_query(**query_params)
 
         #print("Applicability Query:")
         #print("="*80)
@@ -4607,15 +4673,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 # Create query builder and generate query
                 builder = ComStockQueryBuilder(self.comstock_run_name)
+
+                # Build geographic restrictions based on THIS location's type
+                if location_geo_type == 'state':
+                    geo_restriction = ('in.state', [f"{location_id}"])
+                else:  # county
+                    geo_restriction = ('in.nhgis_county_gisjoin', [f"{location_id}"])
+
                 query = builder.get_timeseries_aggregation_query(
                     upgrade_id=upgrade_id,
                     enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                     restrictions=[
-                        ('in.state', [f"{state}"]),
+                        geo_restriction,
                         ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
                     ],
                     timestamp_grouping='hour',
-                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                    weight_view_table=weight_view_table
                 )
 
                 #print("Generated Query:")
@@ -4623,7 +4696,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 #print(query)
                 #print("="*80)
 
-                print(f"Getting weighted baseline load profile for state {state} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings.")
+                print(f"Getting weighted baseline load profile for {location_geo_type} {location_id} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
 
                 # temp save figure
                 df_base_ts_agg_weighted = athena_client.execute(query)
@@ -4635,15 +4708,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 ## Create query builder and generate query for upgrade data
                 builder = ComStockQueryBuilder(self.comstock_run_name)
+
+                # Build geographic restrictions based on THIS location's type (same as baseline)
+                if location_geo_type == 'state':
+                    geo_restriction = ('in.state', [f"{location_id}"])
+                else:  # county
+                    geo_restriction = ('in.nhgis_county_gisjoin', [f"{location_id}"])
+
                 query = builder.get_timeseries_aggregation_query(
                     upgrade_id=upgrade_id,
                     enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
                     restrictions=[
-                        ('in.state', [f"{state}"]),
+                        geo_restriction,
                         ('bldg_id', applic_bldgs_list)  # match applicability of upgrade applic_bldgs_list[0]
                     ],
                     timestamp_grouping='hour',
-                    weight_view_table=f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+                    weight_view_table=weight_view_table
                 )
 
                 df_up_ts_agg_weighted = athena_client.execute(query)

@@ -3053,7 +3053,7 @@ class PlottingMixin():
         else:
             return 'Winter'
 
-    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None): #, df, region, building_type, color_map, output_dir
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None): #, df, region, building_type, color_map, output_dir
 
         # get upgrade ID
         df_data = df.copy()
@@ -3064,8 +3064,8 @@ class PlottingMixin():
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
         # apply queries and weighting
-        for state, state_name in states.items():
-            dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+        for location, location_name in timeseries_locations_to_plot.items():
+            dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, location, upgrade_name)
 
             # merge into single dataframe
             dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3194,7 +3194,7 @@ class PlottingMixin():
                                     y=-0.35,  # Adjust this value as needed to place the title correctly
                                     xref='paper',
                                     yref='paper',
-                                    text=f"{season} Peak Week, Applicable Buildings - {state_name}",
+                                    text=f"{season} Peak Week, Applicable Buildings - {location_name}",
                                     showarrow=False,
                                     font=dict(
                                         size=16
@@ -3208,7 +3208,7 @@ class PlottingMixin():
                 title = f"{season}_peak_week"
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
                 if not os.path.exists(fig_sub_dir):
                     os.makedirs(fig_sub_dir)
                 fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
@@ -3217,10 +3217,10 @@ class PlottingMixin():
                 fig.write_image(fig_path, scale=6)
                 fig.write_html(fig_path_html)
 
-            print(f"{fig_sub_dir}/timeseries_data_{state_name})")
-            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
+            print(f"{fig_sub_dir}/timeseries_data_{location_name})")
+            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{location_name}.csv")
 
-    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None):
+    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
         df_data = df.copy()
@@ -3248,15 +3248,15 @@ class PlottingMixin():
                 return 'Weekend'
 
         # apply queries and weighting
-        for state, state_name in states.items():
+        for location, location_name in timeseries_locations_to_plot.items():
 
             # check to see if timeseries file exists.
             # if it does, reload. Else, query data.
-            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
-            file_path = os.path.join(fig_sub_dir, f"timeseries_data_{state_name}.csv")
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
+            file_path = os.path.join(fig_sub_dir, f"timeseries_data_{location_name}.csv")
             dfs_merged=None
             if not os.path.exists(file_path):
-                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, location, upgrade_name)
 
                 # merge into single dataframe
                 dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3398,7 +3398,7 @@ class PlottingMixin():
 
             # Update layout
             fig.update_layout(
-                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
+                title=f"Seasonal Average, Applicable Buildings - {location_name}</b>",
                 title_x=0.04,  # Align title to the left
                 title_y=0.97,  # Move title to the bottom
                 title_xanchor='left',
@@ -3419,7 +3419,7 @@ class PlottingMixin():
             title = "seasonal_average_subplot"
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
             fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
@@ -3428,7 +3428,7 @@ class PlottingMixin():
             fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
 
-    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name, comstock_obj=None):
+    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
         df_data = df.copy()
@@ -3456,7 +3456,7 @@ class PlottingMixin():
                         return 'Weekend'
 
         # apply queries and weighting
-        for state, state_name in states.items():
+        for state, state_name in timeseries_locations_to_plot.items():
 
             # check to see if timeseries data already exists
             # check to see if timeseries file exists.
