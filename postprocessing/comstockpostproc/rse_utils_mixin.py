@@ -106,7 +106,7 @@ def rse_by_group_total(
 
     rows = []
     # Group by requested columns and calculate RSE/CI for each group
-    for keys, g in sub.groupby(list(by), dropna=False):
+    for keys, g in sub.groupby(list(by), dropna=False, observed = False):
         theta, rep_thetas = _theta_and_reps(g[value_col_for_calc], g[weight_col], g[reps])
         var = _jk_var(theta, rep_thetas, kappa)
         se = float(np.sqrt(var))  # Standard error
@@ -143,7 +143,7 @@ def rse_by_group_mean(
 
     rows = []
     # Group by requested columns and calculate weighted mean, RSE, and CI for each group
-    for keys, g in sub.groupby(list(by), dropna=False):
+    for keys, g in sub.groupby(list(by), dropna=False, observed=False):
         w = g[weight_col]; x = g[value_col]
         num = float(np.nansum(w*x)); den = float(np.nansum(w))
         theta = num/den if den else np.nan  # Weighted mean
@@ -188,7 +188,7 @@ def rse_by_group_ratio(
 
     rows = []
     # Group by requested columns and calculate weighted ratio, RSE, and CI for each group
-    for keys, g in sub.groupby(list(by), dropna=False):
+    for keys, g in sub.groupby(list(by), dropna=False, observed=False):
         w = g[weight_col]
         num = float(np.nansum(w*g[numer_col])); den = float(np.nansum(w*g[denom_col]))
         theta = num/den if den else np.nan  # Weighted ratio
