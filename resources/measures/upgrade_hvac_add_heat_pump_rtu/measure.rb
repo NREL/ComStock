@@ -3047,36 +3047,71 @@ end
 
             ! --- Determine required stage ---
             SET stage_needed = 1
-            IF (mode < 0),
-              IF (abs_load > eff_cap_clg_1), 
-                SET stage_needed = 2, 
-                SET speed_ratio_needed = (abs_load - eff_cap_clg_1) / (eff_cap_clg_2 - eff_cap_clg_1),
+            SET speed_ratio_needed = 0.1
+            SET fractional_stage_needed = 0.1
+
+            ! Define a minimum denominator to avoid divide-by-zero
+            SET min_denom = 0.0001
+
+            IF (mode < 0),  ! --- Cooling ---
+              IF (abs_load > eff_cap_clg_1),
+                SET denom = eff_cap_clg_2 - eff_cap_clg_1,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
+                SET stage_needed = 2,
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_1) / denom,
                 SET fractional_stage_needed = (1 + speed_ratio_needed - 0.1),
               ENDIF
-              IF (abs_load > eff_cap_clg_2), 
+
+              IF (abs_load > eff_cap_clg_2),
+                SET denom = eff_cap_clg_3 - eff_cap_clg_2,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
                 SET stage_needed = 3,
-                SET speed_ratio_needed = (abs_load - eff_cap_clg_2) / (eff_cap_clg_3 - eff_cap_clg_2),
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_2) / denom,
                 SET fractional_stage_needed = (2 + speed_ratio_needed - 0.1),
               ENDIF
-              IF (abs_load > eff_cap_clg_3), 
-                SET stage_needed = 4, 
-                SET speed_ratio_needed = (abs_load - eff_cap_clg_3) / (eff_cap_clg_4 - eff_cap_clg_3),
+
+              IF (abs_load > eff_cap_clg_3),
+                SET denom = eff_cap_clg_4 - eff_cap_clg_3,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
+                SET stage_needed = 4,
+                SET speed_ratio_needed = (abs_load - eff_cap_clg_3) / denom,
                 SET fractional_stage_needed = (3 + speed_ratio_needed - 0.1),
               ENDIF
-            ELSEIF (mode > 0),
-              IF (abs_load > eff_cap_htg_1), 
+
+            ELSEIF (mode > 0),  ! --- Heating ---
+              IF (abs_load > eff_cap_htg_1),
+                SET denom = eff_cap_htg_2 - eff_cap_htg_1,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
                 SET stage_needed = 2,
-                SET speed_ratio_needed = (abs_load - eff_cap_htg_1) / (eff_cap_htg_2 - eff_cap_htg_1),
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_1) / denom,
                 SET fractional_stage_needed = (1 + speed_ratio_needed - 0.1),
               ENDIF
-              IF (abs_load > eff_cap_htg_2), 
-                SET stage_needed = 3, 
-                SET speed_ratio_needed = (abs_load - eff_cap_htg_2) / (eff_cap_htg_3 - eff_cap_htg_2),
+
+              IF (abs_load > eff_cap_htg_2),
+                SET denom = eff_cap_htg_3 - eff_cap_htg_2,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
+                SET stage_needed = 3,
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_2) / denom,
                 SET fractional_stage_needed = (2 + speed_ratio_needed - 0.1),
               ENDIF
-              IF (abs_load > eff_cap_htg_3), 
-                SET stage_needed = 4, 
-                SET speed_ratio_needed = (abs_load - eff_cap_htg_3) / (eff_cap_htg_4 - eff_cap_htg_3),
+
+              IF (abs_load > eff_cap_htg_3),
+                SET denom = eff_cap_htg_4 - eff_cap_htg_3,
+                IF (@ABS denom < min_denom),
+                  SET denom = min_denom,
+                ENDIF,
+                SET stage_needed = 4,
+                SET speed_ratio_needed = (abs_load - eff_cap_htg_3) / denom,
                 SET fractional_stage_needed = (3 + speed_ratio_needed - 0.1),
               ENDIF
             ENDIF
