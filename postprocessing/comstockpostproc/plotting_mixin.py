@@ -729,15 +729,25 @@ class PlottingMixin():
         ]
         if make_hvac_plots:
             group_bys.append(self.HVAC_SYS)
+        logger.info('Weighting DF for EUI boxplots this can take a while')
 
-
+        weighted_df = df.copy()
+        # Expand the dataframe according to building weights using stochastic rounding
+        weighted_df = weighted_df.loc[
+            weighted_df.index.repeat(
+                (np.floor(weighted_df[self.BLDG_WEIGHT]) +
+                (np.random.random(len(weighted_df)) <
+                (weighted_df[self.BLDG_WEIGHT] - np.floor(weighted_df[self.BLDG_WEIGHT]))).astype(int)
+                ).astype(int)
+            )
+        ].reset_index(drop=True)
         for col in cols_to_summarize:
             # Make a plot for each group
             for group_by in group_bys:
                 if group_by is None:
                     # No group-by
                     g = sns.catplot(
-                        data=df,
+                        data=weighted_df,
                         y=column_for_grouping,
                         hue=column_for_grouping,
                         x=col,
@@ -758,7 +768,7 @@ class PlottingMixin():
                     )
                 elif group_by is self.HVAC_SYS:
                     g = sns.catplot(
-                        data=df,
+                        data=weighted_df,
                         x=col,
                         hue=column_for_grouping,
                         y=group_by,
@@ -781,7 +791,7 @@ class PlottingMixin():
                 else:
                     # With group-by
                     g = sns.catplot(
-                        data=df,
+                        data=weighted_df,
                         x=col,
                         hue=column_for_grouping,
                         y=group_by,
@@ -959,12 +969,12 @@ class PlottingMixin():
         for col, agg_method in cols_to_summarize.items():
             for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
 
-                # Only calculate CI for CBECS within this building type utilizing replicate weights
-                cbecs_mask = bldg_type_ts_df[column_for_grouping].astype(str).str.startswith('CBECS')
-                cbecs_df = bldg_type_ts_df[cbecs_mask]
-                rse_results = None
                 # Always include dataset in grouping for RSE calculation
                 for group_by in group_bys:
+                    # Only calculate CI for CBECS within this building type utilizing replicate weights
+                    cbecs_mask = bldg_type_ts_df[column_for_grouping].astype(str).str.startswith('CBECS')
+                    cbecs_df = bldg_type_ts_df[cbecs_mask]
+                    rse_results = None
                     if not cbecs_df.empty:
                         if group_by is None:
                             rse_results = rse_by_group_total(
@@ -1172,9 +1182,21 @@ class PlottingMixin():
              self.VINTAGE,
              self.BLDG_TYPE
          ]
+         logger.info('Weighting DF for HVAC System Type EUI boxplots this can take a while')
+
+         weighted_df = df.copy()
+         # Expand the dataframe according to building weights using stochastic rounding
+         weighted_df = weighted_df.loc[
+             weighted_df.index.repeat(
+                 (np.floor(weighted_df[self.BLDG_WEIGHT]) +
+                  (np.random.random(len(weighted_df)) <
+                   (weighted_df[self.BLDG_WEIGHT] - np.floor(weighted_df[self.BLDG_WEIGHT]))).astype(int)
+                  ).astype(int)
+             )
+         ].reset_index(drop=True)
 
          for col in cols_to_summarize:
-             for hvac_type, hvac_type_df in df.groupby(self.HVAC_SYS, observed=True):
+             for hvac_type, hvac_type_df in weighted_df.groupby(self.HVAC_SYS, observed=True):
                  if hvac_type_df[col].isnull().all():
                      print(f"No data for {col} in HVAC type {hvac_type}. Skipping plot.")
                      continue  # Skip this HVAC type if the column is all NaNs or empty
@@ -1471,9 +1493,21 @@ class PlottingMixin():
             # self.FLR_AREA_CAT, TODO reenable after adding to both CBECS and ComStock
             # self.VINTAGE,
         ]
+        logger.info('Weighting DF for Building Type EUI boxplots this can take a while')
+
+        weighted_df = df.copy()
+        # Expand the dataframe according to building weights using stochastic rounding
+        weighted_df = weighted_df.loc[
+            weighted_df.index.repeat(
+                (np.floor(weighted_df[self.BLDG_WEIGHT]) +
+                (np.random.random(len(weighted_df)) <
+                (weighted_df[self.BLDG_WEIGHT] - np.floor(weighted_df[self.BLDG_WEIGHT]))).astype(int)
+                ).astype(int)
+            )
+        ].reset_index(drop=True)
 
         for col in cols_to_summarize:
-            for bldg_type, bldg_type_ts_df in df.groupby(self.BLDG_TYPE, observed=True):
+            for bldg_type, bldg_type_ts_df in weighted_df.groupby(self.BLDG_TYPE, observed=True):
 
                 # Make a plot for each group
                 for group_by in group_bys:

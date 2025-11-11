@@ -78,9 +78,9 @@ class LazyFramePlotter(NamingMixin):
         cols = list(set(columns))
 
         # optionally include base weight
-        if include_base_weight and NamingMixin.BASE_WEIGHT_COL in lazy_frame.columns:
-            if NamingMixin.BASE_WEIGHT_COL not in cols:
-                cols.append(NamingMixin.BASE_WEIGHT_COL)
+        if include_base_weight and NamingMixin.BLDG_WEIGHT in lazy_frame.collect_schema().names():
+            if NamingMixin.BLDG_WEIGHT not in cols:
+                cols.append(NamingMixin.BLDG_WEIGHT)
 
         # optionally include all replicate weights
         if include_replicate_weights:
@@ -94,7 +94,7 @@ class LazyFramePlotter(NamingMixin):
             require_reps=include_replicate_weights,
         )
 
-        missing_columns = [c for c in cols if c not in lazy_frame.columns]
+        missing_columns = [c for c in cols if c not in lazy_frame.collect_schema().names()]
         assert not missing_columns, f"Columns {missing_columns} not in lazy_frame columns"
 
         # collect
@@ -129,7 +129,7 @@ class LazyFramePlotter(NamingMixin):
         columns: list[str],
         *args,
         include_replicate_weights: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
-        include_base_weight: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        include_base_weight: bool = True,   # default on to include base weights for most plots
         **kwargs
     ):
         df: pd.DataFrame = LazyFramePlotter.select_columns(

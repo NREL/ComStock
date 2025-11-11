@@ -1181,7 +1181,6 @@ class NamingMixin():
     }
 
     #Naming for RSE calculations
-    BASE_WEIGHT_COL: str = "weight"
     REPL_WEIGHT_RE: re.Pattern = re.compile(
         r"^Unknown Eligibility and Nonresponse Adjusted Replicate Weight \d+$"
     )
@@ -1471,7 +1470,7 @@ class NamingMixin():
         - or a plain list/iterable of column names.
         """
         if hasattr(frame, "columns"):
-            cols = list(frame.columns)  # works for polars and pandas
+            cols = list(frame.collect_schema().names())  # works for polars and pandas
         else:
             cols = list(frame)
         return [c for c in cols if cls.is_replicate_weight_col(c)]
@@ -1483,10 +1482,14 @@ class NamingMixin():
         require_base: bool = True,
         require_reps: bool = False,
     ) -> None:
-        cols = list(frame.columns) if hasattr(frame, "columns") else list(frame)
+        cols = list(frame.collect_schema().names()) # polars LazyFrame
+        if hasattr(frame, "columns"):
+            cols = list(frame.collect_schema().names()) # pandas DataFrame
+        else:
+            cols = list(frame)
         missing = []
-        if require_base and cls.BASE_WEIGHT_COL not in cols:
-            missing.append(cls.BASE_WEIGHT_COL)
+        if require_base and cls.BLDG_WEIGHT not in cols:
+            missing.append(cls.BLDG_WEIGHT)
         if require_reps:
             reps = cls.list_replicate_weight_cols(cols)
             if not reps:
@@ -1509,7 +1512,7 @@ class NamingMixin():
         for c in cols:
             if c in cls.COL_TYPE_SCHEMA:
                 cast_map[c] = cls.COL_TYPE_SCHEMA[c]
-            elif c == cls.BASE_WEIGHT_COL or cls.is_replicate_weight_col(c):
+            elif c == cls.BLDG_WEIGHT or cls.is_replicate_weight_col(c):
                 cast_map[c] = "float64"
             else:
                 # default behavior: let caller decide; many plotting numerics prefer float64

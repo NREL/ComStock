@@ -108,17 +108,15 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Combine into a single dataframe for convenience
         # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
 
-        #There is no such a join='inner' in polars.concat, implement it mannualy
-        common_columns = set(dfs_to_concat[0].columns)
+        #There is no such a join='inner' in polars.concat, implement it manually
+        common_columns = set(dfs_to_concat[0].collect_schema().names())
         for df in dfs_to_concat:
-            common_columns = common_columns.intersection(set(df.columns))
+            common_columns = common_columns.intersection(set(df.collect_schema().names()))
         dfs_to_concat = [df.select(common_columns) for df in dfs_to_concat]
         self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
-        # Add Replicate Weights and Base Weight (CBECS only) for RSE calculations
+        # Add Replicate Weights (CBECS only) for RSE calculations
         cbecs_src = cbecs_list[0]
         rep_cols = [self.BLDG_ID] + self.list_replicate_weight_cols(cbecs_src.data)
-        if self.BASE_WEIGHT_COL in cbecs_src.data.columns:
-            rep_cols.append(self.BASE_WEIGHT_COL)
 
         weights_lf = cbecs_src.data.select(rep_cols)
         # Only join weights for CBECS rows; set others to NaN
@@ -129,20 +127,19 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         )
         # Join weights only for CBECS rows
         joined = self.data.join(weights_lf, on=self.BLDG_ID, how="left")
-        # For non-CBECS rows, set replicate/base weights to None
+        # For non-CBECS rows, set replicate weights to None
         for col in rep_cols:
             joined = joined.with_columns(
                 pl.when(pl.col("is_cbecs")).then(pl.col(col)).otherwise(None).alias(col)
             )
         self.data = joined.drop("is_cbecs")
-
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Combine just comstock runs into single dataframe for QOI plots
-        common_columns = set(comstock_dfs_to_concat[0].columns)
+        common_columns = set(comstock_dfs_to_concat[0].collect_schema().names())
         all_columns = common_columns
         for df in comstock_dfs_to_concat:
-            common_columns = common_columns & set(df.columns)
+            common_columns = common_columns & set(df.collect_schema().names())
         logger.info(f"Not including columns {all_columns - common_columns} in comstock only plots")
         comstock_dfs_to_concat = [df.select(common_columns) for df in comstock_dfs_to_concat]
         comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED
@@ -156,8 +153,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        logger.info(f"type of self.data columns: {self.data.columns, self.data.dtypes, len(self.data.columns), len(self.data.dtypes)}")
-        logger.info(f"type of comstock_df columns: {comstock_df.columns, comstock_df.dtypes}")
+        logger.info(f"type of self.data columns: {self.data.collect_schema().names(), self.data.dtypes, len(self.data.collect_schema().names()), len(self.data.dtypes)}")
+        logger.info(f"type of comstock_df columns: {comstock_df.collect_schema().names(), comstock_df.dtypes}")
 
         assert isinstance(self.data, pl.LazyFrame)
         assert isinstance(comstock_df, pl.LazyFrame)
@@ -170,7 +167,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         if make_comparison_plots:
             self.make_plots(self.data, self.column_for_grouping, self.color_map, self.output_dir, make_hvac_plots)
             # Enduse and QOI plots can only be made with comstock data because CBECS data do not have QOI columns TODO fix these plots to work currently do not.
-            # self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
+            self.make_enduse_plots(comstock_enduse_df, self.column_for_grouping, comstock_color_map, self.output_dir)
             # self.make_qoi_plots(comstock_df, self.column_for_grouping, comstock_color_map, self.output_dir)
 
         else:
@@ -198,7 +195,9 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=lambda df, **kwargs: self.plot_eui_boxplots(df, **kwargs, make_hvac_plots=make_hvac_plots),
             lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE, self.HVAC_SYS]))(**BASIC_PARAMS)
+            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE, self.HVAC_SYS]),
+            include_replicate_weights=False,
+            include_base_weight=True)(**BASIC_PARAMS)
 
         logger.info('Making floor area and energy total by building type plots')
         LazyFramePlotter.plot_with_lazy(
@@ -224,7 +223,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_eui_boxplots_by_building_type,
             lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+            columns=( [column_for_grouping] + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]),
+            include_base_weight=True)(**BASIC_PARAMS)
 
         # TODO Utility rate plots when available
         # logger.info('Making Energy Rate plots')
