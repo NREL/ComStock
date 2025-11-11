@@ -106,7 +106,7 @@ def rse_by_group_total(
 
     rows = []
     # Group by requested columns and calculate RSE/CI for each group
-    for keys, g in sub.groupby(list(by), dropna=False, observed = False):
+    for keys, g in sub.groupby(list(by), dropna=False, observed=False):
         theta, rep_thetas = _theta_and_reps(g[value_col_for_calc], g[weight_col], g[reps])
         var = _jk_var(theta, rep_thetas, kappa)
         se = float(np.sqrt(var))  # Standard error

@@ -129,7 +129,7 @@ class LazyFramePlotter(NamingMixin):
         columns: list[str],
         *args,
         include_replicate_weights: bool = False,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
-        include_base_weight: bool = True,   # default off as most plots don't include CBECs TODO update all plots to have this call currently only CBECs plots have these calls as true
+        include_base_weight: bool = True,   # default on to include base weights for most plots
         **kwargs
     ):
         df: pd.DataFrame = LazyFramePlotter.select_columns(
