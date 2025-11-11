@@ -1482,7 +1482,11 @@ class NamingMixin():
         require_base: bool = True,
         require_reps: bool = False,
     ) -> None:
-        cols = list(frame.collect_schema().names()) if hasattr(frame, "columns") else list(frame)
+        cols = list(frame.collect_schema().names()) # polars LazyFrame
+        if hasattr(frame, "columns"):
+            cols = list(frame.collect_schema().names()) # pandas DataFrame
+        else:
+            cols = list(frame)
         missing = []
         if require_base and cls.BLDG_WEIGHT not in cols:
             missing.append(cls.BLDG_WEIGHT)
