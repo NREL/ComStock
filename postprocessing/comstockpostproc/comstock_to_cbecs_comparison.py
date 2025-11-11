@@ -108,7 +108,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Combine into a single dataframe for convenience
         # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
 
-        #There is no such a join='inner' in polars.concat, implement it mannualy
+        #There is no such a join='inner' in polars.concat, implement it manually
         common_columns = set(dfs_to_concat[0].collect_schema().names())
         for df in dfs_to_concat:
             common_columns = common_columns.intersection(set(df.collect_schema().names()))
@@ -172,7 +172,6 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         else:
             logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
-
 
     def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, color_map: dict, output_dir, make_hvac_plots):
         # Make plots comparing the datasets
