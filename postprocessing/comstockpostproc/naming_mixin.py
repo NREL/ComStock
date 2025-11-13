@@ -1470,7 +1470,7 @@ class NamingMixin():
         - or a plain list/iterable of column names.
         """
         if hasattr(frame, "columns"):
-            cols = list(frame.collect_schema().names())  # works for polars and pandas
+            cols = list(frame.collect_schema().names())  # works for polars
         else:
             cols = list(frame)
         return [c for c in cols if cls.is_replicate_weight_col(c)]
@@ -1482,9 +1482,8 @@ class NamingMixin():
         require_base: bool = True,
         require_reps: bool = False,
     ) -> None:
-        cols = list(frame.collect_schema().names()) # polars LazyFrame
         if hasattr(frame, "columns"):
-            cols = list(frame.collect_schema().names()) # pandas DataFrame
+            cols = list(frame.collect_schema().names()) # polars DataFrame
         else:
             cols = list(frame)
         missing = []
