@@ -2,8 +2,7 @@
 Query templates and builders for ComStock data extraction from Athena.
 
 This module provides SQL query templates and builder functions to construct
-Athena queries for various ComStock analysis needs, separating query logic
-from the main ComStock processing classes.
+Athena queries for various ComStock analysis needs.
 """
 
 import logging
@@ -31,6 +30,7 @@ class ComStockQueryBuilder:
         self.timeseries_table = f"{athena_table_name}_timeseries"
         self.baseline_table = f"{athena_table_name}_baseline"
 
+    #TODO: this method has not yet been validated, and should be prior to use.
     def get_monthly_energy_consumption_query(self,
                                            upgrade_ids: Optional[List[Union[int, str]]] = None,
                                            states: Optional[List[str]] = None,
@@ -47,63 +47,65 @@ class ComStockQueryBuilder:
             SQL query string
         """
 
-        ## Build WHERE clause conditions
-        #where_conditions = ['"build_existing_model.building_type" IS NOT NULL']
+        # Build WHERE clause conditions
+        where_conditions = ['"build_existing_model.building_type" IS NOT NULL']
 
-        #if upgrade_ids:
-        #    upgrade_list = ', '.join([f'"{uid}"' for uid in upgrade_ids])
-        #    where_conditions.append(f'"upgrade" IN ({upgrade_list})')
+        if upgrade_ids:
+            upgrade_list = ', '.join([f'"{uid}"' for uid in upgrade_ids])
+            where_conditions.append(f'"upgrade" IN ({upgrade_list})')
 
-        #if states:
-        #    state_list = ', '.join([f'"{state}"' for state in states])
-        #    where_conditions.append(f'SUBSTRING("build_existing_model.county_id", 2, 2) IN ({state_list})')
+        if states:
+            state_list = ', '.join([f'"{state}"' for state in states])
+            where_conditions.append(f'SUBSTRING("build_existing_model.county_id", 2, 2) IN ({state_list})')
 
-        #if building_types:
-        #    btype_list = ', '.join([f'"{bt}"' for bt in building_types])
-        #    where_conditions.append(f'"build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" IN ({btype_list})')
+        if building_types:
+            btype_list = ', '.join([f'"{bt}"' for bt in building_types])
+            where_conditions.append(f'"build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" IN ({btype_list})')
 
-        #where_clause = ' AND '.join(where_conditions)
+        where_clause = ' AND '.join(where_conditions)
 
-        #query = f"""
-        #    SELECT
-        #        "upgrade",
-        #        "month",
-        #        "state_id",
-        #        "building_type",
-        #        sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
-        #        sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
-        #    FROM
-        #    (
-        #        SELECT
-        #            EXTRACT(MONTH from "time") as "month",
-        #            SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
-        #            "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
-        #            "upgrade",
-        #            "total_site_gas_kbtu",
-        #            "total_site_electricity_kwh"
-        #        FROM
-        #            "{self.timeseries_table}"
-        #        JOIN "{self.baseline_table}"
-        #            ON "{self.timeseries_table}"."building_id" = "{self.baseline_table}"."building_id"
-        #        WHERE {where_clause}
-        #    )
-        #    GROUP BY
-        #        "upgrade",
-        #        "month",
-        #        "state_id",
-        #        "building_type"
-        #"""
+        query = f"""
+            SELECT
+                "upgrade",
+                "month",
+                "state_id",
+                "building_type",
+                sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
+                sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
+            FROM
+            (
+                SELECT
+                    EXTRACT(MONTH from "time") as "month",
+                    SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
+                    "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
+                    "upgrade",
+                    "total_site_gas_kbtu",
+                    "total_site_electricity_kwh"
+                FROM
+                    "{self.timeseries_table}"
+                JOIN "{self.baseline_table}"
+                    ON "{self.timeseries_table}"."building_id" = "{self.baseline_table}"."building_id"
+                WHERE {where_clause}
+            )
+            GROUP BY
+                "upgrade",
+                "month",
+                "state_id",
+                "building_type"
+        """
 
-        #return query.strip()
+        return query.strip()
 
     def get_timeseries_aggregation_query(self,
                                        upgrade_id: Union[int, str],
                                        enduses: List[str],
+                                       weight_view_table: str,
+                                       group_by: Optional[List[str]] = None,
                                        restrictions: List[tuple] = None,
                                        timestamp_grouping: str = 'hour',
                                        building_ids: Optional[List[int]] = None,
-                                       weight_view_table: Optional[str] = None,
-                                       include_sample_stats: bool = True) -> str:
+                                       include_sample_stats: bool = True,
+                                       include_area_normalized_cols: bool = False) -> str:
         """
         Build query for timeseries data aggregation similar to buildstock query functionality.
 
@@ -113,21 +115,24 @@ class ComStockQueryBuilder:
         Args:
             upgrade_id: Upgrade ID to filter on
             enduses: List of end use columns to select
+            weight_view_table: Name of the weight view table (required - e.g., 'rtuadv_v11_md_agg_national_by_state_vu' or 'rtuadv_v11_md_agg_national_by_county_vu')
+            group_by: Additional columns to group by (e.g., ['build_existing_model.building_type'])
             restrictions: List of (column, values) tuples for filtering
             timestamp_grouping: How to group timestamps ('hour', 'day', 'month')
             building_ids: Specific building IDs to filter on (optional)
-            weight_view_table: Name of the weight view table (e.g., 'rtuadv_v11_md_agg_national_by_state_vu')
             include_sample_stats: Whether to include sample_count, units_count, rows_per_sample
+            include_area_normalized_cols: Whether to include weighted area and kwh_weighted columns for AMI comparison
 
         Returns:
             SQL query string
         """
 
-        # If no weight view table provided, construct default name
+        # Weight view table is required - cannot auto-assign without knowing state vs county aggregation
         if weight_view_table is None:
-            weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu" #TODO: make table name dynamic to aggregation level
+            raise ValueError("weight_view_table parameter is required. Cannot auto-assign without knowing geographic aggregation level (state vs county). "
+                           "Please provide the full weight view table name (e.g., 'your_dataset_md_agg_national_by_state_vu' or 'your_dataset_md_agg_national_by_county_vu')")
 
-        # Build timestamp grouping with date_trunc and time adjustment (like buildstock does)
+        # Build timestamp grouping with date_trunc and time adjustment
         if timestamp_grouping == 'hour':
             time_select = f"date_trunc('hour', date_add('second', -900, {self.timeseries_table}.time)) AS time"
             time_group = '1'
@@ -141,8 +146,14 @@ class ComStockQueryBuilder:
             time_select = f"{self.timeseries_table}.time AS time"
             time_group = '1'
 
-        # Build SELECT clause with sample statistics (matching buildstock pattern)
+        # Build SELECT clause with sample statistics
         select_clauses = [time_select]
+
+        # Add group_by columns to SELECT (excluding 'time' which is already handled)
+        if group_by:
+            for col in group_by:
+                if col != 'time':
+                    select_clauses.append(f'{weight_view_table}."{col}"')
 
         if include_sample_stats:
             select_clauses.extend([
@@ -151,10 +162,22 @@ class ComStockQueryBuilder:
                 f"sum(1) / count(distinct({self.timeseries_table}.building_id)) AS rows_per_sample"
             ])
 
+        # Add weighted area if requested (for AMI comparison)
+        if include_area_normalized_cols:
+            weighted_area = f'sum({weight_view_table}."in.sqft" * {weight_view_table}.weight) AS weighted_sqft'
+            select_clauses.append(weighted_area)
+
         # Build weighted enduse aggregations
         for enduse in enduses:
             weighted_sum = f"sum({self.timeseries_table}.{enduse} * 1 * {weight_view_table}.weight) AS {enduse}"
             select_clauses.append(weighted_sum)
+
+            # Add kwh_per_sf columns if requested (for AMI comparison - normalized by weighted area)
+            # Note: When aggregating 15-minute data to hourly, area gets summed multiple times
+            # Divide by rows_per_sample to get the correct area normalization
+            if include_area_normalized_cols and enduse.endswith('_kwh'):
+                kwh_per_sf = f"sum({self.timeseries_table}.{enduse} * 1 * {weight_view_table}.weight) / (sum({weight_view_table}.\"in.sqft\" * {weight_view_table}.weight) / (sum(1) / count(distinct({self.timeseries_table}.building_id)))) AS {enduse.replace('_kwh', '_kwh_per_sf')}"
+                select_clauses.append(kwh_per_sf)
 
         select_clause = ',\n    '.join(select_clauses)
 
@@ -196,138 +219,26 @@ class ComStockQueryBuilder:
 
         where_clause = ' AND '.join(where_conditions)
 
-        # Build the query using FROM clause with comma-separated tables (like buildstock)
+        # Build GROUP BY clause - use column positions based on SELECT order
+        group_by_positions = [time_group]  # Time is always position 1
+        if group_by:
+            # Add positions for additional group_by columns (excluding 'time')
+            position = 2  # Start after time
+            for col in group_by:
+                if col != 'time':
+                    group_by_positions.append(str(position))
+                    position += 1
+
+        group_by_clause = ', '.join(group_by_positions)
+
+        # Build the query using FROM clause with comma-separated tables
         query = f"""SELECT {select_clause}
         FROM {weight_view_table}, {self.timeseries_table}
         WHERE {where_clause}
-        GROUP BY {time_group}
-        ORDER BY {time_group}"""
+        GROUP BY {group_by_clause}
+        ORDER BY {group_by_clause}"""
 
         return query
-
-    def get_timeseries_aggregation_query_with_join(self,
-                                                 upgrade_id: Union[int, str],
-                                                 enduses: List[str],
-                                                 restrictions: List[tuple] = None,
-                                                 timestamp_grouping: str = 'hour',
-                                                 building_ids: Optional[List[int]] = None) -> str:
-        """
-        Alternative version using JOIN syntax instead of comma-separated FROM clause.
-        Use this if you prefer explicit JOIN syntax over the buildstock comma-style.
-        """
-
-        # Build SELECT clause for enduses
-        enduse_selects = []
-        for enduse in enduses:
-            enduse_selects.append(f'sum("{enduse}") AS "{enduse}"')
-
-        enduse_clause = ',\n                '.join(enduse_selects)
-
-        # Build timestamp grouping
-        if timestamp_grouping == 'hour':
-            time_select = 'EXTRACT(HOUR from "time") as "hour"'
-            time_group = '"hour"'
-        elif timestamp_grouping == 'day':
-            time_select = 'EXTRACT(DAY from "time") as "day"'
-            time_group = '"day"'
-        elif timestamp_grouping == 'month':
-            time_select = 'EXTRACT(MONTH from "time") as "month"'
-            time_group = '"month"'
-        else:
-            time_select = '"time"'
-            time_group = '"time"'
-
-        # Build WHERE clause
-        where_conditions = [f'"upgrade" = "{upgrade_id}"']
-
-        if building_ids:
-            bldg_list = ', '.join([str(bid) for bid in building_ids])
-            where_conditions.append(f'"{self.timeseries_table}"."building_id" IN ({bldg_list})')
-
-        if restrictions:
-            for column, values in restrictions:
-                if isinstance(values, (list, tuple)):
-                    value_list = ', '.join([f'"{v}"' for v in values])
-                    where_conditions.append(f'"{column}" IN ({value_list})')
-                else:
-                    where_conditions.append(f'"{column}" = "{values}"')
-
-        where_clause = ' AND '.join(where_conditions)
-
-        query = f"""
-            SELECT
-                {time_select},
-                {enduse_clause}
-            FROM
-                "{self.timeseries_table}"
-            JOIN "{self.baseline_table}"
-                ON "{self.timeseries_table}"."building_id" = "{self.baseline_table}"."building_id"
-            WHERE {where_clause}
-            GROUP BY
-                {time_group}
-            ORDER BY
-                {time_group}
-        """
-
-        return query.strip()
-
-    def get_building_characteristics_query(self,
-                                         upgrade_ids: Optional[List[Union[int, str]]] = None,
-                                         characteristics: Optional[List[str]] = None,
-                                         filters: Optional[Dict[str, Union[str, List[str]]]] = None) -> str:
-        """
-        Build query to extract building characteristics and metadata.
-
-        Args:
-            upgrade_ids: List of upgrade IDs to include (optional, defaults to all)
-            characteristics: Specific characteristic columns to select (optional)
-            filters: Dictionary of column: value(s) filters to apply
-
-        Returns:
-            SQL query string
-        """
-
-        # Default characteristics if none specified
-        if characteristics is None:
-            characteristics = [
-                'building_id',
-                'upgrade',
-                'build_existing_model.building_type',
-                'build_existing_model.county_id',
-                'build_existing_model.create_bar_from_building_type_ratios_bldg_type_a',
-                'in.sqft',
-                'in.geometry_building_type_recs'
-            ]
-
-        # Build SELECT clause
-        select_clause = ',\n                '.join([f'"{char}"' for char in characteristics])
-
-        # Build WHERE clause
-        where_conditions = []
-
-        if upgrade_ids:
-            upgrade_list = ', '.join([f'"{uid}"' for uid in upgrade_ids])
-            where_conditions.append(f'"upgrade" IN ({upgrade_list})')
-
-        if filters:
-            for column, values in filters.items():
-                if isinstance(values, (list, tuple)):
-                    value_list = ', '.join([f'"{v}"' for v in values])
-                    where_conditions.append(f'"{column}" IN ({value_list})')
-                else:
-                    where_conditions.append(f'"{column}" = "{values}"')
-
-        where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
-
-        query = f"""
-            SELECT
-                {select_clause}
-            FROM
-                "{self.baseline_table}"
-            {where_clause}
-        """
-
-        return query.strip()
 
     def get_applicability_query(self,
                                upgrade_ids: List[Union[int, str]],
@@ -349,9 +260,12 @@ class ComStockQueryBuilder:
             SQL query string
         """
 
-        # If no weight view table provided, construct default name
+        # If no weight view table provided, construct name based on geographic level
         if weight_view_table is None:
-            weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu"
+            if county is not None:
+                weight_view_table = f"{self.athena_table_name}_md_agg_national_by_county_vu"
+            else:
+                weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu"
 
         # Default columns for applicability queries
         if columns is None:
@@ -412,95 +326,3 @@ class ComStockQueryBuilder:
         """
 
         return query.strip()
-
-
-def get_monthly_energy_query(athena_table_name: str, **kwargs) -> str:
-    """
-    Convenience function to get monthly energy consumption query.
-
-    Args:
-        athena_table_name: Base Athena table name
-        **kwargs: Additional arguments passed to get_monthly_energy_consumption_query
-
-    Returns:
-        SQL query string
-    """
-    builder = ComStockQueryBuilder(athena_table_name)
-    return builder.get_monthly_energy_consumption_query(**kwargs)
-
-
-def get_timeseries_query(athena_table_name: str, **kwargs) -> str:
-    """
-    Convenience function to get timeseries aggregation query.
-
-    Args:
-        athena_table_name: Base Athena table name
-        **kwargs: Additional arguments passed to get_timeseries_aggregation_query
-
-    Returns:
-        SQL query string
-    """
-    builder = ComStockQueryBuilder(athena_table_name)
-    return builder.get_timeseries_aggregation_query(**kwargs)
-
-
-def get_building_chars_query(athena_table_name: str, **kwargs) -> str:
-    """
-    Convenience function to get building characteristics query.
-
-    Args:
-        athena_table_name: Base Athena table name
-        **kwargs: Additional arguments passed to get_building_characteristics_query
-
-    Returns:
-        SQL query string
-    """
-    builder = ComStockQueryBuilder(athena_table_name)
-    return builder.get_building_characteristics_query(**kwargs)
-
-
-# Query template constants for common patterns
-MONTHLY_ENERGY_TEMPLATE = """
-SELECT
-    "upgrade",
-    "month",
-    "state_id",
-    "building_type",
-    sum("total_site_gas_kbtu") AS "total_site_gas_kbtu",
-    sum("total_site_electricity_kwh") AS "total_site_electricity_kwh"
-FROM
-(
-    SELECT
-        EXTRACT(MONTH from "time") as "month",
-        SUBSTRING("build_existing_model.county_id", 2, 2) AS "state_id",
-        "build_existing_model.create_bar_from_building_type_ratios_bldg_type_a" as "building_type",
-        "upgrade",
-        "total_site_gas_kbtu",
-        "total_site_electricity_kwh"
-    FROM
-        "{timeseries_table}"
-    JOIN "{baseline_table}"
-        ON "{timeseries_table}"."building_id" = "{baseline_table}"."building_id"
-    WHERE {where_clause}
-)
-GROUP BY
-    "upgrade",
-    "month",
-    "state_id",
-    "building_type"
-"""
-
-TIMESERIES_AGG_TEMPLATE = """
-SELECT
-    {time_grouping},
-    {enduse_aggregations}
-FROM
-    "{timeseries_table}"
-JOIN "{baseline_table}"
-    ON "{timeseries_table}"."building_id" = "{baseline_table}"."building_id"
-WHERE {where_clause}
-GROUP BY
-    {time_grouping}
-ORDER BY
-    {time_grouping}
-"""

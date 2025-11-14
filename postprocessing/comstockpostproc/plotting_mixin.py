@@ -3152,13 +3152,13 @@ class PlottingMixin():
                 else:
                     # if more than 1 upgrade, add only aggregate loads
                     for upgrade in upgrade_num:
-                        dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
+                        dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)]]
                         upgrade_trace = go.Scatter(
                         x=dfs_merged_pw_up_mult['time'],
                         y=dfs_merged_pw_up_mult['Measure Total'],
                         mode='lines',
-                        line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                        name=self.dict_upid_to_upname[upgrade],
+                        line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                        name=self.dict_upid_to_upname[int(upgrade)],
                         )
                         traces.append(upgrade_trace)
 
@@ -3216,8 +3216,7 @@ class PlottingMixin():
 
                 fig.write_image(fig_path, scale=6)
                 fig.write_html(fig_path_html)
-
-            print(f"{fig_sub_dir}/timeseries_data_{location_name})")
+            # save timeseries data
             dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{location_name}.csv")
 
     def plot_measure_timeseries_season_average_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
@@ -3361,14 +3360,14 @@ class PlottingMixin():
                             showlegend = upgrade not in legend_entries
                             legend_entries.add(upgrade)
 
-                            dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade], :]
+                            dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)], :]
                             upgrade_trace = go.Scatter(
                             x=dfs_merged_pw_up_mult['Hour_of_Day'],
                             y=dfs_merged_pw_up_mult['Measure Total'],
                             mode='lines',
-                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                            name=self.dict_upid_to_upname[upgrade],
-                            legendgroup=self.dict_upid_to_upname[upgrade],
+                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                            name=self.dict_upid_to_upname[int(upgrade)],
+                            legendgroup=self.dict_upid_to_upname[int(upgrade)],
                             showlegend=showlegend
                             )
                             fig.add_trace(upgrade_trace, row=row, col=col)
@@ -3563,15 +3562,15 @@ class PlottingMixin():
                     else:
                         # if more than 1 upgrade, add only aggregate loads
                         for upgrade in upgrade_num:
-                            dfs_merged_pw_up_mult = dfs_merged_gb_season_up.loc[dfs_merged_gb_season_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
+                            dfs_merged_pw_up_mult = dfs_merged_gb_season_up.loc[dfs_merged_gb_season_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)]]
 
                             upgrade_trace = go.Scatter(
                             x=dfs_merged_pw_up_mult['Hour_of_Day'],
                             y=dfs_merged_pw_up_mult[enduse]/1000,
                             mode='lines',
-                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                            name=self.dict_upid_to_upname[upgrade],
-                            legendgroup=self.dict_upid_to_upname[upgrade],
+                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                            name=self.dict_upid_to_upname[int(upgrade)],
+                            legendgroup=self.dict_upid_to_upname[int(upgrade)],
                             showlegend=showlegend
                             )
                             fig.add_trace(upgrade_trace, row=row, col=col)

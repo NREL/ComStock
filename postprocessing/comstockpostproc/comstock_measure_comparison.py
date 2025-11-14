@@ -92,7 +92,6 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
 
-
         # make plots comparing multiple upgrades together
         for comp_name, comp_up_ids in self.upgrade_ids_for_comparison.items():
 
@@ -120,7 +119,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
-                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, comp_output_dir)
+                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, comp_output_dir, self.s3_base_dir, self.athena_table_name, self.comstock_run_name)
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
         end_time = pd.Timestamp.now()
@@ -132,66 +131,63 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,
             'color_map': color_map,
-            'output_dir': output_dir,
-            's3_base_dir':s3_base_dir,
-            'athena_table_name':athena_table_name,
-            'comstock_run_name':comstock_run_name
+            'output_dir': output_dir
         }
 
-        #LazyFramePlotter.plot_with_lazy(
-        #    plot_method=self.plot_energy_by_enduse_and_fuel_type,
-        #    lazy_frame=lazy_frame.clone(),
-        #    columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(
-        #    plot_method=self.plot_emissions_by_fuel_type,
-        #    lazy_frame=lazy_frame.clone(),
-        #    columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_GHG_COLUMNS))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_utility_bills_by_fuel_type, lazy_frame=lazy_frame.clone(), columns=(
-        #    self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_UTILITY_COLUMNS))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(
-        #    plot_method=self.plot_floor_area_and_energy_totals,
-        #    lazy_frame=lazy_frame.clone(),
-        #    columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(
-        #    plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
-        #    lazy_frame=lazy_frame.clone(),
-        #    columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(
-        #    plot_method=self.plot_end_use_totals_by_building_type,
-        #    lazy_frame=lazy_frame.clone(),
-        #    columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
-        #                                lazy_frame=lazy_frame.clone(), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,
-        #                                lazy_frame=lazy_frame.clone(), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_enduse_and_fuel, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_ENDUSE_COLUMNS + [self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_building_type, lazy_frame=lazy_frame.clone(),
-        #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.BLDG_TYPE, self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_climate_zone, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.CZ_ASHRAE, self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_hvac_system_type, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.HVAC_SYS, self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_fuel, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_building_type, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.BLDG_TYPE, self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_climate_zone, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.CZ_ASHRAE, self.UPGRADE_ID]))(output_dir=output_dir)
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_hvac_system, lazy_frame=lazy_frame.clone(
-        #), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.HVAC_SYS, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_energy_by_enduse_and_fuel_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_emissions_by_fuel_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_GHG_COLUMNS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_utility_bills_by_fuel_type, lazy_frame=lazy_frame.clone(), columns=(
+            self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_UTILITY_COLUMNS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_floor_area_and_energy_totals,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(
+            plot_method=self.plot_end_use_totals_by_building_type,
+            lazy_frame=lazy_frame.clone(),
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
+                                        lazy_frame=lazy_frame.clone(), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,
+                                        lazy_frame=lazy_frame.clone(), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.CEN_DIV, self.BLDG_TYPE]))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_enduse_and_fuel, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_ENDUSE_COLUMNS + [self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_building_type, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.BLDG_TYPE, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_climate_zone, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.CZ_ASHRAE, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_savings_distributions_by_hvac_system_type, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.SAVINGS_DISTRI_BUILDINTYPE + [self.HVAC_SYS, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_fuel, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_building_type, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.BLDG_TYPE, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_climate_zone, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.CZ_ASHRAE, self.UPGRADE_ID]))(output_dir=output_dir)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_utility_savings_distributions_by_hvac_system, lazy_frame=lazy_frame.clone(
+        ), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_SAVINGS_COLUMNS + [self.HVAC_SYS, self.UPGRADE_ID]))(output_dir=output_dir)
 
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_timing, lazy_frame=lazy_frame.clone(),
-        #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_timing, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
 
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_max_use, lazy_frame=lazy_frame.clone(),
-        #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_max_use, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
 
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_min_use, lazy_frame=lazy_frame.clone(),
-        #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_qoi_min_use, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.QOI_COLUMNS))(**BASIC_PARAMS)
 
-        #LazyFramePlotter.plot_with_lazy(plot_method=self.plot_unmet_hours, lazy_frame=lazy_frame.clone(),
-        #                                columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.UNMET_HOURS_COLS))(**BASIC_PARAMS)
+        LazyFramePlotter.plot_with_lazy(plot_method=self.plot_unmet_hours, lazy_frame=lazy_frame.clone(),
+                                        columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.UNMET_HOURS_COLS))(**BASIC_PARAMS)
 
         if make_timeseries_plots:
             TIMESERIES_PARAMS = {'comstock_run_name': self.comstock_run_name, 'timeseries_locations_to_plot': timeseries_locations_to_plot, 'color_map': color_map,
@@ -213,10 +209,7 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         BASIC_PARAMS = {
             'column_for_grouping': column_for_grouping,
             'color_map': color_map,
-            'output_dir': output_dir,
-            's3_base_dir': s3_base_dir,
-            'athena_table_name': athena_table_name,
-            'comstock_run_name': comstock_run_name
+            'output_dir': output_dir
         }
 
         logger.info(f'Making comparison plots for upgrade groupings')
