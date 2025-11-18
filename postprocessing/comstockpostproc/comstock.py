@@ -4752,6 +4752,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         applic_bldgs_list = list(applic_df[self.BLDG_ID].unique())
         applic_bldgs_list = [int(x) for x in applic_bldgs_list]
 
+        # Check if any applicable buildings were found
+        if len(applic_bldgs_list) == 0:
+            location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+            print(f"Warning: No applicable buildings found for {location_desc} and upgrade(s) {upgrade_num}. Returning empty DataFrames.")
+            return pd.DataFrame(), pd.DataFrame()
+
         import time
         from datetime import datetime, time
 
