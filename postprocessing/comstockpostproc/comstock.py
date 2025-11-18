@@ -1,36 +1,33 @@
-'# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.'
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
+import datetime
+import glob
+import json
+import logging
 import os
-import s3fs
+import re
+import shutil
 from functools import lru_cache
-from fsspec.core import url_to_fs
-from joblib import Parallel, delayed
-from fsspec import register_implementation
 
 import boto3
 import botocore
-import glob
-import gzip
-import json
-import logging
-import shutil
 import botocore.exceptions
 import numpy as np
 import pandas as pd
 import polars as pl
-import re
-import datetime
-from pathlib import Path
+import s3fs
+from joblib import Parallel, delayed
+from natsort import natsorted
 
-from comstockpostproc.naming_mixin import NamingMixin
-from comstockpostproc.units_mixin import UnitsMixin
-from comstockpostproc.cbecs import CBECS
-from comstockpostproc.eia import EIA
-from comstockpostproc.ami import AMI
-from comstockpostproc.comstock_apportionment import Apportion
-from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
-from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
 from buildstock_query import BuildStockQuery
+from comstockpostproc.ami import AMI
+from comstockpostproc.cbecs import CBECS
+from comstockpostproc.comstock_apportionment import Apportion
+from comstockpostproc.eia import EIA
+from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
+from comstockpostproc.naming_mixin import NamingMixin
+from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
+from comstockpostproc.units_mixin import UnitsMixin
 
 logger = logging.getLogger(__name__)
 
@@ -334,27 +331,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
-            if len(glob.glob(f'{self.data_dir}/results_up*.parquet')) < 2:
-                if self.s3_inpath is None:
-                    logger.info('The s3 path passed to the constructor is invalid, '
-                                'cannot check for results_up**.parquet files to download')
-                else:
-                    upgrade_parquet_path = f'{prfx}/upgrades'
-                    resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
-                    for obj in list(resp):
-                        obj_path = obj.key
-                        obj_name = obj_path.split('/')[-1]
-                        m = re.search('results_up(.*).parquet', obj_name)
-                        if not m:
-                            continue
-                        upgrade_id = m.group(1)
-                        if upgrade_id in self.upgrade_ids_to_skip:
-                            logger.info(f'Skipping data download for upgrade {upgrade_id}')
-                            continue
-                        results_data_path = os.path.join(self.data_dir, obj_name)
-                        if not os.path.exists(results_data_path):
-                            logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
-                            s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
+            if self.s3_inpath is None:
+                logger.info('The s3 path passed to the constructor is invalid, '
+                            'cannot check for results_up**.parquet files to download')
+            else:
+                upgrade_parquet_path = f'{prfx}/upgrades'
+                resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
+                for obj in natsorted(resp, key=lambda obj: obj.key):
+                    obj_path = obj.key
+                    obj_name = obj_path.split('/')[-1]
+                    m = re.search('results_up(.*).parquet', obj_name)
+                    if not m:
+                        continue
+                    upgrade_id = m.group(1)
+                    if upgrade_id in self.upgrade_ids_to_skip:
+                        logger.info(f'Skipping data download for upgrade {upgrade_id}')
+                        continue
+                    results_data_path = os.path.join(self.data_dir, obj_name)
+                    if not os.path.exists(results_data_path):
+                        logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
+                        s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
 
         # buildstock.csv
         #1. check the file in the data_dir
@@ -543,7 +539,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = []
 
         # Load results, identify failed runs
-        for upgrade_id in [0, upgrade_id]:
+        for upgrade_id in [np.int64(0), upgrade_id]:
 
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
@@ -645,7 +641,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 .when(
                 (pl.col(self.COMP_STATUS).is_null()))
                 .then(pl.lit(ST_FAIL_NO_STATUS))
-                # Sucessful, but upgrade was NA, so has no results
+                # Successful, but upgrade was NA, so has no results
                 .when(
                 (pl.col(self.COMP_STATUS) == 'Invalid'))
                 .then(pl.lit(ST_NA))

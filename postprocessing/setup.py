@@ -48,6 +48,7 @@ setup(
         'botocore',
         'fsspec',
         'joblib',
+        'natsort',
         'nbformat',
         'pandas',
         'plotly',
