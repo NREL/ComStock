@@ -145,6 +145,10 @@ results.csv,build_existing_model.add_thermostat_setpoint_variability_clg_delta_f
 results.csv,build_existing_model.add_thermostat_setpoint_variability_clg_sp_f,in.tstat_clg_sp_f,TRUE,FALSE,float,f,f,Cooling thermostat occupied setpoint. A value of '999' indicates default values were used for model
 results.csv,build_existing_model.add_thermostat_setpoint_variability_htg_delta_f,in.tstat_htg_delta_f,TRUE,FALSE,float,delta_f,delta_f,Heating thermostat unnoccupied setpoint temperature delta from primary occupied heating setpoint. A value of '999' indicates default values were used for model
 results.csv,build_existing_model.add_thermostat_setpoint_variability_htg_sp_f,in.tstat_htg_sp_f,TRUE,FALSE,float,f,f,Heating thermostat occupied setpoint. A value of '999' indicates default values were used for model
+results.csv,com_stock_sensitivity_reports.com_report_has_htg_setback_all_tstats,in.tstat_has_htg_setback_all,TRUE,FALSE,boolean,,,"Heating setbacks present in all thermostats, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_clg_setback_all_tstats,in.tstat_has_clg_setback_all,TRUE,FALSE,boolean,,,"Cooling setbacks present in all thermostats, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_at_least_one_htg_setback,in.tstat_at_least_one_htg_setback,TRUE,FALSE,boolean,,,"Heating setbacks present in at least one zone, or not"
+results.csv,com_stock_sensitivity_reports.com_report_has_at_least_one_clg_setback,in.tstat_at_least_one_clg_setback,TRUE,FALSE,boolean,,,"Cooling setbacks present in at least one zone, or not"
 results.csv,build_existing_model.airtightness,,FALSE,FALSE,float,,,6-sided air leakage rate at 75 Pa
 results.csv,build_existing_model.applicable,,FALSE,FALSE,boolean,,,Applicability status of build existing model measure
 results.csv,build_existing_model.aspect_ratio,in.aspect_ratio,TRUE,FALSE,float,,,Aspect ratio of building geometry which is the ratio of North/South Facade Length Relative to East/West Facade Length
@@ -391,6 +395,7 @@ results.csv,build_existing_model.year_of_simulation,,FALSE,FALSE,integer,,,Speci
 results.csv,building_id,bldg_id,TRUE,TRUE,integer,,,ID number for model
 results.csv,com_stock_sensitivity_reports.applicable,,FALSE,FALSE,boolean,,,Specifies if ComStock sensitivity reports are applicable
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_power_minimum_flow_fraction,out.params.air_system_fan_power_minimum_flow_fraction,TRUE,FALSE,float,,,Fan power design minimum airflow fraction for air systems
+results.csv,com_stock_sensitivity_reports.com_report_air_sys_vav_avg_flow_ratio,out.params.air_system_vav_avg_flow_ratio,TRUE,FALSE,float,,,Average airflow ratio across VAV systems
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_static_pressure,out.params.air_system_fan_static_pressure,TRUE,FALSE,float,pa,inwc,Fan static pressure for air systems in pascals
 results.csv,com_stock_sensitivity_reports.com_report_air_system_fan_total_efficiency,out.params.air_system_fan_total_efficiency,TRUE,FALSE,float,,,Total air system fan efficiency
 results.csv,com_stock_sensitivity_reports.com_report_annual_hot_water_m_3,out.params.hot_water_volume,TRUE,FALSE,float,m3,m3,Annual hot water usage by volume
@@ -681,6 +686,15 @@ results.csv,com_stock_sensitivity_reports.com_report_pv_system_size_kw,out.param
 results.csv,com_stock_sensitivity_reports.com_report_battery_capacity_kwh,out.params.battery_capacity_kwh,TRUE,TRUE,float,kWh,kWh,Total energy capacity of battery storage
 results.csv,com_stock_sensitivity_reports.com_report_battery_max_charge_kw,out.params.battery_max_charge_kw,TRUE,TRUE,float,kW,kW,Total max charge power of battery
 results.csv,com_stock_sensitivity_reports.com_report_battery_max_discharge_kw,out.params.battery_max_discharge_kw,TRUE,TRUE,float,kW,kW,Total max discharge power of battery
+results.csv,com_stock_sensitivity_reports.com_report_pump_flow_weighted_avg_motor_efficiency,out.params.pump_flow_weighted_avg_motor_efficiency,TRUE,TRUE,float,,,Rated flow weighted average motor efficiency of pumps
+results.csv,com_stock_sensitivity_reports.com_report_pump_flow_weighted_avg_motor_efficiency_const_spd,out.params.pump_flow_weighted_avg_motor_efficiency_const_spd,TRUE,TRUE,float,,,Rated flow weighted average motor efficiency of constant speed pumps
+results.csv,com_stock_sensitivity_reports.com_report_pump_flow_weighted_avg_motor_efficiency_var_spd,out.params.pump_flow_weighted_avg_motor_efficiency_var_spd,TRUE,TRUE,float,,,Rated flow weighted average motor efficiency of variable speed pumps
+results.csv,com_stock_sensitivity_reports.com_report_pump_count_hvac_const_spd,out.params.pump_count_hvac_const_spd,TRUE,TRUE,integer,,,Total count of constant speed pumps in HVAC systems
+results.csv,com_stock_sensitivity_reports.com_report_pump_count_hvac_var_spd,out.params.pump_count_hvac_var_spd,TRUE,TRUE,integer,,,Total count of variable speed pumps in HVAC systems
+results.csv,com_stock_sensitivity_reports.com_report_pump_count_swh_const_spd,out.params.pump_count_swh_const_spd,TRUE,TRUE,integer,,,Total count of constant speed pumps in SWH systems
+results.csv,com_stock_sensitivity_reports.com_report_pump_count_swh_var_spd,out.params.pump_count_swh_var_spd,TRUE,TRUE,integer,,,Total count of variable speed pumps in SWH systems
+results.csv,com_stock_sensitivity_reports.com_report_pump_total_constant_speed_pump_power_w,out.params.pump_total_constant_speed_pump_power_w,TRUE,TRUE,float,W,W,Total power of constant speed pumps in W
+results.csv,com_stock_sensitivity_reports.com_report_pump_total_variable_speed_pump_power_w,out.params.pump_total_variable_speed_pump_power_w,TRUE,TRUE,float,W,W,Total power of variable speed pumps in W
 results.csv,completed_at,,FALSE,FALSE,float,,,Simulation end time for model
 results.csv,completed_status,completed_status,TRUE,FALSE,string,,,Simulation completion status
 results.csv,emissions_reporting.annual_cooling_district_cooling_ghg_emissions_kg,out.emissions.district_cooling.cooling,TRUE,FALSE,float,co2e_kg,co2e_kg,annual greenhouse gas emissions from district cooling for cooling use

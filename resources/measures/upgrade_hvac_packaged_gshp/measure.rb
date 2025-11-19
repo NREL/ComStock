@@ -290,7 +290,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       if thermal_zone.equipment.empty?
         unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain this
-      elsif ['Bulk Entry'].any? { |word| thermal_zone.name.get.include?(word) }
+      elsif ['Bulk', 'Entry'].any? { |word| thermal_zone.name.get.include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
 

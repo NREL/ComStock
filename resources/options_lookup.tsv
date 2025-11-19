@@ -3884,6 +3884,7 @@ hvac_system_type	Window AC with baseboard district hot water	create_typical_buil
 hvac_system_type	Window AC with forced air furnace	create_typical_building_from_model	system_type=Window AC with forced air furnace	hvac_delivery_type=Inferred	htg_src=Inferred	clg_src=Inferred	kitchen_makeup=Adjacent	exterior_lighting_zone=3 - All Other Areas	add_constructions=true	add_space_type_loads=true	add_elevators=true	add_internal_mass=true	add_exterior_lights=true	onsite_parking_fraction=1	add_exhaust=true	add_swh=true	add_thermostat=true	add_hvac=true	add_refrigeration=true	unmet_hours_tolerance=1.0	remove_objects=true	use_upstream_args=false
 hvac_system_type	Window AC with unit heaters	create_typical_building_from_model	system_type=Window AC with unit heaters	hvac_delivery_type=Inferred	htg_src=Inferred	clg_src=Inferred	kitchen_makeup=Adjacent	exterior_lighting_zone=3 - All Other Areas	add_constructions=true	add_space_type_loads=true	add_elevators=true	add_internal_mass=true	add_exterior_lights=true	onsite_parking_fraction=1	add_exhaust=true	add_swh=true	add_thermostat=true	add_hvac=true	add_refrigeration=true	unmet_hours_tolerance=1.0	remove_objects=true	use_upstream_args=false
 hvac_system_type	Window AC with no heat	create_typical_building_from_model	system_type=Window AC with no heat	hvac_delivery_type=Inferred	htg_src=Inferred	clg_src=Inferred	kitchen_makeup=Adjacent	exterior_lighting_zone=3 - All Other Areas	add_constructions=true	add_space_type_loads=true	add_elevators=true	add_internal_mass=true	add_exterior_lights=true	onsite_parking_fraction=1	add_exhaust=true	add_swh=true	add_thermostat=true	add_hvac=true	add_refrigeration=true	unmet_hours_tolerance=1.0	remove_objects=true	use_upstream_args=false
+hvac_fan_sp_reset	default	upgrade_hvac_fan_static_pressure_reset
 refrigeration_technology_level	NA	create_typical_building_from_model	refrigeration_template=old
 refrigeration_technology_level	old	create_typical_building_from_model	refrigeration_template=old
 refrigeration_technology_level	new	create_typical_building_from_model	refrigeration_template=new
@@ -4709,7 +4710,7 @@ hvac_add_heat_pump_rtu	std_perf_no_sb	upgrade_hvac_add_heat_pump_rtu	backup_ht_f
 hvac_enable_ideal_air_loads	ideal_air_loads	upgrade_hvac_enable_ideal_air_loads
 gen_pv	pv_20pct	upgrade_add_pvwatts	pv_area_fraction=0.2	incl_batt_storage=false
 gen_pv	pv_40pct	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=false
-gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false	
+gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false
 gen_pv	pv_40pct_w_batt	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=true
 ppl_electric_kitchen_equip	electric_kitchen_equip	upgrade_ppl_electric_kitchen_equipment
 hvac_add_multispeed_coil_min_flow	multispeed_min_flow_default	upgrade_hvac_multispeed_minimum_flow
@@ -4741,6 +4742,7 @@ hvac_chiller	upgrade_chiller	upgrade_hvac_chiller	upgrade_pump=false	chw_oat_res
 hvac_chiller	upgrade_chiller_pump	upgrade_hvac_chiller	upgrade_pump=true	chw_oat_reset=false	cw_oat_reset=false	debug_verbose=false
 hvac_chiller	upgrade_chiller_pump_chwctrl	upgrade_hvac_chiller	upgrade_pump=true	chw_oat_reset=true	cw_oat_reset=false	debug_verbose=false
 hvac_chiller	upgrade_chiller_pump_chwctrl_cwctrl	upgrade_hvac_chiller	upgrade_pump=true	chw_oat_reset=true	cw_oat_reset=true	debug_verbose=false
+hvac_thermostat_setback	htg10	upgrade_add_thermostat_setback	clg_setback=5	htg_setback=10	opt_start=true	opt_start_len=3	htg_min=55	clg_max=82
 fault_economizer_db_limit	NA	fault_hvac_economizer_changeover_temperature	apply_measure=false	econ_choice=all available economizer	changeovertemp=10.88
 fault_economizer_db_limit	No fault	fault_hvac_economizer_changeover_temperature	apply_measure=false	econ_choice=all available economizer	changeovertemp=10.88
 fault_economizer_db_limit	Fault	fault_hvac_economizer_changeover_temperature	apply_measure=true	econ_choice=all available economizer	changeovertemp=10.88
@@ -4793,6 +4795,12 @@ lighting_grid_load_shed	light_grid_shed_abs_30	upgrade_df_load_shed	demand_flexi
 thermostat_lighting_grid_load_shed	tstat_light_grid_shed	upgrade_df_load_shed	demand_flexibility_objective=grid peak load	peak_len=4	thermostat_control=true	rebound_len=2	sp_adjustment=2.0	lighting_control=true	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=1	load_prediction_method=full baseline	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15	pv=false
 thermostat_lighting_load_shed_pv	tstat_light_load_shed_pv	upgrade_df_load_shed	demand_flexibility_objective=peak load	peak_len=4	thermostat_control=true	rebound_len=2	sp_adjustment=2.0	lighting_control=true	light_adjustment_method=absolute change	light_adjustment=30.0	num_timesteps_in_hr=4	load_prediction_method=full baseline	peak_window_strategy=center with peak	cambium_scenario=LRMER_MidCase_15	pv=true
 df_precooling	precooling_12to4pm_yearround	precooling	cooling_adjustment=-4.0	starttime_cooling=11:59:00	endtime_cooling=15:59:00	cooling_startdate=01-01	cooling_enddate=12-31	auto_date=false	alt_periods=false
+hvac_rtu	upgrade_rtu	upgrade_hvac_rtu_adv	hr=false	dcv=false	debug_verbose=false
+hvac_rtu	upgrade_rtu_hr	upgrade_hvac_rtu_adv	hr=true	dcv=false	debug_verbose=false
+hvac_rtu	upgrade_rtu_hr_dcv	upgrade_hvac_rtu_adv	hr=true	dcv=true	debug_verbose=false
+hvac_pump	upgrade_pump	upgrade_hvac_pump	chw_hw_oat_reset=false	cw_oat_reset=false	debug_verbose=false
+hvac_pump	upgrade_pump_chwhwreset	upgrade_hvac_pump	chw_hw_oat_reset=true	cw_oat_reset=false	debug_verbose=false
+hvac_pump	upgrade_pump_chwhwreset_cwctrl	upgrade_hvac_pump	chw_hw_oat_reset=true	cw_oat_reset=true	debug_verbose=false
 state_id	*
 energy_code_compliance_during_original_building_construction	*
 energy_code_compliance_interior_lighting	*

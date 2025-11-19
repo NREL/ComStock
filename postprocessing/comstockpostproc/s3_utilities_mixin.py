@@ -204,9 +204,9 @@ class S3UtilitiesMixin:
             return lkup
         else:
             try:
-                df = pd.read_csv(local_path, delimiter=delimiter, **args)
+                df = pd.read_csv(local_path, delimiter=delimiter, low_memory=False, **args)
             except UnicodeDecodeError:
-                df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1', **args)
+                df = pd.read_csv(local_path, delimiter=delimiter, low_memory=False, encoding='latin-1', **args)
 
         return df
 

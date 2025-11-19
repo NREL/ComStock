@@ -48,17 +48,18 @@ setup(
         'botocore',
         'fsspec',
         'joblib',
+        'natsort',
         'nbformat',
         'pandas',
         'plotly',
-        'polars==1.32.2',
+        'polars==1.35.2',
         'pyarrow',
         'pyyaml',
         's3fs',
         'scipy',
         'seaborn>=0.12.0',
         'xlrd',
-        #'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@8f65e034'
     ],
     extras_require={
         'dev': [
