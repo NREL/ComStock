@@ -1,4 +1,4 @@
-'# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.'
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
 # See top level LICENSE.txt file for license terms.
 import os
 import s3fs
@@ -20,6 +20,7 @@ import pandas as pd
 import polars as pl
 import re
 import datetime
+from natsort import natsort_keygen, natsorted
 from pathlib import Path
 
 from comstockpostproc.naming_mixin import NamingMixin
@@ -154,7 +155,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     upgrade_pqts.append(f's3://{p}')
                 else:
                     upgrade_pqts.append(p)
-            upgrade_pqts.sort()
+            upgrade_pqts.sort(key=natsort_keygen())
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
@@ -250,29 +251,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self._aggregate_failure_summaries()
 
     def _aggregate_failure_summaries(self):
-        #since we are generating summary of failures based on
-        #each upgrade_id(in load_data()), we should aggregate
-        #the summary of failures for each upgrade_id into one
+        # Aggregate and deduplicate lines from all failure_summary_*.csv files, then remove them
+        fs = self.output_dir["fs"]
+        fs_path = self.output_dir["fs_path"]
 
-        path = self.output_dir['fs_path']
+        lines = []
+        for file_path in natsorted([p for p in fs.ls(fs_path) if Path(p).name.startswith("failure_summary_") and Path(p).name.endswith(".csv")]):
+            logger.debug(f"Aggregating failure summary from {file_path!r}")
+            with fs.open(file_path, "r") as f:
+                for line in f:
+                    if line not in lines:
+                        lines.append(line)
+            fs.rm(file_path)
 
-        allLines = list()
-        #find all the failure_summary files like with failure_summary_0.csv
-        # failure_summary_1.csv ... failure_summary_k.csv
-        for file in os.listdir(path):
-            if file.startswith("failure_summary_") and file.endswith(".csv"):
-                #open the file and read the content
-                with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
-                    for line in f:
-                        if line not in allLines:
-                            allLines.append(line)
-                 #delete the file
-                os.remove(os.path.join(path, file))
-
-        #write the aggregated summary of failures to a new file
-        with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
-            for line in allLines:
-                f.write(line)
+        with fs.open(f"{fs_path}/failure_summary_aggregated.csv", "w") as f:
+            f.writelines(lines)
 
     def download_data(self):
 
@@ -334,27 +327,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # upgrades/upgrade=*/results_up*.parquet
         if self.include_upgrades:
-            if len(glob.glob(f'{self.data_dir}/results_up*.parquet')) < 2:
-                if self.s3_inpath is None:
-                    logger.info('The s3 path passed to the constructor is invalid, '
-                                'cannot check for results_up**.parquet files to download')
-                else:
-                    upgrade_parquet_path = f'{prfx}/upgrades'
-                    resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
-                    for obj in list(resp):
-                        obj_path = obj.key
-                        obj_name = obj_path.split('/')[-1]
-                        m = re.search('results_up(.*).parquet', obj_name)
-                        if not m:
-                            continue
-                        upgrade_id = m.group(1)
-                        if upgrade_id in self.upgrade_ids_to_skip:
-                            logger.info(f'Skipping data download for upgrade {upgrade_id}')
-                            continue
-                        results_data_path = os.path.join(self.data_dir, obj_name)
-                        if not os.path.exists(results_data_path):
-                            logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
-                            s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
+            if self.s3_inpath is None:
+                logger.info('The s3 path passed to the constructor is invalid, '
+                            'cannot check for results_up**.parquet files to download')
+            else:
+                upgrade_parquet_path = f'{prfx}/upgrades'
+                resp = s3_resource.Bucket(bucket_name).objects.filter(Prefix=upgrade_parquet_path).all()
+                for obj in natsorted(resp, key=lambda obj: obj.key):
+                    obj_path = obj.key
+                    obj_name = obj_path.split('/')[-1]
+                    m = re.search('results_up(.*).parquet', obj_name)
+                    if not m:
+                        continue
+                    upgrade_id = m.group(1)
+                    if upgrade_id in self.upgrade_ids_to_skip:
+                        logger.info(f'Skipping data download for upgrade {upgrade_id}')
+                        continue
+                    results_data_path = os.path.join(self.data_dir, obj_name)
+                    if not os.path.exists(results_data_path):
+                        logger.info(f'Downloading {obj_path} from the {bucket_name} bucket')
+                        s3_resource.Object(bucket_name, obj_path).download_file(results_data_path)
 
         # buildstock.csv
         #1. check the file in the data_dir
@@ -543,7 +535,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         failure_summaries = []
 
         # Load results, identify failed runs
-        for upgrade_id in [0, upgrade_id]:
+        for upgrade_id in [np.int64(0), upgrade_id]:
 
             # Skip specified upgrades
             if upgrade_id in self.upgrade_ids_to_skip:
@@ -645,7 +637,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 .when(
                 (pl.col(self.COMP_STATUS).is_null()))
                 .then(pl.lit(ST_FAIL_NO_STATUS))
-                # Sucessful, but upgrade was NA, so has no results
+                # Successful, but upgrade was NA, so has no results
                 .when(
                 (pl.col(self.COMP_STATUS) == 'Invalid'))
                 .then(pl.lit(ST_NA))
