@@ -39,10 +39,10 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.10',
     ],
     keywords='comstock postprocessing',
-    python_requires="==3.12.12",
+    python_requires="==3.10.12",
     install_requires=[
         'boto3',
         'botocore',

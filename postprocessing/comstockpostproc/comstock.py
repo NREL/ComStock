@@ -254,7 +254,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         lines = []
         for file_path in natsorted([p for p in fs.ls(fs_path) if Path(p).name.startswith("failure_summary_") and Path(p).name.endswith(".csv")]):
-            logger.info(f"Aggregating failure summary from {file_path!r}")
+            logger.debug(f"Aggregating failure summary from {file_path!r}")
             with fs.open(file_path, "r") as f:
                 for line in f:
                     if line not in lines:
