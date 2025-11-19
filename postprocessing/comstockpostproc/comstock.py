@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 from functools import lru_cache
+from pathlib import Path
 
 import boto3
 import botocore
@@ -247,29 +248,21 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self._aggregate_failure_summaries()
 
     def _aggregate_failure_summaries(self):
-        #since we are generating summary of failures based on
-        #each upgrade_id(in load_data()), we should aggregate
-        #the summary of failures for each upgrade_id into one
+        # Aggregate and deduplicate lines from all failure_summary_*.csv files, then remove them
+        fs = self.output_dir["fs"]
+        fs_path = self.output_dir["fs_path"]
 
-        path = self.output_dir['fs_path']
+        lines = []
+        for file_path in natsorted([p for p in fs.ls(fs_path) if Path(p).name.startswith("failure_summary_") and Path(p).name.endswith(".csv")]):
+            logger.info(f"Aggregating failure summary from {file_path!r}")
+            with fs.open(file_path, "r") as f:
+                for line in f:
+                    if line not in lines:
+                        lines.append(line)
+            fs.rm(file_path)
 
-        allLines = list()
-        #find all the failure_summary files like with failure_summary_0.csv
-        # failure_summary_1.csv ... failure_summary_k.csv
-        for file in os.listdir(path):
-            if file.startswith("failure_summary_") and file.endswith(".csv"):
-                #open the file and read the content
-                with self.output_dir['fs'].open(f'{path}/{file}', 'r') as f:
-                    for line in f:
-                        if line not in allLines:
-                            allLines.append(line)
-                 #delete the file
-                os.remove(os.path.join(path, file))
-
-        #write the aggregated summary of failures to a new file
-        with self.output_dir['fs'].open(f'{path}/failure_summary_aggregated.csv', 'w') as f:
-            for line in allLines:
-                f.write(line)
+        with fs.open(f"{fs_path}/failure_summary_aggregated.csv", "w") as f:
+            f.writelines(lines)
 
     def download_data(self):
 
