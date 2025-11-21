@@ -2278,3 +2278,5 @@ calculated,in.as_simulated_census_division_name,in.as_simulated_census_division_
 calculated,in.as_simulated_nhgis_county_gisjoin,in.as_simulated_nhgis_county_gisjoin,TRUE,FALSE,string,,,"County identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_tract_gisjoin,in.as_simulated_nhgis_tract_gisjoin,TRUE,FALSE,string,,,"Census tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
 calculated,in.as_simulated_nhgis_state_gisjoin,in.as_simulated_nhgis_state_gisjoin,TRUE,FALSE,string,,,"State tract identifier where the model was simulated, according to format of https://www.nhgis.org/geographic-crosswalks#details"
+calculated,calc.weighted.fuel_oil.total.energy_consumption,calc.weighted.fuel_oil.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total consumption of fuel oil energy for all end uses
+calculated,calc.weighted.propane.total.energy_consumption,calc.weighted.propane.total.energy_consumption,TRUE,TRUE,float,tbtu,tbtu,Stock total consumption of propane energy for all end uses
