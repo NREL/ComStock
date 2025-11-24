@@ -52,7 +52,7 @@ setup(
         'nbformat',
         'pandas',
         'plotly',
-        'polars==1.35.2',
+        'polars==1.32.2',
         'pyarrow',
         'pyyaml',
         's3fs',
