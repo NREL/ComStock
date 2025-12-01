@@ -219,7 +219,7 @@ class S3UtilitiesMixin:
             output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
         # PyAthena >2.18.0 implements an s3 filesystem that replaces s3fs but does not implement file.open()
         # Make fsspec use the s3fs s3 filesystem implementation for writing files to S3
-        register_implementation("s3", s3fs.S3FileSystem, clobber=True)
+        #register_implementation("s3", s3fs.S3FileSystem, clobber=True)
         out_fs, out_fs_path = url_to_fs(output_dir, profile=aws_profile_name)
         output_dir = {
             'fs': out_fs,
