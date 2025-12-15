@@ -4652,8 +4652,9 @@ thermal_bridging	wood-framed default	thermal_bridging_derating	option=90.1.22|wo
 thermal_bridging	wood-framed unmitigated	thermal_bridging_derating	option=90.1.22|wood.fr|unmitigated
 thermal_bridging	no thermal bridging	thermal_bridging_derating	option=(non thermal bridging)
 baseline_hvac_sizing	autosize	hardsize_model	apply_hardsize=false
+		adjust_occupancy_schedule	peak_occ_frac=0.231
 baseline_hvac_sizing	hardsize	hardsize_model	apply_hardsize=true
-occupancy_schedule_adjust	adjust_schedule	adjust_occupancy_schedule	peak_occ_frac=0.231
+		adjust_occupancy_schedule	peak_occ_frac=0.231
 ground_thermal_conductivity	0.5	ChangeBuildingLocation	soil_conductivity=0.5
 ground_thermal_conductivity	0.8	ChangeBuildingLocation	soil_conductivity=0.8
 ground_thermal_conductivity	1.1	ChangeBuildingLocation	soil_conductivity=1.1
@@ -4709,7 +4710,7 @@ hvac_add_heat_pump_rtu	std_perf_no_sb	upgrade_hvac_add_heat_pump_rtu	backup_ht_f
 hvac_enable_ideal_air_loads	ideal_air_loads	upgrade_hvac_enable_ideal_air_loads
 gen_pv	pv_20pct	upgrade_add_pvwatts	pv_area_fraction=0.2	incl_batt_storage=false
 gen_pv	pv_40pct	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=false
-gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false	
+gen_pv	pv_60pct	upgrade_add_pvwatts	pv_area_fraction=0.6	incl_batt_storage=false
 gen_pv	pv_40pct_w_batt	upgrade_add_pvwatts	pv_area_fraction=0.4	incl_batt_storage=true
 ppl_electric_kitchen_equip	electric_kitchen_equip	upgrade_ppl_electric_kitchen_equipment
 hvac_add_multispeed_coil_min_flow	multispeed_min_flow_default	upgrade_hvac_multispeed_minimum_flow
