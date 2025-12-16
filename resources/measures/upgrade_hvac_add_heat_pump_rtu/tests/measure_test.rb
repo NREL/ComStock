@@ -392,6 +392,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       rescue JSON::ParserError => e
         flunk "JSON parsing failed for #{file_path}: #{e.message}"
       end
+    end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -2233,7 +2234,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
 	
-	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
+    puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
 
     assert_equal(deltas_out_of_range, false)
 	
