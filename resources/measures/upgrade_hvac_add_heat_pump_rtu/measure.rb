@@ -1343,6 +1343,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_lab_data.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
+    when 'carrier_48qe_duelfuel'
+      # read performance data
+      path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_carrier_48qe_duelfuel.json"
+      custom_data_json = JSON.parse(File.read(path_data_curve))
     end
 
     # ---------------------------------------------------------
