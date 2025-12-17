@@ -10,7 +10,10 @@ Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
+
+  # ---------------------------------------------------------
   # defining global variable
+  # ---------------------------------------------------------
   # adding tolerance because EnergyPlus unit conversion differs from manual conversion
   # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
   CFM_PER_TON_MIN_RATED = 300 # hard limit of 300
@@ -18,6 +21,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
   # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
   # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
+
+  # ---------------------------------------------------------
+  # required methods
+  # ---------------------------------------------------------
 
   # human readable name
   def name
@@ -181,8 +188,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  #### Predefined functions
+  # ---------------------------------------------------------
+  # supporting methods
+  # ---------------------------------------------------------
+
   # determine if the air loop is residential (checks to see if there is outdoor air system object)
+  # Determines if an air loop is a residential system based on its components.
+  # A system is considered residential if it does NOT contain an outdoor air system component.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop to check
+  # @return [Boolean] true if the air loop is a residential system (no outdoor air system), false otherwise
   def air_loop_res?(air_loop_hvac)
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
@@ -196,6 +211,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Determine if is evaporative cooler
+  # Checks if an air loop contains any evaporative cooler components.
+  #
+  # This method iterates through all supply components of the given air loop
+  # and determines if any evaporative cooling equipment is present.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop to check for evaporative coolers
+  # @return [Boolean] true if the air loop contains any evaporative cooler component, false otherwise
   def air_loop_evaporative_cooler?(air_loop_hvac)
     is_evap = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -210,6 +232,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # Determine if the air loop is a unitary system
   # @return [Bool] Returns true if a unitary system is present, false if not.
+  # Determines if an air loop HVAC system contains a unitary system component.
+  #
+  # This method checks the supply components of an air loop to identify if any
+  # of them are unitary system types, including standard unitary systems,
+  # air-to-air heat pumps, multi-speed heat pumps, or VAV changeover bypass systems.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop HVAC system to check
+  # @return [Boolean] true if the air loop contains a unitary system component, false otherwise
   def air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -224,6 +254,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # Load curve to model from json
   # modified version from OS Standards to read from custom json file
+  # Adds a performance curve to the OpenStudio model based on curve data from standards.
+  # First checks if the curve already exists in the model and returns it if found.
+  # Otherwise, creates a new curve object of the appropriate type and configures it
+  # with coefficients and limits from the standards data.
+  #
+  # @param model [OpenStudio::Model::Model] the OpenStudio model object
+  # @param curve_name [String] the name of the curve to add
+  # @param standards_data_curve [Hash] hash containing the 'tables' key with curve data
+  # @param std [Standard] the standards object used to find curve data
+  # @return [OpenStudio::Model::Curve, OpenStudio::Model::TableLookup, nil] the curve object if found/created, nil if curve data not found
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
     existing_curves = []
@@ -404,6 +444,32 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Assign staging data from json
+  # Extracts and returns heat pump staging configuration data from a JSON data structure.
+  # Parses performance parameters including stage counts, capacity fractions, flow fractions,
+  # COP fractions, and other staging-related settings for both heating and cooling operations.
+  #
+  # @param staging_data_json [Hash] JSON hash containing staging data in 'tables']['curves'] structure
+  # @param std [Standard] OpenStudio Standards object used for data lookup
+  # @return [Array<Integer, Integer, Integer, Integer, Float, Float, Array, Array, Array, Array, Array, Array, Array, Array, Boolean, Float, Float>] 
+  #   Returns an array containing:
+  #   - num_heating_stages: number of heating stages
+  #   - num_cooling_stages: number of cooling stages
+  #   - rated_stage_num_heating: rated heating stage number
+  #   - rated_stage_num_cooling: rated cooling stage number
+  #   - final_rated_cooling_cop: rated cooling COP
+  #   - final_rated_heating_cop: rated heating COP
+  #   - stage_cap_fractions_heating: heating capacity fractions by stage
+  #   - stage_flow_fractions_heating: heating flow fractions by stage
+  #   - stage_cap_fractions_cooling: cooling capacity fractions by stage
+  #   - stage_flow_fractions_cooling: cooling flow fractions by stage
+  #   - stage_rated_cop_frac_heating: heating COP fractions by stage
+  #   - stage_rated_cop_frac_cooling: cooling COP fractions by stage
+  #   - boost_stage_num_and_max_temp_tuple: boost stage configuration
+  #   - stage_gross_rated_sensible_heat_ratio_cooling: sensible heat ratios for cooling stages
+  #   - enable_cycling_losses_above_lowest_speed: flag for cycling losses
+  #   - reference_cooling_cfm_per_ton: reference cooling airflow per ton
+  #   - reference_heating_cfm_per_ton: reference heating airflow per ton
+  # @return [nil] returns nil if staging data cannot be found in the JSON structure
   def assign_staging_data(staging_data_json, std)
     # Parse the JSON string into a Ruby hash
     # Find curve data
@@ -438,6 +504,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # Get rated cooling COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
+  #
+  # @param rated_capacity_w [Float] the rated cooling capacity in watts
+  # @return [Float] the rated cooling COP, clamped between min_cop (3.02) and max_cop (3.97)
   def get_rated_cop_cooling(rated_capacity_w)
     intercept = 3.881009
     coef_1 = -0.01034
@@ -451,6 +520,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # Get rated heating COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
+  # Calculates the rated Coefficient of Performance (COP) for heating based on the equipment's rated capacity.
+  # The calculation uses a linear regression model with capacity-based coefficients and applies
+  # minimum and maximum COP constraints to ensure the result falls within acceptable performance bounds.
+  #
+  # @param rated_capacity_w [Numeric] The rated heating capacity in Watts
+  # @return [Float] The rated heating COP, constrained between 3.46 and 3.99
   def get_rated_cop_heating(rated_capacity_w)
     intercept = 3.957724
     coef_1 = -0.008502
@@ -462,6 +537,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Calculates the rated Coefficient of Performance (COP) for cooling in advanced mode
+  # based on the rated capacity of the equipment.
+  #
+  # The COP is calculated using a linear regression model with capacity as the independent variable.
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance bounds.
+  #
+  # @param rated_capacity_w [Float] The rated cooling capacity in watts (W)
+  # @return [Float] The rated cooling COP, clamped between 3.34 and 4.29
   def get_rated_cop_cooling_adv(rated_capacity_w)
     intercept = 4.140806
     coef_1 = -0.007577
@@ -473,6 +556,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Calculates the rated coefficient of performance (COP) for heating in advanced heat pump systems
+  # based on the rated capacity. The COP is determined using a linear regression model with
+  # capacity-based adjustments and is clamped between minimum and maximum values.
+  #
+  # @param rated_capacity_w [Float] the rated heating capacity in watts (W)
+  # @return [Float] the rated heating COP, clamped between 3.5 and 3.87
   def get_rated_cop_heating_adv(rated_capacity_w)
     intercept = 3.861114
     coef_1 = -0.003304
@@ -483,7 +572,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
-  # Get rated cooling COP from fitted regression - for Carrier duel fuel RTU (48QE)
+  # Get rated cooling COP from fitted regression - for Carrier dual fuel RTU (48QE)
+  # Calculates the rated coefficient of performance (COP) for cooling in Carrier's 48QE dual fuel RTU
+  # based on the rated capacity of the equipment.
+  #
+  # The COP is calculated using a linear regression model with capacity as the independent variable.
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance bounds.
+  #
+  # @param rated_capacity_w [Float] The rated cooling capacity in watts (W)
+  # @return [Float] The rated cooling COP, clamped between 3.07 and 3.91
   def get_rated_cop_cooling_duelfuelrtu(rated_capacity_w)
     intercept = 3.99207113
     coef_1 = -0.00000969
@@ -494,6 +591,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated heating COP from fitted regression - for Carrier duel fuel RTU (48QE)
+  # Calculates the rated coefficient of performance (COP) for heating in a dual fuel RTU
+  # based on the rated capacity using a linear regression model.
+  #
+  # The COP is calculated using the formula: COP = intercept + (coefficient * capacity)
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance.
+  #
+  # @param rated_capacity_w [Float] The rated heating capacity in watts
+  # @return [Float] The rated heating COP, clamped between 3.57 and 3.89
   def get_rated_cop_heating_duelfuelrtu(rated_capacity_w)
     intercept = 3.83411768
     coef_1 = -0.00000337
@@ -503,17 +608,43 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
-  # Convert unit
+  # Converts airflow per cooling capacity from CFM per ton to cubic meters per second per watt.
+  #
+  # This conversion is used when transitioning between imperial and metric units for HVAC sizing calculations.
+  # The conversion accounts for both volumetric flow rate (CFM to m³/s) and capacity (tons to watts).
+  #
+  # @param cfm_per_ton [Float] airflow rate in cubic feet per minute per ton of cooling capacity
+  # @return [Float] airflow rate in cubic meters per second per watt of cooling capacity
   def cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton)
     OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
   end
 
-  # Convert unit
+  # Converts airflow per cooling capacity from cubic meters per second per watt to CFM per ton.
+  #
+  # This conversion is used when transitioning between metric and imperial units for HVAC sizing calculations.
+  # The conversion accounts for both volumetric flow rate (m³/s to CFM) and capacity (watts to tons).
+  #
+  # @param m_3_per_sec_watts [Float] airflow rate in cubic meters per second per watt of cooling capacity
+  # @return [Float] airflow rate in cubic feet per minute per ton of cooling capacity
   def m_3_per_sec_watts_to_cfm_per_ton(m_3_per_sec_watts)
     OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
   end
 
-  # Adjust rated COP based on reference CFM/ton
+  # Adjusts the rated Coefficient of Performance (COP) based on reference airflow per ton of capacity.
+  #
+  # This method calculates an adjusted COP by evaluating how the actual sized airflow compares to
+  # a reference airflow rate (specified in CFM per ton). The adjustment uses an Energy Input Ratio (EIR)
+  # modifier curve as a function of flow fraction to determine the performance impact.
+  #
+  # @param runner [OpenStudio::Measure::OSRunner] the measure runner for logging
+  # @param airflow_sized_m_3_per_s [Float] the actual sized airflow rate in cubic meters per second
+  # @param reference_cfm_per_ton [Float] the reference airflow rate in cubic feet per minute per ton of capacity
+  # @param rated_capacity_w [Float] the rated capacity in watts
+  # @param original_rated_cop [Float] the original rated Coefficient of Performance before adjustment
+  # @param eir_modifier_curve_flow [OpenStudio::Model::Curve] the EIR modifier curve as a function of flow fraction
+  #   (supports CurveBiquadratic, CurveQuadratic, or CurveCubic types)
+  # @return [Float] the adjusted rated COP accounting for the difference between sized and reference airflow
+  # @raise [RuntimeError] if the eir_modifier_curve_flow is not a supported curve type
   def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w,
                                             original_rated_cop, eir_modifier_curve_flow)
     # get reference airflow
@@ -538,7 +669,35 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     original_rated_cop * (1.0 / modifier_eir)
   end
 
-  # Adjust CFM/ton based on limits
+  # Adjusts airflow and capacity for each stage to ensure CFM per ton ratios stay within acceptable bounds.
+  # This method validates and adjusts stage-level airflows and capacities to maintain CFM/ton ratios
+  # between minimum (300) and maximum (450) limits. Lower speed stages that cannot meet these limits
+  # may be disabled. If the rated/highest stage violates limits, airflow is adjusted to comply.
+  #
+  # The method:
+  # - Calculates flow per ton for each stage
+  # - Adjusts airflow or capacity if outside CFM/ton bounds
+  # - May disable lower stages if they cannot meet minimum airflow requirements
+  # - Ensures at least 2 stages remain active when possible
+  # - Updates stage flow fractions based on terminal supply airflow
+  #
+  # @param stage_cap_fractions [Hash] Hash of stage number to capacity fraction (relative to rated capacity)
+  # @param stage_flows [Hash] Hash of stage number to airflow in m³/s
+  # @param stage_flow_fractions [Hash] Hash of stage number to flow fraction (relative to design flow)
+  # @param dx_rated_cap_applied [Float] Applied rated DX capacity in watts after any upsizing
+  # @param rated_stage_num [Integer] The stage number that represents rated conditions
+  # @param old_terminal_sa_flow_m3_per_s [Float] Original terminal supply air flow rate in m³/s
+  # @param min_airflow_ratio [Float] Minimum allowable airflow ratio to maintain ventilation requirements
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop being modified
+  # @param heating_or_cooling [String] Either 'heating' or 'cooling' to identify which mode is being adjusted
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param debug_verbose [Boolean] Flag to enable detailed debug logging
+  # @return [Array<Hash, Hash, Hash, Hash, Integer>] Returns array containing:
+  #   - stage_flows: updated hash of stage flows in m³/s
+  #   - stage_caps: updated hash of stage capacities in watts
+  #   - stage_flow_fractions: updated hash of stage flow fractions
+  #   - stage_cap_fractions: updated hash of stage capacity fractions
+  #   - num_stages: final number of active stages after adjustments
   def adjust_cfm_per_ton_per_limits(stage_cap_fractions, stage_flows, stage_flow_fractions, dx_rated_cap_applied,
                                     rated_stage_num, old_terminal_sa_flow_m3_per_s, min_airflow_ratio, air_loop_hvac, heating_or_cooling, runner, debug_verbose)
     # determine capacities for each stage
@@ -655,7 +814,33 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     [stage_flows, stage_caps, stage_flow_fractions, stage_cap_fractions, num_stages]
   end
 
-  # Set coling coil stages in relevant objects/fields
+  # Sets up cooling coil configuration with appropriate number of stages and performance curves.
+  # Creates either a single-speed or multi-speed DX cooling coil based on the number of stages,
+  # and assigns performance curves, rated capacities, airflows, and other operating parameters
+  # to each stage. Handles stage-specific capacity fractions, flow rates, COP values, and
+  # sensible heat ratios.
+  #
+  # @param model [OpenStudio::Model::Model] the OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] the measure runner for logging
+  # @param stage_flows_cooling [Hash] hash mapping stage number to design airflow rate (m³/s)
+  # @param stage_caps_cooling [Hash] hash mapping stage number to cooling capacity (W)
+  # @param num_cooling_stages [Integer] total number of cooling stages
+  # @param final_rated_cooling_cop [Float] the rated cooling coefficient of performance
+  # @param cool_cap_ft_curve_stages [Hash] hash mapping stage number to capacity modifier curve (function of temperature)
+  # @param cool_eir_ft_curve_stages [Hash] hash mapping stage number to EIR modifier curve (function of temperature)
+  # @param cool_cap_ff_curve_stages [Hash] hash mapping stage number to capacity modifier curve (function of flow fraction)
+  # @param cool_eir_ff_curve_stages [Hash] hash mapping stage number to EIR modifier curve (function of flow fraction)
+  # @param cool_plf_fplr1 [OpenStudio::Model::Curve] part load fraction curve as function of part load ratio
+  # @param stage_rated_cop_frac_cooling [Hash] hash mapping stage number to COP fraction relative to rated COP
+  # @param stage_gross_rated_sensible_heat_ratio_cooling [Hash] hash mapping stage number to sensible heat ratio
+  # @param rated_stage_num_cooling [Integer] the stage number representing rated conditions
+  # @param enable_cycling_losses_above_lowest_speed [Boolean] flag to enable part load losses for speeds above stage 1
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop being modified
+  # @param always_on [OpenStudio::Model::ScheduleConstant] always-on schedule for availability
+  # @param _stage_caps_heating [Hash] hash of heating stage capacities (unused parameter)
+  # @param debug_verbose [Boolean] flag to enable detailed debug logging
+  # @return [OpenStudio::Model::CoilCoolingDXSingleSpeed, OpenStudio::Model::CoilCoolingDXMultiSpeed] 
+  #   the configured cooling coil object (single-speed for 1 stage, multi-speed for multiple stages)
   def set_cooling_coil_stages(model, runner, stage_flows_cooling, stage_caps_cooling, num_cooling_stages, final_rated_cooling_cop, cool_cap_ft_curve_stages, cool_eir_ft_curve_stages,
                               cool_cap_ff_curve_stages, cool_eir_ff_curve_stages, cool_plf_fplr1, stage_rated_cop_frac_cooling, stage_gross_rated_sensible_heat_ratio_cooling,
                               rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on, _stage_caps_heating, debug_verbose)
@@ -748,7 +933,36 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_dx_cooling_coil
   end
 
-  # Set coling coil stages in relevant objects/fields
+  # Sets up heating coil stages for a heat pump RTU system
+  #
+  # This method configures either a single-speed or multi-speed DX heating coil based on the number
+  # of heating stages defined. It validates that the number of capacity stages matches the number
+  # of flow stages, then creates and configures the appropriate coil type with performance curves,
+  # defrost settings, and crankcase heater specifications.
+  #
+  # @param model [OpenStudio::Model::Model] The OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param stage_flows_heating [Hash] Hash of heating airflow rates by stage number
+  # @param stage_caps_heating [Hash] Hash of heating capacities by stage number
+  # @param num_heating_stages [Integer] Number of heating stages
+  # @param final_rated_heating_cop [Float] Rated heating coefficient of performance
+  # @param heat_cap_ft_curve_stages [Hash] Hash of heating capacity function of temperature curves by stage
+  # @param heat_eir_ft_curve_stages [Hash] Hash of heating EIR function of temperature curves by stage
+  # @param heat_cap_ff_curve_stages [Hash] Hash of heating capacity function of flow fraction curves by stage
+  # @param heat_eir_ff_curve_stages [Hash] Hash of heating EIR function of flow fraction curves by stage
+  # @param heat_plf_fplr1 [OpenStudio::Model::Curve] Part load fraction correlation curve
+  # @param defrost_eir [OpenStudio::Model::Curve] Defrost energy input ratio curve
+  # @param _stage_rated_cop_frac_heating [Hash] Hash of COP fractions by stage (for multi-speed only)
+  # @param rated_stage_num_heating [Integer] The rated stage number for heating
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop HVAC system
+  # @param hp_min_comp_lockout_temp_f [Float] Minimum outdoor temperature for compressor operation in Fahrenheit
+  # @param enable_cycling_losses_above_lowest_speed [Boolean] Whether to apply part load fraction to speeds > 1
+  # @param always_on [OpenStudio::Model::ScheduleConstant] Schedule that is always on
+  # @param _stage_caps_cooling [Hash] Hash of cooling capacities by stage (unused but kept for compatibility)
+  # @param debug_verbose [Boolean] Flag to enable verbose debug logging
+  #
+  # @return [OpenStudio::Model::CoilHeatingDXSingleSpeed, OpenStudio::Model::CoilHeatingDXMultiSpeed]
+  #   Returns the newly created heating coil object (single-speed or multi-speed depending on num_heating_stages)
   def set_heating_coil_stages(model, runner, stage_flows_heating, stage_caps_heating, num_heating_stages, final_rated_heating_cop, heat_cap_ft_curve_stages, heat_eir_ft_curve_stages,
                               heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, _stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f,
                               enable_cycling_losses_above_lowest_speed, always_on, _stage_caps_cooling, debug_verbose)
@@ -843,8 +1057,24 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
     new_dx_heating_coil
   end
-
-  # Get tabular data from sql file
+  
+  # Retrieves a specific numeric value from the OpenStudio SQL tabular data output.
+  #
+  # This method queries the TabularDataWithStrings table in the SQL file to extract
+  # a single double value based on the provided report structure identifiers.
+  #
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param _model [OpenStudio::Model::Model] The OpenStudio model (unused parameter)
+  # @param sql [OpenStudio::SqlFile] The SQL file object containing simulation results
+  # @param report_name [String] The name of the report (e.g., 'AnnualBuildingUtilityPerformanceSummary')
+  # @param report_for_string [String] The report scope identifier (e.g., 'Entire Facility')
+  # @param table_name [String] The name of the table within the report
+  # @param row_name [String] The row identifier in the table
+  # @param column_name [String] The column identifier in the table
+  #
+  # @return [OpenStudio::OptionalDouble] An OptionalDouble containing the queried value if found,
+  #   or an uninitialized OptionalDouble if the query fails. Registers an error with the runner
+  #   if the value cannot be retrieved.
   def get_tabular_data(runner, _model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
@@ -856,7 +1086,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
     result
   end
-
+  
+  # Retrieves a dependent variable value from a 2D lookup table using bilinear interpolation.
+  #
+  # This method performs bilinear interpolation on a TableLookup object with exactly two
+  # independent variables. It extracts the independent variable arrays and dependent variable
+  # values, clamps input values to the table bounds, and interpolates between grid points.
+  #
+  # @param runner [Object] The runner object used for logging warnings and errors
+  # @param lookup_table [Object] A TableLookup object containing:
+  #   - independentVariables: Array of two independent variable arrays
+  #   - outputValues: Flattened array of dependent variable values
+  # @param input1 [Numeric] The first input value to interpolate (corresponds to first independent variable)
+  # @param input2 [Numeric] The second input value to interpolate (corresponds to second independent variable)
+  #
+  # @return [Numeric, false] The interpolated dependent variable value, or false if:
+  #   - The table doesn't have exactly two independent variables
+  #   - Table dimensions don't match output size
   def self.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
     if lookup_table.independentVariables.size == 2
       # Extract independent variable arrays
@@ -940,6 +1186,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+
+  # Determines if a thermostat schedule contains part of an optimum start sequence at a given index.
+  # Optimum start is identified when the zone will be occupied in the next 1-2 time steps
+  # and the heating schedule value falls within the specified min/max range.
+  #
+  # @param sch_zone_occ_annual_profile [Array] Annual occupancy schedule profile (0 = unoccupied, 1 = occupied)
+  # @param htg_schedule_annual_profile [Array] Annual heating schedule profile with temperature setpoints
+  # @param min_value [Float] Minimum threshold value for heating schedule to be considered optimum start
+  # @param max_value [Float] Maximum threshold value for heating schedule to be considered optimum start
+  # @param idx [Integer] Index position in the annual profile arrays to evaluate
+  # @return [Boolean, nil] Returns true if optimum start conditions are met, nil otherwise
   def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
     if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) &&
@@ -948,7 +1205,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  #### End predefined functions
+  # ---------------------------------------------------------
+  # main measure code
+  # ---------------------------------------------------------
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
