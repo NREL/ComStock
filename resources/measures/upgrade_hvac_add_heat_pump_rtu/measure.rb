@@ -483,6 +483,28 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
+  # Get rated cooling COP from fitted regression - for Carrier duel fuel RTU (48QE)
+  def get_rated_cop_cooling_adv(rated_capacity_w)
+    intercept = 3.99207113
+    coef_1 = -0.00000969
+    min_cop = 3.07
+    max_cop = 3.91
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_cooling.clamp(min_cop, max_cop)
+  end
+
+  # Get rated heating COP from fitted regression - for Carrier duel fuel RTU (48QE)
+  def get_rated_cop_heating_adv(rated_capacity_w)
+    intercept = 3.83411768
+    coef_1 = -0.00000337
+    min_cop = 3.57
+    max_cop = 3.89
+    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_heating.clamp(min_cop, max_cop)
+  end
+
   # Convert unit
   def cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton)
     OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
