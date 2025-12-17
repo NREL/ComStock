@@ -1874,8 +1874,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # replace existing applicable air loops with new heat pump rtu air loops
     # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
-      # get necessary schedules, etc. from unitary system object
+
+      # *********************************************************
       # initialize variables before loop
+      # *********************************************************
       hvac_operation_sched = air_loop_hvac.availabilitySchedule
       unitary_availability_sched = 'tmp'
       control_zone = 'tmp'
@@ -1887,9 +1889,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       fan_static_pressure = 'tmp'
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
-
       equip_to_delete = []
-
       space_types_no_setback = [
         # 'Kitchen',
         # 'kitchen',
@@ -1921,9 +1921,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         'Guest Room',
         'guest room'
       ]
-
       setback_value_c = setback_value * 5 / 9 # convert to c
+      always_on = model.alwaysOnDiscreteSchedule
 
+      # *********************************************************
+      # modify zone thermostats for setbacks
+      # *********************************************************
       if modify_setbacks # modify setbacks if argument set to true
         zones = air_loop_hvac.thermalZones
         zones.sort.each do |thermal_zone|
@@ -2053,8 +2056,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
         end
       end
-      # end of setback modification
 
+      # *********************************************************
+      # gather information from existing air loop
+      # *********************************************************
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
 
@@ -2215,34 +2220,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
+      # *********************************************************
       # delete equipment from original loop
-      equip_to_delete.each(&:remove)
+      # *********************************************************
+      equip_to_delete.each(&:remove)      
 
-      # set always on schedule; this will be used in other object definitions
-      always_on = model.alwaysOnDiscreteSchedule
-
-      # get thermal zone
-      thermal_zone = air_loop_hvac.thermalZones[0]
-
-      # Get the min OA flow rate from the OA; this is used below
-      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-      controller_oa = oa_system.getControllerOutdoorAir
-      oa_flow_m3_per_s = nil
-      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
-      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
-      else
-        runner.registerError("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
-        return false
-      end
-
+      # *********************************************************
       # change sizing parameter to vav
+      # *********************************************************
       sizing = air_loop_hvac.sizingSystem
       sizing.setCentralCoolingCapacityControlMethod('VAV') # CC-TMP
 
-      # replace any CV terminal box with no reheat VAV terminal box
+      # *********************************************************
       # get old terminal box
+      # *********************************************************
+      thermal_zone = air_loop_hvac.thermalZones[0]
       if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
         old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.get
       elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
@@ -2260,7 +2252,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         return false
       end
 
+      # *********************************************************
       # get design supply air flow rate
+      # *********************************************************
       old_terminal_sa_flow_m3_per_s = nil
       if air_loop_hvac.designSupplyAirFlowRate.is_initialized
         old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
@@ -2270,24 +2264,45 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
 
+      # *********************************************************
+      # get the min OA flow rate from the OA
+      # *********************************************************
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_flow_m3_per_s = nil
+      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
+      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
+      else
+        runner.registerError("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
+        return false
+      end
+
+      # *********************************************************
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
+      # *********************************************************
       if controller_oa.maximumFractionofOutdoorAirSchedule.is_initialized
         controller_oa.resetMaximumFractionofOutdoorAirSchedule
       end
       min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
 
-      # remove old equipment
+      # *********************************************************
+      # remove old air terminals
+      # *********************************************************
       old_terminal.remove
       air_loop_hvac.removeBranchForZone(thermal_zone)
-      # define new terminal box
-      # new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model, always_on)
+
+      # *********************************************************
+      # define new air terminals
+      # *********************************************************
       new_terminal = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
-      # set name of terminal box and add
       new_terminal.setName("#{thermal_zone.name} VAV Terminal")
       air_loop_hvac.addBranchForZone(thermal_zone, new_terminal.to_StraightComponent)
 
-      #################################### Start Sizing Logic
-
+      # *********************************************************
+      # sizing: get heating sizing temperature
+      # *********************************************************
       # get heating design day temperatures into list
       li_design_days = model.getDesignDays
       li_htg_dsgn_day_temps = []
@@ -2328,13 +2343,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      ## define number of stages, and capacity/airflow fractions for each stage
+      # *********************************************************
+      # sizing: get system specifications from custom data
+      # *********************************************************
       (_, _, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating,
       stage_flow_fractions_heating, stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating,
       stage_rated_cop_frac_cooling, _, stage_gross_rated_sensible_heat_ratio_cooling, enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton,
       reference_heating_cfm_per_ton) = assign_staging_data(custom_data_json, std)
 
-      # get appropriate design heating load
+      # *********************************************************
+      # sizing: get appropriate design heating load
+      # *********************************************************
       orig_htg_coil_gross_cap_old = orig_htg_coil_gross_cap
       design_air_flow_from_zone_sizing_heating_m_3_per_s = old_terminal_sa_flow_m3_per_s
       if sizing_run
@@ -2623,11 +2642,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: stage_flows_heating = #{stage_flows_heating}")
         runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
-      #################################### Start performance curve assignment
 
-      # ---------------------------------------------------------
-      # cooling curve assignments
-      # ---------------------------------------------------------
+      # *********************************************************
+      # sizing: cooling curve assignments
+      # *********************************************************
       # adjust rated cooling cop
       if final_rated_cooling_cop == false
         if hprtu_scenario == 'two_speed_standard_eff'
@@ -2672,9 +2690,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         debug_verbose
       )
 
-      # ---------------------------------------------------------
-      # heating curve assignments
-      # ---------------------------------------------------------
+      # *********************************************************
+      # sizing: heating curve assignments
+      # *********************************************************
       # adjust rated heating cop
       if final_rated_heating_cop == false
         if hprtu_scenario == 'two_speed_standard_eff'
@@ -2720,9 +2738,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         debug_verbose
       )
 
-      #################################### End performance curve assignment
-
+      # *********************************************************
       # add new supplemental heating coil
+      # *********************************************************
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
       if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
@@ -2739,14 +2757,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # set capacity of backup heat to meet full heating load
       new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
 
+      # *********************************************************
       # add new fan
+      # *********************************************************
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
       new_fan.setName("#{air_loop_hvac.name} VFD Fan")
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
 
+      # *********************************************************
       # set fan total efficiency, which determines fan power
+      # *********************************************************
       if hprtu_scenario == 'variable_speed_high_eff'
         # new_fan.setFanTotalEfficiency(0.57) # from PNNL
         std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
@@ -2767,7 +2789,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
-      # add new unitary system object
+      # *********************************************************
+      # add and configure new unitary system object
+      # *********************************************************
       new_air_to_air_heatpump = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_air_to_air_heatpump.setName("#{air_loop_hvac.name} Unitary Heat Pump System")
       new_air_to_air_heatpump.setSupplyFan(new_fan)
@@ -2799,7 +2823,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # set no load design flow rate
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
+      # *********************************************************
       # add dcv to air loop if dcv flag is true
+      # *********************************************************
       if dcv == true
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
@@ -2807,7 +2833,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         controller_mv.setDemandControlledVentilation(true)
       end
 
+      # *********************************************************
       # add economizer
+      # *********************************************************
       if econ == true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
@@ -2828,7 +2856,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       controller_oa = oa_system.getControllerOutdoorAir
       controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == 'NoEconomizer'
 
-      # Energy recovery
+      # *********************************************************
+      # add energy recovery
+      # *********************************************************
       # check for ERV, and get components
       # ERV components will be removed and replaced if ERV flag was selected
       # If ERV flag was not selected, ERV equipment will remain in place as-is
@@ -2846,7 +2876,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add energy recovery if specified by user and if the building type is applicable
       next unless (hr == true) && (btype_erv_applicable == true)
 
+      # *********************************************************
       # check for space type applicability
+      # *********************************************************
       thermal_zone_names_to_exclude = %w[Kitchen kitchen KITCHEN Dining dining DINING]
       # skip air loops that serve non-applicable space types and warn user
       if thermal_zone_names_to_exclude.any? { |word| thermal_zone.name.to_s.include?(word) }
