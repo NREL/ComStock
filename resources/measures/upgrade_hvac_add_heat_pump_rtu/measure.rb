@@ -1374,6 +1374,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
       cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
       cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
+    when 'carrier_48qe_duelfuel'
+      cool_cap_ft1 = model_add_curve(model, 'cap_mod_cooling_low_t', custom_data_json, std)
+      cool_cap_ft2 = model_add_curve(model, 'cap_mod_cooling_high_t', custom_data_json, std)
+      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2 }
     end
 
     # Curve Import - Cooling efficiency as a function of temperature
@@ -1398,6 +1402,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
       cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
       cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
+    when 'carrier_48qe_duelfuel'
+      cool_eir_ft1 = model_add_curve(model, 'eir_mod_cooling_low_t', custom_data_json, std)
+      cool_eir_ft2 = model_add_curve(model, 'eir_mod_cooling_high_t', custom_data_json, std)
+      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2 }
     end
 
     # Curve Import - Cooling capacity as a function of flow rate
@@ -1416,6 +1424,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
       cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
+    when 'carrier_48qe_duelfuel'
+      cool_cap_ff1 = model_add_curve(model, 'cap_mod_cooling_low_ff', custom_data_json, std)
+      cool_cap_ff2 = model_add_curve(model, 'cap_mod_cooling_high_ff', custom_data_json, std)
+      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff2 }
     end
 
     # Curve Import - Cooling efficiency as a function of flow rate
@@ -1434,6 +1446,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
       cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
+    when 'carrier_48qe_duelfuel'
+      cool_eir_ff1 = model_add_curve(model, 'eir_mod_cooling_low_ff', custom_data_json, std)
+      cool_eir_ff2 = model_add_curve(model, 'eir_mod_cooling_high_ff', custom_data_json, std)
+      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff2 }
     end
 
     # Curve Import - Cooling efficiency as a function of part load ratio
@@ -1446,6 +1462,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
     when 'cchpc_2027_spec'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
+    when 'carrier_48qe_duelfuel'
+      cool_plf_fplr1 = model_add_curve(model, 'plf_na_cooling_na_plr', custom_data_json, std)
     end
 
     # ---------------------------------------------------------
@@ -1471,6 +1489,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft3 = model_add_curve(model, 'h_cap_high', custom_data_json, std)
       heat_cap_ft4 = model_add_curve(model, 'h_cap_boost', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
+    when 'carrier_48qe_duelfuel'
+      heat_cap_ft1 = model_add_curve(model, 'cap_mod_heating_high_t', custom_data_json, std)
+      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1 }
     end
 
     # Curve Import - Heating efficiency as a function of temperature
@@ -1493,6 +1514,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft3 = model_add_curve(model, 'h_eir_high', custom_data_json, std)
       heat_eir_ft4 = model_add_curve(model, 'h_eir_boost', custom_data_json, std)
       heat_eir_ft_curve_stages = { 1 => heat_eir_ft1, 2 => heat_eir_ft2, 3 => heat_eir_ft3, 4 => heat_eir_ft4 }
+    when 'carrier_48qe_duelfuel'
+      heat_eir_ft1 = model_add_curve(model, 'eir_mod_heating_high_t', custom_data_json, std)
+      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1 }
     end
 
     # Curve Import - Heating capacity as a function of flow rate
@@ -1509,6 +1533,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
       heat_cap_ff_curve_stages = { 1 => heat_cap_ff1, 2 => heat_cap_ff1, 3 => heat_cap_ff1, 4 => heat_cap_ff1 }
+    when 'carrier_48qe_duelfuel'
+      heat_cap_ff1 = model_add_curve(model, 'cap_mod_heating_high_ff', custom_data_json, std)
+      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1 }
     end
 
     # Curve Import - Heating efficiency as a function of flow rate
@@ -1525,6 +1552,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
       heat_eir_ff_curve_stages = { 1 => heat_eir_ff1, 2 => heat_eir_ff1, 3 => heat_eir_ff1, 4 => heat_eir_ff1 }
+    when 'carrier_48qe_duelfuel'
+      heat_eir_ff1 = model_add_curve(model, 'eir_mod_heating_high_ff', custom_data_json, std)
+      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1 }
     end
 
     # Curve Import - Heating efficiency as a function of part load ratio
@@ -1538,6 +1568,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
     when 'cchpc_2027_spec'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
+    when 'carrier_48qe_duelfuel'
+      heat_plf_fplr1 = model_add_curve(model, 'plf_na_heating_na_plr', custom_data_json, std)
     end
 
     # Curve Import - Defrost energy as a function of temperature
@@ -1551,6 +1583,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
     when 'cchpc_2027_spec'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
+    when 'carrier_48qe_duelfuel'
+      defrost_eir = model_add_curve(model, 'eir_mod_defrost_na_na', custom_data_json, std)
     end
 
     # ---------------------------------------------------------
