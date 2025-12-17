@@ -484,7 +484,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated cooling COP from fitted regression - for Carrier duel fuel RTU (48QE)
-  def get_rated_cop_cooling_adv(rated_capacity_w)
+  def get_rated_cop_cooling_duelfuelrtu(rated_capacity_w)
     intercept = 3.99207113
     coef_1 = -0.00000969
     min_cop = 3.07
@@ -495,7 +495,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated heating COP from fitted regression - for Carrier duel fuel RTU (48QE)
-  def get_rated_cop_heating_adv(rated_capacity_w)
+  def get_rated_cop_heating_duelfuelrtu(rated_capacity_w)
     intercept = 3.83411768
     coef_1 = -0.00000337
     min_cop = 3.57
