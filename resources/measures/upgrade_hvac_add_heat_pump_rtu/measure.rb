@@ -156,7 +156,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # modify setbacks or not
     modify_setbacks = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_setbacks', false)
     modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks, according to value in setback value argument.')
-    modify_setbacks.setDefaultValue(true)
+    modify_setbacks.setDefaultValue(false)
     args << modify_setbacks
 
     # setback value
