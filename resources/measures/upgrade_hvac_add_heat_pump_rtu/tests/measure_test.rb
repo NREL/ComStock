@@ -297,6 +297,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     path_to_jsons = "#{__dir__}/../resources/*.json"
     json_files = Dir.glob(path_to_jsons)
     json_files.each do |file_path|
+      puts("### checking json file: #{file_path}")
       begin
         content = File.read(file_path)
         hash = JSON.parse(content, symbolize_names: true)
@@ -381,6 +382,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     json_files = Dir.glob(path_to_jsons)
 
     json_files.each do |file_path|
+      puts("### checking json file: #{file_path}")
       begin
         content = File.read(file_path)
         hash = JSON.parse(content, symbolize_names: true)
