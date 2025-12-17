@@ -489,8 +489,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     coef_1 = -0.00000969
     min_cop = 3.07
     max_cop = 3.91
-    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_cooling = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_w)
     rated_cop_cooling.clamp(min_cop, max_cop)
   end
 
@@ -500,8 +499,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     coef_1 = -0.00000337
     min_cop = 3.57
     max_cop = 3.89
-    rated_capacity_kw = rated_capacity_w / 1000 # W to kW
-    rated_cop_heating = intercept + (coef_1 * rated_capacity_kw)
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_w)
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
@@ -2369,12 +2367,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # ---------------------------------------------------------
       # adjust rated cooling cop
       if final_rated_cooling_cop == false
+        if hprtu_scenario == 'two_speed_standard_eff'
+          rated_cooling_cop = get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling])
+        elsif hprtu_scenario == 'variable_speed_high_eff'
+          rated_cooling_cop = get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling])
+        elsif hprtu_scenario == 'carrier_48qe_duelfuel'
+          rated_cooling_cop = get_rated_cop_cooling_duelfuelrtu(stage_caps_cooling[rated_stage_num_cooling])
+        else
+          rated_cooling_cop = get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling])
+        end
         final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_cooling[rated_stage_num_cooling],
                                                                         reference_cooling_cfm_per_ton,
                                                                         stage_caps_cooling[rated_stage_num_cooling],
-                                                                        get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        rated_cooling_cop,
                                                                         cool_eir_ff_curve_stages[rated_stage_num_cooling])
-        runner.registerInfo("sizing summary: rated cooling COP adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: rated cooling COP adjusted from #{rated_cooling_cop.round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated cooling COP = #{final_rated_cooling_cop.round(3)}")
       end
 
@@ -2407,12 +2414,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # ---------------------------------------------------------
       # adjust rated heating cop
       if final_rated_heating_cop == false
+        if hprtu_scenario == 'two_speed_standard_eff'
+          rated_heating_cop = get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating])
+        elsif hprtu_scenario == 'variable_speed_high_eff'
+          rated_heating_cop = get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating])
+        elsif hprtu_scenario == 'carrier_48qe_duelfuel'
+          rated_heating_cop = get_rated_cop_heating_duelfuelrtu(stage_caps_heating[rated_stage_num_heating])
+        else
+          rated_heating_cop = get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating])
+        end
         final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_heating[rated_stage_num_heating],
                                                                         reference_heating_cfm_per_ton,
                                                                         stage_caps_heating[rated_stage_num_heating],
-                                                                        get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
+                                                                        rated_heating_cop,
                                                                         heat_eir_ff_curve_stages[rated_stage_num_heating])
-        runner.registerInfo("sizing summary: rated heating COP adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: rated heating COP adjusted from #{rated_heating_cop.round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated heating COP = #{final_rated_heating_cop.round(3)}")
       end
 
