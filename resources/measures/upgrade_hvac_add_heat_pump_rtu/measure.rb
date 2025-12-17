@@ -979,6 +979,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     setback_value = runner.getDoubleArgumentValue('setback_value', user_arguments)
     modify_setbacks = runner.getBoolArgumentValue('modify_setbacks', user_arguments)
 
+    # ---------------------------------------------------------
     # build standard to use OS standards methods
     # ---------------------------------------------------------
     template = 'ComStock 90.1-2019'
@@ -1141,7 +1142,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       return true
     end
 
+    # ---------------------------------------------------------
     # call roof and/or window upgrades based on user input
+    # ---------------------------------------------------------
     condition_initial_roof = ''
     condition_final_roof = ''
     condition_initial_window = ''
@@ -1189,7 +1192,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       sql = sql.get if sql.is_initialized
     end
 
-    #########################################################################################################
+    # ---------------------------------------------------------
+    # Temporary section
+    # ---------------------------------------------------------
     ### This section includes temporary code to remove units with high OA fractiosn and night cycling
     ### This code should be removed when fix is initiated
     # add systems with high outdoor air ratios to a list for non-applicability
@@ -1270,8 +1275,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
       # remove area served by air loop from applicability
     end
-    ### End of temp section
-    #########################################################################################################
 
     # ---------------------------------------------------------
     # check if any air loops are applicable to measure
@@ -1341,8 +1344,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         [15.5556, 19.4444, 'HRV']
       end
 
+    
     # ---------------------------------------------------------
-    # load performance data for standard performance units
+    # load performance data from json files
     # ---------------------------------------------------------
     custom_data_json = nil
     # if cchpc scenarios are set, use those curves. else, use the standard performance curves
@@ -2693,7 +2697,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # ---------------------------------------------------------
     # report final condition of model
+    # ---------------------------------------------------------
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
     condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(' | ')
     runner.registerFinalCondition(condition_final)
