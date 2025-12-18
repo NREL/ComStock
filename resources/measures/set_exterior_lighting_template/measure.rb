@@ -173,8 +173,8 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
     }
 
     # load exterior_lighting_properties
-    # @todo allow variance in lighting generation and lighting zone number once available in openstudio-standards
-    exterior_lighting_properties = OpenstudioStandards::ExteriorLighting.model_get_exterior_lighting_properties(lighting_generation: 'default',
+    # @todo allow variance in lighting generation and lighting zone number once availabl ien openstudio-standards
+    exterior_lighting_properties = OpenstudioStandards::ExteriorLighting.exterior_lighting_properties(lighting_generation: 'default',
                                                                                                                 lighting_zone: 3)
     # make sure lighting properties were found
     if exterior_lighting_properties.nil?
@@ -183,7 +183,7 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
     end
 
     # get model specific values to map to exterior_lighting_properties
-    area_length_count_hash = OpenstudioStandards::ExteriorLighting.model_get_exterior_lighting_sizes(model)
+    area_length_count_hash = OpenstudioStandards::ExteriorLighting.exterior_lighting_sizes(model)
 
     # Modify existing exterior lights
     model.getExteriorLightss.each do |ext_lights|
