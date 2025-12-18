@@ -2411,11 +2411,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      # determine heating load curve; y=mx+b
+      # *********************************************************
+      # sizing: determine heating load curve; y=mx+b
+      # *********************************************************
       # assumes 0 load at 60F (15.556 C)
       htg_load_slope = (0 - orig_htg_coil_gross_cap) / (15.5556 - wntr_design_day_temp_c)
       htg_load_intercept = orig_htg_coil_gross_cap - (htg_load_slope * wntr_design_day_temp_c)
 
+      # *********************************************************
+      # sizing: get rated heating capacity with heating derating factor
+      # *********************************************************
       # calculate heat pump design load, derate factors, and required rated capacities (at stage 4) for different OA temperatures; assumes 75F interior temp (23.8889C)
       ia_temp_c = 23.8889
 
@@ -2431,6 +2436,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
+      # *********************************************************
+      # sizing: get upsized heating/cooling capacities based on user inputs
+      # *********************************************************
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
       # upsize total cooling capacity using user-specified factor
       autosized_tot_clg_cap_upsized = orig_clg_coil_gross_cap * clg_oversizing_estimate
@@ -2439,7 +2447,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # get maximum heating capacity based on max cooling capacity and heating-to-cooling ratio
       max_heat_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor + 1) * htg_to_clg_hp_ratio
 
-      # Sizing decision based on heating load level
+      # *********************************************************
+      # sizing: sizing decision based on heating load level
+      # *********************************************************
       heating_load_category = ''
       # If ratio of required heating capacity at rated conditions to cooling capacity is less than specified heating to cooling ratio, then size everything based on cooling
       # If heating load requires upsizing, but is below user-input cooling upsizing limit, then size based on design heating load
@@ -2495,6 +2505,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final upsizing percentage % = #{((dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap * 100).round(2)}")
       end
 
+      # *********************************************************
+      # sizing: get final upsizing factor
+      # *********************************************************
       # calculate applied upsizing factor
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
@@ -2512,7 +2525,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)}")
       end
 
-      # adjust if rated/highest stage cfm/ton is violated
+      # *********************************************************
+      # sizing: adjust if rated/highest stage cfm/ton is violated
+      # *********************************************************
       cfm_per_ton_rated_heating = m_3_per_sec_watts_to_cfm_per_ton(design_heating_airflow_m_3_per_s / dx_rated_htg_cap_applied)
       cfm_per_ton_rated_cooling = m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)
       if cfm_per_ton_rated_heating < CFM_PER_TON_MIN_RATED
@@ -2538,7 +2553,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: heating_load_category = #{heating_load_category}")
       end
 
-      # set airloop design airflow based on the maximum of heating and cooling design flow
+      # *********************************************************
+      # sizing: set airloop design airflow based on the maximum of heating and cooling design flow
+      # *********************************************************
       design_airflow_for_sizing_m_3_per_s = if design_cooling_airflow_m_3_per_s < design_heating_airflow_m_3_per_s
                                               design_heating_airflow_m_3_per_s
                                             else
@@ -2574,7 +2591,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: min_airflow_m3_per_s = #{min_airflow_m3_per_s}")
       end
 
-      # determine airflows for each stage of heating
+      # *********************************************************
+      # sizing: determine airflows for each stage of heating and cooling
+      # *********************************************************
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow
@@ -2588,7 +2607,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
-      # determine airflows for each stage of cooling
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_cooling = {}
@@ -2605,7 +2623,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
 
-      # heating - align stage CFM/ton bounds where possible
+      # *********************************************************
+      # sizing: align stage CFM/ton bounds where possible for heating/cooling
+      # *********************************************************
       # this may remove some lower stages
       stage_flows_heating, stage_caps_heating, _, _, num_heating_stages = adjust_cfm_per_ton_per_limits(
         stage_cap_fractions_heating,
