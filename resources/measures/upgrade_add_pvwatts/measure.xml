@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_pvwatts</name>
   <uid>028f219f-d1a4-4f92-985b-08fc5127fe6d</uid>
-  <version_id>2abbc023-df48-472d-94f9-d443096dde2c</version_id>
-  <version_modified>2025-07-16T15:10:35Z</version_modified>
+  <version_id>8453d34b-bbd7-41fd-b886-ec612e6892b3</version_id>
+  <version_modified>2025-12-18T16:36:15Z</version_modified>
   <xml_checksum>A66F5BE5</xml_checksum>
   <class_name>UpgradeAddPvwatts</class_name>
   <display_name>upgrade_add_pvwatts</display_name>
@@ -111,13 +111,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C466193D</checksum>
+      <checksum>BF18D985</checksum>
     </file>
     <file>
       <filename>deer_t24_2022.battery_storage_system.json</filename>
       <filetype>json</filetype>
       <usage_type>resource</usage_type>
-      <checksum>E94BC18F</checksum>
+      <checksum>7587752F</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -129,7 +129,7 @@
       <filename>upgrade_add_pvwatts_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>BE3642F9</checksum>
+      <checksum>150B4F00</checksum>
     </file>
   </files>
 </measure>

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>df_load_shed</name>
   <uid>8de4bbcc-0430-4f71-8131-0467cbb6f9a4</uid>
-  <version_id>9b291031-0829-4497-b130-2fbe09ce605b</version_id>
-  <version_modified>2025-07-15T22:20:24Z</version_modified>
+  <version_id>31dbb1ef-7170-4b17-9ca9-f8129f450d8c</version_id>
+  <version_modified>2025-12-18T16:36:15Z</version_modified>
   <xml_checksum>D7E77FC2</xml_checksum>
   <class_name>DFLoadShed</class_name>
   <display_name>demand flexibility - thermostat and lighting control for load shedding</display_name>
@@ -130,7 +130,7 @@
     </argument>
     <argument>
       <name>num_timesteps_in_hr</name>
-      <display_name>Number/Count of timesteps in an hour for sample simulations</display_name>
+      <display_name>Number/Count of timesteps in an hour for sample simulations (will be fixed to 1 for grid peak load / emissions objective)</display_name>
       <type>Integer</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -365,13 +365,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1CEB009C</checksum>
+      <checksum>46F639C5</checksum>
     </file>
     <file>
       <filename>call_other_measures.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B4E18059</checksum>
+      <checksum>C2EC5AA0</checksum>
     </file>
     <file>
       <filename>cambium/LRMER_HighRECost_15/AZNMc.csv</filename>
@@ -863,7 +863,7 @@
       <filename>dispatch_schedule_generation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>0F986875</checksum>
+      <checksum>2D5910BC</checksum>
     </file>
     <file>
       <filename>egrid/README.md</filename>
@@ -887,7 +887,7 @@
       <filename>df_load_shed_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>AE3CAF04</checksum>
+      <checksum>FB102926</checksum>
     </file>
   </files>
 </measure>
