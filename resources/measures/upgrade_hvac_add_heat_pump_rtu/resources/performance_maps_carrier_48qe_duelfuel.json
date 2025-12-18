@@ -285,15 +285,15 @@
                     "dependent_variable": "CapRatio",
                     "independent_variable_1": "FlowFraction",
                     "independent_variable_2": null,
-                    "coeff_1": 0.784604,
-                    "coeff_2": 0.212229,
-                    "coeff_3": 0,
-                    "minimum_independent_variable_1": 0.56,
-                    "maximum_independent_variable_1": 1.32,
+                    "coeff_1": 0.69109,
+                    "coeff_2": 0.42775,
+                    "coeff_3": -0.11933,
+                    "minimum_independent_variable_1": 0.682,
+                    "maximum_independent_variable_1": 1.328,
                     "minimum_independent_variable_2": null,
                     "maximum_independent_variable_2": null,
-                    "minimum_dependent_variable_output": 0.89,
-                    "maximum_dependent_variable_output": 1.05
+                    "minimum_dependent_variable_output": 0.927,
+                    "maximum_dependent_variable_output": 1.049
                 },
                 {
                     "name": "cap_mod_heating_high_ff",
