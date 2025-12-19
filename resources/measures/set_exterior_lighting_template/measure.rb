@@ -183,7 +183,7 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
     end
 
     # get model specific values to map to exterior_lighting_properties
-    area_length_count_hash = OpenstudioStandards::ExteriorLighting.exterior_lighting_sizes(model)
+    area_length_count_hash = OpenstudioStandards::ExteriorLighting.model_get_exterior_lighting_sizes(model)
 
     # Modify existing exterior lights
     model.getExteriorLightss.each do |ext_lights|
