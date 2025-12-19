@@ -6,28 +6,42 @@ FROM nrel/openstudio:3.10.0 as os-base
 
 LABEL maintainer="Henry (Ry) Horsey henry.horsey@nrel.gov"
 
+# Ensure CA tooling exists in this stage (needed for Bundler TLS verification)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      openssl \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the Gemfile from the ComStock Repo into the container
 COPY /resources/Gemfile /var/oscli/
 
-# Install NREL root certs
-RUN curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
-  curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
-  update-ca-certificates
+# Install NREL root certs (current version per nrel-certs repo)
+RUN mkdir -p /usr/local/share/ca-certificates && \
+  curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20251216/certs/nrel_root.pem && \
+  curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20251216/certs/nrel_xca1.pem && \
+  update-ca-certificates && \
+  ln -sf /etc/ssl/certs/ca-certificates.crt /usr/lib/ssl/cert.pem && \
+  ln -sfn /etc/ssl/certs /usr/lib/ssl/certs
 
+# Force runtimes (Ruby/Bundler/OpenSSL/curl) to use the system trust store
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV SSL_CERT_DIR=/etc/ssl/certs
+ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 # Install custom gems
-ENV BUNDLE_WITHOUT=
 RUN bundle config set git.allow_insecure true \
     && bundle config set path /var/oscli/gems/ \
     && bundle config set without 'test' \
     && bundle install --gemfile /var/oscli/Gemfile \
-    && openstudio --verbose --bundle /var/oscli/Gemfile --bundle_path /var/oscli/gems --bundle_without test  gem_list \
+    && openstudio --verbose --bundle /var/oscli/Gemfile --bundle_path /var/oscli/gems --bundle_without test gem_list \
     && bundle config
 
 # Remove blobs from gems installed through git
 RUN rm -rf /var/oscli/gems/ruby/3.2.0/bundler/gems/**/.git \
     /var/oscli/gems/ruby/3.2.0/bundler/gems/**/test \
     /var/oscli/gems/ruby/3.2.0/cache/bundler
+
 
 # Create a slimmer container without development libraries leftover by OpenStudio
 FROM ubuntu:22.04 AS os-comstock
@@ -57,13 +71,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             build-essential \
             curl \
             ca-certificates \
+            openssl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install NREL root certs (current version per nrel-certs repo)
 RUN mkdir -p /usr/local/share/ca-certificates && \
-    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_root.pem && \
-    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20180329/certs/nrel_xca1.pem && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_root.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20251216/certs/nrel_root.pem && \
+    curl -fsSLk -o /usr/local/share/ca-certificates/nrel_xca1.crt https://raw.github.nrel.gov/TADA/nrel-certs/v20251216/certs/nrel_xca1.pem && \
     update-ca-certificates
 
+# Force curl/python/etc. to use the system trust store in this final image too
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV SSL_CERT_DIR=/etc/ssl/certs
+ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update && apt-get install -y \
     software-properties-common tzdata && \
