@@ -3432,7 +3432,7 @@ class PlottingMixin():
         df_data = df.copy()
         # coerce data type of upgrade ID - arrives as float, need str of int for querying
         df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
-        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0") & (df_data[self.UPGRADE_ID]!=0), :]
+        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0"), :]
         upgrade_num = list(df_upgrade[self.UPGRADE_ID].unique())
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
