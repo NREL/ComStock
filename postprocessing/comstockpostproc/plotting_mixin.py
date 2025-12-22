@@ -15,7 +15,6 @@ import sys
 from buildstock_query import BuildStockQuery
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
-import comstockpostproc.comstock as comstock
 from comstockpostproc.comstock_query_builder import ComStockQueryBuilder
 import fsspec
 import s3fs
