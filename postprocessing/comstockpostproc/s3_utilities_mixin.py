@@ -161,7 +161,6 @@ class S3UtilitiesMixin:
             s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
             # print(f"Downloading {s3_file_path} from s3 bucket {bucket_name} to {local_path}...")
             s3_client.download_file(bucket_name, s3_file_path, local_path)
-            self.s3_client.download_file(bucket_name, s3_file_path, local_path)
 
         return local_path
 

@@ -20,12 +20,15 @@ from pathlib import Path
 import boto3
 import botocore
 import botocore.exceptions
+from joblib import Parallel, delayed
 import numpy as np
 import pandas as pd
 import polars as pl
 import s3fs
-from joblib import Parallel, delayed
-from natsort import natsorted
+import re
+import datetime
+from natsort import natsort_keygen, natsorted
+from pathlib import Path
 
 from buildstock_query import BuildStockQuery
 from .comstock_query_builder import ComStockQueryBuilder
@@ -109,8 +112,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # TODO our current credential setup aren't playing well with this approach but does with the s3 ServiceResource
         # We are currently unable to list the HeadObject for automatically uploaded data
         # Consider migrating all usage to s3 ServiceResource instead.
-        self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
-        self.s3_resource = boto3.resource('s3')
+        # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
+        # self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
             self.athena_client = BuildStockQuery(workgroup='eulp',
                                                  db_name='enduse',
@@ -161,7 +164,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     upgrade_pqts.append(f's3://{p}')
                 else:
                     upgrade_pqts.append(p)
-            upgrade_pqts.sort()
+            upgrade_pqts.sort(key=natsort_keygen())
             if len(upgrade_pqts) > 0:
                 upgrade_dfs = []
                 for file_path in upgrade_pqts:
