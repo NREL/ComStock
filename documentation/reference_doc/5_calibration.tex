@@ -1,0 +1,131 @@
+\usepackage[acronym]{glossaries}
+\makeglossaries
+
+\newacronym{cbecs}{CBECS}{Commercial Building Energy Consumption Survey}
+\newacronym{eulp}{EULP}{End-Use Load Profile}
+\newacronym{ami}{AMI}{Advanced Metering Infrastructure}
+
+\chapter{ComStock Calibration}
+
+\section{Introduction and Purpose}
+Calibration in ComStock represents an ongoing validation process designed to ensure the accuracy and reliability of the modeled energy consumption data. This comprehensive approach validates model outputs against real-world building energy performance data while maintaining generalizability across the national commercial building stock. 
+
+The calibration framework for ComStock utilized herein uses a multi-source approach, comparing ComStock's outputs against observed energy consumption data from the Commercial Building Energy Consumption Survey (\gls{cbecs}) and the End-Use Load Profile (\gls{eulp}) Advanced Metering Infrastructure (\gls{ami}) datasets. These comparisons enable the identification of model discrepancies and inform targeted adjustments to enhance the performance and validity of ComStock's models.
+
+For the purposes of this documentation, calibration refers specifically to the validation process using observed energy consumption data. While additional calibration-related activities occur throughout the broader modeling process, including the identification and development of data sources for input distributions and other model parameters, this chapter focuses on the consolidated energy-based calibration outcomes. These activities represent the culmination of multiple upstream calibration efforts that contribute to the final validation framework. While intermediate calibration steps are not detailed here, relevant ground-truth data sources are identified where applicable to provide transparency in the validation methodology.
+
+\section{Data Sources, Interpretation and Considerations}
+The two data sources used for this calibration effort are the Commercial Building Energy Consumption Survey (CBECS) 2018 and the End-Use Load Profile (EULP) Advanced Metering Infrastructure (AMI) datasets (version 2022).
+
+\gls{cbecs} serves a dual function in the ComStock framework. It acts both as a calibration reference and as a source for input parameter distributions, including building characteristics such as floor area. The survey provides detailed information on energy consumption patterns across commercial building types. This information forms the foundation for some of ComStock's model development and validation through the calibration and scaling of statistical distributions applied to model results. 
+
+The EULP AMI datasets provide complementary high-resolution, time-series energy consumption data that enables granular temporal analysis and further validation of ComStock outputs. For comparative analysis purposes, the EULP AMI datasets are normalized to peak loads to derive load shape profiles, focusing on temporal consumption patterns rather than absolute demand magnitudes when benchmarking against ComStock model results. Additional methodological details are available in the EULP report, though data limitations should be considered when interpreting results.
+
+Calibration efforts will never fully eliminate discrepancies between modeled and observed energy consumption data. However, they aim to minimize these discrepancies, understand trends, and enhance the overall reliability of the ComStock framework. Confidence intervals shown in the calibration plots are derived separately for the CBECS and AMI datasets and represent different sources of uncertainty. For comparisons based on \gls{cbecs}, confidence intervals are calculated using the survey's replicate-weight methodology, consistent with the U.S. Energy Information Administration’s design-based inference approach. These intervals quantify sampling uncertainty associated with the nationally representative survey design rather than uncertainty in the ComStock modeling framework. Because ComStock applies custom building-type definitions, aggregations, and segmentation that could differ from published CBECS summary tables, confidence intervals are recomputed directly using the CBECS replicate weights to ensure methodological consistency with the ComStock analytical framework. Additional details on replicate-weight construction and variance estimation are provided in the CBECS 2018 Technical Documentation. 
+
+For comparisons based on the \gls{eulp} AMI datasets, 80\% confidence intervals are shown to characterize variability in observed load shapes and aggregate energy patterns across the available sample of metered buildings. These confidence intervals are calculated using standard statistical methods to describe uncertainty around the sample mean and are intended to support interpretation of the robustness and stability of the observed temporal profiles rather than to imply national representativeness. As the number of AMI samples increases, confidence in both the magnitude and temporal shape of the derived load profiles increases accordingly. In contrast to CBECS, AMI confidence intervals primarily reflect sample size and observed variability rather than survey design. 
+ 
+Together, these confidence intervals provide complementary context for interpreting calibration results. CBECS confidence intervals indicate whether modeled results align with nationally representative energy use within sampling uncertainty, while AMI confidence intervals support evaluation of temporal consistency and end-use behavior in observed metered data. 
+
+The calibration results should be used to understand directional accuracy and identify potential improvement areas. They support an understanding of which data points are most calibrated and how well they can be trusted. For example, if natural gas energy totals are not within the confidence interval of CBECS for a specific census division, then the represented savings should be interpreted with caution in that location. The comparisons shown within the calibration plots illustrate how well the model captures observed trends and variations in energy consumption, but they do not account for exact building-level accuracy across the national commercial building stock.
+
+\subsection{How to Interpret the Calibration Plots} 
+
+The calibration plots presented in the next section are intended to support interpretation of how well ComStock captures observed energy consumption patterns across building types, regions, fuels, and temporal dimensions. Each plot compares modeled results against observed data using confidence intervals to provide context for uncertainty rather than a single point of comparison. 
+
+For plots based on \gls{cbecs}, modeled values should be interpreted relative to the 95\% confidence intervals derived from the survey's replicate-weight methodology. Alignment within these confidence intervals indicates consistency with nationally representative energy consumption within sampling uncertainty. Modeled values that fall outside the confidence interval may indicate systematic bias, regional variation not fully captured by the model, or limitations in available input data, and should be interpreted with caution rather than as definitive error. Figures {fig:elec_buildingtype_ci} and {fig:ng_buildingtype_ci} both highlight the modeled electricity and natural gas total energy consumption by building type values that fall within or outside of \gls{cbecs}' confidence intervals.
+
+For plots based on \gls{eulp} AMI data, comparisons focus on the temporal shape and relative distribution of energy use rather than absolute magnitude. The 80\% confidence intervals shown for AMI-based plots characterize the variability of observed load shapes across the available sample of metered buildings. Narrow confidence intervals indicate greater confidence in the stability of the observed profile, while wider intervals reflect greater variability or smaller sample sizes. These intervals are not intended to imply national representativeness. Figure {fig:ami_fc_so_norm} illustrates the load profiles for different seasons of the year during weekdays and weekends for Full Service Restaurants in the Fort Collins area (this example is one of the many AMI regions we have available).  The black lines highlight the 80\% confidence interval with the AMI data used for comparison and how it varies during the 24 hour time period.
+
+Across all calibration plots, emphasis should be placed on directional agreement, relative trends, and consistency across fuels, end uses, and time periods rather than exact numerical agreement. The calibration results are most appropriately used to assess model robustness and identify areas for potential improvement, rather than to infer building-level accuracy for individual sites. 
+
+There are challenges associated with comparing ComStock to multiple datasets. For some regions or building types, the \gls{eulp} AMI and \gls{cbecs} data agree well with ComStock's data, but in others they disagree. Rather than choosing a single “best” dataset for comparison, we decided to present a comparison of ComStock to both the CBECS and AMI whenever possible. Because the magnitude of the \gls{eulp} AMI data sometimes disagrees with the \gls{cbecs} data, the \gls{eulp} AMI load profiles comparisons are presented in both raw form, reflecting the magnitude and shape of the \gls{eulp} AMI data, as well as normalized form, where both ComStock and the \gls{eulp} AMI data are normalized to an annual profile which sums to one. This removes a difference in magnitude from the comparison.
+
+For small offices in particular, as seen below, the EUI distributions for ComStock, \gls{eulp} AMI, and \gls{cbecs} for most regions overlap significantly, although the ComStock distributions are more tightly centered around the median. There is a noticeable difference in the means, where the \gls{eulp} AMI tends to be lower than both ComStock and \gls{cbecs}. The normalized \gls{eulp} AMI load profiles could show that the overall load shape is a good match for the \gls{eulp} AMI data, and the non-normalized profiles which could show that in some regions, ComStock's magnitude is slightly too low.
+
+The gross floor area is based on sampling rather than modeling.  Please refer to the sampling documentation in Section 3 in this documentation for more detail.  
+
+Lastly, the calibration plot examples below are just a handful of the many comparisons that were made during the calibration process. The calibration plots are included in each dataset release for ComStock so users can see the most up to date comparisons. Please refer to the \href{https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=nrel-pds-building-stock%2Fend-use-load-profiles-for-us-building-stock%2F2025%2Fcomstock_amy2018_release_3%2Fcomparison_plots%2F&limit=50}{OEDI dataset} for the most recent calibration plots. 
+
+\subsection{Calibration Plot Examples}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/sqft_by_comstock_building_type.jpg}
+    \caption[Square Footage by ComStock Building Type]{Square Footage by ComStock Building Type}
+    \label{fig:sqft_buildingtype}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/sqft_by_census_division_name.jpg}
+    \caption[Square Footage by Census Division]{Square Footage by Census Division}
+    \label{fig:sqft_census_division}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/electricity_by_comstock_building_type_wCI.png}
+    \caption[Electricity Total Energy Consumption (tbtu) by ComStock Building Type]{Electricity Total Energy Consumption (tbtu) by ComStock Building Type}
+    \label{fig:elec_buildingtype_ci}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/bp_electricity_intensity_by_comstock_building_type.jpg}
+    \caption[Electricity Intensity (kwh/sf) by ComStock Building Type]{Electricity Intensity (kwh/sf) by ComStock Building Type}
+    \label{fig:bp_elec_intensity_by_buildingtype}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/electricity_by_census_division_name.jpg}
+    \caption[Electricity Total Energy Consumption (tbtu) by Census Division]{Electricity Total Energy Consumption (tbtu) by Census Division}
+    \label{fig:elec_census_division}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/natural_gas_by_comstock_building_type_wCI.png}
+    \caption[Natural Gas Total Energy Consumption (tbtu) by ComStock Building Type]{Natural Gas Total Energy Consumption (tbtu) by ComStock Building Type}
+    \label{fig:ng_buildingtype_ci}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/bp_natural_gas_intensity_by_comstock_building_type.jpg}
+    \caption[Natural Gas Intensity (kwh/sf) by ComStock Building Type]{Natural Gas Intensity (kwh/sf) by ComStock Building Type}
+    \label{fig:bp_ng_intensity_by_buildingtype}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/CBECS_2018_vs_ComStock_2025/natural_gas_by_census_division_name.jpg}
+    \caption[Natural Gas Total Energy Consumption (tbtu) by Census Division]{Natural Gas Total Energy Consumption (tbtu) by Census Division}
+    \label{fig:ng_census_division}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/ComStock_vs_AMI/fort_collins_amiv01_small_office_annual_normalized_day_type_comparison_by_enduse.png}
+    \caption[Fort Collins Small Office Annual Normalized Day Type Comparison by Enduse]{Fort Collins Small Office Annual Normalized Day Type Comparison by Enduse}
+    \label{fig:ami_fc_so_norm}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/ComStock_vs_AMI/fort_collins_amiv01_small_office_day_type_comparison_by_enduse.png}
+    \caption[Fort Collins Small Office Day Type Comparison by Enduse]{Fort Collins Small Office Day Type Comparison by Enduse}
+    \label{fig:ami_fc_so}
+\end{figure}
+

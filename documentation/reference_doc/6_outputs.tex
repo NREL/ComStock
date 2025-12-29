@@ -1,0 +1,303 @@
+\chapter{ComStock Outputs}
+ComStock creates a wide array of data that can be analyzed and aggregated to draw conclusions. While it is common to look at how results vary by building type and climate zone, ComStock provides a wide range of outputs not traditionally provided in large-scale analyses, with the hope of providing maximum utility.
+
+Sections \ref{rawsimulationresults} and \ref{dataviewer} describe how to access ComStock outputs. Additionally, the sample building energy models are available at \url{https://data.openei.org/} in the nrel-pds-building-stock data lake. See the README.md file for details.
+
+\section{Energy Consumption by Fuel and End Use}
+ComStock provides energy consumption by fuel and end use at both an annual and time-series (typically 15-minute time steps for one year) resolution. Not all combinations of fuels and end uses are found in ComStock. The definitions below describe the fuels and end uses in detail.
+
+ComStock provides modeled energy consumption for the following \textbf{fuels}:
+
+\begin{itemize}
+  \item \textbf{Electricity}: This represents the electricity that is delivered to the building through the power grid and consumed on-site. How this electricity is generated depends on the generation mix found on the power grid in the region serving the building. This does not include electricity that is generated through a backup generator.
+  \item \textbf{Natural Gas}: This represents the natural gas that is delivered to the building through the natural gas pipeline system and consumed on-site.
+  \item \textbf{Propane}: This represents the propane that is delivered to the building in tanks and consumed on-site.
+  \item \textbf{Fuel Oil}: This represents the liquid fuel oil that is delivered to the building, stored in tanks, and consumed on-site.
+  \item \textbf{Other Fuel}: In some ComStock outputs, propane and fuel oil are combined and reported together as ``other fuel'' due to reporting limitations in the simulation engine. Where this is the case, propane and fuel oil are not reported separately to avoid double-counting.
+  \item \textbf{District Heating}: This represents the hot water or steam that is delivered to the building through a district heating piping system and consumed on-site. The quantity of energy consumed represents only the energy extracted from the district heating system by the building; it does not represent the consumption of electricity or natural gas at the district heating plant required to provide heat to the building. In order to capture the energy consumption of the district heating plant, assumptions about distribution heat losses, pumping power, and district heating plant equipment efficiency and controls may be made.
+  \item \textbf{District Cooling}: This represents the chilled water that is delivered to the building through a district cooling piping system and consumed on-site. The quantity of energy consumed represents only the energy extracted from the district cooling system by the building; it does not represent the consumption of electricity or natural gas at the district cooling plant required to provide chilled water to the building. In order to capture the energy consumption of the district cooling plant, assumptions about distribution heat gains, pumping power, and district cooling plant equipment efficiency and controls may be made.
+\end{itemize}
+
+ComStock provides modeled energy consumption for the following \textbf{end uses} for each applicable fuel:
+
+\begin{itemize}
+\item \textbf{Cooling}: This includes all energy consumed by primary cooling equipment such as chillers, direct expansion air conditioners (includes condenser fan energy), and direct expansion heat pumps in cooling mode (includes condenser fan energy). This also includes parasitic energy consumption of the equipment, such as pan heaters, defrost energy, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Heating}: This represents all energy consumed by primary heating equipment such as boilers, furnaces, natural gas heating coils, electric resistance strip heating coils, and direct expansion heat pumps in heating mode (includes evaporator fan energy). This also includes parasitic energy consumption of the equipment, such as pilot lights, standby losses, defrost energy, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Fans}: This includes all energy consumed by supply fans, return fans, exhaust fans, and kitchen hoods in the building. It excludes the condenser fan energy from direct expansion coils, which is captured in cooling and heating, as described above.
+\item \textbf{Pumps}: This includes all energy consumed by pumps for the purpose of moving hot water for heating and service water heating, chilled water for cooling, and condenser water for heat rejection.
+\item \textbf{Heat Recovery}: This includes the energy used to turn heat or enthalpy wheels, plus the increased fan energy associated with the increased pressure rise caused by the heat recovery wheels.
+\item \textbf{Heat Rejection}: This includes the energy used to run cooling towers and fluid coolers to reject heat from the condenser water loop to the air. As previously noted, condenser fans on direct expansion cooling and heating coils are included in heating and cooling.
+\item \textbf{Humidification}: This includes all energy used to purposely increase humidity in the building. Most buildings are assumed not to use humidification.
+\item \textbf{Water Systems}: This includes all energy consumed by the primary service hot water supply equipment, such as boilers and water heaters. This also includes parasitic energy consumption of the equipment, such as pilot lights, standby losses, and any energy needed to overcome modeled pipe losses.
+\item \textbf{Refrigeration}: This includes all energy used by large refrigeration cases and walk-ins such as those commonly found in grocery stores and large commercial kitchens. Plug-in refrigerators, such as those commonly found in the checkout areas of retail stores, are included in interior equipment.
+\item \textbf{Interior Lighting}: This includes all energy used to light the interior of the building, including general lighting, task lighting, accent lighting, and exit lighting.
+\item \textbf{Exterior Lighting}: This includes all energy used to light the exterior of the building and the surrounding area, including parking lot lighting, entryway illumination, and wall washing.
+\item \textbf{Interior Equipment}: This includes all energy used in the building that was not included in one of the other categories. This covers miscellaneous electric loads such as computers and monitors, large equipment such as elevators, and special-purpose equipment such as data center and IT-closet servers. This is a large and coarse bin, largely because the variety of energy-consuming devices found in buildings is large and little comprehensive data are available.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics
+    [width=\textwidth]{figures/Segments_typology.png}
+    \caption[Example of ComStock Results]{Example ComStock Results}
+    \label{fig:segments_typology}
+\end{figure}
+
+\section{Building Characteristics}
+In addition to energy consumption data, ComStock outputs include a variety of building input characteristics. Most of these are either direct or indirect inputs to the building model generation workflow. Units for these characteristics are described in the files that accompany the ComStock data sets. Names and descriptions for these characteristics are included in Table \ref{tab:building_input_characteristics}.
+
+\input{tables/building_input_characteristics}
+\pagebreak
+\section{Building Summary Statistics}
+In addition to the building input characteristics, ComStock outputs include a variety of summary statistic information about the building.  These statistics captures building characteristics that result from the complex rules that are applied to HVAC systems after sizing routines and are therefore not easy to discern from the building input characteristics. Units for these outputs are described in the files that accompany the ComStock data sets. Names and descriptions for these summary statistics are included in Table \ref{tab:building_summary_stats}
+
+\section{Greenhouse Gas Emissions Reporting}
+ComStock calculates the greenhouse gas emissions from the building stock and savings from measures using both historical and projected emissions data.
+
+\subsection{Electricity Emissions}
+\subsubsection{eGRID Historical Emissions}
+Historical emissions use the CO\textsubscript{2}-equivalent total output emission rate from EPA's Emissions and Generation Resource Integrated Database (eGRID)\citep{egrid2020}. ComStock results include the historical emissions for 2018, 2019, 2020, and 2021 using eGRID U.S. state and eGRID subregion emissions factors. eGRID regions are similar to Cambium grid regions but not identical. Notably, eGrid separates out New York into upstate, New York City, and Long Island. Cambium uses a whole-state average, and historical emissions use the New York state average instead of the grid region for New York buildings. Historical eGrid emissions rates are an \textit{annual} average multiplied by the total annual electricity use.
+
+\subsubsection{Cambium Projected Emissions}
+Projected emissions use data from NREL's Cambium 2022 data set \citep{cambium2022}. Projected emissions consider both the average emissions rate (AER) and the long-run marginal emission rate (LRMER).  LRMER, described in \cite{GAGNON2022103915}, is an estimate of the rate of emissions that would be either induced or avoided by a long-term (i.e., more than several years) change in electrical demand.  LRMER data is levelized over 15 and 30 years\citep{cambium2022}. ComStock results including End Use Savings Shapes round 1 results and earlier projects used emissions factors from the Cambium 2021 data \citep{cambium2021},\citep{lrmer_data2022}.
+
+\subsection{On Site Fossil Fuel Emissions}
+Natural gas, propane, and fuel oil emissions use the emission factors in \textit{Table 7.1.2(1) of draft National Average Emission Factors for Household Combustion Fuels} defined in \textit{ANSI/RESNET/ICCC 301-2022 Addendum B-2022 Standard for the Calculation and Labeling of the Energy Performance of Dwelling and Sleeping Units using an Energy Rating Index}. Natural gas emissions include both combustion and pre-combustion emissions (e.g., methane leakage for natural gas).
+
+On-Site Fossil Fuel Emissions Factors:\\
+Natural gas: 147.3 lb/MMBtu (228.0 kg/MWh)\\
+Propane: 177.8 lb/MMBtu (275.7 kg/MWh)\\
+Fuel oil: 195.9 lb/MMBtu (303.2 kg/MWh)\\
+
+\subsection{District Energy Emissions}
+District heating and cooling emissions use the emissions factors defined in the August 2024 version of the \textit{Energy Star Portfolio Manager Technical Reference} available at \url{https://portfoliomanager.energystar.gov/pdf/reference/Emissions.pdf}. The district heating emissions factor is the same for both steam and hot water. The district cooling emissions factor assumes district chilled water served by electric driver chillers. The emissions factors were originally sourced from EIA data for district chilled water and the EPA voluntary reporting program for district steam and hot water. These district emissions factors do not include upstream methane leakage. There is considerable variation by location and type of district system, so you may need to scale the results by factors specific to your region or system.
+
+On-Site Fossil Fuel Emissions Factors:\\
+District Cooling: 52.70 kg/MMBtu\\
+District Heating: 66.40 kg/MMBtu\\
+
+\subsection{Air Pollution from On Site Fossil Fuel Combustion}
+ComStock reports annual pollution emissions for NOx, CO, PM, SO2 from on-site combustion of natural gas, propane, and fuel oil. Emission factors are from U.S. EPA \textit{AP-42: Compilation of Air Emissions Factors from Stationary Sources}\citep{epa_ap42}. Natural gas emissions use emissions factors from AP-42 Table 1.4-2 and particulate emissions are reported as \textit{total} PM. Propane emissions use emissions factors from AP-42 Table 1.5-1 and particulate emissions are reported as \textit{total} PM. Fuel oil emissions use emissions factors for No.2 fuel oil from AP-42 Table 1.3-1 and particulate emissions are reported as \textit{filterable} PM.
+ComStock does not report air pollution from electricity generation, because grid emissions vary considerably by grid region and are typically located far away from the building site.
+
+\section{Utility Bills}
+ComStock estimates utility bills for several of the primary fuels consumed in buildings.
+Although the rest of ComStock represents the building stock circa 2018, the utility bill estimates reflect utility rates
+circa 2022, which was the most recent year of data available from EIA at the time of implementation. We made this choice
+because most users of the data were assumed to prefer bills that most closely reflect the present for decision making.
+
+\subsection{Electric Bills}
+The primary resource for the electric utility rates is the Utility Rate Database (URDB) \citep{urdb}. This database contains machine-readable descriptions of electric rate structures which have been compiled by manually processing utility rate documentation published by utilities.
+
+\subsubsection{Rate Selection}
+URDB contains electric rates that span all sectors (residential, commercial, industrial, etc.), so we limited the rates to those applicable to commercial buildings. First, we filtered down to rates identified as serving the commercial sector and not supplied at transmission voltage. Second, we processed the utility rate names to eliminate rates serving non-building loads based on certain keywords. The list of keywords included Agriculture, Irrigation, Farming, Pump, Snow, Vehicle, Oil, Cotton Gin, Outdoor Light, Security Light, Street, Wholesale, Recreation, Heating (typically found in names of heating-only rates), Substation, and Electric Motor Standby. We downloaded the detailed rate structure data in JSON format for the selected 13,923 rates.
+
+Next, we fed each utility rate and an 8,760-hour electric consumption profile from a Small Hotel building energy model to NREL PySAM \citep{pysam} to calculate an annual electric bill. We eliminated rates with an annual average blended price below \$0.01/kWh. Upon reading the names and comments included with these rates, we found that they were mostly fixed rates for individual pieces of equipment such as cable or internet infrastructure that are not metered. We also eliminated rates with an annual average blended price above \$0.45/kWh, except in the case of AK or HI, which legitimately have high rates. Some of the high rates appeared to be data entry errors. We also removed rates where PySam could not calculate an annual bill based on the rate data. Overall, this process resulted in 10,623 remaining rates spread across 2,658 utilities. 90\% of the utilities have 8 or fewer rates. The remainder have more rates, with the most (~200) belonging to Southern California Edison. These rates cover 85\% of the buildings and 85\% of the floor area in ComStock. Rates are stored in machine-readable JSON format and organized by EIA Utility Identifier.
+
+A distribution of blended rates calculated using URDB was compared to a distribution of the blended rates calculated using data from EIA \citep{eia_electricity}. The median blended price in the URDB rates was about \$0.08/kWh, while the median blended price reported to EIA in 2022 was \$0.12/kWh, which is about 50\% higher than URDB. An analysis of the start date fields for the rates selected from URDB showed a median start date of 2013, which is more than ten years old at the time of writing.
+
+In order to understand the change in rates between 2013 and 2022, a pairwise analysis of the utilities reporting to EIA \citep{eia_electricity} in both years was performed, and a state-wide average annual change was calculated. The median increase was 1-3\% per year. Thus in many cases the rates have increased by (2\%/yr * (2022-2013)) = 18\% or more between 2013 and 2022.
+
+\subsubsection{Electric Utility Assignment}
+To assign an electric rate to a building in ComStock, we need to know which electric utility serves it. We joined the U.S. DOE Electric Utility Companies and Rates Look-up by Zipcode \citep{zip_to_util} with the U.S. HUD USPS ZIP Code Crosswalk Files \citep{tract_to_zip} to create a mapping between census tracts and utilities. This was done using both 2010 and 2020 census tracts, because ComStock uses a mix of both.
+As previously described, rates are assigned to 85\% of the buildings in ComStock, and cover 85\% of the weighted floor area. There are approximately 37,734 ZIP Codes in the United States. The dataset does not have an electric utility assignment for 738 of these ZIP Codes, which are spread across many states. There are 3,946 census tracts covered by these ZIP Codes which therefore do not have an electric utility assigned. Manually filling these missing mappings could be done in future work.
+
+\subsubsection{Bill Calculation}
+At runtime, an 8,670-hour electric load profile is extracted from the building energy model. The annual min and max demand (kW) and annual energy consumption (kWh) are calculated. The final census tract to which the simulation's results will be allocated is not known at simulation time, but the range of possible tracts is known based on the sampling region. For all possible census tracts, the electric utility EIA identifier is looked up. If rates are found for this utility, the rates are downselected based on the observed load profile any min/max demand or energy consumption qualifiers the rate may have. For example, some rates only apply to buildings with a minimum annual peak demand of 500 kW.
+For each of the remaining applicable rates, the annual bill is calculated using the 8,760 load profile and the PySAM utility rate calculation engine. This engine accounts for complex rate structures with demand charges, lookback periods, time-of-use rates, etc. To adjust for the lag in the rates on the URDB, the start date for rate is collected and the number of years between the start date and 2022 is calculated. The average annual price increase for the state where the building is located, which was calculated from Form EIA\-861 data as previously described, is looked up. The annual bill is multiplied by this increase to estimate an adjustment to current 2022 rates.
+
+A median bill cost is calculated from the set of all costs from all applicable rates. Any bill that is lower than 25\% of the median or higher than 200\% of the median is eliminated to avoid extreme bills. Although uncommon, in testing these extreme bills were found to be associated with rates whose names indicate they are likely not applicable to the building. For example, a ``large secondary general'' rate which has a high minimum demand charge is not likely applicable to a small retail customer. This step typically only affects the mean bill for a building +/- 10\%, so the other applicability criteria appear to be downselecting appropriate rates effectively. The minimum, maximum, and mean bills area reported along with the URDB rate label for the applicable rate, which can be used to locate details of the rate with the URDB API or via a URL, e.g.: "https://apps.openei.org/USURDB/rate/view/[rate\_label]". If the number of applicable rates is even, a single median bill will not have a specific applicable rate (being the average of the middle two values). Thus in all cases, a 'median\_low' and 'median\_high' bill and applicable rate label are reported, representing the two central values in the bill results if the total number is even, or the duplicated true median value if the total number is odd.
+For tracts where no electric utility assigned, or for buildings where none of the stored rates for the utility are applicable, the annual bill is estimated using the 2022 EIA Form\-861 \citep{eia_electricity} average prices based on the state the building is located in. While this method does not reflect the detailed rate structures and demand charges, it is a fallback for the 15\% of buildings in ComStock with no utility assigned.
+
+After simulation, when individual results are allocated to tracts and weights computed, the applicable bills are weighted accordingly. The weighted bills are summed when the tract results area aggregated by geographies (e.g. by PUMA, County or State), and aggregate bill savings are calculated. 
+
+\subsection{Natural Gas Bills}
+Natural gas bills are calculated using state-level, volumetric rates due to a lack of detailed public databases of natural gas rates. 2022 U.S. EIA Natural Gas Prices \- Commercial Price and U.S. EIA Heat Content of Natural Gas Delivered to Consumers \citep{eia_natural_gas} were used to create an energy price in dollars per kBtu. State-level prices range from \$0.007/kBtu in ID to \$0.048/kBtu in HI, with a mean of \$0.012/kBtu nationally.
+
+\subsection{Propane and Fuel Oil Bills}
+Propane and fuel oil bills are calculated using volumetric rates due to a lack of detailed public databases of rates. Rates are state-level where this data is available, and use national average pricing where not. These fuels are typically delivered in batches, so in any given year the number of deliveries could vary. Minimum charges per delivery are assumed to be included in the volumetric price. 2022 U.S. EIA residential No. 2 Distillate Prices by Sales Type and U.S. EIA residential Weekly Heating Oil and Propane Prices (October \- March) \citep{eia_fuel_oil_and_propane} were downloaded, along with the EIA assumed heat content for these fuels. Residential prices were used because commercial prices are only available at the national scale. Additionally, most commercial buildings using these fuels are assumed to be smaller buildings where a residential rate is likely realistic. These data were used to create an energy price in dollars per kBtu for both fuels.
+
+For states where state-level pricing was available, these prices are used directly. For other states, Petroleum Administration for Defense District (PADD)-average pricing was used. For states where PADD-level pricing was not available, national average pricing was used. For propane, prices ranged from \$0.022/kBtu in ND to \$0.052 in FL, with a mean of \$0.032/kBtu nationally. For fuel oil, prices ranged from \$0.027/kBtu in NE to \$0.036 in DE, with a mean of \$0.033/kBtu nationally. The mean national price for both fuels is roughly three times the mean national price of natural gas.
+
+\subsection{District Heating and District Cooling Bills}
+No resources with utility rates for district heating and cooling were identified. Because there are several hundred district systems across the U.S., many of which are university or healthcare campuses, gathering individual rates manually was deemed impractical. Therefore, utility bills for these fuels are not calculated.
+
+\section{Commercial Gap Model}
+The Commercial Gap Model estimates the national energy consumption by commercial buildings that are not explicitly modeled in the ComStock building stock model, as well as non-building energy use reported by utilities as part of the commercial sector. The Commercial Gap Model uses publicly available data to develop an electrical load model at hourly time scales and county-level geographic resolution. 
+
+\subsection{Commercial Gap Model Formulation}
+ComStock is a highly granular, bottom-up model of the United State commercial building sector that uses advanced whole-building simulation models to estimate the annual sub-hourly energy consumption of buildings. The model derives characteristics important to the energy dynamics of buildings from a wide range of data sources, such as buildings surveys and real estate data. The scope of this data is limited, however, and as such ComStock is unable to model building typologies where the uses and energy characteristics are too variable or not sufficiently described in the available data. An estimate of the total building uses not covered in ComStock based on CBECS data shows that approximately 37\% of the commercial building total annual site energy consumption is missing from the ComStock data (Figure~\ref{fig:types_not_represented_2}).
+
+Estimating the energy use of the buildings not covered in ComStock is important to put the ComStock data, and energy savings from building stock improvements, in context of the entire buildings sector. The Commercial Gap model attempts to fill in the missing energy by taking a data-driven, rather than bottom-up, approach to modeling building energy consumption. ComStock users could take the Commercial Gap profiles calculated from a ComStock baseline run, add them onto the profiles of a ComStock-modeled upgrade measure of interest, and see the expected result of that upgrade applied to buildings modeled in ComStock on the entire commercial sector. 
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/cbecs_2018_comstock_coverage.png}
+  \caption[CBECS building types not covered by ComStock]{CBECS Principal Buildings Activity Plus building types not covered by ComStock on an energy use basis.}
+  \label{fig:types_not_represented_2}
+\end{figure}
+
+The remainder of this section describes the available truth data sources and general formulation used to generate the Commercial Gap Model. 
+
+\subsubsection{Total Balancing Authority Demand}
+Balancing Authorities (BAs) are entities in the United States electrical system that balance electrical supply and demand in a geographical area and manage interchange of power with other balancing authorities. They are either Regional Transmission Organizations (RTOs) or electric utilities that have also taken on balancing responsibilities. 
+
+The US Energy Information Administration (EIA) collects hourly data on generation, interchange, and demand from BAs with form EIA-930 \citep{eia930}. Demand values in the EIA-930 data are calculated from the difference between metered generation within the BA and net interchange between BAs, and represent the total electric load within the BA, including from all sectors, power plant consumption and transmission and distribution losses. Of the 78 total balancing authorities that report data to EIA, 53 that are active, US-based (covering the continental United States) and not generation-only were used to establish demand profiles for this analysis. The total reported megawatt hours for these BAs are shown below in Figure~\ref{fig:demand_by_balancing_authority}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/demand_by_balancing_authority.png}
+  \caption[Total 2018 Demand by Balancing Authority]{Total 2018 Demand by Balancing Authority}
+  \label{fig:demand_by_balancing_authority}
+\end{figure}
+
+\subsubsection{Annual Electric Power Industry Report}
+EIA collects total annual electricity sales and customer counts by major sectors (i.e., Commercial, Industrial, Residential and Transportation), state and BA from distribution utilities and power marketers of electricity using form EIA-861 \citep{eia861} and its monthly counterpart EIA-861M \citep{eia861m}, which are published in the Sales to Ultimate Consumers dataset. Approximately 2,300 utilities submit data for EIA-861, and an additional 1,100 small utilities report aggregate sales and customer counts at state and balancing authority levels using form EIA-861S (the short form). EIA-861 defines the ‘commercial sector’ as including non-manufacturing business establishments such as:
+\begin{itemize}
+    \item Hotels
+    \item Motels
+    \item Restaurants
+    \item Wholesale businesses
+    \item Retail stores
+    \item Health, social and educational institutions
+    \item Public street and highway lighting
+    \item Municipalities
+    \item Divisions or agencies of states and federal governments under special contracts or agreements, and other utility departments, as defined by the pertinent regulatory agency and/or electric utility \citep{eia861_instructions}.
+\end{itemize}
+
+\subsubsection{Gap Model Formula}
+For electricity consumption, the Commercial Gap Model uses the hourly data of total electrical demand from EIA-930 for the ComStock simulation year, subtracts hourly profiles generated for the Industrial and Residential sectors to determine what the total Commercial sector load profile should be. The Commercial Gap profile is then calculated by subtracting the ComStock modeled baseline hourly profiles from the calculated Commercial sector total. Thus, for each Balancing Authority, the Commercial Gap is calculated from the following:
+\begin{equation}
+G_{C} = D_{T} - (I + R + C)
+\end{equation}
+where:
+\begin{itemize}
+    \item $G_{C}$: Commercial Gap, hourly by BA
+    \item $D_{T}$: hourly Total Demand by BA, from EIA-930
+    \item $I$: hourly Industrial load, estimated
+    \item $R$: hourly Residential load, derived from ResStock simulation
+    \item $C$: hourly modeled ComStock load
+\end{itemize}
+
+Details of how the Industrial profile is estimated, the modeled ResStock results are adjusted, the ResStock and ComStock results are aggregated to the BA level, and how the BA-level Commercial Gap profiles distributed back to the county level, are described in the following sections.
+
+\subsection{Industrial Sector Demand Profile}
+According to data in form EIA-861, the Industrial sector makes up about a third of the national electricity demand, and includes uses for the purposes of manufacturing, construction, mining, agriculture (irrigation), fishing, and forestry establishments. Efforts to characterize industrial consumption to the county level are available for prior years than the ComStock simulation year (2018), but at the time of Commercial Gap model development, no national hourly industrial-sector power profiles exist.
+
+Electric utilities conduct load research to facilitate cost-of-service and rate design, as well as demand-side management and load settlement. In many states where electric utilities are deregulated, utilities will publish expected load profiles so that suppliers can anticipate and prepare generation capacity. This load research data can take many forms, such as typical or average customer profiles by rate class, “unitized” load (i.e. hourly fraction of total annual consumption), or sector total demand. The utilities owned by First Energy Pennsylvania (Met-Ed, Penelec, Penn Power, West Penn Power), serving the majority of central Pennsylvania, publish total hourly Commercial, Industrial and Residential load profiles for their service territories. For 2018, these utilities delivered more than 22,000 GWh to over 3,000 industrial customers. Plotting the hourly load data from these utilities for the year showed very little seasonal variation, with most of the profile variation corresponding to time of day and day of week (Figure~\ref{fig:industrial_electrical_profile}).
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/industrial_electrical_profile.png}
+  \caption[Industrial electrical profiles]{Annual industrial electrical profiles for Met Ed (blue), Penelc (red), Penn Power (green), and West Penn Power (purple).}
+  \label{fig:industrial_electrical_profile}
+\end{figure}
+
+Using the First Energy PA utility profiles as a stand-in for the industrial sector nationwide, a regression model was developed that attempted to fit the average load fraction of the four utilities’ demand with a model whose parameters depended only on the hour of day, day of week, and whether the day was a major holiday. For a dataset of this size, a Histogram-based Gradient Boosting Regression Tree model was used due to the advantages of faster training time, and improved fit over other regression techniques. The model achieved a coefficient of determination ($R^2$) of 0.85 for the First Energy PA dataset.
+
+The model output was compared to unitized load profiles available for other utilities: AES Ohio (also known as Dayton Power \& Light), which achieved an $R^2$ of 0.76, and the average unitized customer profile for two rate classes from Pacific Gas \& Electric -- Large ($>$1000 kW) Primary Voltage and Large Secondary Voltage, with an $R^2$ of 0.62. The comparison with AES Ohio showed roughly the same magnitude of daily peak and diurnal variation in the regression model output and the load data, although the variation is greater in the PG\&E data, indicating some fundamental differences in the industrial loads in California compared to Pennsylvania and Ohio. The model does capture the load drop-off during weekends and major holidays seen in the available load data.
+
+With the regression model, estimated BA-level industrial profiles were created by multiplying the sum of Industrial sales by BA from EIA-861 by the hourly load fraction values output from the regression model. 
+While the method of using a time-based regression model to generate the sector profile for all BAs benefits from simplicity, it does not account for differences in type of industrial loads in different parts of the country that may have different operating profiles. For example, industrial load in agriculture-heavy areas may have more seasonal and diurnal dependence, and less day-of-week dependence, than areas with more manufacturing load. Capturing these differences was deemed out of scope for this initial analysis and is a potential future refinement of the modeling approach.
+
+\subsection{Residential Sector Demand Profile}
+ResStock, the residential equivalent of ComStock, models the entire residential sector; there is no missing ‘gap’ as in ComStock. Therefore, obtaining BA-level residential profiles for the Commercial Gap calculation should be a simple matter of obtaining the profiles directly from ResStock results. However, comparing ResStock net electricity (excluding consumption provided from on-site generation) to total monthly sales as reported from EIA-861M shows that ResStock overestimates electricity consumption in winter months in colder states, sometimes by as much as 50\% (Figure~\ref{fig:resstock_monthly_electricity}).
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/resstock_monthly_electricity.png}
+  \caption[ResStock monthly electricity]{Original ResStock monthly total new electricity consumption for Colorado vs. EIA-861M residential sales.}
+  \label{fig:resstock_monthly_electricity}
+\end{figure}
+
+Note that while the ResStock results align exactly to the calendar months, since they are summed directly from timeseries simulation results, the reported EIA data does not necessarily algin exactly to calendar months. The utilities surveyed have different ways of aggregating when sales occur, and what is reported for a particular month may be all customers for which the billing period ends within that month. Thus, the reported consumption may be some combination consumption from that and the previous calendar months. However, the magnitude of the error seen in the winter months likely exceeds what can be attributed to the reporting difference.
+
+The ResStock hourly results were adjusted to better match monthly electricity consumption totals reported in EIA-861M. Hourly profiles were aggregated by county and scaled using state-level residential customer counts from EIA-861 (2018) to estimate average daily demand per customer. These were compared with population-weighted temperature data to identify seasonal consumption patterns \citep{CPC_degreedays}. To align the ResStock data with observed trends, temperature-sensitive relationships between demand and temperature were compared to those derived from EIA-861M data for each state. Adjustment factors were developed based on these comparisons to correct daily demand in the ResStock results, ensuring that the modeled data more closely reflected reported state-level consumption patterns. Aggregating the adjusted ResStock data to monthly totals and comparing against the EIA-861M data for 2018 shows the adjustments resulted in better alignment with reported truth data than the unmodified results (Figure~\ref{fig:modified_resstock_monthly_electricity}). 
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/modified_resstock_monthly_electricity.png}
+  \caption[Modified ResStock monthly electricity]{Modified ResStock monthly total net electricity consumption for Colorado vs EIA-861M Residential sales.}
+  \label{fig:modified_resstock_monthly_electricity}
+\end{figure}
+
+\subsection{Geographic Apportionment}
+The primary Commercial Gap calculation is done at the BA level, which covers specific geographic extents that are not easily mappable to the state and sub-state geographic levels of the ComStock and ResStock data, i.e. census tracts and counties. While the Industrial profile was calculated solely at the BA level, a method was needed to apportion the ResStock and ComStock state-level profiles to BAs, and then distribute the calculated BA commercial gap down to the county level to provide maximum utility for performing analyses with ComStock. Several methods were considered to accomplish this apportionment and distribution, and ultimately the method described below was used.
+
+\subsubsection{EIA/CBECS Apportionment}
+With this apportionment method, two similar approaches were taken for aggregating state consumption to BA-level (for ResStock and ComStock) and disaggregating the Commercial Gap back down to county-level. For ResStock aggregation, EIA-861 sales data was grouped by state and BA code to determine the power sold to each BA by State. ComStock results were aggregated from tract to BA using the census tract to utility ID mapping developed for the ComStock Utility Bills measure, which derived from the U.S. Electric Utility Companies and Rates: Look-up by Zipcode data \citep{zip_to_util}. With the Utility ID, the BA was found from EIA-861 reporting, allowing the tract-level ComStock profiles to be summed by BA.
+
+After the Commercial Gap BA profiles were calculated, they needed to be disaggregated down to the county level. This was done by leveraging the commercial real estate dataset used to generate the building type and size distributions for ComStock (Section~\ref{sec:data_sources}), known as the ‘StockE’ data, which includes information on all commercial buildings in the country (particularly size, type, and census tract) including those not modeled in ComStock. The non-ComStock StockE building types were paired to Principal Building Activity types from CBECS, and the electrical EUI from those CBECS buildings applied to the sum of areas of the non-ComStock StockE buildings by type and census division. This provided an estimate of the total annual consumption of non-ComStock buildings found in the StockE data. The utility ID could then be joined to the StockE data by census tract, and the estimated consumption summed by BA and county, and the county proportion of the BA Commercial Gap profiles determined. This process is illustrated in Figure~\ref{fig:eia_cbecs_apportionment}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/eia_cbecs_apportionment.png}
+  \caption[EIA/CBECS apportionment method]{EIA/CBECS method for county-level gap profile allocation process.}
+  \label{fig:eia_cbecs_apportionment}
+\end{figure}
+
+This apportionment/distribution method has some drawbacks, mainly in the mapping of StockE building types to CBECS Principal Building Activities, and the assumption that CBECS reported EUIs are representative of those buildings (and non-building commercial demand) on average across a census division. Of the several apportionment methods considered, comparing the apportioned Commercial Gap by county showed that the method resulted in the fewest counties with a negative total gap, which was interpreted as being best at allocating the gap in a realistic way. Most of the variation in apportionment methods was seen in very small rural counties, with minor differences in the apportioned Commercial Gap in larger counties.  In counties with larger populations and numbers of buildings, the error in BA assignment would be smaller, since the utilities serving larger populations are more likely to be well represented in the truth data, and the building counts from CBECS more likely to be representative of ‘average’ building size and energy consumption.
+
+\subsection{Commercial Gap Results}
+Hourly electric Commercial Gap profiles were calculated for each BA and apportioned down to the county level using the process described above. Total Demand, Industrial, ResStock adjusted, ComStock modeled, and computed Commercial Gap profiles are shown in Figure~\ref{fig:pjm_electricity_profile_components} and Figure~\ref{fig:pjm_weekly_electricity_profiles} for the PJM (Pennsylvania-New Jersey-Maryland Interconnection). Profiles are shown stacked and as individual lines, to illustrate both the component-level contribution to the total as well as the independent profile shape. Note that all times are plotted in Eastern Standard Time.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/pjm_electricity_profile_components.png}
+  \caption[PJM Electricity Profile Components]{PJM Electricity Profile Components}
+  \label{fig:pjm_electricity_profile_components}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/pjm_weekly_electricity_profiles.png}
+  \caption[PJM Electric Load Weekly Profiles]{PJM Electric Load Weekly Profiles}
+  \label{fig:pjm_weekly_electricity_profiles}
+\end{figure}
+
+Summing the modeled profiles for all BAs by month and comparing them against the reported monthly total sales by sector from EIA-861 (Figure~\ref{fig:monthly_modeled_sector_totals}) reveals some notable features of the modeled gap, as well as the truth data. On the truth data side, there is a ‘Reported Gap’, which is the difference between the total demand as reported by EIA-930 and the sum of the Industrial, Commercial and Residential sales from EIA-861. While some of this reported gap includes the Transportation sector not included in this analysis, that sector’s sales are smaller than what is shown. Since the EIA-930 data is calculated as the difference between generation and net interchange, it is likely that the remainder of the gap between ‘Demand’ and ‘Sales’ is from transmission and distribution losses, or consumption at the utility side (for plant operation, etc.) that would not be reported as sales. 
+
+The total of the calculated profiles by component closely matches the reported EIA sector sales, which is expected since the reported data directly informed the Industrial profile and ResStock adjustment. The difference between the modeled ComStock totals and the EIA-861 Commercial sales constitutes the Commercial Gap -– the building types and non-building commercial uses (such as street and highway lighting) not directly modeled in ComStock. The ‘Uncategorized Gap’ is remaining demand that cannot be allocated to a specific use, and just like the ‘Reported Gap’ likely includes system losses and reporting discrepancies. 
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/monthly_modeled_sector_totals.png}
+  \caption[Monthly Modeled Sector Totals]{Monthly modeled sector totals and reported EIA totals.}
+  \label{fig:monthly_modeled_sector_totals}
+\end{figure}
+
+Annually, the ‘Reported Gap’ amounts to approximately 10\% of the total reported demand, and about a third of the difference between the modeled sector totals  and the EIA-930 total demand. The remaining commercial gap accounts for about 39\% of the total reported commercial sector electricity sales, slightly higher than the 36\% of missing total site energy as found in the CBECS analysis shown in Figure~\ref{fig:annual_modeled_sector_totals}.
+
+\begin{figure}
+  \centering
+  \includegraphics[
+        page={1},
+        width=\textwidth] {figures/annual_modeled_sector_totals.png}
+  \caption[Annual Modeled Sector Totals]{Annual modeled sector totals and reported sector totals.}
+  \label{fig:annual_modeled_sector_totals}
+\end{figure}
+
+\subsection{Limitations and Future Work}
+As described above, Industrial sector load profiles used in the Commercial Gap model calculations are derived from a simple time-based regression model from only three similarly located electric utilities’ load research data. This approach misses any location-based or seasonal variation in industrial load, and would be improved with a more detailed load profile model that considers the different industry makeup across the county. Additionally, by subtracting the estimated industrial load from the total demand at the Balancing Authority level and then disaggregating the remainder to the county-level might skew the gap apportionment at the county level for counties with different amounts of industrial load. Ideally, the BA-level profiles would be disaggregated to county-level total profiles, and the Commercial gap profile calculated at the individual county level, which would require better modeling of county-level industrial profiles than was available for this work.
+
+Similarly, the adjustments to ResStock simulation results used for the Residential profiles could be improved by adjusting the monthly EIA consumption data to account for the difference between reporting and billing months implicit in that data, which could potentially improve the degree-day correlation models. Alternatively, the underlying source of the heating overestimation in the ResStock simulations could be identified and rectified, allowing ResStock results to be used without alteration.
+
+Finally, the county-level commercial gap profiles could be validated against commercial sector total load profiles available from the load research data from utilities that publish to that granularity, which could perhaps shed some light on the shape of the ‘uncategorized gap’ profile.
