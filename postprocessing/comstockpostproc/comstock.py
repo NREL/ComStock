@@ -4762,7 +4762,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     weight_view_table=weight_view_table
                 )
 
-                print(f"Getting weighted baseline load profile for {location_desc} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
+                location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+                logger.info(f"Getting weighted baseline load profile for {location_desc} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
 
                 # Execute query
                 df_base_ts_agg_weighted = athena_client.execute(query)
