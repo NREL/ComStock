@@ -2863,8 +2863,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
         # EMS trend variable: time duration low stage heating minutes
         ems_trend_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemTrendVariable.new(model, ems_glob_var_time_duration_low_stage)
-        ems_trend_var_time_duration_low_stage.setName("#{ems_name_airloop}_trend_var_time_duration_low_stage")
-        ems_trend_var_time_duration_low_stage.setNumberOfTimestepsToBeLogged(144)
+        ems_trend_var_time_duration_low_stage.setName("time_duration_low_stage_current")
+        ems_trend_var_time_duration_low_stage.setNumberOfTimestepsToBeLogged(1)
 
         # -------------------------------------------------------------------------------
 
@@ -2877,20 +2877,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_temp = #{ems_sensor_sa.name}")
         ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_humidity = #{ems_sensor_hr.name}")
         ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_mass_flow = #{ems_sensor_mdot.name}")
+        ems_program_gas_coil_control.addLine("SET time_duration_low_stage_previous = @TrendValue time_duration_low_stage_current 1")
+        
 
-        ems_program_gas_coil_control.addLine("IF #{ems_sensor_coil_runtime_frac.name} == 1") # assuming 1 = True
+        ems_program_gas_coil_control.addLine("IF #{ems_sensor_coil_runtime_frac.name} == 1")
         ems_program_gas_coil_control.addLine("  IF ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_low_c}")
         ems_program_gas_coil_control.addLine("    SET status_stage_1 = 1")
-        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_heating_minutes = time_duration_low_stage_heating_minutes + 60 / TimeStepsPerHour")
-        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW(ems_actuator_coil_out_humidity)")
+        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_hr.name}")
         ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_1_w} / #{ems_sensor_mdot.name} / cp)")
-        ems_program_gas_coil_control.addLine("  ELSEIF (time_duration_low_stage_heating_minutes > 30) && (ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_high_c})")
+        ems_program_gas_coil_control.addLine("  ELSEIF (time_duration_low_stage_previous > 30) && (ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_high_c})")
         ems_program_gas_coil_control.addLine("    SET status_stage_2 = 1")
-        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_heating_minutes = time_duration_low_stage_heating_minutes + 60 / TimeStepsPerHour")
-        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW(ems_actuator_coil_out_humidity)")
+        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_hr.name}")
         ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_2_w} / #{ems_sensor_mdot.name} / cp)")
         ems_program_gas_coil_control.addLine("  ENDIF")
-        ems_program_gas_coil_control.addLine("  SET ems_actuator_coil_out_mass_flow = #{ems_sensor_mdot.name}")
         ems_program_gas_coil_control.addLine("ENDIF")
 
 
