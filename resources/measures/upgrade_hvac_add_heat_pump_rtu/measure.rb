@@ -2763,19 +2763,210 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # *********************************************************
       new_backup_heating_coil = nil
       # define backup heat source TODO: set capacity to equal full heating capacity
-      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
+      if (backup_ht_fuel_scheme == 'duel_fuel_gas_furnace_backup')
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # TEMPORARY: CoilHeatingGasMultiStage
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # new_backup_heating_coil = OpenStudio::Model::CoilHeatingGasMultiStage.new(model)
+        # new_backup_heating_coil.setName("#{air_loop_hvac.name} duel fuel backup coil")
+        # final_num_stages = 2
+        # for istage in 1..final_num_stages
+        #   new_htg_stage = OpenStudio::Model::CoilHeatingGasMultiStageStageData.new(model)
+        #   if istage == final_num_stages
+        #     new_htg_stage.setNominalCapacity(orig_htg_coil_gross_cap_old)
+        #   end
+        #   new_htg_stage.setGasBurnerEfficiency(0.80)
+        #   new_backup_heating_coil.addStage(new_htg_stage)
+        # end
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # TESTING: CoilUserDefined | https://s3.amazonaws.com/openstudio-sdk-documentation/cpp/OpenStudio-3.10.0-doc/model/html/classopenstudio_1_1model_1_1_coil_user_defined.html
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        # -------------------------------------------------------------------------------
+        # EMS code structure
+        # argument list:
+        # maximum_supply_air_temperature_low_c
+        # maximum_supply_air_temperature_high_c
+        # time_duration_trigger_for_high_stage_minutes
+        # heating_capacity_stage_1_w
+        # heating_capacity_stage_2_w
+
+        # internal variables list:
+        # status_stage_1
+        # status_stage_2
+        # time_duration_low_stage_heating_minutes
+
+        # sensor list:
+        # [dx heating coil outlet node name] | System Node Temperature
+        # [dx heating coil outlet node name] | System Node Humidity Ratio
+        # [dx heating coil outlet node name] | System Node Mass Flow Rate
+        # status_dx_heating_coil = [dx heating coil name] | Heating Coil Runtime Fraction
+
+        # actuator list:
+        # Air Connection 1 | Outlet Temperature
+        # Air Connection 1 | Outlet Humidity Ratio
+        # Air Connection 1 | Mass Flow Rate
+        # -------------------------------------------------------------------------------
+
+        # TEMPORARY argument definitions (move to arguments later)
+        maximum_supply_air_temperature_low_c = 35.0
+        maximum_supply_air_temperature_high_c = 45.0
+        time_duration_trigger_for_high_stage_minutes = 30
+        heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
+        heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
+
+        # create EMS/Erl friendly name with air_loop_hvac name
+        ems_name_airloop = air_loop_hvac.name.to_s.gsub(' ', '_').gsub('-', '_').gsub(/_+/, '_')
+        if ems_name_airloop =~ /^\d/
+          ems_name_airloop = ems_name_airloop.sub(/^\d/) { |digit| ('a'.ord + digit.to_i - 1).chr }
+        end
+        puts("### DEBUGGING: ems_name_airloop = #{ems_name_airloop}")
+
+        # get supply outlet node name for airloop
+        dx_heating_coil_outlet_node_name = new_dx_heating_coil.outletModelObject.get.to_Node.get.name.to_s
+        puts("### DEBUGGING: dx_heating_coil_outlet_node_name = #{dx_heating_coil_outlet_node_name}")
+
+        # -------------------------------------------------------------------------------
+
+        # EMS sensor: DX heating coil outlet air temperature
+        ems_sensor_sa = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Temperature")
+        ems_sensor_sa.setName("#{ems_name_airloop}_sensor_supply_outlet_node_t")
+        ems_sensor_sa.setKeyName(dx_heating_coil_outlet_node_name)
+
+        # EMS sensor: DX heating coil outlet air humidity ratio
+        ems_sensor_hr = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Humidity Ratio")
+        ems_sensor_hr.setName("#{ems_name_airloop}_sensor_supply_outlet_node_hr")
+        ems_sensor_hr.setKeyName(dx_heating_coil_outlet_node_name)
+
+        # EMS sensor: DX heating coil outlet air mass flow rate
+        ems_sensor_mdot = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Mass Flow Rate")
+        ems_sensor_mdot.setName("#{ems_name_airloop}_sensor_supply_outlet_node_mdot")
+        ems_sensor_mdot.setKeyName(dx_heating_coil_outlet_node_name)
+
+        # EMS sensor: DX heating coil runtime fraction
+        ems_sensor_coil_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "Heating Coil Runtime Fraction")
+        ems_sensor_coil_runtime_frac.setName("#{ems_name_airloop}_sensor_dx_heating_coil_runtime_frac")
+        ems_sensor_coil_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
+
+        # -------------------------------------------------------------------------------
+
+        # EMS global variable: time duration low stage heating minutes
+        ems_glob_var_stage_1_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "status_stage_1")
+
+        # EMS global variable: time duration low stage heating minutes
+        ems_glob_var_stage_2_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "status_stage_2")
+
+        # EMS global variable: time duration low stage heating minutes
+        ems_glob_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "ems_trend_var_time_duration_low_stage")
+
+        # -------------------------------------------------------------------------------
+
+        # EMS trend variable: time duration low stage heating minutes
+        ems_trend_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemTrendVariable.new(model, ems_glob_var_time_duration_low_stage)
+        ems_trend_var_time_duration_low_stage.setName("#{ems_name_airloop}_trend_var_time_duration_low_stage")
+        ems_trend_var_time_duration_low_stage.setNumberOfTimestepsToBeLogged(144)
+
+        # -------------------------------------------------------------------------------
+
+        # EMS program
+        ems_program_gas_coil_control = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+        ems_program_gas_coil_control.setName("#{ems_name_airloop}_program_two_stage_gas_coil_control")
+        ems_program_gas_coil_control.addLine("SET status_stage_1 = 0")
+        ems_program_gas_coil_control.addLine("SET status_stage_2 = 0")
+        
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_temp = #{ems_sensor_sa.name}")
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_humidity = #{ems_sensor_hr.name}")
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_mass_flow = #{ems_sensor_mdot.name}")
+
+        ems_program_gas_coil_control.addLine("IF #{ems_sensor_coil_runtime_frac.name} == 1") # assuming 1 = True
+        ems_program_gas_coil_control.addLine("  IF ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_low_c}")
+        ems_program_gas_coil_control.addLine("    SET status_stage_1 = 1")
+        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_heating_minutes = time_duration_low_stage_heating_minutes + 60 / TimeStepsPerHour")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW(ems_actuator_coil_out_humidity)")
+        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_1_w} / #{ems_sensor_mdot.name} / cp)")
+        ems_program_gas_coil_control.addLine("  ELSEIF (time_duration_low_stage_heating_minutes > 30) && (ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_high_c})")
+        ems_program_gas_coil_control.addLine("    SET status_stage_2 = 1")
+        ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_heating_minutes = time_duration_low_stage_heating_minutes + 60 / TimeStepsPerHour")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW(ems_actuator_coil_out_humidity)")
+        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_2_w} / #{ems_sensor_mdot.name} / cp)")
+        ems_program_gas_coil_control.addLine("  ENDIF")
+        ems_program_gas_coil_control.addLine("  SET ems_actuator_coil_out_mass_flow = #{ems_sensor_mdot.name}")
+        ems_program_gas_coil_control.addLine("ENDIF")
+
+
+        # EMS program calling manager
+        ems_pcm_gas_coil_control = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+        ems_pcm_gas_coil_control.setName("#{ems_name_airloop}_pcm_gas_coil_control")
+        ems_pcm_gas_coil_control.setCallingPoint("UserDefinedComponentModel")
+        ems_pcm_gas_coil_control.addProgram(ems_program_gas_coil_control)
+
+        # -------------------------------------------------------------------------------
+
+        # EMS actuator: gas coil outlet temperature
+        ems_actuator_coil_out_temp = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Temperature")
+        ems_actuator_coil_out_temp.setName("#{ems_name_airloop}_actuator_coil_outlet_t")
+
+        # EMS actuator: gas coil outlet humidity ratio
+        ems_actuator_coil_out_humidity = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Humidity Ratio")
+        ems_actuator_coil_out_humidity.setName("#{ems_name_airloop}_actuator_coil_outlet_hr")
+
+        # EMS actuator: gas coil outlet mass flow rate
+        ems_actuator_coil_out_mass_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Mass Flow Rate")
+        ems_actuator_coil_out_mass_flow.setName("#{ems_name_airloop}_actuator_coil_outlet_mdot")
+
+        # -------------------------------------------------------------------------------
+
+        # EMS output variable: gas coil outlet temperature
+        ems_ov_coil_outlet_t = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,ems_actuator_coil_out_temp)
+        ems_ov_coil_outlet_t.setName("#{ems_name_airloop}_ov_coil_outlet_t")
+        ems_ov_coil_outlet_t.setEMSVariableName("#{ems_actuator_coil_out_temp.name}")
+        ems_ov_coil_outlet_t.setTypeOfDataInVariable("Averaged")
+        ems_ov_coil_outlet_t.setUpdateFrequency("SystemTimeStep")
+        output_var_outlet_t = OpenStudio::Model::OutputVariable.new("#{ems_ov_coil_outlet_t.name}", model)
+        output_var_outlet_t.setName("#{ems_ov_coil_outlet_t.name}")
+        output_var_outlet_t.setKeyValue("*")
+        output_var_outlet_t.setReportingFrequency("Timestep")
+
+        # EMS output variable: gas coil outlet humidity ratio
+        ems_ov_coil_outlet_hr = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,ems_actuator_coil_out_humidity)
+        ems_ov_coil_outlet_hr.setName("#{ems_name_airloop}_ov_coil_outlet_hr")
+        ems_ov_coil_outlet_hr.setEMSVariableName("#{ems_actuator_coil_out_humidity.name}")
+        ems_ov_coil_outlet_hr.setTypeOfDataInVariable("Averaged")
+        ems_ov_coil_outlet_hr.setUpdateFrequency("SystemTimeStep")
+        output_var_outlet_hr = OpenStudio::Model::OutputVariable.new("#{ems_ov_coil_outlet_hr.name}", model)
+        output_var_outlet_hr.setName("#{ems_ov_coil_outlet_hr.name}")
+        output_var_outlet_hr.setKeyValue("*")
+        output_var_outlet_hr.setReportingFrequency("Timestep")
+
+        # EMS output variable: gas coil outlet mass flow rate
+        ems_ov_coil_outlet_mdot = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,ems_actuator_coil_out_mass_flow)
+        ems_ov_coil_outlet_mdot.setName("#{ems_name_airloop}_ov_coil_outlet_mdot")
+        ems_ov_coil_outlet_mdot.setEMSVariableName("#{ems_actuator_coil_out_mass_flow.name}")
+        ems_ov_coil_outlet_mdot.setTypeOfDataInVariable("Averaged")
+        ems_ov_coil_outlet_mdot.setUpdateFrequency("SystemTimeStep")
+        output_var_outlet_mdot = OpenStudio::Model::OutputVariable.new("#{ems_ov_coil_outlet_mdot.name}", model)
+        output_var_outlet_mdot.setName("#{ems_ov_coil_outlet_mdot.name}")
+        output_var_outlet_mdot.setKeyValue("*")
+        output_var_outlet_mdot.setReportingFrequency("Timestep")
+        
+        # -------------------------------------------------------------------------------
+
+      elsif (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
         new_backup_heating_coil.setEfficiency(1.0)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
+        # set capacity of backup heat to meet full heating load
+        new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
       else
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
         new_backup_heating_coil.setGasBurnerEfficiency(0.80)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
+        # set capacity of backup heat to meet full heating load
+        new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
       end
       # set availability schedule
       new_backup_heating_coil.setAvailabilitySchedule(always_on)
-      # set capacity of backup heat to meet full heating load
-      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
+      
 
       # *********************************************************
       # add new fan
