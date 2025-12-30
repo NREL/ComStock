@@ -11,8 +11,8 @@ def main():
     # ComStock run
     comstock = cspp.ComStock(
         s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='rtuadv_v11',  # Name of the run on S3
-        comstock_run_version='rtuadv_v11',  # Use whatever you want to see in plot and folder names
+        comstock_run_name='pump_v9',  # Name of the run on S3
+        comstock_run_version='pump_v9',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
@@ -21,10 +21,10 @@ def main():
         drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
         color_hex='#0072B2',  # Color used to represent this run in plots
         skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
-        reload_from_cache=True, # True if CSV already made and want faster reload times
+        reload_from_cache=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
-        upgrade_ids_to_skip=[2,3], # Use [1, 3] etc. to exclude certain upgrades
-        make_timeseries_plots=True,
+        upgrade_ids_to_skip=[], # Use [1, 3] etc. to exclude certain upgrades
+        make_timeseries_plots=False,
         timeseries_locations_to_plot={
                                         'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
                                         #'MA':'Massachusetts',
@@ -47,20 +47,20 @@ def main():
     stock_estimate = cspp.Apportion(
         stock_estimation_version='2025R3',  # Only updated when a new stock estimate is published
         truth_data_version='v01',  # Typically don't change this
-        reload_from_cache=True, # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
+        reload_from_cache=False, # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
         #output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
     )
 
     # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
     base_sim_outs = comstock.get_sim_outs_for_upgrade(0)
-    comstock.create_allocated_weights(stock_estimate, base_sim_outs, reload_from_cache=True)
+    comstock.create_allocated_weights(stock_estimate, base_sim_outs, reload_from_cache=False)
 
     # CBECS
     cbecs = cspp.CBECS(
         cbecs_year=2018,  # 2012 and 2018 currently available
         truth_data_version='v01',  # Typically don't change this
         color_hex='#009E73',  # Color used to represent CBECS in plots
-        reload_from_csv=True  # True if CSV already made and want faster reload times
+        reload_from_csv=False  # True if CSV already made and want faster reload times
         )
 
     # Scale ComStock to CBECS 2018 AND remove non-ComStock buildings from CBECS
@@ -99,13 +99,13 @@ def main():
 
     # specify the export level
     # IMPORTANT: if making county level timeseries plots, must export county level data to S3. This does not occur automatically.
-    geo_exports = [state_resolution] #county_resolution
+    geo_exports = [county_resolution] #county_resolution
 
     for geo_export in geo_exports:
         for upgrade_id in comstock.upgrade_ids_to_process:
-            if upgrade_id == 0:
-                continue
-            comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
+            #if upgrade_id == 0:
+            #    continue
+            #comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
 
             # Also write to S3 if making timeseries plots
             if comstock.make_timeseries_plots: # TODO: force geo exports to county data if couunty timeseries is requested.
@@ -117,7 +117,6 @@ def main():
     if comstock.make_timeseries_plots:
         s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
         database = "enduse"
-        dataset_name = f"{comstock.comstock_run_name}/{comstock.comstock_run_name}" # name of the dir in s3_dir we want to make new tables and views for
         crawler_name = comstock.comstock_run_name # used to set name of crawler, cannot include slashes
         workgroup = "eulp"  # Athena workgroup to use
         glue_service_role = "service-role/AWSGlueServiceRole-default"

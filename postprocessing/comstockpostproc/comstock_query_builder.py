@@ -114,6 +114,12 @@ class ComStockQueryBuilder:
         This matches the pattern from working buildstock queries that join timeseries data
         with a weight view table for proper weighting and aggregation.
 
+        Automatically detects if the timeseries table is partitioned by state based on naming conventions:
+        - Tables with 'ts_by_state' in the name are treated as state-partitioned
+        - Tables with '_timeseries' in the name (without 'ts_by_state') are treated as non-partitioned
+        - Other naming patterns assume no partitioning with a warning to the user regarding this assumption.
+        TODO: Improve this in the future to check for partitioning directly from Athena metadata if possible.
+
         Args:
             upgrade_id: Upgrade ID to filter on
             enduses: List of end use columns to select
@@ -134,6 +140,21 @@ class ComStockQueryBuilder:
         if weight_view_table is None:
             raise ValueError("weight_view_table parameter is required. Cannot auto-assign without knowing geographic aggregation level (state vs county). "
                            "Please provide the full weight view table name (e.g., 'your_dataset_md_agg_national_by_state_vu' or 'your_dataset_md_agg_national_by_county_vu')")
+
+        # Auto-detect if timeseries is partitioned by state based on naming conventions
+        table_name_lower = self.timeseries_table.lower()
+        if 'ts_by_state' in table_name_lower:
+            timeseries_partitioned_by_state = True
+            logger.info(f"Detected state-partitioned timeseries table: {self.timeseries_table}. "
+                       "Query will include state partition filter so timeseries files for a building ID are not double counted.")
+        elif '_timeseries' in table_name_lower:
+            timeseries_partitioned_by_state = False
+            logger.info(f"Detected standard non-partitioned timeseries table: {self.timeseries_table}")
+        else:
+            timeseries_partitioned_by_state = False
+            logger.warning(f"Timeseries table name '{self.timeseries_table}' does not match expected patterns ('ts_by_state' or '_timeseries'). "
+                          "Assuming no state partitioning. If the table is actually partitioned by state, building IDs may be double-counted. "
+                          "Please use standard naming conventions: 'dataset_ts_by_state' for partitioned or 'dataset_timeseries' for non-partitioned tables.")
 
         # Build timestamp grouping with date_trunc and time adjustment
         time_group = '1'
@@ -201,6 +222,12 @@ class ComStockQueryBuilder:
             f'{weight_view_table}.upgrade = {self.timeseries_table}.upgrade',
             f'{weight_view_table}.upgrade = {upgrade_id}'
         ]
+
+        # Add state partition filter if timeseries is partitioned by state (enables partition pruning)
+        # When partitioned by state, each building's timeseries data is duplicated across each state
+        # it is apportioned to. To avoid double counting, we filter to only the state matching the weight view.
+        if timeseries_partitioned_by_state:
+            where_conditions.append(f'{weight_view_table}.state = {self.timeseries_table}.state')
 
         if building_ids:
             bldg_list = ', '.join([str(bid) for bid in building_ids])

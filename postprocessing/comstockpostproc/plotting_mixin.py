@@ -13,7 +13,6 @@ import seaborn as sns
 import plotly.graph_objects as go
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
-import comstockpostproc.comstock as comstock
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -3476,7 +3475,6 @@ class PlottingMixin():
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
 
             dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
-            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh'].max()
 
             # rename columns, convert units
             dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity_", "")
