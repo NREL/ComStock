@@ -35,14 +35,14 @@ class ComStockToAMIComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 logger.warning(f'No timeseries data was available for {dataset.dataset_name}, unable to make AMI comparison.')
                 continue
             if isinstance(dataset, ComStock):
-                df = dataset.ami_timeseries_data.copy()
+                df = dataset.ami_timeseries_data.copy(deep=True)
                 df['run'] = self.comstock_object.dataset_name
                 df['year'] = self.comstock_object.year
                 # Normalize building type names to match AMI format
                 df['building_type'] = df['building_type'].map(self.BLDG_TYPE_TO_SNAKE_CASE).fillna(df['building_type'].str.lower())
                 dfs_to_concat.append(df)
             elif isinstance(dataset, AMI):
-                df = dataset.ami_timeseries_data.copy()
+                df = dataset.ami_timeseries_data.copy(deep=True)
                 df['run'] = self.ami_object.dataset_name
                 df['enduse'] = 'total'
                 dfs_to_concat.append(df)

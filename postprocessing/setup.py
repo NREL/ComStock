@@ -42,7 +42,7 @@ setup(
         'Programming Language :: Python :: 3.10',
     ],
     keywords='comstock postprocessing',
-    python_requires=">=3.9",
+    python_requires=">=3.10.12",
     install_requires=[
         'boto3',
         'botocore',

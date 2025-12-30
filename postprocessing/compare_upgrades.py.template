@@ -48,7 +48,7 @@ def main():
     stock_estimate = cspp.Apportion(
         stock_estimation_version='2025R3',  # Only updated when a new stock estimate is published
         truth_data_version='v01',  # Typically don't change this
-        reload_from_cache=False, # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
+        reload_from_cache=False, # Set to "True" if you have already run apportionment and would like to keep consistent values between postprocessing runs.
         #output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
     )
 
@@ -108,7 +108,7 @@ def main():
             comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
 
             # Also write to S3 if making timeseries plots
-            if comstock.make_timeseries_plots: #TODO: force geo exports to county data if couunty timeseries is requested.
+            if comstock.make_timeseries_plots: #TODO: force geo exports to county data if county timeseries is requested.
                 s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
                 s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
                 comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)

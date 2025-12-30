@@ -23,7 +23,7 @@ def main():
     drop_failed_runs=True,  # False if you want to evaluate which runs failed in raw output data
     color_hex='#0072B2',  # Color used to represent this run in plots
     skip_missing_columns=True,  # False if you want to ensure you have all data specified for export
-    reload_from_cache=True, # True if CSV already made and want faster reload times
+    reload_from_cache=False, # True if CSV already made and want faster reload times
     include_upgrades=False,  # False if not looking at upgrades
     # output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
     )
@@ -33,7 +33,7 @@ def main():
     stock_estimate = cspp.Apportion(
         stock_estimation_version='2025R3',  # Only updated when a new stock estimate is published
         truth_data_version='v01',  # Typically don't change this
-        reload_from_cache=True  # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
+        reload_from_cache=False  # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
     )
 
     # Scale ComStock runs to the 'truth data' from StockE V3 estimates using bucket-based apportionment
@@ -58,58 +58,55 @@ def main():
 
 
     # county resolution, files by state and county
-    county_resolution =  {
-                        'geo_top_dir': 'by_state_and_county',
-                        'partition_cols': {
-                            comstock.STATE_ABBRV: 'state',
-                            comstock.COUNTY_ID: 'county',
-                        },
-                        'aggregation_levels': [comstock.COUNTY_ID], # , comstock.COUNTY_ID],  # Full tract resolution (agg=in.nhgis_tract_gisjoin)
-                        'data_types': ['full'],
-                        'file_types': ['parquet'],
-                        }
+    county_resolution = {
+        'geo_top_dir': 'by_state_and_county',
+        'partition_cols': {
+            comstock.STATE_ABBRV: 'state',
+            comstock.COUNTY_ID: 'county',
+        },
+        'aggregation_levels': [comstock.COUNTY_ID],
+        'data_types': ['full'],
+        'file_types': ['parquet'],
+    }
 
     # state level resolution, one single national file
     state_resolution = {
-                        'geo_top_dir': 'national_by_state',
-                        'partition_cols': {},
-                        'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
-                        'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
-                        'file_types': ['parquet'], # other options:'parquet'
+        'geo_top_dir': 'national_by_state',
+        'partition_cols': {},
+        'aggregation_levels': [[comstock.STATE_ABBRV, comstock.CZ_ASHRAE]],
+        'data_types': ['full'], # other options: 'detailed', 'basic' **If using multiple options, order must go from more detailed to less detailed.
+        'file_types': ['parquet'], # other options:'parquet'
                         }
 
     # specify the export level
     # IMPORTANT: if making county level timeseries plots, must export county level data to S3. This does not occur automatically.
     geo_exports = [county_resolution] #state_resolution
 
-    #for geo_export in geo_exports:
-    #    # write files locally as needed
-    #    #comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=0, geo_exports=[geo_export])
+    for geo_export in geo_exports:
+        # write files locally as needed - usually not needed for AMI comparison plots
+        #comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=0, geo_exports=[geo_export])
 
-    #    # Also write to S3 if making timeseries plots
-    #    if comstock.make_timeseries_plots:
-    #        s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
-    #        s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
-    #        comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=0, geo_exports=[geo_export], output_dir=s3_output_dir)
+        # Also write to S3 if making timeseries plots
+        s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
+        s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
+        comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=0, geo_exports=[geo_export], output_dir=s3_output_dir)
 
     # write select results to S3 for Athena/Glue when needed for timeseries plots
-    #s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
-    #database = "enduse"
-    #dataset_name = f"{comstock.comstock_run_name}/{comstock.comstock_run_name}" # name of the dir in s3_dir we want to make new tables and views for
-    #crawler_name = comstock.comstock_run_name # used to set name of crawler, cannot include slashes
-    #workgroup = "eulp"  # Athena workgroup to use
-    #glue_service_role = "service-role/AWSGlueServiceRole-default"
+    s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
+    database = "enduse"
+    dataset_name = f"{comstock.comstock_run_name}/{comstock.comstock_run_name}" # name of the dir in s3_dir we want to make new tables and views for
+    crawler_name = comstock.comstock_run_name # used to set name of crawler, cannot include slashes
+    workgroup = "eulp"  # Athena workgroup to use
+    glue_service_role = "service-role/AWSGlueServiceRole-default"
 
     # Export parquet files to S3 for Athena/Glue
-    # TODO: modify so that county data can be used for timeseries plots
-    # TODO: Modify geo export structure to specify parquet files only for this part of the workflow
-    #comstock.create_sightglass_tables(s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
-    #                                    dataset_name=crawler_name,
-    #                                    database_name=database,
-    #                                    glue_service_role=glue_service_role)
-    #comstock.fix_timeseries_tables(crawler_name, database)
-    #comstock.create_views(crawler_name, database, workgroup)
-
+    comstock.create_sightglass_tables(
+        s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
+        dataset_name=crawler_name,
+        database_name=database,
+        glue_service_role=glue_service_role)
+    comstock.fix_timeseries_tables(crawler_name, database)
+    comstock.create_views(crawler_name, database, workgroup)
 
     # AMI
     ami = cspp.AMI(

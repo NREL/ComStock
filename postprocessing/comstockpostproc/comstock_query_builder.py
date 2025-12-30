@@ -6,7 +6,7 @@ Athena queries for various ComStock analysis needs.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,9 @@ class ComStockQueryBuilder:
 
     #TODO: this method has not yet been validated, and should be prior to use.
     def get_monthly_energy_consumption_query(self,
-                                           upgrade_ids: Optional[List[Union[int, str]]] = None,
-                                           states: Optional[List[str]] = None,
-                                           building_types: Optional[List[str]] = None) -> str:
+        upgrade_ids: Optional[List[Union[int, str]]] = None,
+        states: Optional[List[str]] = None,
+        building_types: Optional[List[str]] = None) -> str:
         """
         Build query for monthly natural gas and electricity consumption by state and building type.
 
@@ -45,6 +45,7 @@ class ComStockQueryBuilder:
 
         Returns:
             SQL query string
+
         """
 
         # Build WHERE clause conditions
@@ -96,16 +97,17 @@ class ComStockQueryBuilder:
 
         return query.strip()
 
-    def get_timeseries_aggregation_query(self,
-                                       upgrade_id: Union[int, str],
-                                       enduses: List[str],
-                                       weight_view_table: str,
-                                       group_by: Optional[List[str]] = None,
-                                       restrictions: List[tuple] = None,
-                                       timestamp_grouping: str = 'hour',
-                                       building_ids: Optional[List[int]] = None,
-                                       include_sample_stats: bool = True,
-                                       include_area_normalized_cols: bool = False) -> str:
+    def get_timeseries_aggregation_query(
+        self,
+        upgrade_id: Union[int, str],
+        enduses: List[str],
+        weight_view_table: str,
+        group_by: Optional[List[str]] = None,
+        restrictions: List[tuple] = None,
+        timestamp_grouping: str = 'hour',
+        building_ids: Optional[List[int]] = None,
+        include_sample_stats: bool = True,
+        include_area_normalized_cols: bool = False) -> str:
         """
         Build query for timeseries data aggregation similar to buildstock query functionality.
 
@@ -125,6 +127,7 @@ class ComStockQueryBuilder:
 
         Returns:
             SQL query string
+
         """
 
         # Weight view table is required - cannot auto-assign without knowing state vs county aggregation
@@ -133,18 +136,15 @@ class ComStockQueryBuilder:
                            "Please provide the full weight view table name (e.g., 'your_dataset_md_agg_national_by_state_vu' or 'your_dataset_md_agg_national_by_county_vu')")
 
         # Build timestamp grouping with date_trunc and time adjustment
+        time_group = '1'
         if timestamp_grouping == 'hour':
             time_select = f"date_trunc('hour', date_add('second', -900, {self.timeseries_table}.time)) AS time"
-            time_group = '1'
         elif timestamp_grouping == 'day':
             time_select = f"date_trunc('day', {self.timeseries_table}.time) AS time"
-            time_group = '1'
         elif timestamp_grouping == 'month':
             time_select = f"date_trunc('month', {self.timeseries_table}.time) AS time"
-            time_group = '1'
         else:
             time_select = f"{self.timeseries_table}.time AS time"
-            time_group = '1'
 
         # Build SELECT clause with sample statistics
         select_clauses = [time_select]
@@ -158,7 +158,7 @@ class ComStockQueryBuilder:
         if include_sample_stats:
             select_clauses.extend([
                 f"count(distinct({self.timeseries_table}.building_id)) AS sample_count",
-                f"(count(distinct({self.timeseries_table}.building_id)) * sum(1 * {weight_view_table}.weight)) / sum(1) AS units_count",
+                f"(count(distinct({self.timeseries_table}.building_id)) * sum({weight_view_table}.weight)) / sum(1) AS units_count",
                 f"sum(1) / count(distinct({self.timeseries_table}.building_id)) AS rows_per_sample"
             ])
 
@@ -169,14 +169,28 @@ class ComStockQueryBuilder:
 
         # Build weighted enduse aggregations
         for enduse in enduses:
-            weighted_sum = f"sum({self.timeseries_table}.{enduse} * 1 * {weight_view_table}.weight) AS {enduse}"
+            weighted_sum = f"sum({self.timeseries_table}.{enduse} * {weight_view_table}.weight) AS {enduse}"
             select_clauses.append(weighted_sum)
 
             # Add kwh_per_sf columns if requested (for AMI comparison - normalized by weighted area)
-            # Note: When aggregating 15-minute data to hourly, area gets summed multiple times
-            # Divide by rows_per_sample to get the correct area normalization
+            # Note: Building area is per building, but appears in multiple timestep rows when joined.
+            # The sum() counts each building's area once per timestep. Divide by rows_per_sample to correct.
+            #
+            # Example: 4 buildings (each 10k sqft), 15-min data aggregated to hourly (4 timesteps):
+            #   - Each building contributes 4 rows (one per 15-min interval)
+            #   - weighted_energy_sum: 100 kWh (energy varies per timestep, summed across all 16 rows)
+            #   - weighted_area_sum: 160k sqft (same 10k per building repeated 4 times: 4 buildings × 10k × 4 timesteps)
+            #   - rows_per_sample: 16 total rows / 4 distinct buildings = 4 timesteps/building
+            #   - Corrected area: 160k / 4 = 40k sqft (removes timestep duplication)
+            #   - Result: 100 kWh / 40k sqft = 0.0025 kWh/sqft
             if include_area_normalized_cols and enduse.endswith('_kwh'):
-                kwh_per_sf = f"sum({self.timeseries_table}.{enduse} * 1 * {weight_view_table}.weight) / (sum({weight_view_table}.\"in.sqft\" * {weight_view_table}.weight) / (sum(1) / count(distinct({self.timeseries_table}.building_id)))) AS {enduse.replace('_kwh', '_kwh_per_sf')}"
+                # Build the formula in parts for clarity
+                weighted_energy_sum = f"sum({self.timeseries_table}.{enduse} * {weight_view_table}.weight)"
+                weighted_area_sum = f"sum({weight_view_table}.\"in.sqft\" * {weight_view_table}.weight)"
+                rows_per_sample = f"(sum(1) / count(distinct({self.timeseries_table}.building_id)))"
+                corrected_area = f"({weighted_area_sum} / {rows_per_sample})"
+
+                kwh_per_sf = f"{weighted_energy_sum} / {corrected_area} AS {enduse.replace('_kwh', '_kwh_per_sf')}"
                 select_clauses.append(kwh_per_sf)
 
         select_clause = ',\n    '.join(select_clauses)
@@ -241,11 +255,11 @@ class ComStockQueryBuilder:
         return query
 
     def get_applicability_query(self,
-                               upgrade_ids: List[Union[int, str]],
-                               state: Optional[Union[str, List[str]]] = None,
-                               county: Optional[Union[str, List[str]]] = None,
-                               columns: Optional[List[str]] = None,
-                               weight_view_table: Optional[str] = None) -> str:
+        upgrade_ids: List[Union[int, str]],
+        state: Optional[Union[str, List[str]]] = None,
+        county: Optional[Union[str, List[str]]] = None,
+        columns: Optional[List[str]] = None,
+        weight_view_table: Optional[str] = None) -> str:
         """
         Build query to get applicable buildings and their characteristics from the weight view.
 
@@ -258,6 +272,7 @@ class ComStockQueryBuilder:
 
         Returns:
             SQL query string
+
         """
 
         # If no weight view table provided, construct name based on geographic level

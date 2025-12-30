@@ -190,8 +190,12 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                                         columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.UNMET_HOURS_COLS))(**BASIC_PARAMS)
 
         if make_timeseries_plots:
-            TIMESERIES_PARAMS = {'comstock_run_name': self.comstock_run_name, 'timeseries_locations_to_plot': timeseries_locations_to_plot, 'color_map': color_map,
-                                 'output_dir': output_dir, 'comstock_obj': self.comstock_object}
+            TIMESERIES_PARAMS = {
+                'comstock_run_name': self.comstock_run_name,
+                'timeseries_locations_to_plot': timeseries_locations_to_plot,
+                'color_map': color_map,
+                'output_dir': output_dir,
+                'comstock_obj': self.comstock_object}
 
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_peak_week_by_state, lazy_frame=lazy_frame.clone(),
                                             columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT,

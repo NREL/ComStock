@@ -11,28 +11,9 @@ from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
-import sys
-from buildstock_query import BuildStockQuery
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
 import comstockpostproc.comstock as comstock
-from comstockpostproc.comstock_query_builder import ComStockQueryBuilder
-import fsspec
-import s3fs
-from pyathena.arrow.cursor import ArrowCursor
-
-# --- put this at the VERY TOP of your main script ---
-from pyathena import connect as _orig_connect
-from pyathena.arrow.cursor import ArrowCursor
-import buildstock_query.query_core as qc  # this is what QueryCore calls
-
-def _connect_with_arrow(*args, **kwargs):
-    kwargs.setdefault("cursor_class", ArrowCursor)
-    kwargs.setdefault("cursor_kwargs", {"unload": True})  # downloads via boto3, no s3fs/fsspec involved
-    return _orig_connect(*args, **kwargs)
-
-qc.connect = _connect_with_arrow  # patch the exact symbol QueryCore uses
-# --- end patch ---
 
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -3056,7 +3037,7 @@ class PlottingMixin():
     def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None): #, df, region, building_type, color_map, output_dir
 
         # get upgrade ID
-        df_data = df.copy()
+        df_data = df.copy(deep=True)
         # coerce data type of upgrade ID - arrives as float, need str of int for querying
         df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
         df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0"), :]

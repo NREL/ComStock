@@ -2,26 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import boto3
-import time
-from fsspec.core import url_to_fs
-from sqlalchemy.engine import create_engine
-import sqlalchemy as sa
 import comstockpostproc as cspp
-from sqlalchemy_views import CreateView
-import re
-
-
-#import sys, inspect, importlib, site, platform, shutil, subprocess, os
-
-#mods = ["pyathena","s3fs","fsspec","botocore","aiobotocore","boto3","pandas"]
-#for m in mods:
-#    try:
-#        mod = importlib.import_module(m)
-#        print(f"{m:12} {getattr(mod,'__version__','?'):>10}  @ {inspect.getfile(mod)}")
-#    except Exception as e:
-#        print(f"{m:12} NOT IMPORTABLE: {e}")
-
 
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
@@ -118,20 +99,19 @@ def main():
 
     # specify the export level
     # IMPORTANT: if making county level timeseries plots, must export county level data to S3. This does not occur automatically.
-    geo_exports = [county_resolution] #state_resolution
+    geo_exports = [state_resolution] #county_resolution
 
-    #for geo_export in geo_exports:
-    #    for upgrade_id in comstock.upgrade_ids_to_process:
-    #        if upgrade_id == 0:
-    #            continue
-    #        comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
+    for geo_export in geo_exports:
+        for upgrade_id in comstock.upgrade_ids_to_process:
+            if upgrade_id == 0:
+                continue
+            comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
 
-    #        # Also write to S3 if making timeseries plots
-    #        if comstock.make_timeseries_plots: TODO: force geo exports to county data if couunty timeseries is requested.
-    #            s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
-    #            s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
-    #            comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)
-
+            # Also write to S3 if making timeseries plots
+            if comstock.make_timeseries_plots: # TODO: force geo exports to county data if couunty timeseries is requested.
+                s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
+                s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
+                comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)
 
     # write select results to S3 for Athena/Glue when needed for timeseries plots
     if comstock.make_timeseries_plots:
@@ -143,14 +123,12 @@ def main():
         glue_service_role = "service-role/AWSGlueServiceRole-default"
 
         # Export parquet files to S3 for Athena/Glue
-        # TODO: modify so that county data can be used for timeseries plots
-        # TODO: Modify geo export structure to specify parquet files only for this part of the workflow
-        #comstock.create_sightglass_tables(s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
-        #                                    dataset_name=crawler_name,
-        #                                    database_name=database,
-        #                                    glue_service_role=glue_service_role)
-        #comstock.fix_timeseries_tables(crawler_name, database)
-        #comstock.create_views(crawler_name, database, workgroup)
+        comstock.create_sightglass_tables(s3_location=f"{s3_dir}/metadata_and_annual_results_aggregates",
+                                            dataset_name=crawler_name,
+                                            database_name=database,
+                                            glue_service_role=glue_service_role)
+        comstock.fix_timeseries_tables(crawler_name, database)
+        comstock.create_views(crawler_name, database, workgroup)
 
     # Create measure run comparisons; only use if run has measures
     comparison = cspp.ComStockMeasureComparison(comstock, timeseries_locations_to_plot=comstock.timeseries_locations_to_plot, make_comparison_plots = comstock.make_comparison_plots, make_timeseries_plots = comstock.make_timeseries_plots)

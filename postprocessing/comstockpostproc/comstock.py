@@ -11,7 +11,6 @@ from functools import lru_cache
 from fsspec.core import url_to_fs
 from sqlalchemy.engine import create_engine
 from joblib import Parallel, delayed
-from fsspec import register_implementation
 import sqlalchemy as sa
 import time
 from sqlalchemy_views import CreateView
@@ -403,7 +402,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
 
-            ########## REVISE TO USE NEW TIMESERIES FUNCTIONALITY
             athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
@@ -412,9 +410,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
                     logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
-
-
-                # Use ComStockQueryBuilder
                 builder = ComStockQueryBuilder(self.comstock_run_name)
                 weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_and_county_vu'
                 query = builder.get_timeseries_aggregation_query(
@@ -428,8 +423,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 )
 
                 ts_agg = athena_client.execute(query)
-
-                ######################## END REVISED SECTION
 
                 if ts_agg['time'].dtype == 'Int64':
                     # Convert bigint to timestamp type if necessary
@@ -581,7 +574,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             on=['timestamp', 'building_type', 'sample_count', 'enduse'],
             how='inner'
         ).set_index('timestamp')
-        agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})\
+        agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})
 
         # save out long data format
         if save_individual_region:
@@ -4161,7 +4154,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             }]
 
             try:
-                crawler_info = glue.get_crawler(Name=crawler_name)
+                _ = glue.get_crawler(Name=crawler_name)
             except glue.exceptions.EntityNotFoundException as ex:
                 logger.info(f"Creating Crawler {crawler_name}")
                 glue.create_crawler(**crawler_params)
@@ -4300,7 +4293,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 else:
                     logger.debug('Waiting 10 seconds to check index creation status')
                     time.sleep(10)
-            if not index_deleted:
+            if not index_created:
                 raise RuntimeError(f'Did not create index in 600 seconds, stopping.')
 
     @staticmethod
@@ -4458,19 +4451,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     bys = bys.replace(f'agg_', '').replace(f'by_', '').replace(f'_parquet', '').split('_and_')
                     logger.debug(f"Partition identifiers = {', '.join(bys)}")
 
-                # Rename the partition column to match hive partition
-                # Move it up in the column order for easier debugging
-                # TODO figure out a better approach than hard-coding
-                aliases = {
-                    'state': {'col': 'in.state','alias': 'state'},
-                    'puma': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'},
-                    'county': {'col': 'in.nhgis_county_gisjoin', 'alias': 'county'},
-                    'puma_midwest': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'},
-                    'puma_northeast': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'},
-                    'puma_south': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'},
-                    'puma_west': {'col': 'in.nhgis_puma_gisjoin', 'alias': 'puma'}
-                }
-
                 # Select columns for the metadata, aliasing partition columns
                 cols = []
                 for col in metadata_tbl.columns:
@@ -4535,9 +4515,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         create_view = CreateView(view, q, or_replace=True)
                         logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
                         engine.execute(create_view)
-                        # logger.debug('Columns in view:')
-                        # for c in cols:
-                        #     logger.debug(c)
+
                 else:
                     q = sa.select(cols)
                     view_name = metadata_tblname.replace('_parquet', '')
@@ -4549,9 +4527,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     create_view = CreateView(view, q, or_replace=True)
                     logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
                     engine.execute(create_view)
-                    # logger.debug('Columns in view:')
-                    # for c in cols:
-                    #     logger.debug(c)
 
             # Get a list of timeseries tables
             get_ts_tables_kw = {
@@ -4635,7 +4610,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 return 'county'
             else:
                 # Handle other potential formats - default to state
-                print(f"Warning: Unrecognized location ID format: {location_input}, defaulting to state")
+                logger.warning(f"Warning: Unrecognized location ID format: {location_input}, defaulting to state")
                 return 'state'
 
         # Handle multiple locations (tuple or list)
@@ -4647,7 +4622,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             return 'state'  # All are states
 
         else:
-            print(f"Warning: Unexpected location input type: {type(location_input)}, defaulting to state")
+            logger.warning(f"Warning: Unexpected location input type: {type(location_input)}, defaulting to state")
             return 'state'
 
     def get_weighted_load_profiles_from_s3(self, df, upgrade_num, location_input, upgrade_name):
@@ -4747,14 +4722,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         applic_bldgs_list = list(applic_df[self.BLDG_ID].unique())
         applic_bldgs_list = [int(x) for x in applic_bldgs_list]
 
+        # Create location description string for logging messages
+        location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+
         # Check if any applicable buildings were found
         if len(applic_bldgs_list) == 0:
-            location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
             print(f"Warning: No applicable buildings found for {location_desc} and upgrade(s) {upgrade_num}. Returning empty DataFrames.")
             return pd.DataFrame(), pd.DataFrame()
-
-        import time
-        from datetime import datetime, time
 
         # Build geographic restrictions for all locations
         geo_restrictions = []
@@ -4762,6 +4736,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             geo_restrictions.append((self.STATE_ABBRV, state_locations))
         if county_locations:
             geo_restrictions.append((self.COUNTY_ID, county_locations))
+
+        # Initialize variables before loop to avoid NameError if loop doesn't execute
+        df_base_ts_agg_weighted = None
+        df_up_ts_agg_weighted = None
 
         # loop through upgrades
         for upgrade_id in df[self.UPGRADE_ID].unique():
@@ -4784,7 +4762,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     weight_view_table=weight_view_table
                 )
 
-                location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
                 print(f"Getting weighted baseline load profile for {location_desc} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
 
                 # Execute query
@@ -4793,8 +4770,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
             else:
                 # baseline load data when no upgrades are present, or upgrade load data
-
-                ## Create query builder and generate query for upgrade data
+                # create query builder and generate query for upgrade data
                 builder = ComStockQueryBuilder(self.comstock_run_name)
 
                 # Build restrictions list including all geographic locations (same as baseline)
