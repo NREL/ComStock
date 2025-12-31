@@ -1394,6 +1394,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("  SET #{g_low_stage_time.name} = 0")
     ems_program.addLine("ENDIF")
 
+    ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+    ems_program_initialization.setName("#{ems_name_airloop}_p_two_stage_gas_coil_initialization")
+
+    ems_program_initialization.addLine("SET #{g_stage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_stage_2.name} = 0")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name}")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_outlet_hr.name}")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_outlet_mdot.name}")
+
     # -------------------------------------------------------------------------------
     # Program calling manager
     # -------------------------------------------------------------------------------
@@ -1403,19 +1412,42 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_pcm.setCallingPoint("UserDefinedComponentModel")
     ems_pcm.addProgram(ems_program)
 
+    ems_pcm_initialization = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+    ems_pcm_initialization.setName("#{ems_name_airloop}_pcm_gas_coil_initialization")
+    ems_pcm_initialization.setCallingPoint("UserDefinedComponentModel")
+    ems_pcm_initialization.addProgram(ems_program_initialization)
+
     # -------------------------------------------------------------------------------
     # Attach EMS objects to coil
     # -------------------------------------------------------------------------------
 
     new_backup_heating_coil.setOverallSimulationProgram(ems_program)
-    new_backup_heating_coil.setInitializationSimulationProgram(ems_program)
+    new_backup_heating_coil.setInitializationSimulationProgram(ems_program_initialization)
     new_backup_heating_coil.setOverallModelSimulationProgramCallingManager(ems_pcm)
-    new_backup_heating_coil.setModelSetupandSizingProgramCallingManager(ems_pcm)
+    new_backup_heating_coil.setModelSetupandSizingProgramCallingManager(ems_pcm_initialization)
     new_backup_heating_coil.setAirOutletTemperatureActuator(a_coil_outlet_t)
     new_backup_heating_coil.setAirOutletHumidityRatioActuator(a_coil_outlet_hr)
     new_backup_heating_coil.setAirMassFlowRateActuator(a_coil_outlet_mdot)
 
-    
+    # -------------------------------------------------------------------------------
+    # Patch fix for removing redundant EMS objects from model
+    # -------------------------------------------------------------------------------
+    model.getEnergyManagementSystemPrograms.sort.each do |program|
+      if program.name.to_s.include?('initializationSimulationProgram')
+        program.remove()
+      elsif program.name.to_s.include?('overallSimulationProgram')
+        program.remove()
+      end
+    end
+
+    model.getEnergyManagementSystemProgramCallingManagers.sort.each do |pcm|
+      if pcm.name.to_s.include?('modelSetupandSizingProgramCallingManager')
+        pcm.remove()
+      elsif pcm.name.to_s.include?('overallModelSimulationProgramCallingManager')
+        pcm.remove()
+      end
+    end
+
     new_backup_heating_coil
   end
 
