@@ -1241,14 +1241,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
     heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
 
+    # replace airloop name based on this hash and create Erl friendly name
+    label_map = {
+      'wholebuilding' => 'wb',
+      'office'        => 'off',
+      'zone'          => 'zn',
+      'story'         => 'stry',
+      'ground'        => 'grnd',
+      'psz_ac'        => '',
+    }
+    ems_name_airloop = air_loop_hvac.name.to_s.downcase
+
+    # Replace longer keys first to avoid partial collisions
+    label_map.sort_by { |k, _| -k.length }.each do |key, value|
+      ems_name_airloop.gsub!(key, value)
+    end
+
+    # Replace non-alphanumeric with underscore
+    ems_name_airloop.gsub!(/[^a-z0-9]/, '_')
+
+    # Collapse underscores
+    ems_name_airloop.gsub!(/_+/, '_')
+    ems_name_airloop.gsub!(/^_|_$/, '')
+
+    # Ensure valid EMS identifier (must start with letter)
+    unless ems_name_airloop =~ /^[a-z]/
+      ems_name_airloop = "a_#{ems_name_airloop}"
+    end
+
     # initialize user defined coil
     new_backup_heating_coil = OpenStudio::Model::CoilUserDefined.new(model)
-
-    # create EMS/Erl friendly name with air_loop_hvac name
-    ems_name_airloop = air_loop_hvac.name.to_s.gsub(' ', '_').gsub('-', '_').gsub(/_+/, '_')
-    if ems_name_airloop =~ /^\d/
-      ems_name_airloop = ems_name_airloop.sub(/^\d/) { |digit| ('a'.ord + digit.to_i - 1).chr }
-    end
+    new_backup_heating_coil.setName("#{ems_name_airloop}_hybrid_gas_heating_coil")
 
     # get supply outlet node name for airloop
     dx_heating_coil_outlet_node_name = air_loop_hvac.supplyOutletNode.name.to_s
