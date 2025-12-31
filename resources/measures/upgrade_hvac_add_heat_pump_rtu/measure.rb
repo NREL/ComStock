@@ -1463,6 +1463,53 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     output_var.setReportingFrequency("Timestep")
 
     # -------------------------------------------------------------------------------
+    # Dummy plant actuators (created but intentionally unused)
+    # Required to satisfy OpenStudio CoilUserDefined internal checks
+    # -------------------------------------------------------------------------------
+
+    a_plant_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Mass Flow Rate"
+    )
+    a_plant_mdot.setName("#{ems_name_airloop}_a_plant_mdot")
+
+    a_plant_min_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Minimum Mass Flow Rate"
+    )
+    a_plant_min_mdot.setName("#{ems_name_airloop}_a_plant_min_mdot")
+
+    a_plant_max_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Maximum Mass Flow Rate"
+    )
+    a_plant_max_mdot.setName("#{ems_name_airloop}_a_plant_max_mdot")
+
+    a_plant_outlet_t = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Outlet Temperature"
+    )
+    a_plant_outlet_t.setName("#{ems_name_airloop}_a_plant_outlet_t")
+
+    a_plant_design_vdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Design Volume Flow Rate"
+    )
+    a_plant_design_vdot.setName("#{ems_name_airloop}_a_plant_design_vdot")
+
+    # Attach plant actuators to the coil (never referenced in EMS programs)
+    new_backup_heating_coil.setPlantMinimumMassFlowRateActuator(a_plant_min_mdot)
+    new_backup_heating_coil.setPlantMaximumMassFlowRateActuator(a_plant_max_mdot)
+    new_backup_heating_coil.setPlantOutletTemperatureActuator(a_plant_outlet_t)
+    new_backup_heating_coil.setPlantDesignVolumeFlowRateActuator(a_plant_design_vdot)
+    new_backup_heating_coil.setPlantMassFlowRateActuator(a_plant_mdot)
+
+    # -------------------------------------------------------------------------------
     # Patch fix for removing redundant EMS objects from model
     # -------------------------------------------------------------------------------
     model.getEnergyManagementSystemPrograms.sort.each do |program|
