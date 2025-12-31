@@ -1206,7 +1206,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   def create_two_stage_dual_fuel_gas_coil_with_ems(model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old)
-    # CoilUserDefined | https://s3.amazonaws.com/openstudio-sdk-documentation/cpp/OpenStudio-3.10.0-doc/model/html/classopenstudio_1_1model_1_1_coil_user_defined.html
 
     # -------------------------------------------------------------------------------
     # EMS code structure
@@ -1247,11 +1246,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if ems_name_airloop =~ /^\d/
       ems_name_airloop = ems_name_airloop.sub(/^\d/) { |digit| ('a'.ord + digit.to_i - 1).chr }
     end
-    puts("### DEBUGGING: ems_name_airloop = #{ems_name_airloop}")
 
     # get supply outlet node name for airloop
-    dx_heating_coil_outlet_node_name = new_dx_heating_coil.outletModelObject.get.to_Node.get.name.to_s
-    puts("### DEBUGGING: dx_heating_coil_outlet_node_name = #{dx_heating_coil_outlet_node_name}")
+    dx_heating_coil_outlet_node_name = air_loop_hvac.supplyOutletNode.name.to_s
 
     # -------------------------------------------------------------------------------
 
@@ -2998,10 +2995,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # shared capacity logic
       if new_backup_heating_coil
         new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
-      end
-
-      # set availability schedule
-      new_backup_heating_coil.setAvailabilitySchedule(always_on)
+        new_backup_heating_coil.setAvailabilitySchedule(always_on)
+      end      
 
       # *********************************************************
       # add new fan
@@ -3043,7 +3038,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setSupplyFan(new_fan)
       new_air_to_air_heatpump.setHeatingCoil(new_dx_heating_coil)
       new_air_to_air_heatpump.setCoolingCoil(new_dx_cooling_coil)
-      new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
+      if new_backup_heating_coil
+        new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
+      end
       new_air_to_air_heatpump.addToNode(air_loop_hvac.supplyOutletNode)
 
       # set other features
