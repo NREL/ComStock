@@ -1439,7 +1439,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         program.remove()
       end
     end
-
     model.getEnergyManagementSystemProgramCallingManagers.sort.each do |pcm|
       if pcm.name.to_s.include?('modelSetupandSizingProgramCallingManager')
         pcm.remove()
