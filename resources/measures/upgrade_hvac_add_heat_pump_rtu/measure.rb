@@ -1234,6 +1234,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Air Connection 1 | Mass Flow Rate
     # -------------------------------------------------------------------------------
 
+    # TODOs
+    # connect setpoint manager setpoint to maximum_supply_air_temperature_low_c
+    # then how to set up maximum_supply_air_temperature_high_c?
+    # calculate gas usage as output var
+
     # TEMPORARY argument definitions (move to arguments later)
     maximum_supply_air_temperature_low_c = 35.0
     maximum_supply_air_temperature_high_c = 45.0
@@ -1544,8 +1549,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         actuator.remove()
       end
     end
-
-    return new_backup_heating_coil
   end
 
   # ---------------------------------------------------------
@@ -3210,7 +3213,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add dual fuel gas coil via ems
       # *********************************************************
       if (backup_ht_fuel_scheme == 'dual_fuel_gas_furnace_backup')
-        new_backup_heating_coil = create_two_stage_dual_fuel_gas_coil_with_ems(
+        create_two_stage_dual_fuel_gas_coil_with_ems(
           model,
           runner,
           air_loop_hvac,
