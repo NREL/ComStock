@@ -1248,7 +1248,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       'zone'          => 'zn',
       'story'         => 'stry',
       'ground'        => 'grnd',
-      'psz_ac'        => '',
+      'psz-ac'        => '',
+      'fullservicerestaurant' => 'fsr',
+      'dining'       => 'din',
     }
     ems_name_airloop = air_loop_hvac.name.to_s.downcase
 
@@ -1279,14 +1281,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # -------------------------------------------------------------------------------
 
     # EMS sensor: DX heating coil outlet air temperature
-    ems_sensor_dx_hc_outlet_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Temperature")
+    ems_sensor_dx_hc_outlet_t = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(model, "Inlet Temperature for Air Connection 1")
     ems_sensor_dx_hc_outlet_t.setName("#{ems_name_airloop}_sensor_supply_outlet_node_t")
-    ems_sensor_dx_hc_outlet_t.setKeyName(dx_heating_coil_outlet_node_name)
+    ems_sensor_dx_hc_outlet_t.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
     # EMS sensor: DX heating coil outlet air humidity ratio
-    ems_sensor_dx_hc_outlet_hr = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Humidity Ratio")
+    ems_sensor_dx_hc_outlet_hr = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(model, "Inlet Humidity Ratio for Air Connection 1")
     ems_sensor_dx_hc_outlet_hr.setName("#{ems_name_airloop}_sensor_supply_outlet_node_hr")
-    ems_sensor_dx_hc_outlet_hr.setKeyName(dx_heating_coil_outlet_node_name)
+    ems_sensor_dx_hc_outlet_hr.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
     # EMS sensor: DX heating coil outlet air mass flow rate
     ems_sensor_dx_hc_outlet_mdot = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Mass Flow Rate")
@@ -1434,7 +1436,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # -------------------------------------------------------------------------------
 
     new_backup_heating_coil.setOverallSimulationProgram(ems_program_gas_coil_control)
+    new_backup_heating_coil.setInitializationSimulationProgram(ems_program_gas_coil_control)
     new_backup_heating_coil.setOverallModelSimulationProgramCallingManager(ems_pcm_gas_coil_control)
+    new_backup_heating_coil.setModelSetupandSizingProgramCallingManager(ems_pcm_gas_coil_control)
     new_backup_heating_coil.setAirOutletTemperatureActuator(ems_actuator_coil_out_temp)
     new_backup_heating_coil.setAirOutletHumidityRatioActuator(ems_actuator_coil_out_humidity)
     new_backup_heating_coil.setAirMassFlowRateActuator(ems_actuator_coil_out_mass_flow)
