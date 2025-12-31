@@ -507,7 +507,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
       calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
-    elsif performance_category.include?('duelfuel')
+    elsif performance_category.include?('dualfuel')
 
       calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
       calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -1738,8 +1738,8 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  # This test is for cfm/ton check for duel fuel RTU unit
-  def test_380_full_service_restaurant_psz_gas_coil_duel_fuel_rtu
+  # This test is for cfm/ton check for dual fuel RTU unit
+  def test_380_full_service_restaurant_psz_gas_coil_dual_fuel_rtu
     osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
 
@@ -1800,9 +1800,13 @@ class AddHeatPumpRtuTest < Minitest::Test
     # populate argument with specified hash value if specified
     arguments.each_with_index do |arg, idx|
       temp_arg_var = arg.clone
-      if arg.name == 'hprtu_scenario'
+      if arg.name == 'backup_ht_fuel_scheme'
+        backup_ht_fuel_scheme = arguments[idx].clone
+        backup_ht_fuel_scheme.setValue('dual_fuel_gas_furnace_backup')  
+        argument_map[arg.name] = backup_ht_fuel_scheme
+      elsif arg.name == 'hprtu_scenario'
         hprtu_scenario = arguments[idx].clone
-        hprtu_scenario.setValue('carrier_48qe_duelfuel')  # carrier_48qe_duelfuel, two_speed_standard_eff
+        hprtu_scenario.setValue('carrier_48qe_dualfuel')  # carrier_48qe_dualfuel, two_speed_standard_eff
         argument_map[arg.name] = hprtu_scenario
       else
         argument_map[arg.name] = temp_arg_var
@@ -1823,7 +1827,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # test lookup table values
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
-    if performance_category == 'carrier_48qe_duelfuel'
+    if performance_category == 'carrier_48qe_dualfuel'
       lookup_table_tests.each do |lookup_table_test|
         # Check if lookup table is available
         lookup_table_name = lookup_table_test[:table_name]
