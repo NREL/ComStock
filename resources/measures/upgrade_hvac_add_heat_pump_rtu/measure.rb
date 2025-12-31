@@ -2829,19 +2829,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         # -------------------------------------------------------------------------------
 
         # EMS sensor: DX heating coil outlet air temperature
-        ems_sensor_sa = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Temperature")
-        ems_sensor_sa.setName("#{ems_name_airloop}_sensor_supply_outlet_node_t")
-        ems_sensor_sa.setKeyName(dx_heating_coil_outlet_node_name)
+        ems_sensor_dx_hc_outlet_t = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Temperature")
+        ems_sensor_dx_hc_outlet_t.setName("#{ems_name_airloop}_sensor_supply_outlet_node_t")
+        ems_sensor_dx_hc_outlet_t.setKeyName(dx_heating_coil_outlet_node_name)
 
         # EMS sensor: DX heating coil outlet air humidity ratio
-        ems_sensor_hr = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Humidity Ratio")
-        ems_sensor_hr.setName("#{ems_name_airloop}_sensor_supply_outlet_node_hr")
-        ems_sensor_hr.setKeyName(dx_heating_coil_outlet_node_name)
+        ems_sensor_dx_hc_outlet_hr = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Humidity Ratio")
+        ems_sensor_dx_hc_outlet_hr.setName("#{ems_name_airloop}_sensor_supply_outlet_node_hr")
+        ems_sensor_dx_hc_outlet_hr.setKeyName(dx_heating_coil_outlet_node_name)
 
         # EMS sensor: DX heating coil outlet air mass flow rate
-        ems_sensor_mdot = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Mass Flow Rate")
-        ems_sensor_mdot.setName("#{ems_name_airloop}_sensor_supply_outlet_node_mdot")
-        ems_sensor_mdot.setKeyName(dx_heating_coil_outlet_node_name)
+        ems_sensor_dx_hc_outlet_mdot = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "System Node Mass Flow Rate")
+        ems_sensor_dx_hc_outlet_mdot.setName("#{ems_name_airloop}_sensor_supply_outlet_node_mdot")
+        ems_sensor_dx_hc_outlet_mdot.setKeyName(dx_heating_coil_outlet_node_name)
 
         # EMS sensor: DX heating coil runtime fraction
         ems_sensor_coil_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(model, "Heating Coil Runtime Fraction")
@@ -2857,7 +2857,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         ems_glob_var_stage_2_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "status_stage_2")
 
         # EMS global variable: time duration low stage heating minutes
-        ems_glob_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "ems_trend_var_time_duration_low_stage")
+        ems_glob_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "time_duration_low_stage_current")
 
         # -------------------------------------------------------------------------------
 
@@ -2874,23 +2874,22 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         ems_program_gas_coil_control.addLine("SET status_stage_1 = 0")
         ems_program_gas_coil_control.addLine("SET status_stage_2 = 0")
         
-        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_temp = #{ems_sensor_sa.name}")
-        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_humidity = #{ems_sensor_hr.name}")
-        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_mass_flow = #{ems_sensor_mdot.name}")
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_temp = #{ems_sensor_dx_hc_outlet_t.name}")
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_humidity = #{ems_sensor_dx_hc_outlet_hr.name}")
+        ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_mass_flow = #{ems_sensor_dx_hc_outlet_mdot.name}")
         ems_program_gas_coil_control.addLine("SET time_duration_low_stage_previous = @TrendValue time_duration_low_stage_current 1")
-        
 
         ems_program_gas_coil_control.addLine("IF #{ems_sensor_coil_runtime_frac.name} == 1")
         ems_program_gas_coil_control.addLine("  IF ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_low_c}")
         ems_program_gas_coil_control.addLine("    SET status_stage_1 = 1")
         ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
-        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_hr.name}")
-        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_1_w} / #{ems_sensor_mdot.name} / cp)")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_dx_hc_outlet_hr.name}")
+        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_dx_hc_outlet_t + (#{heating_capacity_stage_1_w} / #{ems_sensor_dx_hc_outlet_mdot.name} / cp)")
         ems_program_gas_coil_control.addLine("  ELSEIF (time_duration_low_stage_previous > 30) && (ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_high_c})")
         ems_program_gas_coil_control.addLine("    SET status_stage_2 = 1")
         ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
-        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_hr.name}")
-        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_sa + (#{heating_capacity_stage_2_w} / #{ems_sensor_mdot.name} / cp)")
+        ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_dx_hc_outlet_hr.name}")
+        ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_dx_hc_outlet_t + (#{heating_capacity_stage_2_w} / #{ems_sensor_dx_hc_outlet_mdot.name} / cp)")
         ems_program_gas_coil_control.addLine("  ENDIF")
         ems_program_gas_coil_control.addLine("ENDIF")
 
