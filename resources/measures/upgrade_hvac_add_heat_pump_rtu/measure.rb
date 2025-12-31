@@ -1218,8 +1218,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # heating_capacity_stage_2_w
 
     # internal variables list:
-    # status_stage_1
-    # status_stage_2
+    # #{ems_name_airloop}_status_stage_1
+    # #{ems_name_airloop}_status_stage_2
     # time_duration_low_stage_heating_minutes
 
     # sensor list:
@@ -1240,6 +1240,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     time_duration_trigger_for_high_stage_minutes = 30
     heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
     heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
+
+    # initialize user defined coil
+    new_backup_heating_coil = OpenStudio::Model::CoilUserDefined.new(model)
 
     # create EMS/Erl friendly name with air_loop_hvac name
     ems_name_airloop = air_loop_hvac.name.to_s.gsub(' ', '_').gsub('-', '_').gsub(/_+/, '_')
@@ -1275,19 +1278,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # -------------------------------------------------------------------------------
 
     # EMS global variable: time duration low stage heating minutes
-    ems_glob_var_stage_1_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "status_stage_1")
+    ems_glob_var_stage_1_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "#{ems_name_airloop}_status_stage_1")
 
     # EMS global variable: time duration low stage heating minutes
-    ems_glob_var_stage_2_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "status_stage_2")
+    ems_glob_var_stage_2_status = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "#{ems_name_airloop}_status_stage_2")
 
     # EMS global variable: time duration low stage heating minutes
-    ems_glob_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "time_duration_low_stage_current")
+    ems_glob_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "#{ems_name_airloop}_time_duration_low_stage_current")
 
     # -------------------------------------------------------------------------------
 
     # EMS trend variable: time duration low stage heating minutes
     ems_trend_var_time_duration_low_stage = OpenStudio::Model::EnergyManagementSystemTrendVariable.new(model, ems_glob_var_time_duration_low_stage)
-    ems_trend_var_time_duration_low_stage.setName("time_duration_low_stage_current")
+    ems_trend_var_time_duration_low_stage.setName("#{ems_name_airloop}_time_duration_low_stage_current")
     ems_trend_var_time_duration_low_stage.setNumberOfTimestepsToBeLogged(1)
 
     # -------------------------------------------------------------------------------
@@ -1295,23 +1298,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # EMS program
     ems_program_gas_coil_control = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
     ems_program_gas_coil_control.setName("#{ems_name_airloop}_program_two_stage_gas_coil_control")
-    ems_program_gas_coil_control.addLine("SET status_stage_1 = 0")
-    ems_program_gas_coil_control.addLine("SET status_stage_2 = 0")
+    ems_program_gas_coil_control.addLine("SET #{ems_name_airloop}_status_stage_1 = 0")
+    ems_program_gas_coil_control.addLine("SET #{ems_name_airloop}_status_stage_2 = 0")
     
     ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_temp = #{ems_sensor_dx_hc_outlet_t.name}")
     ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_humidity = #{ems_sensor_dx_hc_outlet_hr.name}")
     ems_program_gas_coil_control.addLine("SET ems_actuator_coil_out_mass_flow = #{ems_sensor_dx_hc_outlet_mdot.name}")
-    ems_program_gas_coil_control.addLine("SET time_duration_low_stage_previous = @TrendValue time_duration_low_stage_current 1")
+    ems_program_gas_coil_control.addLine("SET time_duration_low_stage_previous = @TrendValue #{ems_name_airloop}_time_duration_low_stage_current 1")
 
     ems_program_gas_coil_control.addLine("IF #{ems_sensor_coil_runtime_frac.name} == 1")
     ems_program_gas_coil_control.addLine("  IF ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_low_c}")
-    ems_program_gas_coil_control.addLine("    SET status_stage_1 = 1")
-    ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
+    ems_program_gas_coil_control.addLine("    SET #{ems_name_airloop}_status_stage_1 = 1")
+    ems_program_gas_coil_control.addLine("    SET #{ems_name_airloop}_time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
     ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_dx_hc_outlet_hr.name}")
     ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_dx_hc_outlet_t + (#{heating_capacity_stage_1_w} / #{ems_sensor_dx_hc_outlet_mdot.name} / cp)")
     ems_program_gas_coil_control.addLine("  ELSEIF (time_duration_low_stage_previous > 30) && (ems_actuator_coil_out_temp < #{maximum_supply_air_temperature_high_c})")
-    ems_program_gas_coil_control.addLine("    SET status_stage_2 = 1")
-    ems_program_gas_coil_control.addLine("    SET time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
+    ems_program_gas_coil_control.addLine("    SET #{ems_name_airloop}_status_stage_2 = 1")
+    ems_program_gas_coil_control.addLine("    SET #{ems_name_airloop}_time_duration_low_stage_current = time_duration_low_stage_previous + 60 / TimeStepsPerHour")
     ems_program_gas_coil_control.addLine("    SET cp = CpAirFnW #{ems_sensor_dx_hc_outlet_hr.name}")
     ems_program_gas_coil_control.addLine("    SET ems_actuator_coil_out_temp = ems_sensor_dx_hc_outlet_t + (#{heating_capacity_stage_2_w} / #{ems_sensor_dx_hc_outlet_mdot.name} / cp)")
     ems_program_gas_coil_control.addLine("  ENDIF")
@@ -1326,15 +1329,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # -------------------------------------------------------------------------------
 
     # EMS actuator: gas coil outlet temperature
-    ems_actuator_coil_out_temp = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Temperature")
+    ems_actuator_coil_out_temp = OpenStudio::Model::EnergyManagementSystemActuator.new(new_backup_heating_coil,"Air Connection 1","Outlet Temperature")
     ems_actuator_coil_out_temp.setName("#{ems_name_airloop}_actuator_coil_outlet_t")
 
     # EMS actuator: gas coil outlet humidity ratio
-    ems_actuator_coil_out_humidity = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Humidity Ratio")
+    ems_actuator_coil_out_humidity = OpenStudio::Model::EnergyManagementSystemActuator.new(new_backup_heating_coil,"Air Connection 1","Outlet Humidity Ratio")
     ems_actuator_coil_out_humidity.setName("#{ems_name_airloop}_actuator_coil_outlet_hr")
 
     # EMS actuator: gas coil outlet mass flow rate
-    ems_actuator_coil_out_mass_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(plantloop,"Air Connection 1","Outlet Mass Flow Rate")
+    ems_actuator_coil_out_mass_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(new_backup_heating_coil,"Air Connection 1","Outlet Mass Flow Rate")
     ems_actuator_coil_out_mass_flow.setName("#{ems_name_airloop}_actuator_coil_outlet_mdot")
 
     # -------------------------------------------------------------------------------
@@ -1406,6 +1409,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     output_var_status_heating_stage_1_duration.setReportingFrequency("Timestep")
     
     # -------------------------------------------------------------------------------
+
+    new_backup_heating_coil.setOverallSimulationProgram(ems_program_gas_coil_control)
+    new_backup_heating_coil.setOverallModelSimulationProgramCallingManager(ems_pcm_gas_coil_control)
+    new_backup_heating_coil.setAirOutletTemperatureActuator(ems_actuator_coil_out_temp)
+    new_backup_heating_coil.setAirOutletHumidityRatioActuator(ems_actuator_coil_out_humidity)
+    new_backup_heating_coil.setAirMassFlowRateActuator(ems_actuator_coil_out_mass_flow)
+    new_backup_heating_coil.addToNode(air_loop_hvac.supplyOutletNode)
+    
+    new_backup_heating_coil
   end
 
   # ---------------------------------------------------------
@@ -3070,7 +3082,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add dual fuel gas coil via ems
       # *********************************************************
       if (backup_ht_fuel_scheme == 'dual_fuel_gas_furnace_backup')
-        create_two_stage_dual_fuel_gas_coil_with_ems(model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old)
+        new_backup_heating_coil = create_two_stage_dual_fuel_gas_coil_with_ems(model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old)        
+        new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
       end
 
       # *********************************************************
