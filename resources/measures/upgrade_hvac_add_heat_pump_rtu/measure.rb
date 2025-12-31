@@ -1357,6 +1357,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # EMS program
     # -------------------------------------------------------------------------------
 
+    # get model simulation timestep
+    sim_control = model.getSimulationControl
+    timestep = sim_control.timestep.get
+    time_step_minutes = 60.0 / timestep.numberOfTimestepsPerHour
+
     ems_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
     ems_program.setName("#{ems_name_airloop}_p_two_stage_gas_coil")
 
@@ -1369,20 +1374,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     ems_program.addLine("SET low_stage_time_prev = @TrendValue #{t_low_stage_time.name} 1")
 
-    ems_program.addLine("IF #{s_dx_runtime_frac.name} == 1")
+    ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
 
     ems_program.addLine("  IF #{a_coil_outlet_t.name} < #{maximum_supply_air_temperature_low_c}")
     ems_program.addLine("    SET #{g_stage_1.name} = 1")
-    ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + 60 / TimeStepsPerHour")
-    ems_program.addLine("    SET cp = CpAirFnW #{s_coil_outlet_hr.name}")
+    ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + #{time_step_minutes}")
+    ems_program.addLine("    SET cp = @CpAirFnW #{s_coil_outlet_hr.name}")
     ems_program.addLine("    IF #{s_coil_outlet_mdot.name} > 0")
     ems_program.addLine("      SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name} + (#{heating_capacity_stage_1_w} / #{s_coil_outlet_mdot.name} / cp)")
     ems_program.addLine("    ENDIF")
 
     ems_program.addLine("  ELSEIF (low_stage_time_prev > 30) && (#{a_coil_outlet_t.name} < #{maximum_supply_air_temperature_high_c})")
     ems_program.addLine("    SET #{g_stage_2.name} = 1")
-    ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + 60 / TimeStepsPerHour")
-    ems_program.addLine("    SET cp = CpAirFnW #{s_coil_outlet_hr.name}")
+    ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + #{time_step_minutes}")
+    ems_program.addLine("    SET cp = @CpAirFnW #{s_coil_outlet_hr.name}")
     ems_program.addLine("    IF #{s_coil_outlet_mdot.name} > 0")
     ems_program.addLine("      SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name} + (#{heating_capacity_stage_2_w} / #{s_coil_outlet_mdot.name} / cp)")
     ems_program.addLine("    ENDIF")
