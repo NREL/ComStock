@@ -106,21 +106,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # add hybrid gas coil maximum supply air temperature deadband
     hybrid_gas_coil_max_sat_low_high_delta_r = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_max_sat_low_high_delta_r', true)
     hybrid_gas_coil_max_sat_low_high_delta_r.setDisplayName('Temperature deadband for hybrid gas heating coil maximum supply air temperature, R')
-    hybrid_gas_coil_max_sat_low_high_delta_r.setDefaultValue(6.0)
+    hybrid_gas_coil_max_sat_low_high_delta_r.setDefaultValue(10.0)
     hybrid_gas_coil_max_sat_low_high_delta_r.setDescription('Specifies temperature deadband between low and high maximum supply air temperature for hybrid gas heating coil control logic.')
     args << hybrid_gas_coil_max_sat_low_high_delta_r
 
     # add hybrid gas coil low stage time duration limit
     hybrid_gas_coil_low_stage_time_duration_limit_min = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_low_stage_time_duration_limit_min', true)
     hybrid_gas_coil_low_stage_time_duration_limit_min.setDisplayName('Time duration limit for low stage operation before enabling high stage for hybrid gas heating coil, minutes')
-    hybrid_gas_coil_low_stage_time_duration_limit_min.setDefaultValue(17.0)
+    hybrid_gas_coil_low_stage_time_duration_limit_min.setDefaultValue(30.0)
     hybrid_gas_coil_low_stage_time_duration_limit_min.setDescription('Specifies time duration limit for low stage operation before enabling high stage for hybrid gas heating coil control logic.')
     args << hybrid_gas_coil_low_stage_time_duration_limit_min
 
     # add hybrid gas coil high stage outdoor air temperature limit
     hybrid_gas_coil_high_stage_oat_limit_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_high_stage_oat_limit_f', true)
     hybrid_gas_coil_high_stage_oat_limit_f.setDisplayName('Outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil, F')
-    hybrid_gas_coil_high_stage_oat_limit_f.setDefaultValue(50.0)
+    hybrid_gas_coil_high_stage_oat_limit_f.setDefaultValue(17.0)
     hybrid_gas_coil_high_stage_oat_limit_f.setDescription('Specifies outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil control logic.')
     args << hybrid_gas_coil_high_stage_oat_limit_f
 
