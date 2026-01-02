@@ -103,6 +103,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
     args << hp_min_comp_lockout_temp_f
 
+    # add heat pump minimum compressor lockout outdoor air temperature
+    hybrid_gas_coil_max_sat_low_high_delta_r = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_max_sat_low_high_delta_r', true)
+    hybrid_gas_coil_max_sat_low_high_delta_r.setDisplayName('Temperature deadband for hybrid gas heating coil maximum supply air temperature, R')
+    hybrid_gas_coil_max_sat_low_high_delta_r.setDefaultValue(6.0)
+    hybrid_gas_coil_max_sat_low_high_delta_r.setDescription('Specifies temperature deadband between low and high maximum supply air temperature for hybrid gas heating coil control logic.')
+    args << hybrid_gas_coil_max_sat_low_high_delta_r
+
+    # add heat pump minimum compressor lockout outdoor air temperature
+    hybrid_gas_coil_low_stage_time_duration_limit_min = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_low_stage_time_duration_limit_min', true)
+    hybrid_gas_coil_low_stage_time_duration_limit_min.setDisplayName('Time duration limit for low stage operation before enabling high stage for hybrid gas heating coil, minutes')
+    hybrid_gas_coil_low_stage_time_duration_limit_min.setDefaultValue(30.0)
+    hybrid_gas_coil_low_stage_time_duration_limit_min.setDescription('Specifies time duration limit for low stage operation before enabling high stage for hybrid gas heating coil control logic.')
+    args << hybrid_gas_coil_low_stage_time_duration_limit_min
+
     # make list of cchpc scenarios
     li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec carrier_48qe_dualfuel]
     v_li_hprtu_scenarios = OpenStudio::StringVector.new
@@ -1205,7 +1219,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  def create_two_stage_dual_fuel_gas_coil_with_ems(model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old, new_air_to_air_heatpump)
+  def create_two_stage_dual_fuel_gas_coil_with_ems(model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old, new_air_to_air_heatpump, hybrid_gas_coil_max_sat_low_high_delta_r, hybrid_gas_coil_low_stage_time_duration_limit_min)
 
     # -------------------------------------------------------------------------------
     # EMS code structure
@@ -1213,7 +1227,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # argument list:
     # maximum_supply_air_temperature_low_c
     # maximum_supply_air_temperature_high_c
-    # time_duration_trigger_for_high_stage_minutes
+    # hybrid_gas_coil_low_stage_time_duration_limit_min
     # heating_capacity_stage_1_w
     # heating_capacity_stage_2_w
 
@@ -1238,11 +1252,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # connect setpoint manager setpoint to maximum_supply_air_temperature_low_c
     # then how to set up maximum_supply_air_temperature_high_c?
     # calculate gas usage as output var
+    # trend variable not working correctly
 
     # TEMPORARY argument definitions (move to arguments later)
-    maximum_supply_air_temperature_low_c = 35.0
-    maximum_supply_air_temperature_high_c = 45.0
-    time_duration_trigger_for_high_stage_minutes = 30
     heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
     heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
 
@@ -1332,6 +1344,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     s_dx_runtime_frac.setName("#{ems_name_airloop}_s_dx_runtime_frac")
     s_dx_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
 
+    s_airloop_setpoint_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "System Node Setpoint Temperature"
+    )
+    s_airloop_setpoint_t.setName("#{ems_name_airloop}_s_airloop_setpoint_t")
+    s_airloop_setpoint_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+
     # -------------------------------------------------------------------------------
     # EMS global variables
     # -------------------------------------------------------------------------------
@@ -1381,7 +1399,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
 
-    ems_program.addLine("  IF #{a_coil_outlet_t.name} < #{maximum_supply_air_temperature_low_c}")
+    ems_program.addLine("  IF #{a_coil_outlet_t.name} < #{s_airloop_setpoint_t.name}")
     ems_program.addLine("    SET #{g_stage_1.name} = 1")
     ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + #{time_step_minutes}")
     ems_program.addLine("    SET cp = @CpAirFnW #{s_coil_outlet_hr.name}")
@@ -1389,7 +1407,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("      SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name} + (#{heating_capacity_stage_1_w} / #{s_coil_outlet_mdot.name} / cp)")
     ems_program.addLine("    ENDIF")
 
-    ems_program.addLine("  ELSEIF (low_stage_time_prev > 30) && (#{a_coil_outlet_t.name} < #{maximum_supply_air_temperature_high_c})")
+    ems_program.addLine("  ELSEIF (low_stage_time_prev > #{hybrid_gas_coil_low_stage_time_duration_limit_min}) && (#{a_coil_outlet_t.name} < (#{s_airloop_setpoint_t.name}+#{hybrid_gas_coil_max_sat_low_high_delta_r}))")
     ems_program.addLine("    SET #{g_stage_2.name} = 1")
     ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + #{time_step_minutes}")
     ems_program.addLine("    SET cp = @CpAirFnW #{s_coil_outlet_hr.name}")
@@ -1464,7 +1482,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     ems_ov_status_heating_stage_1_duration = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_low_stage_time)
     ems_ov_status_heating_stage_1_duration.setName("#{ems_name_airloop}_ov_status_heating_stage_1_duration")
-    ems_ov_status_heating_stage_1_duration.setEMSVariableName("#{g_stage_1.name}")
+    ems_ov_status_heating_stage_1_duration.setEMSVariableName("#{g_low_stage_time.name}")
     ems_ov_status_heating_stage_1_duration.setTypeOfDataInVariable("Averaged")
     ems_ov_status_heating_stage_1_duration.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_1_duration.name}", model)
@@ -1573,6 +1591,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
     hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
+    hybrid_gas_coil_max_sat_low_high_delta_r = runner.getDoubleArgumentValue('hybrid_gas_coil_max_sat_low_high_delta_r', user_arguments)
+    hybrid_gas_coil_low_stage_time_duration_limit_min = runner.getDoubleArgumentValue('hybrid_gas_coil_low_stage_time_duration_limit_min', user_arguments)
     hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -3219,7 +3239,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           air_loop_hvac,
           new_dx_heating_coil,
           orig_htg_coil_gross_cap_old,
-          new_air_to_air_heatpump
+          new_air_to_air_heatpump,
+          hybrid_gas_coil_max_sat_low_high_delta_r,
+          hybrid_gas_coil_low_stage_time_duration_limit_min
         )
       end
 

@@ -77,6 +77,24 @@ Specifies minimum outdoor air temperature for locking out heat pump compressor. 
 **Model Dependent:** false
 
 
+### Temperature deadband for hybrid gas heating coil maximum supply air temperature, R
+Specifies temperature deadband between low and high maximum supply air temperature for hybrid gas heating coil control logic.
+**Name:** hybrid_gas_coil_max_sat_low_high_delta_r,
+**Type:** Double,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Time duration limit for low stage operation before enabling high stage for hybrid gas heating coil, minutes
+Specifies time duration limit for low stage operation before enabling high stage for hybrid gas heating coil control logic.
+**Name:** hybrid_gas_coil_low_stage_time_duration_limit_min,
+**Type:** Double,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
 ### Heat Pump RTU Performance Type
 Determines performance assumptions. two_speed_standard_eff is a standard efficiency system with 2 staged compressors (2 stages cooling, 1 stage heating). two_speed_lab_data is similar to two_speed_standard_eff but uses lab testing data to inform performance rather than public curves from manufacturers. variable_speed_high_eff is a higher efficiency variable speed system. cchpc_2027_spec is a hypothetical 4-stage unit intended to meet the requirements of the cold climate heat pump RTU challenge 2027 specification.  
 **Name:** hprtu_scenario,
