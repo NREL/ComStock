@@ -54,6 +54,9 @@
 
     # Windows:
     docker run -it --rm --privileged -v %CD%:/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry apptainer /root/build/apptainer/build_apptainer.sh
+
+    # Windows Powershell:
+    docker run -it --rm --privileged -v ${PWD}:/root/build -v /var/run/docker.sock:/var/run/docker.sock --network container:registry apptainer /root/build/apptainer/build_apptainer.sh
     ```
 
 * The apptainer image should be at `C:\path\to\comstock\build docker-openstudio.sif`. Hop inside the apptainer container to test the new image
@@ -66,6 +69,9 @@
 
     # Windows:
     docker run -it --privileged --rm -v %CD%:/root/build apptainer /bin/bash
+
+    # Windows Powershell:
+    docker run -it --privileged --rm -v ${PWD}:/root/build apptainer /bin/bash
     ```
 
     ```bash
