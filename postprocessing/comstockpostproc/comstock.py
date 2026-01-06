@@ -1065,7 +1065,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_defs = col_defs[(col_defs['location'] == 'geospatial') & (col_defs['full_metadata'] == True)]
         col_def_names = col_defs['original_col_name'].tolist()
 
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        # Check for local file first, fall back to S3 if not found
+        local_file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        if os.path.exists(local_file_path):
+            file_path = local_file_path
+            logger.info(f'Using local geospatial lookup file: {file_path}')
+        else:
+            file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+            logger.info(f'Local file not found, using S3: {file_path}')
         geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         # TODO nhgis_county_gisjoin column should be added to the geospatial data file
         geospatial_data = geospatial_data.with_columns(
@@ -2179,7 +2186,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'nhgis_tract_gisjoin': self.TRACT_ID,
             'nhgis_puma_gisjoin': self.PUMA_ID,
         }
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        # Check for local file first, fall back to S3 if not found
+        local_file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        if os.path.exists(local_file_path):
+            file_path = local_file_path
+            logger.info(f'Using local geospatial lookup file: {file_path}')
+        else:
+            file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+            logger.info(f'Local file not found, using S3: {file_path}')
         geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         geospatial_data = geospatial_data.select(list(geo_cols.keys()))
         geospatial_data = geospatial_data.rename(geo_cols)
@@ -2358,7 +2372,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'nhgis_tract_gisjoin': self.TRACT_ID,
             'nhgis_puma_gisjoin': self.PUMA_ID,
         }
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        # Check for local file first, fall back to S3 if not found
+        local_file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        if os.path.exists(local_file_path):
+            file_path = local_file_path
+            logger.info(f'Using local geospatial lookup file: {file_path}')
+        else:
+            file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+            logger.info(f'Local file not found, using S3: {file_path}')
         geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         geospatial_data = geospatial_data.select(list(geo_cols.keys()))
         geospatial_data = geospatial_data.rename(geo_cols)
@@ -4650,24 +4671,34 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 requires_county_table = True
                 break
 
+        weight_view_table=None
         # Set up table configuration based on whether counties are needed anywhere
         if requires_county_table:
             agg = 'county'
-            metadata_table_suffix = '_md_agg_by_state_and_county_vu'
-            weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_and_county_vu'
+            metadata_table_suffix = '_md_by_state_and_county_parquet'
+            weight_view_table = 'comstock_amy2018_r3_2025_md_by_state_cnty_vu'
+            #weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_cnty_vu'
         else:
             agg = 'state'
-            metadata_table_suffix = '_md_agg_national_by_state_vu'
-            weight_view_table = f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+            metadata_table_suffix = '_md_agg_by_state_vu'
+            weight_view_table = 'comstock_amy2018_r3_2025_md_by_state_cnty_vu'
+            #weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_vu'
 
+        print(weight_view_table)
         # Initialize Athena client
-        athena_client = BuildStockQuery(workgroup='eulp',
-                                    db_name='enduse',
-                                    table_name=self.comstock_run_name,
-                                    buildstock_type='comstock',
-                                    skip_reports=True,
-                                    metadata_table_suffix=metadata_table_suffix,
-                                    )
+        athena_client = BuildStockQuery(
+                            workgroup='vizstock',
+                            db_name='vizstock',
+                            table_name=(
+                                'comstock_amy2018_r3_2025_md_by_state_cnty_vu',
+                                'comstock_amy2018_r3_2025_ts_by_state',
+                                None
+                                ),
+                            buildstock_type='comstock',
+                            db_schema='comstock_oedi',
+                            skip_reports=True,
+                            #metadata_table_suffix=metadata_table_suffix,
+                            )
 
         # Create upgrade ID to name mapping from existing data
         upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().sort(self.UPGRADE_ID).to_dict(as_series=False)
@@ -4737,57 +4768,66 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if county_locations:
             geo_restrictions.append((self.COUNTY_ID, county_locations))
 
-        # Initialize variables before loop to avoid NameError if loop doesn't execute
+        # Initialize variables
         df_base_ts_agg_weighted = None
         df_up_ts_agg_weighted = None
 
-        # loop through upgrades
-        for upgrade_id in df[self.UPGRADE_ID].unique():
+        # Separate baseline from upgrades
+        all_upgrade_ids = [int(x) if isinstance(x, str) else x for x in df[self.UPGRADE_ID].unique()]
+        baseline_ids = [uid for uid in all_upgrade_ids if uid in (0, "0")]
+        non_baseline_ids = [uid for uid in all_upgrade_ids if uid not in (0, "0")]
 
-            # if there are upgrades, restrict baseline to match upgrade applicability
-            if (upgrade_id in (0, "0")) and (df[self.UPGRADE_ID].nunique() > 1):
+        # Query baseline if it exists and there are upgrades
+        if baseline_ids and len(all_upgrade_ids) > 1:
+            builder = ComStockQueryBuilder(self.comstock_run_name)
+            restrictions = []
+            restrictions.extend(geo_restrictions)
 
-                # Create query builder and generate query
-                builder = ComStockQueryBuilder(self.comstock_run_name)
+            query = builder.get_timeseries_aggregation_query(
+                upgrade_id=0,
+                enduses=(list(self.END_USES_TIMESERIES_DICT_OEDI.values())+["out.electricity.total.energy_consumption"]),
+                restrictions=restrictions,
+                timestamp_grouping='hour',
+                weight_view_table=weight_view_table
+            )
 
-                # Build restrictions list including all geographic locations
-                restrictions = [(self.BLDG_ID, applic_bldgs_list)]
-                restrictions.extend(geo_restrictions)
+            location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+            logger.info(f"Getting weighted baseline load profile for {location_desc} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
 
-                query = builder.get_timeseries_aggregation_query(
-                    upgrade_id=upgrade_id,
-                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                    restrictions=restrictions,
-                    timestamp_grouping='hour',
-                    weight_view_table=weight_view_table
-                )
+            print("=" * 80)
+            print("BASELINE QUERY:")
+            print(query)
+            print("=" * 80)
+            df_base_ts_agg_weighted = athena_client.execute(query)
+            df_base_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[0]
 
-                location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
-                logger.info(f"Getting weighted baseline load profile for {location_desc} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
+        # Query all non-baseline upgrades at once
+        if non_baseline_ids:
+            builder = ComStockQueryBuilder(self.comstock_run_name)
+            restrictions = []
+            restrictions.extend(geo_restrictions)
 
-                # Execute query
-                df_base_ts_agg_weighted = athena_client.execute(query)
-                df_base_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[0]
+            # Query all upgrades together, grouping by upgrade_id to keep them separated
+            query = builder.get_timeseries_aggregation_query(
+                upgrade_id=non_baseline_ids,
+                enduses=(list(self.END_USES_TIMESERIES_DICT_OEDI.values())+["out.electricity.total.energy_consumption"]),
+                restrictions=restrictions,
+                timestamp_grouping='hour',
+                weight_view_table=weight_view_table,
+                group_by='upgrade'  # This ensures results are grouped by upgrade_id
+            )
 
-            else:
-                # baseline load data when no upgrades are present, or upgrade load data
-                # create query builder and generate query for upgrade data
-                builder = ComStockQueryBuilder(self.comstock_run_name)
+            location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+            logger.info(f"Getting weighted upgrade load profiles for {location_desc} and upgrade ids {non_baseline_ids} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
 
-                # Build restrictions list including all geographic locations (same as baseline)
-                restrictions = [('bldg_id', applic_bldgs_list)]
-                restrictions.extend(geo_restrictions)
+            print("=" * 80)
+            print("UPGRADE QUERY:")
+            print(query)
+            print("=" * 80)
+            df_up_ts_agg_weighted = athena_client.execute(query)
 
-                query = builder.get_timeseries_aggregation_query(
-                    upgrade_id=upgrade_id,
-                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                    restrictions=restrictions,
-                    timestamp_grouping='hour',
-                    weight_view_table=weight_view_table
-                )
-
-                df_up_ts_agg_weighted = athena_client.execute(query)
-                df_up_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[int(upgrade_num[0])]
+            # Add upgrade names based on the upgrade_id in the result
+            df_up_ts_agg_weighted[self.UPGRADE_NAME] = df_up_ts_agg_weighted[self.UPGRADE_ID].map(dict_upid_to_upname)
 
 
         # Initialize default values in case no data was processed

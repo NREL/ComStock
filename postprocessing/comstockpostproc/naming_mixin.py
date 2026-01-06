@@ -1056,6 +1056,20 @@ class NamingMixin():
         'refrigeration': 'electricity_refrigeration_kwh'
     }
 
+    END_USES_TIMESERIES_DICT_OEDI = {
+        'exterior_lighting': 'out.electricity.exterior_lighting.energy_consumption',
+        'interior_lighting': 'out.electricity.interior_lighting.energy_consumption',
+        'interior_equipment': 'out.electricity.interior_equipment.energy_consumption',
+        'water_systems': 'out.electricity.water_systems.energy_consumption',
+        'heat_recovery': 'out.electricity.heat_recovery.energy_consumption',
+        'heat_rejection': 'out.electricity.heat_rejection.energy_consumption',
+        'cooling': 'out.electricity.cooling.energy_consumption',
+        'heating': 'out.electricity.heating.energy_consumption',
+        'fans': 'out.electricity.fans.energy_consumption',
+        'pumps': 'out.electricity.pumps.energy_consumption',
+        'refrigeration': 'out.electricity.refrigeration.energy_consumption'
+    }
+
     STATE_NHGIS_TO_ABBRV = {
         'G010': 'AL',
         'G020': 'AK',

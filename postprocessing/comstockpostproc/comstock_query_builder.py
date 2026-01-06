@@ -27,7 +27,7 @@ class ComStockQueryBuilder:
             athena_table_name: Base name of the Athena table (without _timeseries or _baseline suffix)
         """
         self.athena_table_name = athena_table_name
-        self.timeseries_table = f"{athena_table_name}_timeseries"
+        self.timeseries_table = "comstock_amy2018_r3_2025_ts_by_state"
         self.baseline_table = f"{athena_table_name}_baseline"
 
     #TODO: this method has not yet been validated, and should be prior to use.
@@ -85,7 +85,7 @@ class ComStockQueryBuilder:
                 FROM
                     "{self.timeseries_table}"
                 JOIN "{self.baseline_table}"
-                    ON "{self.timeseries_table}"."building_id" = "{self.baseline_table}"."building_id"
+                    ON "{self.timeseries_table}"."bldg_id" = "{self.baseline_table}"."building_id"
                 WHERE {where_clause}
             )
             GROUP BY
@@ -99,10 +99,10 @@ class ComStockQueryBuilder:
 
     def get_timeseries_aggregation_query(
         self,
-        upgrade_id: Union[int, str],
+        upgrade_id: Union[int, str, List[Union[int, str]]],
         enduses: List[str],
         weight_view_table: str,
-        group_by: Optional[List[str]] = None,
+        group_by: Optional[Union[str, List[str]]] = None,
         restrictions: List[tuple] = None,
         timestamp_grouping: str = 'hour',
         building_ids: Optional[List[int]] = None,
@@ -121,10 +121,10 @@ class ComStockQueryBuilder:
         TODO: Improve this in the future to check for partitioning directly from Athena metadata if possible.
 
         Args:
-            upgrade_id: Upgrade ID to filter on
+            upgrade_id: Single upgrade ID or list of upgrade IDs to filter on
             enduses: List of end use columns to select
             weight_view_table: Name of the weight view table (required - e.g., 'rtuadv_v11_md_agg_national_by_state_vu' or 'rtuadv_v11_md_agg_national_by_county_vu')
-            group_by: Additional columns to group by (e.g., ['build_existing_model.building_type'])
+            group_by: Single column or list of columns to group by (e.g., 'upgrade' or ['upgrade', 'build_existing_model.building_type'])
             restrictions: List of (column, values) tuples for filtering
             timestamp_grouping: How to group timestamps ('hour', 'day', 'month')
             building_ids: Specific building IDs to filter on (optional)
@@ -159,28 +159,40 @@ class ComStockQueryBuilder:
         # Build timestamp grouping with date_trunc and time adjustment
         time_group = '1'
         if timestamp_grouping == 'hour':
-            time_select = f"date_trunc('hour', date_add('second', -900, {self.timeseries_table}.time)) AS time"
+            time_select = f"date_trunc('hour', date_add('second', -900, {self.timeseries_table}.timestamp)) AS time"
         elif timestamp_grouping == 'day':
-            time_select = f"date_trunc('day', {self.timeseries_table}.time) AS time"
+            time_select = f"date_trunc('day', {self.timeseries_table}.timestamp) AS time"
         elif timestamp_grouping == 'month':
-            time_select = f"date_trunc('month', {self.timeseries_table}.time) AS time"
+            time_select = f"date_trunc('month', {self.timeseries_table}.timestamp) AS time"
         else:
-            time_select = f"{self.timeseries_table}.time AS time"
+            time_select = f"{self.timeseries_table}.timestamp AS time"
 
         # Build SELECT clause with sample statistics
         select_clauses = [time_select]
 
-        # Add group_by columns to SELECT (excluding 'time' which is already handled)
-        if group_by:
-            for col in group_by:
-                if col != 'time':
+        # Normalize group_by to a list
+        if group_by is None:
+            group_by_list = []
+        elif isinstance(group_by, str):
+            group_by_list = [group_by]
+        else:
+            group_by_list = group_by
+
+        # Add upgrade column if grouping by upgrade
+        if 'upgrade' in group_by_list:
+            select_clauses.append(f'{weight_view_table}.upgrade')
+
+        # Add group_by columns to SELECT (excluding 'time' and 'upgrade' which are already handled)
+        if group_by_list:
+            for col in group_by_list:
+                if col not in ('time', 'upgrade'):
                     select_clauses.append(f'{weight_view_table}."{col}"')
 
         if include_sample_stats:
             select_clauses.extend([
-                f"count(distinct({self.timeseries_table}.building_id)) AS sample_count",
-                f"(count(distinct({self.timeseries_table}.building_id)) * sum({weight_view_table}.weight)) / sum(1) AS units_count",
-                f"sum(1) / count(distinct({self.timeseries_table}.building_id)) AS rows_per_sample"
+                f"count(distinct({self.timeseries_table}.bldg_id)) AS sample_count",
+                f"(count(distinct({self.timeseries_table}.bldg_id)) * sum({weight_view_table}.weight)) / sum(1) AS units_count",
+                f"sum(1) / count(distinct({self.timeseries_table}.bldg_id)) AS rows_per_sample"
             ])
 
         # Add weighted area if requested (for AMI comparison)
@@ -190,7 +202,7 @@ class ComStockQueryBuilder:
 
         # Build weighted enduse aggregations
         for enduse in enduses:
-            weighted_sum = f"sum({self.timeseries_table}.{enduse} * {weight_view_table}.weight) AS {enduse}"
+            weighted_sum = f'sum({self.timeseries_table}."{enduse}" * {weight_view_table}.weight) AS "{enduse}"'
             select_clauses.append(weighted_sum)
 
             # Add kwh_per_sf columns if requested (for AMI comparison - normalized by weighted area)
@@ -206,22 +218,31 @@ class ComStockQueryBuilder:
             #   - Result: 100 kWh / 40k sqft = 0.0025 kWh/sqft
             if include_area_normalized_cols and enduse.endswith('_kwh'):
                 # Build the formula in parts for clarity
-                weighted_energy_sum = f"sum({self.timeseries_table}.{enduse} * {weight_view_table}.weight)"
+                weighted_energy_sum = f"sum({self.timeseries_table}.\"{enduse}\" * {weight_view_table}.weight)"
                 weighted_area_sum = f"sum({weight_view_table}.\"in.sqft\" * {weight_view_table}.weight)"
-                rows_per_sample = f"(sum(1) / count(distinct({self.timeseries_table}.building_id)))"
+                rows_per_sample = f"(sum(1) / count(distinct({self.timeseries_table}.bldg_id)))"
                 corrected_area = f"({weighted_area_sum} / {rows_per_sample})"
 
-                kwh_per_sf = f"{weighted_energy_sum} / {corrected_area} AS {enduse.replace('_kwh', '_kwh_per_sf')}"
+                kwh_per_sf = f'{weighted_energy_sum} / {corrected_area} AS "{enduse.replace("_kwh", "_kwh_per_sf")}"'
                 select_clauses.append(kwh_per_sf)
 
         select_clause = ',\n    '.join(select_clauses)
 
         # Build WHERE clause - join conditions first, then filters
         where_conditions = [
-            f'{weight_view_table}."bldg_id" = {self.timeseries_table}.building_id',
-            f'{weight_view_table}.upgrade = {self.timeseries_table}.upgrade',
-            f'{weight_view_table}.upgrade = {upgrade_id}'
+            f'{weight_view_table}."bldg_id" = {self.timeseries_table}.bldg_id',
+            f'{weight_view_table}.upgrade = {self.timeseries_table}.upgrade'
         ]
+
+        # Handle upgrade_id filter - support both single value and list
+        if isinstance(upgrade_id, (list, tuple)):
+            if len(upgrade_id) == 1:
+                where_conditions.append(f'{weight_view_table}.upgrade = {upgrade_id[0]}')
+            else:
+                upgrade_list = ', '.join([str(uid) for uid in upgrade_id])
+                where_conditions.append(f'{weight_view_table}.upgrade IN ({upgrade_list})')
+        else:
+            where_conditions.append(f'{weight_view_table}.upgrade = {upgrade_id}')
 
         # Add state partition filter if timeseries is partitioned by state (enables partition pruning)
         # When partitioned by state, each building's timeseries data is duplicated across each state
@@ -262,17 +283,162 @@ class ComStockQueryBuilder:
 
         # Build GROUP BY clause - use column positions based on SELECT order
         group_by_positions = [time_group]  # Time is always position 1
-        if group_by:
-            # Add positions for additional group_by columns (excluding 'time')
-            position = 2  # Start after time
-            for col in group_by:
-                if col != 'time':
-                    group_by_positions.append(str(position))
-                    position += 1
+        current_position = 2
+
+        if 'upgrade' in group_by_list:
+            group_by_positions.append(str(current_position))
+            current_position += 1
+
+        if group_by_list:
+            # Add positions for additional group_by columns (excluding 'time' and 'upgrade')
+            for col in group_by_list:
+                if col not in ('time', 'upgrade'):
+                    group_by_positions.append(str(current_position))
+                    current_position += 1
 
         group_by_clause = ', '.join(group_by_positions)
 
         # Build the query using FROM clause with comma-separated tables
+        query = f"""SELECT {select_clause}
+        FROM {weight_view_table}, {self.timeseries_table}
+        WHERE {where_clause}
+        GROUP BY {group_by_clause}
+        ORDER BY {group_by_clause}"""
+
+        return query
+
+    def get_state_timeseries_query(
+        self,
+        upgrade_ids: List[Union[int, str]],
+        weight_view_table: str,
+        demand_column: str = 'out.electricity.total.energy_consumption',
+        timestamp_grouping: str = 'hour',
+        states: Optional[List[str]] = None,
+        restrictions: Optional[List[tuple]] = None,
+        include_sample_stats: bool = True) -> str:
+        """
+        Build query for timeseries data grouped by state and upgrade ID.
+
+        Returns weighted timeseries data for all states and specified upgrades.
+        Used for peak demand analysis and state-level timeseries comparisons.
+
+        Args:
+            upgrade_ids: List of upgrade IDs to include in results
+            weight_view_table: Name of the weight view table (e.g., 'dataset_md_by_state_cnty_vu')
+            demand_column: Column to retrieve from timeseries (default: 'out.electricity.total.energy_consumption')
+            timestamp_grouping: How to group timestamps ('hour', 'day', 'month')
+            states: Optional list of state abbreviations to filter (e.g., ['MN', 'CA']). If None, returns all states.
+            restrictions: Optional list of (column, values) tuples for additional filtering
+            include_sample_stats: Whether to include sample_count, units_count, rows_per_sample
+
+        Returns:
+            SQL query string with columns: time, state, upgrade, demand_column, [optional stats]
+        """
+
+        # Weight view table is required
+        if weight_view_table is None:
+            raise ValueError("weight_view_table parameter is required. "
+                           "Please provide the full weight view table name (e.g., 'your_dataset_md_by_state_cnty_vu')")
+
+        # Auto-detect if timeseries is partitioned by state
+        table_name_lower = self.timeseries_table.lower()
+        if 'ts_by_state' in table_name_lower:
+            timeseries_partitioned_by_state = True
+            logger.info(f"Detected state-partitioned timeseries table: {self.timeseries_table}. "
+                       "Query will include state partition filter.")
+        elif '_timeseries' in table_name_lower:
+            timeseries_partitioned_by_state = False
+            logger.info(f"Detected standard non-partitioned timeseries table: {self.timeseries_table}")
+        else:
+            timeseries_partitioned_by_state = False
+            logger.warning(f"Timeseries table name '{self.timeseries_table}' does not match expected patterns. "
+                          "Assuming no state partitioning.")
+
+        # Build timestamp grouping
+        if timestamp_grouping == 'hour':
+            time_select = f"date_trunc('hour', date_add('second', -900, {self.timeseries_table}.timestamp)) AS time"
+        elif timestamp_grouping == 'day':
+            time_select = f"date_trunc('day', {self.timeseries_table}.timestamp) AS time"
+        elif timestamp_grouping == 'month':
+            time_select = f"date_trunc('month', {self.timeseries_table}.timestamp) AS time"
+        else:
+            time_select = f"{self.timeseries_table}.timestamp AS time"
+
+        # Build SELECT clause
+        select_clauses = [
+            time_select,
+            f'{weight_view_table}."in.state" AS state',
+            f'{weight_view_table}.upgrade AS upgrade'
+        ]
+
+        if include_sample_stats:
+            select_clauses.extend([
+                f"count(distinct({self.timeseries_table}.bldg_id)) AS sample_count",
+                f"(count(distinct({self.timeseries_table}.bldg_id)) * sum({weight_view_table}.weight)) / sum(1) AS units_count",
+                f"sum(1) / count(distinct({self.timeseries_table}.bldg_id)) AS rows_per_sample"
+            ])
+
+        # Add weighted demand column
+        weighted_demand = f'sum({self.timeseries_table}."{demand_column}" * {weight_view_table}.weight) AS "{demand_column}"'
+        select_clauses.append(weighted_demand)
+
+        select_clause = ',\n    '.join(select_clauses)
+
+        # Build WHERE clause
+        where_conditions = [
+            f'{weight_view_table}."bldg_id" = {self.timeseries_table}.bldg_id',
+            f'{weight_view_table}.upgrade = {self.timeseries_table}.upgrade'
+        ]
+
+        # Add state partition filter if needed
+        if timeseries_partitioned_by_state:
+            where_conditions.append(f'{weight_view_table}.state = {self.timeseries_table}.state')
+
+        # Filter by upgrade IDs
+        if len(upgrade_ids) == 1:
+            where_conditions.append(f'{weight_view_table}.upgrade = {upgrade_ids[0]}')
+        else:
+            upgrade_list = ', '.join([str(uid) for uid in upgrade_ids])
+            where_conditions.append(f'{weight_view_table}.upgrade IN ({upgrade_list})')
+
+        # Filter by states if provided
+        if states:
+            if len(states) == 1:
+                where_conditions.append(f'{weight_view_table}."in.state" = \'{states[0]}\'')
+            else:
+                state_list = "', '".join(states)
+                where_conditions.append(f'{weight_view_table}."in.state" IN (\'{state_list}\')')
+
+        # Handle additional restrictions
+        if restrictions:
+            for column, values in restrictions:
+                numeric_columns = ['bldg_id', 'building_id', 'upgrade', 'upgrade_id']
+                is_numeric = column in numeric_columns
+
+                if isinstance(values, (list, tuple)):
+                    if len(values) == 1:
+                        if is_numeric:
+                            where_conditions.append(f'{weight_view_table}."{column}" = {values[0]}')
+                        else:
+                            where_conditions.append(f'{weight_view_table}."{column}" = \'{values[0]}\'')
+                    else:
+                        if is_numeric:
+                            value_list = ', '.join([str(v) for v in values])
+                        else:
+                            value_list = ', '.join([f"'{v}'" for v in values])
+                        where_conditions.append(f'{weight_view_table}."{column}" IN ({value_list})')
+                else:
+                    if is_numeric:
+                        where_conditions.append(f'{weight_view_table}."{column}" = {values}')
+                    else:
+                        where_conditions.append(f'{weight_view_table}."{column}" = \'{values}\'')
+
+        where_clause = ' AND '.join(where_conditions)
+
+        # Build GROUP BY clause - group by time (1), state (2), upgrade (3)
+        group_by_clause = '1, 2, 3'
+
+        # Build the query
         query = f"""SELECT {select_clause}
         FROM {weight_view_table}, {self.timeseries_table}
         WHERE {where_clause}
@@ -305,9 +471,9 @@ class ComStockQueryBuilder:
         # If no weight view table provided, construct name based on geographic level
         if weight_view_table is None:
             if county is not None:
-                weight_view_table = f"{self.athena_table_name}_md_agg_national_by_county_vu"
+                weight_view_table = f"comstock_amy2018_r3_2025_md_agg_by_state_cnty_vu"
             else:
-                weight_view_table = f"{self.athena_table_name}_md_agg_national_by_state_vu"
+                weight_view_table = f"comstock_amy2018_r3_2025_md_agg_by_state_cnty_vu"
 
         # Default columns for applicability queries
         if columns is None:

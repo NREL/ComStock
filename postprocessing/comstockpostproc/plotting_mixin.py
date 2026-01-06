@@ -3074,13 +3074,13 @@ class PlottingMixin():
             # make dec 31st last week of year
             dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
             dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
-            max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh'].max()
+            max_peak = dfs_merged.loc[:, 'out.electricity.total.energy_consumption'].max()
 
             # find peak week by season
             seasons = ['Spring', 'Summer', 'Fall', 'Winter']
             for season in seasons:
-                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh", "Week_of_Year"]]
-                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh"] == peak_week["total_site_electricity_kwh"].max(), "Week_of_Year"].iloc[0]
+                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["out.electricity.total.energy_consumption", "Week_of_Year"]]
+                peak_week = peak_week.loc[peak_week["out.electricity.total.energy_consumption"] == peak_week["out.electricity.total.energy_consumption"].max(), "Week_of_Year"].iloc[0]
 
 
                 # filter to the week
@@ -3091,9 +3091,14 @@ class PlottingMixin():
 
                 # rename columns
                 dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity.", "")
                 dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("out.", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace(".energy_consumption", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("total", "total_site")
 
                 # convert hourly kWH to 15 minute MW
+                dfs_merged_pw.to_csv("debug_peak_week_timeseries.csv")
                 dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
                 dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
 
@@ -3194,7 +3199,7 @@ class PlottingMixin():
                 fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                 fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-                fig.write_image(fig_path, scale=6)
+                #fig.write_image(fig_path, scale=3)
                 fig.write_html(fig_path_html)
             # save timeseries data
             dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{location_name}.csv")
@@ -3262,8 +3267,11 @@ class PlottingMixin():
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
                 dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
 
-            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
-            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh'].max()
+
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('consumption')].columns].mean().reset_index()
+
+            dfs_merged_gb.to_csv("debug_season_average_timeseries.csv")
+            max_peak = dfs_merged_gb.loc[:, 'out.electricity.total.energy_consumption'].max()
 
             # find peak week by season
             seasons = ['Summer', 'Shoulder', 'Winter']
@@ -3289,7 +3297,11 @@ class PlottingMixin():
 
                     # rename columns
                     dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity.", "")
                     dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("out.", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace(".energy_consumption", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("total", "total_site")
 
                     # convert hourly kWH to 15 minute MW
                     dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
@@ -3404,7 +3416,7 @@ class PlottingMixin():
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-            fig.write_image(fig_path, scale=6)
+            #fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
 
     def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
@@ -3474,11 +3486,15 @@ class PlottingMixin():
                 dfs_merged = pd.read_csv(file_path)
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
 
-            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
+            dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('consumption')].columns].mean().reset_index()
 
-            # rename columns, convert units
+            # rename columns
             dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity_", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity.", "")
             dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("_kwh", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("out.", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace(".energy_consumption", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("total", "total_site")
 
             # find peak week by season
             seasons = ['Summer', 'Shoulder', 'Winter']
@@ -3608,5 +3624,5 @@ class PlottingMixin():
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-            fig.write_image(fig_path, scale=6)
+            #fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
