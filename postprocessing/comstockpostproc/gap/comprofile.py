@@ -47,7 +47,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             self.metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
             self.full_metadata_db = f'comstock_{self.comstock_version}_metadata_state_vu'
             self.timeseries_db = f'comstock_{self.comstock_version}_by_state_vu'
-        elif self.comstock_version == 'amy2018_r2_2025':
+        elif (self.comstock_version == 'amy2018_r2_2025' or self.comstock_version == 'amy2018_r3_2025'):
             self.metadata_db = f'comstock_{self.comstock_version}_md_agg_by_state_parquet'
             self.full_metadata_db = f'comstock_{self.comstock_version}_md_by_state_and_county_parquet'
             self.timeseries_db = f'comstock_{self.comstock_version}_ts_by_state'
