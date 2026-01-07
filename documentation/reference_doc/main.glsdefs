@@ -1,0 +1,84 @@
+\glsdefs@newdocentry{cbecs}%
+{%
+name={\acronymfont {\glsentryshort {cbecs}}},%
+sort={CBECS},%
+type={acronym},%
+first={CBECS},%
+firstplural={CBECSs},%
+text={CBECS},%
+plural={CBECSs},%
+description={Commercial Building Energy Consumption Survey},%
+descriptionplural={Commercial Building Energy Consumption Survey},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Commercial Building Energy Consumption Survey},%
+longplural={Commercial Building Energy Consumption Surveys},%
+short={CBECS},%
+shortplural={CBECSs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{eulp}%
+{%
+name={\acronymfont {\glsentryshort {eulp}}},%
+sort={EULP},%
+type={acronym},%
+first={EULP},%
+firstplural={EULPs},%
+text={EULP},%
+plural={EULPs},%
+description={End-Use Load Profile},%
+descriptionplural={End-Use Load Profile},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={End-Use Load Profile},%
+longplural={End-Use Load Profiles},%
+short={EULP},%
+shortplural={EULPs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{ami}%
+{%
+name={\acronymfont {\glsentryshort {ami}}},%
+sort={AMI},%
+type={acronym},%
+first={AMI},%
+firstplural={AMIs},%
+text={AMI},%
+plural={AMIs},%
+description={Advanced Metering Infrastructure},%
+descriptionplural={Advanced Metering Infrastructure},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Advanced Metering Infrastructure},%
+longplural={Advanced Metering Infrastructures},%
+short={AMI},%
+shortplural={AMIs},%
+counter={page},%
+parent={},%
+%
+}%
+
