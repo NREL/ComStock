@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 def main():
     # ComStock run
     comstock = cspp.ComStock(
-        s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
-        comstock_run_name='cchpc_10k_3',  # Name of the run on S3
-        comstock_run_version='cchpc_10k_3',  # Use whatever you want to see in plot and folder names
+        s3_base_dir='com-sdr',  # If run not on S3, download results_up**.parquet manually
+        comstock_run_name='pump_v9',  # Name of the run on S3
+        comstock_run_version='pump_v9',  # Use whatever you want to see in plot and folder names
         comstock_year=2018,  # Typically don't change this
         athena_table_name=None,  # Typically don't change this
         truth_data_version='v01',  # Typically don't change this
@@ -24,20 +24,19 @@ def main():
         reload_from_cache=False, # True if CSV already made and want faster reload times
         include_upgrades=True,  # False if not looking at upgrades
         upgrade_ids_to_skip=[], # Use [1, 3] etc. to exclude certain upgrades
-        make_timeseries_plots=True,
+        make_timeseries_plots=False,
         timeseries_locations_to_plot={
                                         'MN': 'Minnesota',  # specify location (either county ID or state ID) and corresponding name for plots and folders.
                                         #'MA':'Massachusetts',
-                                        'OH':'Ohio',
                                         #'OR': 'Oregon',
                                         #'LA': 'Louisiana',
-                                        'AZ': 'Arizona',
+                                        #'AZ': 'Arizona',
                                         #'TN': 'Tennessee',
-                                        #('MA', 'NH', 'CT', 'VT', 'RI'): 'New England', # example of multiple states together - using tuples as keys
+                                        ('MA', 'NH', 'CT', 'VT', 'RI'): 'New England', # example of multiple states together - using tuples as keys
                                         #'G4900350': 'Salt Lake City',
                                         #'G2500250': 'Boston', # if specifying a county, you must export county level data to S3
                                         #'G4804530': 'Austin',
-                                        #('G2500250', 'G4804530'):'Baustin'  # multiple counties together - using tuples as keys
+                                        ('G2500250', 'G4804530'):'Baustin'  # multiple counties together - using tuples as keys
                                     },
 
         upgrade_ids_for_comparison={} # Use {'<Name you want for comparison run folder>':[0,1,2]}; add as many upgrade IDs as needed, but plots look strange over 5
@@ -48,7 +47,7 @@ def main():
     stock_estimate = cspp.Apportion(
         stock_estimation_version='2025R3',  # Only updated when a new stock estimate is published
         truth_data_version='v01',  # Typically don't change this
-        reload_from_cache=False, # Set to "True" if you have already run apportionment and would like to keep consistent values between postprocessing runs.
+        reload_from_cache=False, # Set to "True" if you have already run apportionment and would like to keep consistant values between postprocessing runs.
         #output_dir = 's3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/comstock_amy2018_release_1'
     )
 
@@ -76,6 +75,7 @@ def main():
          comstock.create_allocated_weights_plus_util_bills_for_upgrade(upgrade_id)
 
     # Specify geo exports
+
     # county resolution, files by state and county
     county_resolution =  {
                         'geo_top_dir': 'by_state_and_county',
@@ -99,26 +99,24 @@ def main():
 
     # specify the export level
     # IMPORTANT: if making county level timeseries plots, must export county level data to S3. This does not occur automatically.
-    geo_exports = [state_resolution] #state_resolution
+    geo_exports = [county_resolution] #county_resolution
 
     for geo_export in geo_exports:
         for upgrade_id in comstock.upgrade_ids_to_process:
-        #    if upgrade_id == 0:
-        #        continue
-            comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
+            #if upgrade_id == 0:
+            #    continue
+            #comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id, [geo_export])
 
             # Also write to S3 if making timeseries plots
-            if comstock.make_timeseries_plots: #TODO: force geo exports to county data if county timeseries is requested.
+            if comstock.make_timeseries_plots: # TODO: force geo exports to county data if couunty timeseries is requested.
                 s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
                 s3_output_dir = comstock.setup_fsspec_filesystem(s3_dir, aws_profile_name=None)
                 comstock.export_metadata_and_annual_results_for_upgrade(upgrade_id=upgrade_id, geo_exports=[geo_export], output_dir=s3_output_dir)
-
 
     # write select results to S3 for Athena/Glue when needed for timeseries plots
     if comstock.make_timeseries_plots:
         s3_dir = f"s3://{comstock.s3_base_dir}/{comstock.comstock_run_name}/{comstock.comstock_run_name}"
         database = "enduse"
-        dataset_name = f"{comstock.comstock_run_name}/{comstock.comstock_run_name}" # name of the dir in s3_dir we want to make new tables and views for
         crawler_name = comstock.comstock_run_name # used to set name of crawler, cannot include slashes
         workgroup = "eulp"  # Athena workgroup to use
         glue_service_role = "service-role/AWSGlueServiceRole-default"

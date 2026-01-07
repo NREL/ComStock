@@ -8,6 +8,12 @@ import os
 import re
 import shutil
 from functools import lru_cache
+from fsspec.core import url_to_fs
+from sqlalchemy.engine import create_engine
+from joblib import Parallel, delayed
+import sqlalchemy as sa
+import time
+from sqlalchemy_views import CreateView
 from pathlib import Path
 
 import boto3
@@ -24,6 +30,7 @@ from natsort import natsort_keygen, natsorted
 from pathlib import Path
 
 from buildstock_query import BuildStockQuery
+from .comstock_query_builder import ComStockQueryBuilder
 from comstockpostproc.ami import AMI
 from comstockpostproc.cbecs import CBECS
 from comstockpostproc.comstock_apportionment import Apportion
@@ -45,7 +52,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def __init__(self, s3_base_dir, comstock_run_name, comstock_run_version, comstock_year, athena_table_name,
         truth_data_version, buildstock_csv_name = 'buildstock.csv', acceptable_failure_percentage=0.01, drop_failed_runs=True,
         color_hex=NamingMixin.COLOR_COMSTOCK_BEFORE, weighted_energy_units='tbtu', weighted_demand_units='gw', weighted_ghg_units='co2e_mmt', weighted_utility_units='billion_usd', skip_missing_columns=False,
-        reload_from_cache=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], states={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
+        reload_from_cache=False, make_comparison_plots=True, make_timeseries_plots=True, include_upgrades=True, upgrade_ids_to_skip=[], timeseries_locations_to_plot={}, upgrade_ids_for_comparison={}, rename_upgrades=False, output_dir=None, aws_profile_name=None):
         """
         A class to load and transform ComStock data for export, analysis, and comparison.
         Args:
@@ -59,6 +66,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         """
 
         # Initialize members
+        self.s3_base_dir = s3_base_dir
         self.comstock_run_name = comstock_run_name
         self.comstock_run_version = comstock_run_version
         self.year = comstock_year
@@ -97,7 +105,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.upgrade_ids_to_skip = upgrade_ids_to_skip
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.upgrade_ids_to_process = []
-        self.states = states
+        self.timeseries_locations_to_plot = timeseries_locations_to_plot
         self.unweighted_weighted_map = {}
         self.cached_parquet = [] # List of parquet files to reload and export
         # TODO our current credential setup aren't playing well with this approach but does with the s3 ServiceResource
@@ -374,27 +382,48 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
+
+        # Initialize Athena client
+        athena_client = BuildStockQuery(workgroup='eulp',
+                                    db_name='enduse',
+                                    table_name=self.comstock_run_name,
+                                    buildstock_type='comstock',
+                                    skip_reports=True,
+                                    metadata_table_suffix='_md_agg_by_state_and_county_vu',
+                                    )
+
         if reload_from_csv:
             file_name = f'Timeseries for AMI long.csv'
-            file_path = os.path.join(self.output_dir, file_name)
+            file_path = os.path.join(self.output_dir['fs_path'], file_name)
             if not os.path.exists(file_path):
                  raise FileNotFoundError(
                     f'Cannot find {file_path} to reload data, set reload_from_csv=False to create CSV.')
             logger.info(f'Reloading from CSV: {file_path}')
             self.ami_timeseries_data = pd.read_csv(file_path, low_memory=False, index_col='timestamp', parse_dates=True)
         else:
+
             athena_end_uses = list(map(lambda x: self.END_USES_TIMESERIES_DICT[x], self.END_USES))
             athena_end_uses.append('total_site_electricity_kwh')
             all_timeseries_df = pd.DataFrame()
             for region in ami.ami_region_map:
-                region_file_path_long = os.path.join(self.output_dir, region['source_name'] + '_building_type_timeseries_long.csv')
+                region_file_path_long = os.path.join(self.output_dir['fs_path'], region['source_name'] + '_building_type_timeseries_long.csv')
                 if os.path.isfile(region_file_path_long) and reload_from_csv and save_individual_regions:
                     logger.info(f"timeseries data in long format for {region['source_name']} already exists at {region_file_path_long}")
                     continue
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+                weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_and_county_vu'
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=0,
+                    enduses=athena_end_uses,
+                    group_by=[self.BLDG_TYPE, 'time'],
+                    restrictions=[(self.COUNTY_ID, region['county_ids'])],
+                    timestamp_grouping='hour',
+                    weight_view_table=weight_view_table,
+                    include_area_normalized_cols=True
+                )
 
-                ts_agg = self.athena_client.agg.aggregate_timeseries(enduses=athena_end_uses,
-                                                                     group_by=['build_existing_model.building_type', 'time'],
-                                                                     restrict=[('build_existing_model.county_id', region['county_ids'])])
+                ts_agg = athena_client.execute(query)
+
                 if ts_agg['time'].dtype == 'Int64':
                     # Convert bigint to timestamp type if necessary
                     ts_agg['time'] = pd.to_datetime(ts_agg['time']/1e9, unit='s')
@@ -407,7 +436,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 timeseries_df['region_name'] = region['source_name']
                 all_timeseries_df = pd.concat([all_timeseries_df, timeseries_df])
 
-            data_path = os.path.join(self.output_dir, 'Timeseries for AMI long.csv')
+            data_path = os.path.join(self.output_dir['fs_path'], 'Timeseries for AMI long.csv')
             all_timeseries_df.to_csv(data_path, index=True)
             self.ami_timeseries_data = all_timeseries_df
 
@@ -415,7 +444,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # rename columns
         agg_df = agg_df.set_index('time')
         agg_df = agg_df.rename(columns={
-            "build_existing_model.building_type": "building_type",
+            self.BLDG_TYPE: "building_type",
             "electricity_exterior_lighting_kwh": "exterior_lighting",
             "electricity_interior_lighting_kwh": "interior_lighting",
             "electricity_interior_equipment_kwh": "interior_equipment",
@@ -426,7 +455,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             "electricity_cooling_kwh": "cooling",
             "electricity_heating_kwh": "heating",
             "electricity_refrigeration_kwh": "refrigeration",
-            "total_site_electricity_kwh": "total"
+            "total_site_electricity_kwh": "total",
+            "electricity_exterior_lighting_kwh_per_sf": "exterior_lighting_per_sf",
+            "electricity_interior_lighting_kwh_per_sf": "interior_lighting_per_sf",
+            "electricity_interior_equipment_kwh_per_sf": "interior_equipment_per_sf",
+            "electricity_water_systems_kwh_per_sf": "water_systems_per_sf",
+            "electricity_heat_recovery_kwh_per_sf": "heat_recovery_per_sf",
+            "electricity_fans_kwh_per_sf": "fans_per_sf",
+            "electricity_pumps_kwh_per_sf": "pumps_per_sf",
+            "electricity_cooling_kwh_per_sf": "cooling_per_sf",
+            "electricity_heating_kwh_per_sf": "heating_per_sf",
+            "electricity_refrigeration_kwh_per_sf": "refrigeration_per_sf",
+            "total_site_electricity_kwh_per_sf": "kwh_per_sf"
         })
 
         # aggregate by hour
@@ -448,8 +488,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         agg_df = agg_df.set_index('timestamp')
         agg_df = agg_df[agg_df.index.dayofyear != 366]
 
-        # melt into long format
-        val_vars = [
+        # melt into long format with both kwh and kwh_per_sf columns
+        # First melt the absolute values (kwh)
+        kwh_vars = [
             'exterior_lighting',
             'interior_lighting',
             'interior_equipment',
@@ -462,50 +503,82 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'refrigeration',
             'total'
         ]
-        agg_df = pd.melt(
+
+        kwh_df = pd.melt(
             agg_df.reset_index(),
             id_vars=[
                 'timestamp',
                 'building_type',
                 'sample_count'
             ],
-            value_vars=val_vars,
+            value_vars=kwh_vars,
             var_name='enduse',
             value_name='kwh'
         ).set_index('timestamp')
+
+        # Then melt the normalized values (kwh_per_sf)
+        kwh_per_sf_vars = [
+            'exterior_lighting_per_sf',
+            'interior_lighting_per_sf',
+            'interior_equipment_per_sf',
+            'water_systems_per_sf',
+            'heat_recovery_per_sf',
+            'fans_per_sf',
+            'pumps_per_sf',
+            'cooling_per_sf',
+            'heating_per_sf',
+            'refrigeration_per_sf',
+            'kwh_per_sf'
+        ]
+
+        # Map per_sf column names to base enduse names
+        per_sf_mapping = {
+            'exterior_lighting_per_sf': 'exterior_lighting',
+            'interior_lighting_per_sf': 'interior_lighting',
+            'interior_equipment_per_sf': 'interior_equipment',
+            'water_systems_per_sf': 'water_systems',
+            'heat_recovery_per_sf': 'heat_recovery',
+            'fans_per_sf': 'fans',
+            'pumps_per_sf': 'pumps',
+            'cooling_per_sf': 'cooling',
+            'heating_per_sf': 'heating',
+            'refrigeration_per_sf': 'refrigeration',
+            'kwh_per_sf': 'total'
+        }
+
+        kwh_per_sf_df = pd.melt(
+            agg_df.reset_index(),
+            id_vars=[
+                'timestamp',
+                'building_type',
+                'sample_count'
+            ],
+            value_vars=kwh_per_sf_vars,
+            var_name='enduse',
+            value_name='kwh_per_sf_value'
+        ).set_index('timestamp')
+
+        # Map the per_sf enduse names to base names
+        kwh_per_sf_df['enduse'] = kwh_per_sf_df['enduse'].map(per_sf_mapping)
+
+        # Rename the value column to the final name
+        kwh_per_sf_df = kwh_per_sf_df.rename(columns={'kwh_per_sf_value': 'kwh_per_sf'})
+
+        # Reset index so timestamp becomes a column for merging
+        kwh_df = kwh_df.reset_index()
+        kwh_per_sf_df = kwh_per_sf_df.reset_index()
+
+        # Merge the two dataframes on timestamp, building_type, sample_count, and enduse
+        agg_df = kwh_df.merge(
+            kwh_per_sf_df,
+            on=['timestamp', 'building_type', 'sample_count', 'enduse'],
+            how='inner'
+        ).set_index('timestamp')
         agg_df = agg_df.rename(columns={'sample_count': 'bldg_count'})
-
-        # size get data
-        # note that this is a Polars dataframe, not a Pandas dataframe
-        self.data = self.data.with_columns([pl.col('in.nhgis_county_gisjoin').cast(pl.Utf8)])
-        # size_df = self.data.filter(self.data['in.nhgis_county_gisjoin'].is_in(county_ids))
-        size_df = self.data.clone().filter(pl.col('in.nhgis_county_gisjoin').is_in(county_ids))
-        size_df = size_df.select(['in.comstock_building_type', 'in.sqft', 'calc.weighted.sqft']).collect()
-
-        # Cast columns to match dtype of lists
-        size_df = size_df.with_columns([
-            pl.col('in.comstock_building_type').cast(pl.Utf8),
-            pl.col('in.sqft').cast(pl.Float64),
-            pl.col('calc.weighted.sqft').cast(pl.Float64)
-        ])
-
-        size_df = size_df.group_by('in.comstock_building_type').agg(pl.col(['in.sqft', 'calc.weighted.sqft']).sum())
-        size_df = size_df.with_columns((pl.col('calc.weighted.sqft')/pl.col('in.sqft')).alias('weight'))
-        size_df = size_df.with_columns((pl.col('in.comstock_building_type').replace(self.BLDG_TYPE_TO_SNAKE_CASE, default=None)).alias('building_type'))
-        # file_path = os.path.join(self.output_dir, output_name + '_building_type_size.csv')
-        # size_df.write_csv(file_path)
-
-        weight_dict = dict(zip(size_df['building_type'].to_list(), size_df['weight'].to_list()))
-        weight_size_dict = dict(zip(size_df['building_type'].to_list(), size_df['calc.weighted.sqft'].to_list()))
-        agg_df['kwh_weighted'] = agg_df['kwh'] * agg_df['building_type'].map(weight_dict)
-
-        # calculate kwh/sf
-        agg_df['kwh_per_sf'] = agg_df.apply(lambda row: row['kwh_weighted'] / weight_size_dict.get(row['building_type'], 1), axis=1)
-        agg_df = agg_df.drop(['kwh', 'kwh_weighted'], axis=1)
 
         # save out long data format
         if save_individual_region:
-            output_file_path = os.path.join(self.output_dir, output_name + '_building_type_timeseries_long.csv')
+            output_file_path = os.path.join(self.output_dir['fs_path'], output_name + '_building_type_timeseries_long.csv')
             agg_df.to_csv(output_file_path, index=True)
             logger.info(f"Saved enduse timeseries in long format for {output_name} to {output_file_path}")
 
@@ -521,9 +594,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Read the buildstock.csv to determine number of simulations expected
         buildstock = pl.read_csv(os.path.join(self.data_dir, self.buildstock_file_name), infer_schema_length=50000)
         buildstock = buildstock.rename({'Building': 'sample_building_id'})
-
-
-        # if "sample_building_id" not in buildstock:
 
         #     raise Exception(f"the csv path is {os.path.join(self.data_dir, self.buildstock_file_name)}")
         buildstock_bldg_count = buildstock.shape[0]
@@ -2703,7 +2773,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         assert isinstance(wtd_agg_outs, pl.LazyFrame)
         return wtd_agg_outs
 
-    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports, n_parallel=-1):
+    def export_metadata_and_annual_results_for_upgrade(self, upgrade_id, geo_exports, n_parallel=-1, output_dir=None):
+        # Use self.output_dir if output_dir is not specified
+        if output_dir is None:
+            output_dir = self.output_dir
+
         # # Define the geographic partitions to export
         # geo_exports = [
         # {'geo_top_dir': 'national',
@@ -2769,23 +2843,23 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 first_geo_combos = first_geo_combos.sort(by=geo_col_names[0])
 
             # Make a directory for the geography type
-            full_geo_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
-            self.output_dir['fs'].mkdirs(full_geo_dir, exist_ok=True)
+            full_geo_dir = f"{output_dir['fs_path']}/metadata_and_annual_results/{geo_top_dir}"
+            output_dir['fs'].mkdirs(full_geo_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             if None in aggregation_levels:
                 for data_type in data_types:
                     for file_type in file_types:
-                        self.output_dir['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
+                        output_dir['fs'].mkdirs(f'{full_geo_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Make an aggregates directory for the geography type
-            full_geo_agg_dir = f"{self.output_dir['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
-            self.output_dir['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
+            full_geo_agg_dir = f"{output_dir['fs_path']}/metadata_and_annual_results_aggregates/{geo_top_dir}"
+            output_dir['fs'].mkdirs(full_geo_agg_dir, exist_ok=True)
 
             # Make a directory for each data type X file type combo
             for data_type in data_types:
                 for file_type in file_types:
-                    self.output_dir['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
+                    output_dir['fs'].mkdirs(f'{full_geo_agg_dir}/{data_type}/{file_type}', exist_ok=True)
 
             # Builds a file path for each aggregate based on name, file type, and aggregation level
             def get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level):
@@ -2796,7 +2870,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 geo_level_dir = f'{agg_level_dir}/{data_type}/{file_type}'
                 if len(geo_levels) > 0:
                     geo_level_dir = f'{geo_level_dir}/' + '/'.join(geo_levels)
-                self.output_dir['fs'].mkdirs(geo_level_dir, exist_ok=True)
+                output_dir['fs'].mkdirs(geo_level_dir, exist_ok=True)
                 file_name = f'upgrade{upgrade_id}'
                 # Add geography prefix to filename
                 if len(geo_prefixes) > 0:
@@ -2914,7 +2988,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                 for file_type in file_types:
                                     file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
                                     logger.debug(f"Queuing {file_path}")
-                                    combo = (geo_data_for_data_type, self.output_dir, file_type, file_path)
+                                    combo = (geo_data_for_data_type, output_dir, file_type, file_path)
                                     combos_to_write.append(combo)
 
                         # Write files in parallel
@@ -2986,7 +3060,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                             for file_type in file_types:
                                 file_path = get_file_path(full_geo_agg_dir, full_geo_dir, geo_prefixes, geo_levels, file_type, aggregation_level)
                                 logger.debug(f"Queuing {file_path}: n_cols = {n_cols:,}, n_rows = {n_rows:,}")
-                                combo = (data_type_df, self.output_dir, file_type, file_path)
+                                combo = (data_type_df, output_dir, file_type, file_path)
                                 combos_to_write.append(combo)
 
                     # Write files in parallel
@@ -4031,3 +4105,693 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         if err_log:
             raise ValueError(err_log)
+
+
+    @staticmethod
+    def create_sightglass_tables(
+        s3_location: str,
+        dataset_name: str,
+        database_name: str = "vizstock",
+        glue_service_role: str = "vizstock-glue-service-role",
+        ):
+        fs, fs_path = url_to_fs(s3_location)
+
+        glue = boto3.client("glue", region_name="us-west-2")
+
+        crawler_name_base = f"vizstock_{dataset_name}"
+        tbl_prefix_base = f"{dataset_name}"
+
+        crawler_params = {
+            "Role": glue_service_role,
+            "DatabaseName": database_name,
+            "Targets": {},
+            "SchemaChangePolicy": {
+                "UpdateBehavior": "UPDATE_IN_DATABASE",
+                "DeleteBehavior": "DELETE_FROM_DATABASE",
+            }
+        }
+
+        # Crawl each metadata target separately to create a
+        # unique table name for each metadata folder
+        logger.info(f"Creating crawlers for metadata")
+        md_agg_paths = fs.ls(f"{s3_location}") #{fs_path}/metadata_and_annual_results_aggregates/
+        md_paths = fs.ls(f"{fs_path}/metadata_and_annual_results/")
+
+        for md_path in md_agg_paths + md_paths:
+            md_geog = md_path.split('/')[-1]
+            if '_aggregates' in md_path:
+                crawler_name = f'{crawler_name_base}_md_agg_{md_geog}'
+                tbl_prefix = f'{tbl_prefix_base}_md_agg_{md_geog}_'
+            else:
+                crawler_name = f'{crawler_name_base}_md_{md_geog}'
+                tbl_prefix = f'{tbl_prefix_base}_md_{md_geog}_'
+
+            crawler_params["Name"] = crawler_name
+            crawler_params["TablePrefix"] = tbl_prefix
+            crawler_params["Targets"]["S3Targets"] = [{
+                "Path": f"s3://{md_path}/full/parquet",
+                "SampleSize": 1
+            }]
+
+            try:
+                _ = glue.get_crawler(Name=crawler_name)
+            except glue.exceptions.EntityNotFoundException as ex:
+                logger.info(f"Creating Crawler {crawler_name}")
+                glue.create_crawler(**crawler_params)
+            else:
+                logger.info(f"Updating Crawler {crawler_name}")
+                glue.update_crawler(**crawler_params)
+
+            logger.info(f"Running Crawler {crawler_name} on: {md_path}")
+
+            expected_table_name = f"{tbl_prefix}{md_geog}"
+            logger.info(f"Expected Athena table: {expected_table_name} in database {database_name}")
+
+            glue.start_crawler(Name=crawler_name)
+            time.sleep(10)
+
+            crawler_info = glue.get_crawler(Name=crawler_name)
+            while crawler_info["Crawler"]["State"] != "READY":
+                time.sleep(10)
+                crawler_info = glue.get_crawler(Name=crawler_name)
+                logger.info(f"Crawler state: {crawler_info['Crawler']['State']}")
+            glue.delete_crawler(Name=crawler_name)
+            logger.info(f"Deleting Crawler {crawler_name}")
+
+        return dataset_name
+
+    @staticmethod
+    def fix_timeseries_tables(dataset_name: str, database_name: str = "vizstock"):
+        logger.info("Updating timeseries table schemas")
+
+        glue = boto3.client("glue", region_name="us-west-2")
+        tbl_prefix = f"{dataset_name}_"
+        get_tables_kw = {"DatabaseName": database_name, "Expression": f"{tbl_prefix}*"}
+        tbls_resp = glue.get_tables(**get_tables_kw)
+        tbl_list = tbls_resp["TableList"]
+
+        while "NextToken" in tbls_resp:
+            tbls_resp = glue.get_tables(NextToken=tbls_resp["NextToken"], **get_tables_kw)
+            tbl_list.extend(tbls_resp["TableList"])
+
+        for tbl in tbl_list:
+
+            # Skip timeseries views that may exist, including ones created by this script
+            if tbl.get("TableType") == "VIRTUAL_VIEW":
+                continue
+
+            table_name = tbl['Name']
+            if not '_timeseries' in table_name:
+                continue
+
+            # Check the dtype of the 'upgrade' column.
+            # Must be 'bigint' to match the metadata schema so joined queries work.
+            do_tbl_update = False
+            for part_key in tbl["PartitionKeys"]:
+                if part_key["Name"] == "upgrade" and part_key["Type"] != "bigint":
+                    do_tbl_update = True
+                    part_key["Type"] = "bigint"
+
+            if not do_tbl_update:
+                logger.debug(f"Skipping {table_name} because it already has correct partition dtypes")
+                continue
+
+            # Delete the automatically-created partition index.
+            # While the index exists, dtypes for the columns in the index cannot be modified.
+            indexes_resp = glue.get_partition_indexes(
+                DatabaseName=database_name,
+                TableName=table_name
+            )
+            for index in indexes_resp['PartitionIndexDescriptorList']:
+                index_name = index['IndexName']
+                index_keys = index['Keys']
+                logger.debug(f'Deleting index {index_name} with keys {index_keys} in {table_name}')
+                glue.delete_partition_index(
+                    DatabaseName=database_name,
+                    TableName=table_name,
+                    IndexName=index_name
+                )
+
+            # Wait for index deletion to complete
+            index_deleted = False
+            for i in range(0, 60):
+                indexes_resp = glue.get_partition_indexes(
+                    DatabaseName=database_name,
+                    TableName=table_name
+                )
+                if len(indexes_resp['PartitionIndexDescriptorList']) == 0:
+                    index_deleted = True
+                    break
+                logger.debug('Waiting 10 seconds to check index deletion status')
+                time.sleep(10)
+            if not index_deleted:
+                raise RuntimeError(f'Did not delete index in 600 seconds, stopping.')
+
+            # Change the dtype of the 'upgrade' partition column to bigint
+            tbl_input = {}
+            for k, v in tbl.items():
+                if k in (
+                    "Name",
+                    "Description",
+                    "Owner",
+                    "Retention",
+                    "StorageDescriptor",
+                    "PartitionKeys",
+                    "TableType",
+                    "Parameters",
+                ):
+                    tbl_input[k] = v
+            logger.debug(f"Updating dtype of upgrade column in {table_name} to bigint")
+            glue.update_table(DatabaseName=database_name, TableInput=tbl_input)
+
+            # Recreate the index
+            key_names = [k['Name'] for k in index_keys]
+            logger.debug(f"Creating index with columns: {key_names} in {table_name}")
+            glue.create_partition_index(
+                # CatalogId='string',
+                DatabaseName=database_name,
+                TableName=table_name,
+                PartitionIndex={
+                    'Keys': key_names,
+                    'IndexName': 'vizstock_partition_index'
+                }
+            )
+
+            # Wait for index creation to complete
+            index_created = False
+            for i in range(0, 60):
+                indexes_resp = glue.get_partition_indexes(
+                    DatabaseName=database_name,
+                    TableName=table_name
+                )
+                for index in indexes_resp['PartitionIndexDescriptorList']:
+                    index_status = index['IndexStatus']
+                    if index_status == 'ACTIVE':
+                        index_created = True
+                if index_created:
+                    break
+                else:
+                    logger.debug('Waiting 10 seconds to check index creation status')
+                    time.sleep(10)
+            if not index_created:
+                raise RuntimeError(f'Did not create index in 600 seconds, stopping.')
+
+    @staticmethod
+    def column_filter(col):
+        return not (
+            col.name.endswith(".co2e_kg")
+            or col.name.find("out.electricity.pv") > -1
+            or col.name.find("out.electricity.purchased") > -1
+            or col.name.find("out.electricity.net") > -1
+            or col.name.find(".net.") > -1
+            or col.name.find("applicability.") > -1
+            or col.name.find("out.qoi.") > -1
+            or col.name.find("out.emissions.") > -1
+            or col.name.find("out.params.") > -1
+            or col.name.find("out.utility_bills.") > -1
+            or col.name.find("calc.") > -1
+            or col.name.startswith("in.ejscreen")
+            or col.name.startswith("in.cejst")
+            or col.name.startswith("in.cluster_id")
+            or col.name.startswith("in.size_bin_id")
+            or col.name.startswith("in.sampling_region_id")
+            or col.name.startswith("out.district_heating.interior_equipment")
+            or col.name.startswith("out.district_heating.cooling")
+            or col.name.endswith("_applicable")
+            or col.name.startswith("out.electricity.total.apr")
+            or col.name.startswith("out.electricity.total.aug")
+            or col.name.startswith("out.electricity.total.dec")
+            or col.name.startswith("out.electricity.total.feb")
+            or col.name.startswith("out.electricity.total.jan")
+            or col.name.startswith("out.electricity.total.jul")
+            or col.name.startswith("out.electricity.total.jun")
+            or col.name.startswith("out.electricity.total.mar")
+            or col.name.startswith("out.electricity.total.may")
+            or col.name.startswith("out.electricity.total.nov")
+            or col.name.startswith("out.electricity.total.oct")
+            or col.name.startswith("out.electricity.total.sep")
+            or col.name == "in.airtightness..m3_per_m2_h"  # Skip BIGINT airtightness column TODO: fix upstream in postproc
+        )
+
+    @staticmethod
+    def create_column_alias(col_name):
+
+        # accept SQLAlchemy Column / ColumnElement or plain str
+        if not isinstance(col_name, str):
+            # prefer .name, then .key; fallback to str (last resort)
+            name = getattr(col_name, "name", None) or getattr(col_name, "key", None)
+            if not name:
+                name = str(col_name)
+            col_name = name
+
+        # 1) name normalizations
+        normalized = (
+            col_name
+            .replace("gas", "natural_gas")
+            .replace("fueloil", "fuel_oil")
+            .replace("districtheating", "district_heating")
+            .replace("districtcooling", "district_cooling")
+        )
+
+        # 2) regex patterns
+        m1 = re.search(
+            r"^(electricity|natural_gas|fuel_oil|propane|district_heating|district_cooling|other_fuel)_(\w+)_(kwh|therm|mbtu|kbtu)$",
+            normalized,
+        )
+        m2 = re.search(
+            r"^total_site_(electricity|natural_gas|fuel_oil|propane|district_heating|district_cooling|other_fuel)_(kwh|therm|mbtu|kbtu)$",
+            normalized,
+        )
+        m3 = re.search(r"^(total)_(site_energy)_(kwh|therm|mbtu|kbtu)$", normalized)
+        m4 = re.search(
+            r"^total_net_site_(electricity|natural_gas|fuel_oil|propane|district_heating|district_cooling|other_fuel)_(kwh|therm|mbtu|kbtu)$",
+            normalized,
+        )
+        m5 = re.search(
+            r"^total_purchased_site_(electricity|natural_gas|fuel_oil|propane|district_heating|district_cooling|other_fuel)_(kwh|therm|mbtu|kbtu)$",
+            normalized,
+        )
+
+        if not (m1 or m2 or m3 or m4 or m5):
+            # Not an energy column we care about
+            return 1.0, normalized
+
+        if m1:
+            fueltype, enduse, fuel_units = m1.groups()
+        elif m2:
+            fueltype, fuel_units = m2.groups()
+            enduse = "total"
+        elif m3:
+            enduse, fueltype, fuel_units = m3.groups()  # "total","site_energy",units
+            # If you prefer "site_energy" to be reported as a pseudo-fuel, keep as-is.
+            # Otherwise map to a specific convention here.
+        elif m4:
+            fueltype, fuel_units = m4.groups()
+            enduse = "net"
+        else:  # m5
+            fueltype, fuel_units = m5.groups()
+            enduse = "purchased"
+
+        # 3) build alias
+        col_alias = f"out.{fueltype}.{enduse}.energy_consumption"
+
+        # Created using OpenStudio unit conversion library
+        energy_unit_conv_to_kwh = {
+            "mbtu": 293.0710701722222,
+            "m_btu": 293.0710701722222,
+            "therm": 29.307107017222222,
+            "kbtu": 0.2930710701722222,
+        }
+
+        # 4) conversion factor to kWh
+        if fuel_units == "kwh":
+            conv_factor = 1.0
+        else:
+            try:
+                conv_factor = energy_unit_conv_to_kwh[fuel_units]
+            except KeyError:
+                raise ValueError(f"Unhandled energy unit: {fuel_units!r} in column {col_name!r}")
+
+        return conv_factor, col_alias
+
+    @staticmethod
+    def create_views(
+            dataset_name: str, database_name: str = "vizstock", workgroup: str = "eulp"
+        ):
+            glue = boto3.client("glue", region_name="us-west-2")
+
+            logger.info(f'Creating views for {dataset_name}')
+
+            # Get a list of metadata tables
+            get_md_tables_kw = {
+                "DatabaseName": database_name,
+                "Expression": f"{dataset_name}_md_.*",
+            }
+            tbls_resp = glue.get_tables(**get_md_tables_kw)
+            tbl_list = tbls_resp["TableList"]
+            while "NextToken" in tbls_resp:
+                tbls_resp = glue.get_tables(NextToken=tbls_resp["NextToken"], **get_md_tables_kw)
+                tbl_list.extend(tbls_resp["TableList"])
+            md_tbls = [x["Name"] for x in tbl_list if x["TableType"] != "VIRTUAL_VIEW"]
+
+            # Create a view for each metadata table
+            for metadata_tblname in md_tbls:
+                # Connect to the metadata table
+                engine = create_engine(
+                    f"awsathena+rest://:@athena.us-west-2.amazonaws.com:443/{database_name}?work_group={workgroup}"
+                )
+                meta = sa.MetaData(bind=engine)
+                metadata_tbl = sa.Table(metadata_tblname, meta, autoload=True)
+                logger.info(f"Loaded metadata table: {metadata_tblname}")
+
+                # Extract the partition columns from the table name
+                bys = []
+                if 'by' in metadata_tblname:
+                    bys = metadata_tblname.replace(f'{dataset_name}_md_', '')
+                    bys = bys.replace(f'agg_', '').replace(f'by_', '').replace(f'_parquet', '').split('_and_')
+                    logger.debug(f"Partition identifiers = {', '.join(bys)}")
+
+                # Select columns for the metadata, aliasing partition columns
+                cols = []
+                for col in metadata_tbl.columns:
+                    cols.append(col)
+
+                    continue
+
+                # Remove everything but the input characteristics and output energy columns from the view
+                cols = list(filter(ComStock.column_filter, cols))
+
+                # Alias the out.foo columns to remove units
+                # TODO: add this to timeseries stuff
+                cols_aliased = []
+                for col in cols:
+                    if col.name.startswith("out.") and col.name.find("..") > -1:
+                        unitless_name = col.name.split('..')[0]
+                        cols_aliased.append(col.label(unitless_name))
+                        # logger.debug(f'Aliasing {col.name} to {unitless_name}')
+                    elif col.name == 'in.sqft..ft2':
+                        unitless_name = 'in.sqft' # Special requirement for SightGlass
+                        cols_aliased.append(col.label(unitless_name))
+                        # logger.debug(f'Aliasing {col.name} to {unitless_name}')
+                    else:
+                        cols_aliased.append(col)
+                cols = cols_aliased
+
+                # Check columns
+                col_type_errs = 0
+                for c in cols:
+                    # Column name length for postgres compatibility
+                    if len(c.name) > 63:
+                        col_type_errs += 1
+                        logger.error(f'column: `{c.name}` must be < 64 chars for SightGlass postgres storage')
+
+                    # in.foo columns may not be bigints or booleans because they cannot be serialized to JSON
+                    # when determining the unique set of filter values for SightGlass
+                    if c.name.startswith('in.') and (str(c.type) == 'BIGINT' or (str(c.type) == 'BOOLEAN')):
+                        col_type_errs += 1
+                        logger.error(f'in.foo column {c.name} may not be a BIGINT or BOOLEAN for SightGlass to work')
+
+                    # Expected bigint columns in SightGlass
+                    expected_bigints = ['metadata_index', 'upgrade', 'bldg_id']
+                    if c.name in expected_bigints:
+                        if not str(c.type) == 'BIGINT':
+                            col_type_errs += 1
+                            logger.error(f'Column {c} must be a BIGINT, but found {c.type}')
+
+                if col_type_errs > 0:
+                    raise RuntimeError(f'{col_type_errs} were found in columns, correct these in metadata before proceeding.')
+
+                # For PUMAs, need to create one view for each census region
+                if 'puma' in bys:
+                    regions = ("South", "Midwest", "Northeast", "West")
+                    for region in regions:
+                        q = sa.select(cols).where(metadata_tbl.c["in.census_region_name"].in_([region]))
+                        view_name = metadata_tblname.replace('_by_state_and_puma_parquet', '_puma')
+                        view_name = f"{view_name}_{region.lower()}_vu"
+                        db_plus_vu = f'{database_name}_{view_name}'
+                        if len(db_plus_vu) > 63:
+                            raise RuntimeError(f'db + view: `{db_plus_vu}` must be < 64 chars for SightGlass postgres storage')
+                        view = sa.Table(view_name, meta)
+                        create_view = CreateView(view, q, or_replace=True)
+                        logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
+                        engine.execute(create_view)
+
+                else:
+                    q = sa.select(cols)
+                    view_name = metadata_tblname.replace('_parquet', '')
+                    view_name = f"{view_name}_vu"
+                    db_plus_vu = f'{database_name}_{view_name}'
+                    #if len(db_plus_vu) > 63: #TODO: add name truncation if we need to use this method for sightglass
+                    #    raise RuntimeError(f'db + view: `{db_plus_vu}` must be < 64 chars for SightGlass postgres storage')
+                    view = sa.Table(view_name, meta)
+                    create_view = CreateView(view, q, or_replace=True)
+                    logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
+                    engine.execute(create_view)
+
+            # Get a list of timeseries tables
+            get_ts_tables_kw = {
+                "DatabaseName": database_name,
+                "Expression": f"{dataset_name}_timeseries*",
+            }
+            tbls_resp = glue.get_tables(**get_ts_tables_kw)
+            tbl_list = tbls_resp["TableList"]
+            while "NextToken" in tbls_resp:
+                tbls_resp = glue.get_tables(NextToken=tbls_resp["NextToken"], **get_ts_tables_kw)
+                tbl_list.extend(tbls_resp["TableList"])
+            ts_tbls = [x["Name"] for x in tbl_list if x["TableType"] != "VIRTUAL_VIEW"]
+
+            # Create a view for each timeseries table, removing the emissions columns
+            for ts_tblname in ts_tbls:
+                engine = create_engine(
+                    f"awsathena+rest://:@athena.us-west-2.amazonaws.com:443/{database_name}?work_group={workgroup}"
+                )
+                meta = sa.MetaData(bind=engine)
+                ts_tbl = sa.Table(ts_tblname, meta, autoload=True)
+                cols = list(filter(ComStock.column_filter, ts_tbl.columns))
+                cols_aliased = []
+                for col in cols:
+
+                    # rename
+                    conv_factor, col_alias = ComStock.create_column_alias(col)
+                    if (col.name == col_alias) & (conv_factor==1): # and conversion factor is 1
+                        cols_aliased.append(col)
+                    elif (col.name != col_alias) & (conv_factor==1): #name different, conversion factor 1
+                        cols_aliased.append(col.label(col_alias)) #TODO: return both alias and new units
+                    else: # name and conversion different
+                        cols_aliased.append((col/conv_factor).label(col_alias)) #TODO: return both alias and new units
+
+                    if col.name == 'timestamp': #timestamp
+                        # Convert bigint to timestamp type if necessary
+                        if str(col.type) == 'BIGINT':
+                            # Pandas uses nanosecond resolution integer timestamps.
+                            # Presto expects second resolution values in from_unixtime.
+                            # Must divide values by 1e9 to go from nanoseconds to seconds.
+                            cols_aliased.append(sa.func.from_unixtime(col / 1e9).label('timestamp')) #NOTE: syntax for adding unit conversions
+                        else:
+                            cols_aliased.append(col)
+
+                cols = cols_aliased
+
+                q = sa.select(cols)
+                view_name = f"{ts_tblname}_vu"
+
+                db_plus_vu = f'{database_name}_{view_name}'
+                if len(db_plus_vu) > 63:
+                    raise RuntimeError(f'db + view: `{db_plus_vu}` must be < 64 chars for SightGlass postgres storage')
+                view = sa.Table(view_name, meta)
+                create_view = CreateView(view, q, or_replace=True)
+                logger.info(f"Creating timeseries view: {view_name}")
+                engine.execute(create_view)
+                logger.debug('Columns in view:')
+                for c in cols:
+                    logger.debug(c)
+
+        # get weighted load profiles
+
+    def determine_state_or_county_timeseries_table(self, location_input, location_name=None):
+        """
+        Determine if location input represents state or county request(s).
+
+        Args:
+            location_input: Either a single location ID string or tuple/list of location IDs
+            location_name (str, optional): The location name (e.g., 'Minnesota', 'Boston')
+
+        Returns:
+            str: 'state' for state-level locations, 'county' for county-level locations
+        """
+
+        # Handle single location (string)
+        if isinstance(location_input, str):
+            if len(location_input) == 2 and location_input.isalpha():
+                # State ID: 2-letter alphabetic code (e.g., 'MN', 'CA', 'TX')
+                return 'state'
+            elif location_input.startswith('G') and len(location_input) > 2:
+                # County ID: starts with 'G' followed by numbers (e.g., 'G123456')
+                return 'county'
+            else:
+                # Handle other potential formats - default to state
+                logger.warning(f"Warning: Unrecognized location ID format: {location_input}, defaulting to state")
+                return 'state'
+
+        # Handle multiple locations (tuple or list)
+        elif isinstance(location_input, (tuple, list)):
+            # Check all locations and determine if any counties are present
+            for location_id in location_input:
+                if self.determine_state_or_county_timeseries_table(location_id) == 'county':
+                    return 'county'  # Use county table if any counties present
+            return 'state'  # All are states
+
+        else:
+            logger.warning(f"Warning: Unexpected location input type: {type(location_input)}, defaulting to state")
+            return 'state'
+
+    def get_weighted_load_profiles_from_s3(self, df, upgrade_num, location_input, upgrade_name):
+        """
+        This method retrieves weighted timeseries profiles from s3/athena.
+        Returns dataframe with weighted kWh columns for baseline and upgrade.
+
+        Args:
+            location_input: Either a single location ID (e.g., 'MN') or tuple/list of location IDs (e.g., ('MA', 'NH'))
+        """
+
+        # Normalize location_input to a list for consistent processing
+        if isinstance(location_input, str):
+            location_list = [location_input]
+        elif isinstance(location_input, (tuple, list)):
+            location_list = list(location_input)
+        else:
+            raise ValueError(f"Unexpected location_input type: {type(location_input)}")
+
+        # Determine table type based on the ENTIRE request set, not just this location
+        # If ANY location in timeseries_locations_to_plot is a county, use county table for ALL
+        requires_county_table = False
+        for loc_key in self.timeseries_locations_to_plot.keys():
+            if self.determine_state_or_county_timeseries_table(loc_key) == 'county':
+                requires_county_table = True
+                break
+
+        # Set up table configuration based on whether counties are needed anywhere
+        if requires_county_table:
+            agg = 'county'
+            metadata_table_suffix = '_md_agg_by_state_and_county_vu'
+            weight_view_table = f'{self.comstock_run_name}_md_agg_by_state_and_county_vu'
+        else:
+            agg = 'state'
+            metadata_table_suffix = '_md_agg_national_by_state_vu'
+            weight_view_table = f'{self.comstock_run_name}_md_agg_national_by_state_vu'
+
+        # Initialize Athena client
+        athena_client = BuildStockQuery(workgroup='eulp',
+                                    db_name='enduse',
+                                    table_name=self.comstock_run_name,
+                                    buildstock_type='comstock',
+                                    skip_reports=True,
+                                    metadata_table_suffix=metadata_table_suffix,
+                                    )
+
+        # Create upgrade ID to name mapping from existing data
+        upgrade_name_mapping = self.data.select(self.UPGRADE_ID, self.UPGRADE_NAME).unique().collect().sort(self.UPGRADE_ID).to_dict(as_series=False)
+        dict_upid_to_upname = dict(zip(upgrade_name_mapping[self.UPGRADE_ID], upgrade_name_mapping[self.UPGRADE_NAME]))
+
+        # Determine geographic types for all locations
+        state_locations = []
+        county_locations = []
+
+        for location_id in location_list:
+            location_geo_type = self.determine_state_or_county_timeseries_table(location_id)
+            if location_geo_type == 'state':
+                state_locations.append(location_id)
+            else:
+                county_locations.append(location_id)
+
+        # Build applicability query for all locations
+        builder = ComStockQueryBuilder(self.comstock_run_name)
+
+        # Determine column type based on primary geographic type
+        primary_geo_type = self.determine_state_or_county_timeseries_table(location_input)
+
+        query_params = {
+            'upgrade_ids': upgrade_num,
+            'columns': [
+                self.DATASET,
+                f'"{self.STATE_NAME}"' if primary_geo_type == 'state' else f'"{self.COUNTY_ID}"',
+                self.BLDG_ID,
+                self.UPGRADE_ID,
+                self.UPGRADE_APPL
+            ],
+            'weight_view_table': weight_view_table
+        }
+
+        # Add geographic filters for all locations
+        if state_locations and county_locations:
+            # Mixed - need to query both separately and combine
+            # For now, use the primary type's approach
+            if primary_geo_type == 'state':
+                query_params['state'] = state_locations if len(state_locations) > 1 else state_locations[0]
+            else:
+                query_params['county'] = county_locations if len(county_locations) > 1 else county_locations[0]
+        elif state_locations:
+            query_params['state'] = state_locations if len(state_locations) > 1 else state_locations[0]
+        elif county_locations:
+            query_params['county'] = county_locations if len(county_locations) > 1 else county_locations[0]
+
+        applicability_query = builder.get_applicability_query(**query_params)
+
+        # Execute query to get applicable buildings
+        applic_df = athena_client.execute(applicability_query)
+        applic_bldgs_list = list(applic_df[self.BLDG_ID].unique())
+        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
+
+        # Create location description string for logging messages
+        location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+
+        # Check if any applicable buildings were found
+        if len(applic_bldgs_list) == 0:
+            print(f"Warning: No applicable buildings found for {location_desc} and upgrade(s) {upgrade_num}. Returning empty DataFrames.")
+            return pd.DataFrame(), pd.DataFrame()
+
+        # Build geographic restrictions for all locations
+        geo_restrictions = []
+        if state_locations:
+            geo_restrictions.append((self.STATE_ABBRV, state_locations))
+        if county_locations:
+            geo_restrictions.append((self.COUNTY_ID, county_locations))
+
+        # Initialize variables before loop to avoid NameError if loop doesn't execute
+        df_base_ts_agg_weighted = None
+        df_up_ts_agg_weighted = None
+
+        # loop through upgrades
+        for upgrade_id in df[self.UPGRADE_ID].unique():
+
+            # if there are upgrades, restrict baseline to match upgrade applicability
+            if (upgrade_id in (0, "0")) and (df[self.UPGRADE_ID].nunique() > 1):
+
+                # Create query builder and generate query
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+
+                # Build restrictions list including all geographic locations
+                restrictions = [(self.BLDG_ID, applic_bldgs_list)]
+                restrictions.extend(geo_restrictions)
+
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=restrictions,
+                    timestamp_grouping='hour',
+                    weight_view_table=weight_view_table
+                )
+
+                location_desc = f"locations {location_list}" if len(location_list) > 1 else f"{primary_geo_type} {location_list[0]}"
+                logger.info(f"Getting weighted baseline load profile for {location_desc} and upgrade id {upgrade_id} with {len(applic_bldgs_list)} applicable buildings (using {agg} table).")
+
+                # Execute query
+                df_base_ts_agg_weighted = athena_client.execute(query)
+                df_base_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[0]
+
+            else:
+                # baseline load data when no upgrades are present, or upgrade load data
+                # create query builder and generate query for upgrade data
+                builder = ComStockQueryBuilder(self.comstock_run_name)
+
+                # Build restrictions list including all geographic locations (same as baseline)
+                restrictions = [('bldg_id', applic_bldgs_list)]
+                restrictions.extend(geo_restrictions)
+
+                query = builder.get_timeseries_aggregation_query(
+                    upgrade_id=upgrade_id,
+                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
+                    restrictions=restrictions,
+                    timestamp_grouping='hour',
+                    weight_view_table=weight_view_table
+                )
+
+                df_up_ts_agg_weighted = athena_client.execute(query)
+                df_up_ts_agg_weighted[self.UPGRADE_NAME] = dict_upid_to_upname[int(upgrade_num[0])]
+
+
+        # Initialize default values in case no data was processed
+        df_base_ts_agg_weighted = pd.DataFrame() if 'df_base_ts_agg_weighted' not in locals() else df_base_ts_agg_weighted
+        df_up_ts_agg_weighted = pd.DataFrame() if 'df_up_ts_agg_weighted' not in locals() else df_up_ts_agg_weighted
+
+        return df_base_ts_agg_weighted, df_up_ts_agg_weighted
