@@ -84,7 +84,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         logging.info(f'Created {self.dataset_name} with {len(self.data)} rows')
 
         self.data = self.data.astype(str)
-        #Convert columns with name in self.FLR_AREA or weight to numeric 
+        #Convert columns with name in self.FLR_AREA or weight to numeric
         numeric_patterns = [
             self.FLR_AREA,
             self.BLDG_WEIGHT,
@@ -94,7 +94,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'sqft',
             'intensity'
         ]
- 
+
         for col in self.data.columns:
             if any(pattern in col for pattern in numeric_patterns):
                 try:
@@ -105,7 +105,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
         # Then convert to polars with schema overrides
         self.data = pl.from_pandas(self.data).lazy()
-        
         assert isinstance(self.data, pl.LazyFrame)
 
     def download_data(self):
@@ -131,12 +130,11 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
 
         # CBECS HVAC to Comstock System Type Mapping table
-        file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+        file_name = f'cbecs_{self.year}_w_cstock_hvac_v3.csv'
         file_path = os.path.join(self.truth_data_dir, file_name)
         if not os.path.exists(file_path):
             s3_file_path = f'truth_data/{self.truth_data_version}/EIA/CBECS/{file_name}'
             self.read_delimited_truth_data_file_from_S3(s3_file_path, ',')
-
 
     def load_data(self):
         # Load raw microdata and codebook and decode numeric keys to strings using codebook
@@ -265,6 +263,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
             'Annual natural gas expenditures ($)': self.UTIL_BILL_GAS,
             'Annual fuel oil expenditures ($)': self.UTIL_BILL_FUEL_OIL
         }
+
         self.data.rename(columns=column_map, inplace=True)
 
         # Combine some CBECS columns to match ComStock
@@ -421,6 +420,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
             return cstock_bldg_type
 
+
         self.data[self.BLDG_TYPE] = self.data.apply(lambda row: cbecs_to_comstock_bldg_type(row, bldg_type_map), axis=1)
 
     def add_aeo_nems_building_type_column(self):
@@ -518,7 +518,7 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
 
     def add_primary_system_type_column(self):
          # CBECS HVAC Data
-         file_name = f'cbecs_{self.year}_w_cstock_hvac.csv'
+         file_name = f'cbecs_{self.year}_w_cstock_hvac_v3.csv'
          file_path = os.path.join(self.truth_data_dir, file_name)
 
          # Check if file exists
@@ -535,7 +535,6 @@ class CBECS(NamingMixin, UnitsMixin, S3UtilitiesMixin):
          # Rename 'PUBID' to 'bldg_id'
          hvac_df = hvac_df.rename(columns={'PUBID': 'bldg_id'})
          hvac_df = hvac_df.rename(columns={'cstock_sys_type':'in.hvac_system_type'})
-
          # Merge HVAC data with existing data
          self.data = pd.merge(self.data, hvac_df, on='bldg_id', how='left')
 

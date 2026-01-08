@@ -35,6 +35,14 @@ ReportingMeasure
 **Required:** true,
 **Model Dependent:** false
 
+### Enable extra variables for debugging zone loads
+
+**Name:** debug_mode,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 
 
 
