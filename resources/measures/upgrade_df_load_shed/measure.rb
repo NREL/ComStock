@@ -661,7 +661,7 @@ class DFLoadShed < OpenStudio::Measure::ModelMeasure
         # puts("--- ns = #{ns}")
         puts('### ============================================================')
         puts('### Running simulation on samples...')
-        y_seed = run_samples(model, year, selectdays, num_timesteps_in_hr)
+        y_seed = run_samples(model, selectdays, num_timesteps_in_hr)
         # puts("--- y_seed = #{y_seed}")
       when 'part year bin sample'
         puts('### Creating bins...')

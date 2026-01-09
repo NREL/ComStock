@@ -290,7 +290,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       if thermal_zone.equipment.empty?
         unconditioned_zones << thermal_zone.name.get
       # if original zone is typically conditioned with baseboards (as opposed to an RTU), maintain this
-      elsif ['Bulk Entry'].any? { |word| thermal_zone.name.get.include?(word) }
+      elsif ['Bulk', 'Entry'].any? { |word| thermal_zone.name.get.include?(word) }
         zones_to_skip << thermal_zone.name.get
       end
 
@@ -1278,8 +1278,13 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     building = model.getBuilding
     soil_conductivity = building.additionalProperties.getFeatureAsDouble('Soil Conductivity')
     undisturbed_ground_temp = building.additionalProperties.getFeatureAsDouble('Undisturbed Ground Temperature')
-    borefield_defaults['soil']['conductivity'] = soil_conductivity.to_f.round(2)
-    borefield_defaults['soil']['undisturbed_temp'] = undisturbed_ground_temp.to_f.round(2)
+    # only overwrite the default from the json file if a value was found in building additional properties
+    if !soil_conductivity.empty?
+      borefield_defaults['soil']['conductivity'] = soil_conductivity.to_f.round(2)
+    end
+    if !undisturbed_ground_temp.empty?
+      borefield_defaults['soil']['undisturbed_temp'] = undisturbed_ground_temp.to_f.round(2)
+    end
 
     borefield_defaults['loads'] = {}
     borefield_defaults['loads']['ground_loads'] = ground_loads

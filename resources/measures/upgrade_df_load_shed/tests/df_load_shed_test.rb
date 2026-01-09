@@ -278,6 +278,7 @@ class DFLoadShedTest < Minitest::Test
         next unless !light_sch.empty? && !light_schedules.key?(light_sch.get.name.to_s)
 
         schedule = light_sch.get.clone(model)
+        schedule = schedule.to_Schedule.get
         schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
                                                                           8760 * timestep)
         light_schedules[light_sch.get.name.to_s] = schedule_ts
@@ -300,6 +301,7 @@ class DFLoadShedTest < Minitest::Test
           heat_sch = thermostat.heatingSetpointTemperatureSchedule
           if !heat_sch.empty? && !heat_schedules.key?(heat_sch.get.name.to_s)
             schedule = heat_sch.get.clone(model)
+            schedule = schedule.to_Schedule.get
             schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
                                                                               8760 * timestep)
             heat_schedules[heat_sch.get.name.to_s] = schedule_ts
@@ -311,6 +313,7 @@ class DFLoadShedTest < Minitest::Test
         next unless !cool_sch.empty? && !cool_schedules.key?(cool_sch.get.name.to_s)
 
         schedule = cool_sch.get.clone(model)
+        schedule = schedule.to_Schedule.get
         schedule_ts = measure.get_interval_schedule_from_schedule_ruleset(model, schedule.to_ScheduleRuleset.get,
                                                                           8760 * timestep)
         cool_schedules[cool_sch.get.name.to_s] = schedule_ts

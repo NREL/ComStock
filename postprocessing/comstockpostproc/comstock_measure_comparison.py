@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_object: comstock.ComStock, states, make_comparison_plots, make_timeseries_plots, image_type='jpg', name=None):
+    def __init__(self, comstock_object: comstock.ComStock, timeseries_locations_to_plot, make_comparison_plots, make_timeseries_plots, image_type='jpg', name=None):
 
         # Initialize members
         assert isinstance(comstock_object.data, pl.LazyFrame)
@@ -28,6 +28,8 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.data = comstock_object.plotting_data.clone() #not really a deep copy, only schema is copied but not data.
         assert isinstance(self.data, pl.LazyFrame)
 
+        # Store reference to ComStock object for use in plotting methods
+        self.comstock_object = comstock_object
         self.color_map = {}
         self.image_type = image_type
         self.name = name
@@ -43,7 +45,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.dict_measure_dir = {} # this can be called to determine output directory
         self.upgrade_ids_for_comparison = comstock_object.upgrade_ids_for_comparison
         self.comstock_run_name = comstock_object.comstock_run_name
-        self.states = states
+        self.athena_table_name = comstock_object.athena_table_name
+        self.s3_base_dir = comstock_object.s3_base_dir
+        self.timeseries_locations_to_plot = timeseries_locations_to_plot
         self.make_timeseries_plots = make_timeseries_plots
         self.lazyframe_plotter = LazyFramePlotter()
 
@@ -82,10 +86,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
                     logger.info(f'Making plots for upgrade {upgrade}')
-                    self.make_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, self.dict_measure_dir[upgrade])
+                    self.make_plots(df_upgrade, self.column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, self.dict_measure_dir[upgrade], self.s3_base_dir, self.athena_table_name, self.comstock_run_name)
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
-
 
         # make plots comparing multiple upgrades together
         for comp_name, comp_up_ids in self.upgrade_ids_for_comparison.items():
@@ -114,13 +117,13 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
                 # make consumption plots for upgrades if requested by user
                 if make_comparison_plots:
-                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, states, make_timeseries_plots, color_map, comp_output_dir)
+                    self.make_comparative_plots(df_upgrade, self.column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, comp_output_dir, self.s3_base_dir, self.athena_table_name, self.comstock_run_name)
                 else:
                     logger.info("make_comparison_plots is set to false, so not plots were created. Set make_comparison_plots to True for plots.")
         end_time = pd.Timestamp.now()
         logger.info(f"Time taken to make all plots is {end_time - start_time}")
 
-    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, states, make_timeseries_plots, color_map, output_dir):
+    def make_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, output_dir, s3_base_dir, athena_table_name, comstock_run_name):
         time_start = pd.Timestamp.now()
 
         BASIC_PARAMS = {
@@ -185,19 +188,23 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
                                         columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.UNMET_HOURS_COLS))(**BASIC_PARAMS)
 
         if make_timeseries_plots:
-            TIMESERIES_PARAMS = {'comstock_run_name': self.comstock_run_name, 'states': states, 'color_map': color_map,
-                                 'output_dir': output_dir}
+            TIMESERIES_PARAMS = {
+                'comstock_run_name': self.comstock_run_name,
+                'timeseries_locations_to_plot': timeseries_locations_to_plot,
+                'color_map': color_map,
+                'output_dir': output_dir,
+                'comstock_obj': self.comstock_object}
 
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_peak_week_by_state, lazy_frame=lazy_frame.clone(),
-                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_WEIGHT, self.BLDG_TYPE]))(**TIMESERIES_PARAMS)
+                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT,
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_season_average_by_state, lazy_frame=lazy_frame.clone(),
-                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_WEIGHT, self.BLDG_TYPE]))(**TIMESERIES_PARAMS)
-            LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_season_average_by_state, lazy_frame=lazy_frame.clone(),
-                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_WEIGHT, self.BLDG_TYPE]))(**TIMESERIES_PARAMS)
+                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
+            LazyFramePlotter.plot_with_lazy(plot_method=self.plot_measure_timeseries_annual_average_by_state_and_enduse, lazy_frame=lazy_frame.clone(),
+                                            columns=(self.lazyframe_plotter.BASE_COLUMNS + [self.UPGRADE_ID, self.BLDG_TYPE]))(**TIMESERIES_PARAMS) #self.BLDG_WEIGHT
         time_end = pd.Timestamp.now()
         logger.info(f"Time taken to make plots is {time_end - time_start}")
 
-    def make_comparative_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, states, make_timeseries_plots, color_map, output_dir):
+    def make_comparative_plots(self, lazy_frame: pl.LazyFrame, column_for_grouping, timeseries_locations_to_plot, make_timeseries_plots, color_map, output_dir, s3_base_dir, athena_table_name, comstock_run_name):
         # Make plots comparing the upgrades
 
         assert isinstance(lazy_frame, pl.LazyFrame)
