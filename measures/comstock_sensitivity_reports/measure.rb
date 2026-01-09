@@ -145,7 +145,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heat Recovery Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Mass Flow Rate,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Mixed Air Mass Flow Rate,RunPeriod;').get # kg/s
-	result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
+	  result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{fuel_oil} Energy,RunPeriod;").get # J
@@ -660,8 +660,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
 
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
-	
-	standard_air_density = 1.225 #kg/m3, using standard air density since need a single value 
+
+	  standard_air_density = 1.225 #kg/m3, using standard air density since need a single value
 
     # get building floor area properties
     total_building_area_m2 = 0.0
@@ -1056,7 +1056,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_total_vav_mass_flow_kg_s = 0.0
     air_system_total_des_flow_rate_m3_s = 0.0
     air_system_vav_avg_flow_ratio = -999
-	des_flow_rate_m3_s = 0 
+    des_flow_rate_m3_s = 0
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # check if unitary system
@@ -1091,18 +1091,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
         elsif supply_fan.to_FanVariableVolume.is_initialized
-		  fan_var_vol = true
+          fan_var_vol = true
           supply_fan = supply_fan.to_FanVariableVolume.get
           fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
-        if supply_fan.autosizedMaximumFlowRate.is_initialized
-           des_flow_rate_m3_s = supply_fan.autosizedMaximumFlowRate.get
-        elsif supply_fan.maximumFlowRate.is_initialized
-           des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
-		else 
-		   des_flow_rate_m3_s = -999 #placeholder if value can't be accessed 
-        end
+          if supply_fan.autosizedMaximumFlowRate.is_initialized
+            des_flow_rate_m3_s = supply_fan.autosizedMaximumFlowRate.get
+          elsif supply_fan.maximumFlowRate.is_initialized
+            des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
+          else
+            des_flow_rate_m3_s = -999 # placeholder if value can't be accessed
+          end
         else
           runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
@@ -1142,18 +1142,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           economizer_high_limit_enthalpy_j_per_kg: economizer_high_limit_enthalpy_j_per_kg
         }
       end
-	  
-	  #Get airflow time series for average flow rate 
-	  ts_ahu_ma_flow_rate_kg_s = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase) # dimensionless
-	  ts_ahu_ma_flow_rate_kg_s_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate_kg_s)
-	  
-	  unless ts_ahu_ma_flow_rate_kg_s_list.nil? 
+
+      # Get airflow time series for average flow rate
+      ts_ahu_ma_flow_rate_kg_s = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase)
+      ts_ahu_ma_flow_rate_kg_s_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate_kg_s)
+
+      unless ts_ahu_ma_flow_rate_kg_s_list.nil?
         average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
-	  else 
-	    average_non_zero_loop_mass_flow_kg_s = -999
-	  end 
-	
-      # add to weighted
+      else
+        average_non_zero_loop_mass_flow_kg_s = -999
+      end
+
+      # Add to weighted
       air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s
       air_system_total_oa_mass_flow_kg_s += air_loop_oa_mass_flow_rate_kg_s
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
@@ -1163,13 +1163,11 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for SP reset measure
         air_system_total_des_flow_rate_m3_s += des_flow_rate_m3_s
       end
-     
-	
     end
-	
-	#convert design flow rate from volumetric to mass flow 
-	air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s*standard_air_density 
-	
+
+    # Convert design flow rate from volumetric to mass flow
+    air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s * standard_air_density
+
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
@@ -1179,8 +1177,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
     air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow_kg_s.to_f / air_system_total_des_flow_rate_kg_s.to_f : -999
-	
-    
+
     # calculate economizer variables
     if economizer_statistics.empty?
       runner.registerValue('com_report_hvac_economizer_control_type', 'NoEconomizer')
@@ -1357,8 +1354,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       zone_hvac_total_mass_flow_kg_s += zone_equip_mass_flow_rate_kg_s
       zone_hvac_total_oa_mass_flow_kg_s += zone_equip_oa_mass_flow_rate_kg_s
     end
-	
-	
 
     runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
     runner.registerValue('com_report_air_sys_vav_avg_flow_ratio', air_system_vav_avg_flow_ratio)
@@ -1510,12 +1505,12 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_area_m2 = 0.0
     zones_with_htg_setbacks = []
     zones_with_clg_setbacks = []
-    zones_htg_tstats = [] # zones w heating thermostats
-    zones_clg_tstats = [] # zones w clg thermostats
-    has_clg_setback_all_tstats = false 
+    zones_htg_tstats = [] # Zones with heating thermostats
+    zones_clg_tstats = [] # Zones with cooling thermostats
+    has_clg_setback_all_tstats = false
     has_htg_setback_all_tstats = false
-    at_least_one_clg_setback = false #at least one zone with a cooling setback
-    at_least_one_htg_setback = false #at least one zone with a htg setback
+    at_least_one_clg_setback = false # At least one zone with a cooling setback
+    at_least_one_htg_setback = false # At least one zone with a heating setback
 
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
@@ -1599,8 +1594,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_has_clg_setback_all_tstats', has_clg_setback_all_tstats)
     runner.registerValue('com_report_has_at_least_one_htg_setback', at_least_one_htg_setback)
     runner.registerValue('com_report_has_at_least_one_clg_setback', at_least_one_clg_setback)
-    
-
 
     # Thermostat heating setpoint minimum and maximum
     if weighted_thermostat_heating_area_m2 > 0.0

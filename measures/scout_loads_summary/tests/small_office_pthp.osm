@@ -17,14 +17,9 @@ OS:WeatherFile,
   file:////var/simdata/openstudio/weather/USA_OK_Tinker.Afb.723540_2012.epw, !- Url
   226BE93E;                               !- Checksum
 
-OS:RunPeriodControl:DaylightSavingTime,
-  {09f2da45-8517-4a10-9d39-136601948a33}, !- Handle
-  2nd Sunday in March,                    !- Start Date
-  1st Sunday in November;                 !- End Date
-
 OS:YearDescription,
   {8291c262-58a0-4fac-a556-36890279e804}, !- Handle
-  2016,                                   !- Calendar Year
+  2018,                                   !- Calendar Year
   ,                                       !- Day of Week for Start Day
   ;                                       !- Is Leap Year
 
@@ -38,7 +33,7 @@ OS:RunPeriod,
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
   12,                                     !- End Month
-  30,                                     !- End Day of Month
+  31,                                     !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
   ,                                       !- Apply Weekend Holiday Rule
