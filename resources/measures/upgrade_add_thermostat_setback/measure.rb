@@ -124,11 +124,11 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
       next if (idx < schedule_annual_profile.size - 2) && opt_start == false && opt_start_pres == true
 
       if type == 'heating'
-        if opt_start and opt_start_app_loop and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
+        if opt_start && opt_start_app_loop && sch_zone_occ_annual_profile[idx].zero? && hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1) # hours reflects time to occupancy
           schedule_annual_profile_updated[idx] =
-            [max_value - setback_val + delta_per_hour * (opt_start_len + 1 - hours), lim_value].max
+            [max_value - setback_val + (delta_per_hour * (opt_start_len + 1 - hours)), lim_value].max
         else
           schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? # If unoccupied, apply setback
                                                    [max_value - setback_val, lim_value].max
@@ -137,11 +137,11 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
                                                  end
         end
       elsif type == 'cooling'
-        if opt_start and opt_start_app_loop and sch_zone_occ_annual_profile[idx].zero? and hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
+        if opt_start && opt_start_app_loop && sch_zone_occ_annual_profile[idx].zero? && hours_to_occ(runner, sch_zone_occ_annual_profile, idx) <= opt_start_len # handle optimum start if timestep is unoccupied and a few hours before occupancy
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1)
           schedule_annual_profile_updated[idx] =
-            [min_value + setback_val - delta_per_hour * (opt_start_len + 1 - hours), lim_value].min
+            [min_value + setback_val - (delta_per_hour * (opt_start_len + 1 - hours)), lim_value].min
         else
           schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? # If unoccupied, apply setback
                                                    [min_value + setback_val, lim_value].min
@@ -270,7 +270,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("design supply airflow rate #{des_sup_airflow_rate}")
       end
 
-      if des_sup_airflow_rate * cfm_per_m3s < 10_000 and opt_start == true # Set to false if doesn't qualify for optimum start
+      if des_sup_airflow_rate * cfm_per_m3s < 10_000 && opt_start == true # Set to false if doesn't qualify for optimum start
         opt_start_app_loop = false
       end
       zones = air_loop_hvac.thermalZones
@@ -301,7 +301,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
         # Confirm schedules are valid
         htg_valid = valid_tstat_schedule(htg_schedule, thermal_zone, 'heating')
         clg_valid = valid_tstat_schedule(clg_schedule, thermal_zone, 'cooling')
-        if !htg_valid and !clg_valid
+        if !htg_valid && !clg_valid
           next # skip to the next zone if no valid schedules
         elsif htg_valid
           htg_schedule = htg_schedule.get.to_ScheduleRuleset.get
@@ -337,14 +337,14 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           runner.registerInfo("zone #{thermal_zone.name} setback status clg #{has_clg_setback}")
         end
 
-        if has_htg_setback and has_clg_setback
+        if has_htg_setback && has_clg_setback
           zones_with_setbacks << thermal_zone.name.to_s # Keep track of zones that already have setbacks
           next # skip zones that have setbacks for htg and clg already
         end
 
         # modify for htg vs cooling and threshold temps
         if htg_valid
-          if !no_people_obj and !has_htg_setback # align thermostat schedules with occupancy if people object present
+          if !no_people_obj && !has_htg_setback # align thermostat schedules with occupancy if people object present
             clg_des_day = htg_schedule.summerDesignDaySchedule
             htg_des_day = htg_schedule.winterDesignDaySchedule
             new_htg_sched = mod_schedule(model, runner, htg_schedule, sch_zone_occ, 'heating', htg_setback_c, htg_min_c,
@@ -361,7 +361,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           end
         end
         if clg_valid
-          if !no_people_obj and !has_clg_setback # align thermostat schedules with occupancy if people object present
+          if !no_people_obj && !has_clg_setback # align thermostat schedules with occupancy if people object present
             clg_des_day = clg_schedule.summerDesignDaySchedule
             htg_des_day = clg_schedule.winterDesignDaySchedule
             new_clg_sched = mod_schedule(model, runner, clg_schedule, sch_zone_occ, 'cooling', clg_setback_c, clg_max_c,
