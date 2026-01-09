@@ -145,7 +145,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heat Recovery Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Mass Flow Rate,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Mixed Air Mass Flow Rate,RunPeriod;').get # kg/s
-	  result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{fuel_oil} Energy,RunPeriod;").get # J
@@ -661,7 +661,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
 
-	  standard_air_density = 1.225 #kg/m3, using standard air density since need a single value
+    standard_air_density = 1.225 #kg/m3, using standard air density since need a single value
 
     # get building floor area properties
     total_building_area_m2 = 0.0

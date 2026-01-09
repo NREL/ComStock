@@ -30,7 +30,6 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
 
         # Store reference to ComStock object for use in plotting methods
         self.comstock_object = comstock_object
-
         self.color_map = {}
         self.image_type = image_type
         self.name = name
@@ -42,7 +41,6 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.dataset_name = comstock_object.dataset_name
         self.output_dir = os.path.join(
             current_dir, '..', 'output', self.dataset_name, 'measure_runs')
-
         self.column_for_grouping = self.UPGRADE_NAME
         self.dict_measure_dir = {} # this can be called to determine output directory
         self.upgrade_ids_for_comparison = comstock_object.upgrade_ids_for_comparison
