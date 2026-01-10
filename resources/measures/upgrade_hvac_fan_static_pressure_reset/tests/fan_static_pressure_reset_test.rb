@@ -197,11 +197,11 @@ class FanStaticPressureResetTest < Minitest::Test
       coeff_2 = fan.fanPowerCoefficient2.get
       coeff_3 = fan.fanPowerCoefficient3.get
       coeff_4 = fan.fanPowerCoefficient4.get
-      fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]  
-	  
-	  print(coeff_1)
-	  print(coeff_2)
-       assert_equal(reset_arr, fan_coeff_arr, "Fan coefficients do not match expected reset values")
-    end 
+      fan_coeff_arr = [coeff_1, coeff_2, coeff_3, coeff_4]
+
+      print(coeff_1)
+      print(coeff_2)
+      assert_equal(reset_arr, fan_coeff_arr, 'Fan coefficients do not match expected reset values')
+    end
   end
 end
