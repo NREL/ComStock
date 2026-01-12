@@ -73,6 +73,7 @@ class PplElectricKitchenEquipment < Minitest::Test
   end
 
   def load_model(osm_path)
+    osm_path = File.expand_path(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
@@ -205,5 +206,5 @@ class PplElectricKitchenEquipment < Minitest::Test
       assert_equal(set[:result].to_s, result.value.valueName.to_s)
     end
   end
-  
+
 end

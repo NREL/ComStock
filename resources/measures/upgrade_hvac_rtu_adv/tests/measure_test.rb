@@ -255,6 +255,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def load_model(osm_path)
+    osm_path = File.expand_path(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
@@ -264,7 +265,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so
     # result files are not made part of the measure
-    "#{File.dirname(__FILE__)}/output/#{test_name}"
+    File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name))
   end
 
   def model_input_path(osm_name)
@@ -272,7 +273,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def epw_input_path(epw_name)
-    File.join(File.dirname(__FILE__), "../../../tests/weather/#{epw_name}")
+   File.join(File.dirname(__FILE__), "../../../tests/weather/#{epw_name}")
   end
 
   def model_output_path(test_name)
