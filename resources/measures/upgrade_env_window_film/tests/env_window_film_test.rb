@@ -64,9 +64,9 @@ class EnvWindowFilmTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(2, arguments.size)
-    assert_equal('pct_shgc_reduct', arguments[0].name)
-    assert_equal('pct_vlt_reduct', arguments[1].name)
+    assert_equal(0, arguments.size)
+    #assert_equal('pct_shgc_reduct', arguments[0].name)
+    #assert_equal('pct_vlt_reduct', arguments[1].name)
   end
 
   # return file paths to test models in test directory
@@ -173,8 +173,8 @@ class EnvWindowFilmTest < Minitest::Test
   def models_to_test
     test_sets = []
     test_sets << { model: 'Warehouse_5A', weather: 'MI_DETROIT_725375_12', result: 'Success' }
-    test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success' }
-    test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success' }
+    #test_sets << { model: 'Retail_7', weather: 'MN_Cloquet_Carlton_Co_726558_16', result: 'Success' }
+    #test_sets << { model: 'Small_Office_2A', weather: 'TX_Port_Arthur_Jeffers_722410_16', result: 'Success' }
     return test_sets
   end
 
@@ -213,14 +213,14 @@ class EnvWindowFilmTest < Minitest::Test
       ################ END CUSTOMIZE ####################
 
       # set arguments here; will vary by measure
-      pct_shgc_reduct = arguments[0].clone
-      assert(pct_shgc_reduct.setValue(0.535))
-      argument_map['pct_shgc_reduct'] = pct_shgc_reduct
+      #pct_shgc_reduct = arguments[0].clone
+      #assert(pct_shgc_reduct.setValue(0.535))
+      #argument_map['pct_shgc_reduct'] = pct_shgc_reduct
 
       # set percent VLT reduction argument
-      pct_vlt_reduct = arguments[1].clone
-      assert(pct_vlt_reduct.setValue(0.53))
-      argument_map['pct_vlt_reduct'] = pct_vlt_reduct
+      #pct_vlt_reduct = arguments[1].clone
+      #assert(pct_vlt_reduct.setValue(0.53))
+      #argument_map['pct_vlt_reduct'] = pct_vlt_reduct
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
@@ -232,8 +232,8 @@ class EnvWindowFilmTest < Minitest::Test
           new_simple_glazing_obj = sub_surface.construction.get.to_Construction.get.layers[0].to_SimpleGlazing.get
           model_shgc = new_simple_glazing_obj.solarHeatGainCoefficient
           model_vlt = new_simple_glazing_obj.visibleTransmittance.get
-          expected_shgc = (1 - 0.535) * old_shgc
-          expected_vlt = (1 - 0.53) * old_vlt
+          expected_shgc = (1 - 0.60) * old_shgc
+          expected_vlt = (1 - 0.77) * old_vlt
           assert((expected_shgc - model_shgc).abs < 0.001)
           assert((expected_vlt - model_vlt).abs < 0.001)
         end

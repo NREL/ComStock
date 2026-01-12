@@ -128,7 +128,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1) # hours reflects time to occupancy
           schedule_annual_profile_updated[idx] =
-            [max_value - setback_val + delta_per_hour * (opt_start_len + 1 - hours), lim_value].max
+            [max_value - setback_val + (delta_per_hour * (opt_start_len + 1 - hours)), lim_value].max
         else
           schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? # If unoccupied, apply setback
                                                    [max_value - setback_val, lim_value].max
@@ -141,7 +141,7 @@ class UpgradeAddThermostatSetback < OpenStudio::Measure::ModelMeasure
           hours = hours_to_occ(runner, sch_zone_occ_annual_profile, idx)
           delta_per_hour = setback_val.fdiv(opt_start_len + 1)
           schedule_annual_profile_updated[idx] =
-            [min_value + setback_val - delta_per_hour * (opt_start_len + 1 - hours), lim_value].min
+            [min_value + setback_val - (delta_per_hour * (opt_start_len + 1 - hours)), lim_value].min
         else
           schedule_annual_profile_updated[idx] = if sch_zone_occ_annual_profile[idx].zero? # If unoccupied, apply setback
                                                    [min_value + setback_val, lim_value].min

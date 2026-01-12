@@ -96,7 +96,7 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
     e = [0.01, 0.01, 0.01, 0.01]
 
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      if ((air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_doas?(air_loop_hvac))
+      if (air_loop_hvac.thermalZones.length == 1) || air_loop_res?(air_loop_hvac) || air_loop_evaporative_cooler?(air_loop_hvac) || air_loop_doas?(air_loop_hvac)
         next
       end
 
@@ -106,17 +106,17 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
         next
       end
       # skip non-VAV systems
-      next if !%w[VAV PVAV].any? { |word| air_loop_hvac.name.get.include?(word) } and !vav_terminals?(air_loop_hvac)
-	  
+      next if !['VAV', 'PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) } and !vav_terminals?(air_loop_hvac)
+
 
       overall_sel_air_loops << air_loop_hvac
-    end 
+    end
 
     # register na if no applicable air loops
     if overall_sel_air_loops.length == 0
-	   runner.registerAsNotApplicable('No applicable air loops found in model') 
-	   return true 
-	end 
+      runner.registerAsNotApplicable('No applicable air loops found in model')
+      return true
+    end
 
     overall_sel_air_loops.sort.each do |air_loop_hvac|
       sup_fan = air_loop_hvac.supplyFan
@@ -134,7 +134,7 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
       # Check if fan curve coefficients already match values emulating SP reset
       if diff.map(&:abs).zip(e).all? { |a, b| a < b } # difference less than the tolerance
         runner.registerAsNotApplicable('Fan curve already represents an SP reset.')
-		return true 
+        return true
       else
         sup_fan.setFanPowerCoefficient1(sp_reset_fan_coeff[0])
         sup_fan.setFanPowerCoefficient2(sp_reset_fan_coeff[1])

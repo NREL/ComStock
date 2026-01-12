@@ -1374,7 +1374,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
     end
     test_result = verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
-    
+
     # check roof/window measure implementation
     roof_measure_implemented = false
     window_measure_implemented = false
@@ -2232,11 +2232,11 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
-	
+
 	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
 
     assert_equal(deltas_out_of_range, false)
-	
+
     true
   end
 
@@ -2330,12 +2330,23 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
-	
-	
     puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
-
     assert_equal(deltas_out_of_range, false)
-	
     true
   end
+
+  def possible_opt_start(i, tstat_profile, tstat_profile_min)
+    # Check if this could be optimum start
+    # Optimum start typically ramps up temperature before occupied period
+    # Look for pattern: minimum temp, then gradual increase
+    values = tstat_profile.values
+    if values[i] == tstat_profile_min && i < values.length - 1
+      # Check if subsequent values are increasing
+      (i+1...values.length).each do |j|
+        return true if values[j] > values[i]
+      end
+    end
+    false
+  end
+end
 end

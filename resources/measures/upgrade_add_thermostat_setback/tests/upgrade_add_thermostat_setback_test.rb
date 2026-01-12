@@ -178,7 +178,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
 
   def test_confirm_heating_setback_change_square_wave
     # confirm that any heating setbacks are now 2F
-	osm_name = '380_psz_ac_with_gas_boiler.osm' 
+    osm_name = '380_psz_ac_with_gas_boiler.osm'
     epw_name = 'NE_Kearney_Muni_725526_16.epw'
 
     test_name = 'confirm_heating_setback_change_square_wave'
@@ -238,7 +238,7 @@ class UpgradeAddThermostatSetbackTest < Minitest::Test
           # working_profile = tstat_profile.values.dup
           tstat_profile_min = tstat_profile.values.min
           tstat_profile_max = tstat_profile.values.max
-          schedule_deltas << tstat_profile_max - tstat_profile_min # assuming that any changes in the schedule during the day represent nighttime setbacks
+          schedule_deltas << (tstat_profile_max - tstat_profile_min) # assuming that any changes in the schedule during the day represent nighttime setbacks
         end
       end
     end

@@ -58,99 +58,160 @@ class UpgradeAddPvwattsTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(1, arguments.size)
-    assert_equal('pv_area_fraction', arguments[0].name)
+    assert_equal(2, arguments.size)
   end
 
-  def test_bad_argument_values
-    # create an instance of the measure
-    measure = UpgradeAddPvwatts.new
-
-    # create runner with empty OSW
-    osw = OpenStudio::WorkflowJSON.new
-    runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # make an empty model
-    model = OpenStudio::Model::Model.new
-
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # create hash of argument values
-    args_hash = {}
-    args_hash['space_name'] = ''
-
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
-      temp_arg_var = arg.clone
-      assert(temp_arg_var.setValue(args_hash[arg.name])) if args_hash.key?(arg.name)
-      argument_map[arg.name] = temp_arg_var
-    end
-
-    # run the measure
-    measure.run(model, runner, argument_map)
-    result = runner.result
-
-    # show the output
-    show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Fail', result.value.valueName)
+  # return file paths to test models in test directory
+  def models_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
   end
 
-  def test_good_argument_values
-    # create an instance of the measure
-    measure = UpgradeAddPvwatts.new
+  # return file paths to epw files in test directory
+  def epws_for_tests
+    paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/weather/*.epw'))
+    paths = paths.map { |path| File.expand_path(path) }
+    return paths
+  end
 
-    # create runner with empty OSW
-    osw = OpenStudio::WorkflowJSON.new
-    runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # load the test model
+  def load_model(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = "#{File.dirname(__FILE__)}/example_model.osm"
-    model = translator.loadModel(path)
+    model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
     model = model.get
+    return model
+  end
 
-    # store the number of spaces in the seed model
-    num_spaces_seed = model.getSpaces.size
-
-    # get arguments
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
-
-    # create hash of argument values.
-    # If the argument has a default that you want to use, you don't need it in the hash
-    args_hash = {}
-    args_hash['space_name'] = 'New Space'
-    # using defaults values from measure.rb for other arguments
-
-    # populate argument with specified hash value if specified
-    arguments.each do |arg|
-      temp_arg_var = arg.clone
-      assert(temp_arg_var.setValue(args_hash[arg.name])) if args_hash.key?(arg.name)
-      argument_map[arg.name] = temp_arg_var
+  def run_dir(test_name)
+    # always generate test output in specially named 'output' directory so result files are not made part of the measure
+    path = "#{File.dirname(__FILE__)}/output/#{test_name}"
+    unless File.directory?(path)
+      FileUtils.mkdir_p(path)
     end
+    return path
+  end
+
+  def model_output_path(test_name)
+    return "#{run_dir(test_name)}/#{test_name}.osm"
+  end
+
+  def sql_path(test_name)
+    return "#{run_dir(test_name)}/run/eplusout.sql"
+  end
+
+  def report_path(test_name)
+    return "#{run_dir(test_name)}/reports/eplustbl.html"
+  end
+
+  # applies the measure and then runs the model
+  def apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+    assert(File.exist?(osm_path))
+    assert(File.exist?(epw_path))
+
+    # create run directory if it does not exist
+    FileUtils.mkdir_p(run_dir(test_name))
+    assert(File.exist?(run_dir(test_name)))
+
+    # change into run directory for tests
+    start_dir = Dir.pwd
+    Dir.chdir run_dir(test_name)
+
+    # remove prior runs if they exist
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
+
+    # copy the osm and epw to the test directory
+    # new_osm_path = File.expand_path("#{Dir.pwd}/#{File.basename(osm_path)}")
+    new_osm_path = "#{Dir.pwd}/#{File.basename(osm_path)}"
+    FileUtils.cp(osm_path, new_osm_path)
+    new_epw_path = "#{Dir.pwd}/#{File.basename(epw_path)}"
+    FileUtils.cp(epw_path, new_epw_path)
+    # create an instance of a runner
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+
+    # load the test model
+    model = load_model(new_osm_path)
+
+    # set model weather file
+    epw_file = OpenStudio::EpwFile.new(OpenStudio::Path.new(new_epw_path))
+    OpenStudio::Model::WeatherFile.setWeatherFile(model, epw_file)
+    assert(model.weatherFile.is_initialized)
 
     # run the measure
+    puts "\nAPPLYING MEASURE..."
     measure.run(model, runner, argument_map)
     result = runner.result
+    result_success = result.value.valueName == 'Success'
 
     # show the output
     show_output(result)
 
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
-    assert(result.info.size == 1)
-    assert(result.warnings.empty?)
+    # save model
+    model.save(model_output_path(test_name), true)
 
-    # check that there is now 1 space
-    assert_equal(1, model.getSpaces.size - num_spaces_seed)
+    if run_model && result_success
+      puts "\nRUNNING MODEL..."
 
-    # save the model to test output directory
-    output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"
-    model.save(output_file_path, true)
+      std = Standard.build('ComStock DEER 2020')
+      std.model_run_simulation_and_log_errors(model, run_dir(test_name))
+
+      # check that the model ran successfully
+      assert(File.exist?(sql_path(test_name)))
+    end
+
+    # change back directory
+    Dir.chdir(start_dir)
+
+    return result
   end
+
+  # create an array of hashes with model name, weather, and expected result
+  def models_to_test
+    test_sets = []
+    test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'VA_MANASSAS_724036_12', result: 'Success' }
+    test_sets << { model: 'Stripmall_Pre1980_8A', weather: 'GA_ROBINS_AFB_722175_12', result: 'Success' }
+    test_sets << { model: 'Stripmall_Pre1980_8A_new_OA', weather: 'GA_ROBINS_AFB_722175_12', result: 'Success' }
+    test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: 'Quick_Service_Restaurant_Pre1980_3A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: 'Quick_Service_Restaurant_CA', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    return test_sets
+  end
+
+  def test_models
+    test_name = 'test_models'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+
+    models_to_test.each do |set|
+      instance_test_name = set[:model]
+      puts "instance test name: #{instance_test_name}"
+      osm_path = models_for_tests.select { |x| set[:model] == File.basename(x, '.osm') }
+      epw_path = epws_for_tests.select { |x| set[:weather] == File.basename(x, '.epw') }
+      assert(!osm_path.empty?)
+      assert(!epw_path.empty?)
+      osm_path = osm_path[0]
+      epw_path = epw_path[0]
+
+      # create an instance of the measure
+      measure = UpgradeAddPvwatts.new
+
+      # load the model; only used here for populating arguments
+      model = load_model(osm_path)
+
+      # set arguments here; will vary by measure
+      arguments = measure.arguments(model)
+      #argument_map = OpenStudio::Measure::OSArgumentMap.new
+      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+      # apply the measure to the model and optionally run the model
+      result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+
+      # check the measure result; result values will equal Success, Fail, or Not Applicable
+      # also check the amount of warnings, info, and error messages
+      # use if or case statements to change expected assertion depending on model characteristics
+      assert_equal(set[:result].to_s, result.value.valueName.to_s)
+    end
+  end
+
+
 end

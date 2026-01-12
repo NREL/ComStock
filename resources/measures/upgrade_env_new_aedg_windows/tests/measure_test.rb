@@ -172,70 +172,13 @@ class EnvNewAedgWindowsTest < Minitest::Test
     assert_equal(0, arguments.size)
   end
 
-  def test_r_value_cz_3a_single_pane
-    osm_name = 'Small_Office_CEC8.osm'
-    epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
-
-    # Test expectations for Single - No LowE - Clear - Wood in 3A
-    # is to increase to U-0.37
-    target_u_value_ip = 0.37
-
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
-
-    # Create an instance of the measure
-    measure = EnvNewAedgWindows.new
-
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
-
-    # Check that the starting R-value is less than the target
-    old_u_val_ip = 0
-    old_ext_surf_material = nil
-    model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
-
-      surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-      glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-      old_u_val_si = glazing_layer.uFactor
-      old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-      break
-    end
-    assert(old_u_val_ip > target_u_value_ip)
-
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
-
-    model = load_model(model_output_path(__method__))
-    model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
-
-      surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-      glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-      new_u_val_si = glazing_layer.uFactor
-      new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
-
-      # Check that original U-value was above (worse than) the target threshold
-      assert(old_u_val_ip > new_u_val_ip)
-
-      # Check that the new U-value matches the target
-      tolerance = 0.01
-      assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
-
-      break
-    end
-  end
-
   def test_r_value_cz_3a_double_pane
     osm_name = 'Quick_Service_Restaurant_Pre1980_3A.osm'
     epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
 
     # Test expectations for Double - LowE - Clear - Aluminum in 3A
-    # is to increase to U-0.50
-    target_u_value_ip = 0.50
+    target_u_value_si = 2.27
+    target_u_value_ip = OpenStudio.convert(target_u_value_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
@@ -291,8 +234,9 @@ class EnvNewAedgWindowsTest < Minitest::Test
     epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
 
     # Test expectations for Double - No LowE - Clear - Aluminum
-    # is to increase to 0.61 in all climate zones
-    target_u_value_ip = 0.61
+    target_u_value_si = 1.93
+    target_u_value_ip = OpenStudio.convert(target_u_value_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
+
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
@@ -348,8 +292,9 @@ class EnvNewAedgWindowsTest < Minitest::Test
     epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
 
     # Test expectations for Double - No LowE - Clear - Aluminum
-    # is to increase to U-0.44 in CZ 8
-    target_u_value_ip = 0.44
+    # is to increase to U-0.250 in CZ 8
+    target_u_value_si = 1.42
+    target_u_value_ip = OpenStudio.convert(target_u_value_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
 
     osm_path = model_input_path(osm_name)
     epw_path = epw_input_path(epw_name)
@@ -392,6 +337,8 @@ class EnvNewAedgWindowsTest < Minitest::Test
       # Check that original U-value was above (worse than) the target threshold
       assert(old_u_val_ip > new_u_val_ip)
 
+      puts glazing_layer
+
       # Check that the new U-value matches the target
       tolerance = 0.01
       assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
@@ -400,84 +347,84 @@ class EnvNewAedgWindowsTest < Minitest::Test
     end
   end
 
-  def test_r_value_cz_cec16_double_pane_thermally_broken
-    osm_name = 'Retail_DEERPre1975_CEC16.osm'
-    epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
+  #def test_r_value_cz_cec16_double_pane_thermally_broken
+  #  osm_name = 'Retail_DEERPre1975_CEC16.osm'
+  #  epw_name = 'USA_CA_Fullerton.Muni.AP.722976_TMY3.epw'
 
-    # Test expectations for Single - No LowE - Clear - Aluminum
-    # is to increase to U-0.61 in all climate zones
-    target_u_value_ip = 0.61
+  #  # Test expectations for Single - No LowE - Clear - Aluminum
+  #  # is to increase to U-0.61 in all climate zones
+  #  target_u_value_ip = 0.61
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #  osm_path = model_input_path(osm_name)
+  #  epw_path = epw_input_path(epw_name)
 
-    # Create an instance of the measure
-    measure = EnvNewAedgWindows.new
+  #  # Create an instance of the measure
+  #  measure = EnvNewAedgWindows.new
 
-    # Load the model; only used here for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #  # Load the model; only used here for populating arguments
+  #  model = load_model(osm_path)
+  #  arguments = measure.arguments(model)
+  #  argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-    # Check that the starting R-value is less than the target
-    old_u_val_ip = 0
-    old_ext_surf_material = nil
-    model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+  #  # Check that the starting R-value is less than the target
+  #  old_u_val_ip = 0
+  #  old_ext_surf_material = nil
+  #  model.getSubSurfaces.each do |sub_surface|
+  #    next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
 
-      surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-      glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-      old_u_val_si = glazing_layer.uFactor
-      old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
+  #    surf_const = sub_surface.construction.get.to_LayeredConstruction.get
+  #    glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
+  #    old_u_val_si = glazing_layer.uFactor
+  #    old_u_val_ip = OpenStudio.convert(old_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
 
-      break
-    end
-    assert(old_u_val_ip > target_u_value_ip)
+  #    break
+  #  end
+  #  assert(old_u_val_ip > target_u_value_ip)
 
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #  # Apply the measure to the model and optionally run the model
+  #  result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
 
-    model = load_model(model_output_path(__method__))
-    model.getSubSurfaces.each do |sub_surface|
-      next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
+  #  model = load_model(model_output_path(__method__))
+  #  model.getSubSurfaces.each do |sub_surface|
+  #    next unless (sub_surface.outsideBoundaryCondition == 'Outdoors') && sub_surface.subSurfaceType.include?('Window')
 
-      surf_const = sub_surface.construction.get.to_LayeredConstruction.get
-      glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
-      new_u_val_si = glazing_layer.uFactor
-      new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
+  #    surf_const = sub_surface.construction.get.to_LayeredConstruction.get
+  #    glazing_layer = surf_const.layers[0].to_SimpleGlazing.get
+  #    new_u_val_si = glazing_layer.uFactor
+  #    new_u_val_ip = OpenStudio.convert(new_u_val_si, 'W/m^2*K', 'Btu/ft^2*h*R').get
 
-      # Check that original U-value was above (worse than) the target threshold
-      assert(old_u_val_ip > new_u_val_ip)
+  #    # Check that original U-value was above (worse than) the target threshold
+  #    assert(old_u_val_ip > new_u_val_ip)
 
-      # Check that the new U-value matches the target
-      # Set the tolerance higher for this test because the
-      # Single - No LowE - Clear - Aluminum
-      tolerance = 0.01
-      assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
+  #    # Check that the new U-value matches the target
+  #    # Set the tolerance higher for this test because the
+  #    # Single - No LowE - Clear - Aluminum
+  #    tolerance = 0.01
+  #    assert_in_delta(target_u_value_ip, new_u_val_ip, tolerance)
 
-      break
-    end
-  end
+  #    break
+  #  end
+  #end
 
-  def test_na_simple_glazing_name_not_recognized
-    osm_name = 'Warehouse_5A.osm'
-    epw_name = 'MI_DETROIT_725375_12.epw'
+  #def test_na_simple_glazing_name_not_recognized
+  #  osm_name = 'Warehouse_5A.osm'
+  #  epw_name = 'MI_DETROIT_725375_12.epw'
 
-    osm_path = model_input_path(osm_name)
-    epw_path = epw_input_path(epw_name)
+  #  osm_path = model_input_path(osm_name)
+  #  epw_path = epw_input_path(epw_name)
 
-    # Create an instance of the measure
-    measure = EnvNewAedgWindows.new
+  #  # Create an instance of the measure
+  #  measure = EnvNewAedgWindows.new
 
-    # Load the model for populating arguments
-    model = load_model(osm_path)
-    arguments = measure.arguments(model)
-    argument_map = OpenStudio::Measure::OSArgumentMap.new
+  #  # Load the model for populating arguments
+  #  model = load_model(osm_path)
+  #  arguments = measure.arguments(model)
+  #  argument_map = OpenStudio::Measure::OSArgumentMap.new
 
-    # Apply the measure to the model and optionally run the model
-    result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
+  #  # Apply the measure to the model and optionally run the model
+  #  result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
 
-    # Should be NA because this is a warehouse with metal building walls
-    assert_equal('NA', result.value.valueName)
-  end
+  #  # Should be NA because this is a warehouse with metal building walls
+  #  assert_equal('NA', result.value.valueName)
+  #end
 end

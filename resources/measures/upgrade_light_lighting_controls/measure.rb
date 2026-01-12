@@ -143,8 +143,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
           next unless surface.outsideBoundaryCondition == 'Outdoors'
 
           surface.subSurfaces.each do |sub_surface|
-            next unless %w[FixedWindow OperableWindow Skylight
-                          GlassDoor].include?(sub_surface.subSurfaceType)
+            next unless ['FixedWindow', 'OperableWindow', 'Skylight', 'GlassDoor'].include?(sub_surface.subSurfaceType)
 
             # get window area, if area is 0, no exterior fenestration
             ext_fen_area_m2 += sub_surface.netArea
@@ -250,8 +249,8 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
         windows = {}
         skylights = {}
         space.surfaces.sort.each do |surface|
-          next unless surface.outsideBoundaryCondition == 'Outdoors' && %w[Wall
-                                                                          RoofCeiling].include?(surface.surfaceType)
+          next unless surface.outsideBoundaryCondition == 'Outdoors' && ['Wall',
+                                                                         'RoofCeiling'].include?(surface.surfaceType)
 
           # Skip non-vertical walls and non-horizontal roofs
           straight_upward = OpenStudio::Vector3d.new(0, 0, 1)
@@ -311,8 +310,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
 
           # Loop through all subsurfaces and
           surface.subSurfaces.sort.each do |sub_surface|
-            next unless sub_surface.outsideBoundaryCondition == 'Outdoors' && %w[FixedWindow OperableWindow
-                                                                                Skylight].include?(sub_surface.subSurfaceType)
+            next unless sub_surface.outsideBoundaryCondition == 'Outdoors' && ['FixedWindow', 'OperableWindow', 'Skylight'].include?(sub_surface.subSurfaceType)
 
             # Find the area
             net_area_m2 = sub_surface.netArea
@@ -328,7 +326,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
 
             # Log the window properties to use when creating daylight sensors
             properties = { facade: facade, area_m2: net_area_m2, handle: sub_surface.handle,
-                          head_height_m: head_height_m, name: sub_surface.name.get.to_s }
+                           head_height_m: head_height_m, name: sub_surface.name.get.to_s }
             if facade == '0-Up'
               skylights[sub_surface] = properties
             else
@@ -557,20 +555,15 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
       # In these spaces, ASHRAE 90.1 already requires occuapancy sensors, therefore we will skip these zones when applying the LPD reduction so as to not overestimate savings.
       spaces_to_skip = []
       if ['ComStock 90.1-2004', 'ComStock 90.1-2007'].include?(template)
-        spaces_to_skip = %w[Meeting StaffLounge Conference]
+        spaces_to_skip = ['Meeting', 'StaffLounge', 'Conference']
       elsif template == 'ComStock 90.1-2010'
-        spaces_to_skip = %w[Auditorium Classroom ComputerRoom Restroom Meeting PublicRestroom StaffLounge
-                            Storage Back_Space Conference DressingRoom Janitor LockerRoom CompRoomClassRm
-                            OfficeSmall StockRoom]
+        spaces_to_skip = ['Auditorium', 'Classroom', 'ComputerRoom', 'Restroom', 'Meeting', 'PublicRestroom', 'StaffLounge', 'Storage', 'Back_Space', 'Conference', 'DressingRoom', 'Janitor', 'LockerRoom', 'CompRoomClassRm', 'OfficeSmall', 'StockRoom']
       elsif template == 'ComStock 90.1-2013'
-        spaces_to_skip = %w[Auditorium Classroom ComputerRoom Restroom Meeting PublicRestroom StaffLounge
-                            Storage Back_Space Conference DressingRoom Janitor LockerRoom CompRoomClassRm
-                            OfficeSmall StockRoom GuestLounge Banquet Lounge]
+        spaces_to_skip = ['Auditorium', 'Classroom', 'ComputerRoom', 'Restroom', 'Meeting', 'PublicRestroom', 'StaffLounge', 'Storage', 'Back_Space', 'Conference', 'DressingRoom', 'Janitor', 'LockerRoom', 'CompRoomClassRm', 'OfficeSmall', 'StockRoom', 'GuestLounge', 'Banquet', 'Lounge']
       elsif template == 'ComStock DEER 2011'
-        spaces_to_skip = %w[Classroom ComputerRoom Meeting CompRoomClassRm OfficeSmall]
+        spaces_to_skip = ['Classroom', 'ComputerRoom', 'Meeting', 'CompRoomClassRm', 'OfficeSmall']
       elsif ['ComStock DEER 2014', 'ComStock DEER 2015', 'ComStock DEER 2017'].include?(template)
-        spaces_to_skip = %w[Classroom ComputerRoom Meeting CompRoomClassRm OfficeSmall Restroom GuestLounge
-                            PublicRestroom StaffLounge Storage LockerRoom Lounge]
+        spaces_to_skip = ['Classroom', 'ComputerRoom', 'Meeting', 'CompRoomClassRm', 'OfficeSmall', 'Restroom', 'GuestLounge', 'PublicRestroom', 'StaffLounge', 'Storage', 'LockerRoom', 'Lounge']
       end
 
       # set location for csv lookup file
@@ -629,7 +622,7 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
     end
 
     if num_spaces_to_get_occupancy_sensors + num_spaces_to_get_daylighting_sensors == 0
-      runner.registerAsNotApplicable("Neither daylighting sensors nor occupancy sensors were applicable to any spaces in the model. Measure is not applicable.")
+      runner.registerAsNotApplicable('Neither daylighting sensors nor occupancy sensors were applicable to any spaces in the model. Measure is not applicable.')
       return true
     end
 

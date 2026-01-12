@@ -310,7 +310,7 @@ class DfThermostatControlLoadShiftTest < Minitest::Test
         puts("--- Detected #{nts_clg} df adjusted cooling schedules and #{nts_htg} df adjusted heating schedules")
         assert(nts_clg + nts_htg > 0)
         puts(new_cool_schedules.keys)
-        
+
         # compare before/after schedules
         if nts_clg > 0
           cool_schedules.each do |cool_sch_name, cool_sch_vals|
