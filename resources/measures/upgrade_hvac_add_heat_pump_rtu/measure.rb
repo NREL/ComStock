@@ -1260,10 +1260,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # -------------------------------------------------------------------------------
 
     # TODOs
-    # connect setpoint manager setpoint to maximum_supply_air_temperature_low_c
-    # then how to set up maximum_supply_air_temperature_high_c?
-    # calculate gas usage as output var
-    # trend variable not working correctly
+    # calculate gas usage as output var and add to meter
 
     # initialize constants
     hybrid_gas_coil_max_sat_low_high_delta_k = hybrid_gas_coil_max_sat_low_high_delta_r * 5.0 / 9.0
@@ -1308,7 +1305,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_backup_heating_coil = OpenStudio::Model::CoilUserDefined.new(model)
     new_backup_heating_coil.setName("#{ems_name_airloop}_hybrid_gas_heating_coil")
     # new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
-    new_backup_heating_coil.addToNode(air_loop_hvac.supplyOutletNode)
+    # new_backup_heating_coil.addToNode(air_loop_hvac.supplyOutletNode)
+    new_backup_heating_coil.addToNode(new_air_to_air_heatpump.outletNode.get)
 
     # -------------------------------------------------------------------------------
     # EMS actuators
@@ -1333,23 +1331,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # EMS sensors
     # -------------------------------------------------------------------------------
 
-    s_coil_outlet_t = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+    s_coil_inlet_t = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
       model, "Inlet Temperature for Air Connection 1"
     )
-    s_coil_outlet_t.setName("#{ems_name_airloop}_s_coil_outlet_t")
-    s_coil_outlet_t.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+    s_coil_inlet_t.setName("#{ems_name_airloop}_s_coil_outlet_t")
+    s_coil_inlet_t.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
-    s_coil_outlet_hr = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+    s_coil_inlet_hr = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
       model, "Inlet Humidity Ratio for Air Connection 1"
     )
-    s_coil_outlet_hr.setName("#{ems_name_airloop}_s_coil_outlet_hr")
-    s_coil_outlet_hr.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+    s_coil_inlet_hr.setName("#{ems_name_airloop}_s_coil_outlet_hr")
+    s_coil_inlet_hr.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
-    s_coil_outlet_mdot = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+    s_coil_inlet_mdot = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
       model, "Inlet Mass Flow Rate for Air Connection 1"
     )
-    s_coil_outlet_mdot.setName("#{ems_name_airloop}_s_coil_outlet_mdot")
-    s_coil_outlet_mdot.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+    s_coil_inlet_mdot.setName("#{ems_name_airloop}_s_coil_outlet_mdot")
+    s_coil_inlet_mdot.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
     s_dx_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(
       model, "Heating Coil Runtime Fraction"
@@ -1418,9 +1416,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET #{g_part_load_ratio.name} = 0")
 
     # Initialize actuator passthroughs
-    ems_program.addLine("SET #{a_coil_outlet_t.name}    = #{s_coil_outlet_t.name}")
-    ems_program.addLine("SET #{a_coil_outlet_hr.name}   = #{s_coil_outlet_hr.name}")
-    ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_outlet_mdot.name}")
+    ems_program.addLine("SET #{a_coil_outlet_t.name}    = #{s_coil_inlet_t.name}")
+    ems_program.addLine("SET #{a_coil_outlet_hr.name}   = #{s_coil_inlet_hr.name}")
+    ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
 
     # Track prior low-stage runtime
     ems_program.addLine("SET low_stage_time_prev = @TrendValue #{t_low_stage_time.name} 1")
@@ -1428,23 +1426,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Pre-calc constants
     ems_program.addLine("SET T_high_limit_1 = #{s_airloop_setpoint_t.name}")
     ems_program.addLine("SET T_high_limit_2 = #{s_airloop_setpoint_t.name} + #{hybrid_gas_coil_max_sat_low_high_delta_k}")
-    ems_program.addLine("SET cp = @CpAirFnW #{s_coil_outlet_hr.name}")
+    ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
 
     # Mechanical heating must be active
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
 
     # Stage 1 gas heat enable
-    ems_program.addLine("  IF #{s_coil_outlet_t.name} < #{s_airloop_setpoint_t.name}")
+    ems_program.addLine("  IF #{s_coil_inlet_t.name} < #{s_airloop_setpoint_t.name}")
     ems_program.addLine("    SET #{g_stage_1.name} = 1")
     ems_program.addLine("    SET #{g_low_stage_time.name} = low_stage_time_prev + #{time_step_minutes}")
-    ems_program.addLine("    SET dT_full = #{heating_capacity_stage_1_w} / #{s_coil_outlet_mdot.name} / cp")
+    ems_program.addLine("    SET dT_full = #{heating_capacity_stage_1_w} / #{s_coil_inlet_mdot.name} / cp")
 
     # Stage 1 PLR logic
-    ems_program.addLine("    IF (#{s_coil_outlet_t.name} + dT_full) <= T_high_limit_1")
+    ems_program.addLine("    IF (#{s_coil_inlet_t.name} + dT_full) <= T_high_limit_1")
     ems_program.addLine("      SET #{g_part_load_ratio.name} = 1.0")
-    ems_program.addLine("      SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name} + dT_full")
+    ems_program.addLine("      SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name} + dT_full")
     ems_program.addLine("    ELSE")
-    ems_program.addLine("      SET dT_req = T_high_limit_1 - #{s_coil_outlet_t.name}")
+    ems_program.addLine("      SET dT_req = T_high_limit_1 - #{s_coil_inlet_t.name}")
     ems_program.addLine("      SET #{g_part_load_ratio.name} = dT_req / dT_full")
     ems_program.addLine("      SET #{a_coil_outlet_t.name} = T_high_limit_1")
     ems_program.addLine("    ENDIF")
@@ -1455,7 +1453,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("        IF #{a_coil_outlet_t.name} < T_high_limit_2")
     ems_program.addLine("          SET #{g_stage_2.name} = 1")
     ems_program.addLine("          SET #{g_part_load_ratio.name} = 1.0")
-    ems_program.addLine("          SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name} + (#{heating_capacity_stage_2_w} / #{s_coil_outlet_mdot.name} / cp)")
+    ems_program.addLine("          SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name} + (#{heating_capacity_stage_2_w} / #{s_coil_inlet_mdot.name} / cp)")
     ems_program.addLine("        ENDIF")
     ems_program.addLine("      ENDIF")
     ems_program.addLine("    ENDIF")
@@ -1475,9 +1473,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program_initialization.setName("#{ems_name_airloop}_p_two_stage_gas_coil_initialization")
     ems_program_initialization.addLine("SET #{g_stage_1.name} = 0")
     ems_program_initialization.addLine("SET #{g_stage_2.name} = 0")
-    ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_outlet_t.name}")
-    ems_program_initialization.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_outlet_hr.name}")
-    ems_program_initialization.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_outlet_mdot.name}")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
+    #ems_program_initialization.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_inlet_hr.name}")
+    #ems_program_initialization.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
 
     # -------------------------------------------------------------------------------
     # Program calling manager
