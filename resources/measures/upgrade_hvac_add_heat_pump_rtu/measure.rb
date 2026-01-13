@@ -1366,9 +1366,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     g_stage_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
       model, "#{ems_name_airloop}_g_stage_1"
     )
-
-    g_part_load_ratio = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
-      model, "#{ems_name_airloop}_g_part_load_ratio"
+    g_stage_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_stage_2"
+    )
+    g_part_load_ratio_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_part_load_ratio_1"
+    )
+    g_part_load_ratio_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_part_load_ratio_2"
     )
 
     # -------------------------------------------------------------------------------
@@ -1379,9 +1384,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
     ems_program.setName("#{ems_name_airloop}_p_two_stage_gas_coil")
 
-    # Initialize flags and PLR
+    # Initialize flags and PLRs
     ems_program.addLine("SET #{g_stage_1.name} = 0")
-    ems_program.addLine("SET #{g_part_load_ratio.name} = 0")
+    ems_program.addLine("SET #{g_stage_2.name} = 0")
+    ems_program.addLine("SET #{g_part_load_ratio_1.name} = 0")
+    ems_program.addLine("SET #{g_part_load_ratio_2.name} = 0")
 
     # Initialize actuator passthroughs
     ems_program.addLine("SET #{a_coil_outlet_t.name}    = #{s_coil_inlet_t.name}")
@@ -1392,31 +1399,42 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET T_set = #{s_airloop_setpoint_t.name}")
     ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
 
+    # Stage capacities
+    ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
+    ems_program.addLine("SET cap_stage_1 = cap_stage_2 / 2.0")
+
     # Mechanical heating must be active
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
 
-    # Single-stage gas heat enable
+    # Gas heating needed
     ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
 
     # Protect against zero or near-zero mass flow
     ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
 
-    # Gas coil is ON
+    # Stage 1 operation
     ems_program.addLine("      SET #{g_stage_1.name} = 1")
-
-    # Full-load temperature rise
-    ems_program.addLine("      SET dT_full = #{heating_capacity_stage_2_w} / #{s_coil_inlet_mdot.name} / cp")
-
-    # Modulate to meet setpoint
-    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT_full) <= T_set")
-    ems_program.addLine("        SET #{g_part_load_ratio.name} = 1.0")
-    ems_program.addLine("        SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name} + dT_full")
-    ems_program.addLine("      ELSE")
+    ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
+    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
     ems_program.addLine("        SET dT_req = T_set - #{s_coil_inlet_t.name}")
-    ems_program.addLine("        SET #{g_part_load_ratio.name} = dT_req / dT_full")
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = dT_req / dT1_full")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
-    ems_program.addLine("      ENDIF")
+    ems_program.addLine("      ELSE")
 
+    # Stage 2 assist (Stage 1 insufficient)
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = 1.0")
+    ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
+    ems_program.addLine("        SET #{g_stage_2.name} = 1")
+    ems_program.addLine("        SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
+    ems_program.addLine("        IF (T_after_stage_1 + dT2_full) >= T_set")
+    ems_program.addLine("          SET dT2_req = T_set - T_after_stage_1")
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = dT2_req / dT2_full")
+    ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_set")
+    ems_program.addLine("        ELSE")
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = 1.0")
+    ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
+    ems_program.addLine("        ENDIF")
+    ems_program.addLine("      ENDIF") # stage 1 sufficient?
     ems_program.addLine("    ENDIF") # mdot > 0
     ems_program.addLine("  ENDIF")   # inlet < setpoint
     ems_program.addLine("ENDIF")     # dx runtime > 0
@@ -1425,6 +1443,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
     ems_program_initialization.setName("#{ems_name_airloop}_p_two_stage_gas_coil_initialization")
     ems_program_initialization.addLine("SET #{g_stage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_stage_2.name} = 0")
+    ems_program_initialization.addLine("SET #{g_part_load_ratio_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_part_load_ratio_2.name} = 0")
     ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
 
     # -------------------------------------------------------------------------------
@@ -1467,13 +1488,33 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
-    ems_ov_status_heating_plr = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio)
-    ems_ov_status_heating_plr.setName("#{ems_name_airloop}_ov_status_heating_plr")
-    ems_ov_status_heating_plr.setEMSVariableName("#{g_part_load_ratio.name}")
-    ems_ov_status_heating_plr.setTypeOfDataInVariable("Averaged")
-    ems_ov_status_heating_plr.setUpdateFrequency("SystemTimeStep")
-    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr.name}", model)
-    output_var.setName("#{ems_ov_status_heating_plr.name}")
+    ems_ov_status_heating_stage_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_stage_2)
+    ems_ov_status_heating_stage_2.setName("#{ems_name_airloop}_ov_status_heating_stage_2")
+    ems_ov_status_heating_stage_2.setEMSVariableName("#{g_stage_2.name}")
+    ems_ov_status_heating_stage_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_stage_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_2.name}", model)
+    output_var.setName("#{ems_ov_status_heating_stage_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_plr_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio_1)
+    ems_ov_status_heating_plr_1.setName("#{ems_name_airloop}_ov_status_heating_plr_1")
+    ems_ov_status_heating_plr_1.setEMSVariableName("#{g_part_load_ratio_1.name}")
+    ems_ov_status_heating_plr_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_plr_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_1.name}", model)
+    output_var.setName("#{ems_ov_status_heating_plr_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_plr_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio_2)
+    ems_ov_status_heating_plr_2.setName("#{ems_name_airloop}_ov_status_heating_plr_2")
+    ems_ov_status_heating_plr_2.setEMSVariableName("#{g_part_load_ratio_2.name}")
+    ems_ov_status_heating_plr_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_plr_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_2.name}", model)
+    output_var.setName("#{ems_ov_status_heating_plr_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
