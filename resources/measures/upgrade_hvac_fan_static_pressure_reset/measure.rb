@@ -106,7 +106,7 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
         next
       end
       # skip non-VAV systems
-      next if !['VAV', 'PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) } and !vav_terminals?(air_loop_hvac)
+      next if !['VAV', 'PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) } && !vav_terminals?(air_loop_hvac)
 
 
       overall_sel_air_loops << air_loop_hvac
