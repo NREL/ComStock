@@ -1217,8 +1217,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio
   )
 
-    # TODOs
-    # calculate gas usage as output var and add to meter
+    # get simulation timestep
+    num_steps_per_hr = model.getSimulationControl.timestep.get.numberOfTimestepsPerHour
 
     # initialize constants
     heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
@@ -1407,7 +1407,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Stage 1 fuel usage
     ems_program.addLine("IF #{g_stage_1.name} == 1")
     ems_program.addLine("  SET plf1 = 0.8 + (0.2 * #{g_part_load_ratio_1.name})")
-    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}")
+    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}") # in Watts
     ems_program.addLine("  SET #{g_fuel_usage_1.name} = Q_delivered_1 / (burner_eff * plf1)")
     ems_program.addLine("ELSE")
     ems_program.addLine("  SET #{g_fuel_usage_1.name} = 0.0")
@@ -1416,11 +1416,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Stage 2 fuel usage
     ems_program.addLine("IF #{g_stage_2.name} == 1")
     ems_program.addLine("  SET plf2 = 0.8 + (0.2 * #{g_part_load_ratio_2.name})")
-    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}")
+    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}") # in Watts
     ems_program.addLine("  SET #{g_fuel_usage_2.name} = Q_delivered_2 / (burner_eff * plf2)")
     ems_program.addLine("ELSE")
     ems_program.addLine("  SET #{g_fuel_usage_2.name} = 0.0")
     ems_program.addLine("ENDIF")
+
+    # Convert power to energy
+    ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_1 = #{g_fuel_usage_1.name} * dt") # in Joules
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_2 = #{g_fuel_usage_2.name} * dt") # in Joules
 
     # ems program for initialization
     ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
@@ -1522,6 +1527,42 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     output_var.setName("#{ems_ov_fuel_usage_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
+
+    # -------------------------------------------------------------------------------
+    # Define meter
+    # -------------------------------------------------------------------------------
+
+    gas_mtr_out_var_1 =
+      OpenStudio::Model::EnergyManagementSystemMeteredOutputVariable.new(
+        model,
+        "#{ems_name_airloop} Gas Heating Stage 1"
+      )
+
+    gas_mtr_out_var_1.setName("#{ems_name_airloop} Gas Heating Stage 1")
+    gas_mtr_out_var_1.setEMSVariableName("#{ems_name_airloop}_E_fuel_1")
+    gas_mtr_out_var_1.setUpdateFrequency('SystemTimestep')
+    gas_mtr_out_var_1.setString(4, ems_program.handle.to_s)
+    gas_mtr_out_var_1.setResourceType('NaturalGas')
+    gas_mtr_out_var_1.setGroupType('HVAC')
+    gas_mtr_out_var_1.setEndUseCategory('Heating')
+    gas_mtr_out_var_1.setEndUseSubcategory('Hybrid gas stage 1')
+    gas_mtr_out_var_1.setUnits('J')
+
+    gas_mtr_out_var_2 =
+      OpenStudio::Model::EnergyManagementSystemMeteredOutputVariable.new(
+        model,
+        "#{ems_name_airloop} Gas Heating Stage 2"
+      )
+
+    gas_mtr_out_var_2.setName("#{ems_name_airloop} Gas Heating Stage 2")
+    gas_mtr_out_var_2.setEMSVariableName("#{ems_name_airloop}_E_fuel_2")
+    gas_mtr_out_var_2.setUpdateFrequency('SystemTimestep')
+    gas_mtr_out_var_2.setString(4, ems_program.handle.to_s)
+    gas_mtr_out_var_2.setResourceType('NaturalGas')
+    gas_mtr_out_var_2.setGroupType('HVAC')
+    gas_mtr_out_var_2.setEndUseCategory('Heating')
+    gas_mtr_out_var_2.setEndUseSubcategory('Hybrid gas stage 2')
+    gas_mtr_out_var_2.setUnits('J')
 
     # -------------------------------------------------------------------------------
     # Dummy plant actuators (created but intentionally unused)
