@@ -573,7 +573,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
 
         # get capacity and capacity at lower temperatures
-        cap_curve = stage.heatingCapacityFunctionofTemperatureCurve
+        cap_curve = speed.heatingCapacityFunctionofTemperatureCurve
         if cap_curve.to_CurveCubic.is_initialized
           coil_cap_17F = cap_curve.evaluate(OpenStudio.convert(17.0, 'F', 'C').get)
           capacity_17F_w = capacity_w * coil_cap_17F if temp_capacity_w >= capacity_w
