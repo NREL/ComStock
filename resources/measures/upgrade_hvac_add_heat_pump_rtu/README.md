@@ -77,27 +77,9 @@ Specifies minimum outdoor air temperature for locking out heat pump compressor. 
 **Model Dependent:** false
 
 
-### Temperature deadband for hybrid gas heating coil maximum supply air temperature, R
-Specifies temperature deadband between low and high maximum supply air temperature for hybrid gas heating coil control logic.
-**Name:** hybrid_gas_coil_max_sat_low_high_delta_r,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
-### Time duration limit for low stage operation before enabling high stage for hybrid gas heating coil, minutes
-Specifies time duration limit for low stage operation before enabling high stage for hybrid gas heating coil control logic.
-**Name:** hybrid_gas_coil_low_stage_time_duration_limit_min,
-**Type:** Double,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-
-### Outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil, F
-Specifies outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil control logic.
-**Name:** hybrid_gas_coil_high_stage_oat_limit_f,
+### 1st to 2nd stage capacity ratio for hybrid gas heating coil for dual fuel systems
+Specifies capacity ratio between 1st and 2nd stage (e.g., ratio = 1st stage capacity / 2nd stage capacity) for hybrid gas heating coil control logic.
+**Name:** hybrid_gas_coil_stage_ratio,
 **Type:** Double,
 **Units:** ,
 **Required:** true,
