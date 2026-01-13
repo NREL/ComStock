@@ -1397,17 +1397,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
     ems_program.addLine("        ENDIF")
     ems_program.addLine("      ENDIF") # stage 1 sufficient?
+
     ems_program.addLine("    ENDIF") # mdot > 0
     ems_program.addLine("  ENDIF")   # inlet < setpoint
     ems_program.addLine("ENDIF")     # dx runtime > 0
 
-    # define burner efficiency
+    # Define burner efficiency
     ems_program.addLine("SET burner_eff = 0.8")
 
-    # Stage 1 fuel usage
-    ems_program.addLine("IF #{g_stage_1.name} == 1")
+    # Stage 1 fuel usage (ONLY when Stage 2 is OFF)
+    ems_program.addLine("IF (#{g_stage_1.name} == 1) && (#{g_stage_2.name} == 0)")
     ems_program.addLine("  SET plf1 = 0.8 + (0.2 * #{g_part_load_ratio_1.name})")
-    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}") # in Watts
+    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}") # W
     ems_program.addLine("  SET #{g_fuel_usage_1.name} = Q_delivered_1 / (burner_eff * plf1)")
     ems_program.addLine("ELSE")
     ems_program.addLine("  SET #{g_fuel_usage_1.name} = 0.0")
@@ -1416,7 +1417,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Stage 2 fuel usage
     ems_program.addLine("IF #{g_stage_2.name} == 1")
     ems_program.addLine("  SET plf2 = 0.8 + (0.2 * #{g_part_load_ratio_2.name})")
-    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}") # in Watts
+    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}") # W
     ems_program.addLine("  SET #{g_fuel_usage_2.name} = Q_delivered_2 / (burner_eff * plf2)")
     ems_program.addLine("ELSE")
     ems_program.addLine("  SET #{g_fuel_usage_2.name} = 0.0")
@@ -1424,8 +1425,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # Convert power to energy
     ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
-    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_1 = #{g_fuel_usage_1.name} * dt") # in Joules
-    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_2 = #{g_fuel_usage_2.name} * dt") # in Joules
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_1 = #{g_fuel_usage_1.name} * dt") # Joules
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_2 = #{g_fuel_usage_2.name} * dt") # Joules
 
     # ems program for initialization
     ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
