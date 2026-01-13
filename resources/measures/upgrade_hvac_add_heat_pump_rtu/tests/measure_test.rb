@@ -1825,6 +1825,13 @@ class AddHeatPumpRtuTest < Minitest::Test
       performance_category = input_arg.valueAsString
     end
 
+    # check performance category
+    back_up_type = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'backup_ht_fuel_scheme'
+      back_up_type = input_arg.valueAsString
+    end
+
     # test lookup table values
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
     if performance_category == 'carrier_48qe_dualfuel'
@@ -1845,6 +1852,19 @@ class AddHeatPumpRtuTest < Minitest::Test
         # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
         assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
       end
+    end
+    if back_up_type == 'dual_fuel_gas_furnace_backup'
+      # current example model has
+      # a total of 12 airloops
+      # and where only 6 are applicable
+
+      # get total number of EnergyManagementSystemProgram objects
+      count_ems_programs = model.getEnergyManagementSystemPrograms.size
+      count_ems_program_calling_managers = model.getEnergyManagementSystemProgramCallingManagers.size
+
+      # assert if number of ems programs is equal to applicable airloops times 2 + one ems that was already in the model
+      assert_equal(6*2 + 1, count_ems_programs, "expected #{6*2 + 1} ems programs but got #{count_ems_programs}")
+      assert_equal(6*2 + 1, count_ems_program_calling_managers, "expected #{6*2 + 1} ems program calling managers but got #{count_ems_program_calling_managers}")
     end
 
     # assert cfm/ton violation
