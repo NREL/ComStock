@@ -1346,82 +1346,65 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
     ems_program.setName("#{ems_name_airloop}_p_two_stage_gas_coil")
 
-    # Initialize flags and PLRs
+    # Initialize flags, PLRs, actuator passthroughs, constants
     ems_program.addLine("SET #{g_stage_1.name} = 0")
     ems_program.addLine("SET #{g_stage_2.name} = 0")
     ems_program.addLine("SET #{g_part_load_ratio_1.name} = 0")
     ems_program.addLine("SET #{g_part_load_ratio_2.name} = 0")
-
-    # Initialize actuator passthroughs
-    ems_program.addLine("SET #{a_coil_outlet_t.name}    = #{s_coil_inlet_t.name}")
-    ems_program.addLine("SET #{a_coil_outlet_hr.name}   = #{s_coil_inlet_hr.name}")
+    ems_program.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
+    ems_program.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_inlet_hr.name}")
     ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
-
-    # Pre-calc constants
     ems_program.addLine("SET T_set = #{s_airloop_setpoint_t.name}")
     ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
-
-    # Stage capacities
     ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
     ems_program.addLine("SET cap_stage_1 = #{heating_capacity_stage_1_w}")
+    ems_program.addLine("SET burner_eff = 0.8")
+    ems_program.addLine("SET #{g_fuel_usage_1.name} = 0.0")
+    ems_program.addLine("SET #{g_fuel_usage_2.name} = 0.0")
 
     # Mechanical heating must be active
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
-
-    # Gas heating needed
     ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
-
-    # Protect against zero or near-zero mass flow
     ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
 
-    # Stage 1 operation
+    # Stage 1
     ems_program.addLine("      SET #{g_stage_1.name} = 1")
     ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
-    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
-    ems_program.addLine("        SET dT_req = T_set - #{s_coil_inlet_t.name}")
-    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = dT_req / dT1_full")
-    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
-    ems_program.addLine("      ELSE")
 
-    # Stage 2 assist (Stage 1 insufficient)
+    # Check if Stage 1 alone meets setpoint
+    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
+    ems_program.addLine("        SET dT_used_1 = T_set - #{s_coil_inlet_t.name}")
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = dT_used_1 / dT1_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
+
+    # Fuel usage for Stage 1 only when Stage 2 OFF
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_1 * #{g_part_load_ratio_1.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = 0.0")
+    ems_program.addLine("      ELSE") # Stage 1 not enough → Stage 2 needed
     ems_program.addLine("        SET #{g_part_load_ratio_1.name} = 1.0")
     ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1") # temp after stage 1
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name} / burner_eff")
+
+    # Stage 2 assist
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
     ems_program.addLine("        SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
     ems_program.addLine("        IF (T_after_stage_1 + dT2_full) >= T_set")
-    ems_program.addLine("          SET dT2_req = T_set - T_after_stage_1")
-    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = dT2_req / dT2_full")
+    ems_program.addLine("          SET dT_used_2 = T_set - T_after_stage_1")
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = dT_used_2 / dT2_full")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_set")
     ems_program.addLine("        ELSE")
+    ems_program.addLine("          SET dT_used_2 = dT2_full")
     ems_program.addLine("          SET #{g_part_load_ratio_2.name} = 1.0")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
     ems_program.addLine("        ENDIF")
-    ems_program.addLine("      ENDIF") # stage 1 sufficient?
 
-    ems_program.addLine("    ENDIF") # mdot > 0
-    ems_program.addLine("  ENDIF")   # inlet < setpoint
-    ems_program.addLine("ENDIF")     # dx runtime > 0
-
-    # Define burner efficiency
-    ems_program.addLine("SET burner_eff = 0.8")
-
-    # Stage 1 fuel usage (ONLY when Stage 2 is OFF)
-    ems_program.addLine("IF (#{g_stage_1.name} == 1) && (#{g_stage_2.name} == 0)")
-    ems_program.addLine("  SET plf1 = 0.8 + (0.2 * #{g_part_load_ratio_1.name})")
-    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}") # W
-    ems_program.addLine("  SET #{g_fuel_usage_1.name} = Q_delivered_1 / (burner_eff * plf1)")
-    ems_program.addLine("ELSE")
-    ems_program.addLine("  SET #{g_fuel_usage_1.name} = 0.0")
-    ems_program.addLine("ENDIF")
-
-    # Stage 2 fuel usage
-    ems_program.addLine("IF #{g_stage_2.name} == 1")
-    ems_program.addLine("  SET plf2 = 0.8 + (0.2 * #{g_part_load_ratio_2.name})")
-    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}") # W
-    ems_program.addLine("  SET #{g_fuel_usage_2.name} = Q_delivered_2 / (burner_eff * plf2)")
-    ems_program.addLine("ELSE")
-    ems_program.addLine("  SET #{g_fuel_usage_2.name} = 0.0")
-    ems_program.addLine("ENDIF")
+    # Stage 2 fuel
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_2 * #{g_part_load_ratio_2.name} / burner_eff")
+    ems_program.addLine("      ENDIF") # Stage 1 sufficient?
+    ems_program.addLine("    ENDIF")   # mdot > 0
+    ems_program.addLine("  ENDIF")     # inlet < setpoint
+    ems_program.addLine("ENDIF")       # dx runtime > 0
 
     # Convert power to energy
     ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
