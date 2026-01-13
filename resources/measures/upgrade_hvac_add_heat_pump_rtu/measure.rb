@@ -1226,6 +1226,337 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  def create_two_stage_dual_fuel_gas_coil_with_ems(
+    model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old,
+    new_air_to_air_heatpump, hybrid_gas_coil_max_sat_low_high_delta_r,
+    hybrid_gas_coil_low_stage_time_duration_limit_min, hybrid_gas_coil_high_stage_oat_limit_f
+  )
+
+    # -------------------------------------------------------------------------------
+    # EMS code structure
+    # -------------------------------------------------------------------------------
+    # argument list:
+    # maximum_supply_air_temperature_low_c
+    # maximum_supply_air_temperature_high_c
+    # hybrid_gas_coil_low_stage_time_duration_limit_min
+    # heating_capacity_stage_1_w
+    # heating_capacity_stage_2_w
+
+    # internal variables list:
+    # #{ems_name_airloop}_status_stage_1
+    # #{ems_name_airloop}_status_stage_2
+    # time_duration_low_stage_heating_minutes
+
+    # sensor list:
+    # [dx heating coil outlet node name] | System Node Temperature
+    # [dx heating coil outlet node name] | System Node Humidity Ratio
+    # [dx heating coil outlet node name] | System Node Mass Flow Rate
+    # status_dx_heating_coil = [dx heating coil name] | Heating Coil Runtime Fraction
+
+    # actuator list:
+    # Air Connection 1 | Outlet Temperature
+    # Air Connection 1 | Outlet Humidity Ratio
+    # Air Connection 1 | Mass Flow Rate
+    # -------------------------------------------------------------------------------
+
+    # TODOs
+    # calculate gas usage as output var and add to meter
+
+    # initialize constants
+    hybrid_gas_coil_max_sat_low_high_delta_k = hybrid_gas_coil_max_sat_low_high_delta_r * 5.0 / 9.0
+    hybrid_gas_coil_high_stage_oat_limit_c = OpenStudio.convert(hybrid_gas_coil_high_stage_oat_limit_f, 'F', 'C').get
+    heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
+    heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
+
+    # replace airloop name based on this hash and create Erl friendly name
+    label_map = {
+      'wholebuilding' => 'wb',
+      'office'        => 'off',
+      'zone'          => 'zn',
+      'story'         => 'stry',
+      'ground'        => 'grnd',
+      'psz-ac'        => '',
+      'fullservicerestaurant' => 'fsr',
+      'dining'       => 'din',
+    }
+    ems_name_airloop = air_loop_hvac.name.to_s.downcase
+
+    # Replace longer keys first to avoid partial collisions
+    label_map.sort_by { |k, _| -k.length }.each do |key, value|
+      ems_name_airloop.gsub!(key, value)
+    end
+
+    # Replace non-alphanumeric with underscore
+    ems_name_airloop.gsub!(/[^a-z0-9]/, '_')
+
+    # Collapse underscores
+    ems_name_airloop.gsub!(/_+/, '_')
+    ems_name_airloop.gsub!(/^_|_$/, '')
+
+    # Ensure valid EMS identifier (must start with letter)
+    unless ems_name_airloop =~ /^[a-z]/
+      ems_name_airloop = "a_#{ems_name_airloop}"
+    end
+
+    # -------------------------------------------------------------------------------
+    # Create user-defined backup heating coil and attach early
+    # -------------------------------------------------------------------------------
+
+    new_backup_heating_coil = OpenStudio::Model::CoilUserDefined.new(model)
+    new_backup_heating_coil.setName("#{ems_name_airloop}_hybrid_gas_heating_coil")
+    new_backup_heating_coil.addToNode(new_air_to_air_heatpump.outletNode.get)
+
+    # -------------------------------------------------------------------------------
+    # EMS actuators
+    # -------------------------------------------------------------------------------
+
+    a_coil_outlet_t = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Outlet Temperature"
+    )
+    a_coil_outlet_t.setName("#{ems_name_airloop}_a_coil_outlet_t")
+
+    a_coil_outlet_hr = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Outlet Humidity Ratio"
+    )
+    a_coil_outlet_hr.setName("#{ems_name_airloop}_a_coil_outlet_hr")
+
+    a_coil_outlet_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Mass Flow Rate"
+    )
+    a_coil_outlet_mdot.setName("#{ems_name_airloop}_a_coil_outlet_mdot")
+
+    # -------------------------------------------------------------------------------
+    # EMS sensors
+    # -------------------------------------------------------------------------------
+
+    s_coil_inlet_t = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Temperature for Air Connection 1"
+    )
+    s_coil_inlet_t.setName("#{ems_name_airloop}_s_coil_outlet_t")
+    s_coil_inlet_t.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_coil_inlet_hr = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Humidity Ratio for Air Connection 1"
+    )
+    s_coil_inlet_hr.setName("#{ems_name_airloop}_s_coil_outlet_hr")
+    s_coil_inlet_hr.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_coil_inlet_mdot = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Mass Flow Rate for Air Connection 1"
+    )
+    s_coil_inlet_mdot.setName("#{ems_name_airloop}_s_coil_outlet_mdot")
+    s_coil_inlet_mdot.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_dx_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "Heating Coil Runtime Fraction"
+    )
+    s_dx_runtime_frac.setName("#{ems_name_airloop}_s_dx_runtime_frac")
+    s_dx_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
+
+    s_airloop_setpoint_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "System Node Setpoint Temperature"
+    )
+    s_airloop_setpoint_t.setName("#{ems_name_airloop}_s_airloop_setpoint_t")
+    s_airloop_setpoint_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+
+    # -------------------------------------------------------------------------------
+    # EMS global variables
+    # -------------------------------------------------------------------------------
+
+    g_stage_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_stage_1"
+    )
+
+    g_part_load_ratio = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_part_load_ratio"
+    )
+
+    # -------------------------------------------------------------------------------
+    # EMS program
+    # -------------------------------------------------------------------------------
+
+    # ems program for two stage gas coil control
+    ems_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+    ems_program.setName("#{ems_name_airloop}_p_two_stage_gas_coil")
+
+    # Initialize flags and PLR
+    ems_program.addLine("SET #{g_stage_1.name} = 0")
+    ems_program.addLine("SET #{g_part_load_ratio.name} = 0")
+
+    # Initialize actuator passthroughs
+    ems_program.addLine("SET #{a_coil_outlet_t.name}    = #{s_coil_inlet_t.name}")
+    ems_program.addLine("SET #{a_coil_outlet_hr.name}   = #{s_coil_inlet_hr.name}")
+    ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
+
+    # Pre-calc constants
+    ems_program.addLine("SET T_set = #{s_airloop_setpoint_t.name}")
+    ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
+
+    # Mechanical heating must be active
+    ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
+
+    # Single-stage gas heat enable
+    ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
+
+    # Protect against zero or near-zero mass flow
+    ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
+
+    # Gas coil is ON
+    ems_program.addLine("      SET #{g_stage_1.name} = 1")
+
+    # Full-load temperature rise
+    ems_program.addLine("      SET dT_full = #{heating_capacity_stage_2_w} / #{s_coil_inlet_mdot.name} / cp")
+
+    # Modulate to meet setpoint
+    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT_full) <= T_set")
+    ems_program.addLine("        SET #{g_part_load_ratio.name} = 1.0")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name} + dT_full")
+    ems_program.addLine("      ELSE")
+    ems_program.addLine("        SET dT_req = T_set - #{s_coil_inlet_t.name}")
+    ems_program.addLine("        SET #{g_part_load_ratio.name} = dT_req / dT_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
+    ems_program.addLine("      ENDIF")
+
+    ems_program.addLine("    ENDIF") # mdot > 0
+    ems_program.addLine("  ENDIF")   # inlet < setpoint
+    ems_program.addLine("ENDIF")     # dx runtime > 0
+
+    # ems program for initialization
+    ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+    ems_program_initialization.setName("#{ems_name_airloop}_p_two_stage_gas_coil_initialization")
+    ems_program_initialization.addLine("SET #{g_stage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
+
+    # -------------------------------------------------------------------------------
+    # Program calling manager
+    # -------------------------------------------------------------------------------
+
+    ems_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+    ems_pcm.setName("#{ems_name_airloop}_pcm_gas_coil")
+    ems_pcm.setCallingPoint("UserDefinedComponentModel")
+    ems_pcm.addProgram(ems_program)
+
+    ems_pcm_initialization = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+    ems_pcm_initialization.setName("#{ems_name_airloop}_pcm_gas_coil_initialization")
+    ems_pcm_initialization.setCallingPoint("UserDefinedComponentModel")
+    ems_pcm_initialization.addProgram(ems_program_initialization)
+
+    # -------------------------------------------------------------------------------
+    # Attach EMS objects to coil
+    # -------------------------------------------------------------------------------
+
+    new_backup_heating_coil.setOverallSimulationProgram(ems_program)
+    new_backup_heating_coil.setInitializationSimulationProgram(ems_program_initialization)
+    new_backup_heating_coil.setOverallModelSimulationProgramCallingManager(ems_pcm)
+    new_backup_heating_coil.setModelSetupandSizingProgramCallingManager(ems_pcm_initialization)
+    new_backup_heating_coil.setAirOutletTemperatureActuator(a_coil_outlet_t)
+    new_backup_heating_coil.setAirOutletHumidityRatioActuator(a_coil_outlet_hr)
+    new_backup_heating_coil.setAirMassFlowRateActuator(a_coil_outlet_mdot)
+
+    # -------------------------------------------------------------------------------
+    # Output variable
+    # -------------------------------------------------------------------------------
+
+    ems_ov_status_heating_stage_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_stage_1)
+    ems_ov_status_heating_stage_1.setName("#{ems_name_airloop}_ov_status_heating_stage_1")
+    ems_ov_status_heating_stage_1.setEMSVariableName("#{g_stage_1.name}")
+    ems_ov_status_heating_stage_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_stage_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_1.name}", model)
+    output_var.setName("#{ems_ov_status_heating_stage_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_plr = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio)
+    ems_ov_status_heating_plr.setName("#{ems_name_airloop}_ov_status_heating_plr")
+    ems_ov_status_heating_plr.setEMSVariableName("#{g_part_load_ratio.name}")
+    ems_ov_status_heating_plr.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_plr.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr.name}", model)
+    output_var.setName("#{ems_ov_status_heating_plr.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    # -------------------------------------------------------------------------------
+    # Dummy plant actuators (created but intentionally unused)
+    # Required to satisfy OpenStudio CoilUserDefined internal checks
+    # -------------------------------------------------------------------------------
+
+    a_plant_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Mass Flow Rate"
+    )
+    a_plant_mdot.setName("#{ems_name_airloop}_a_plant_mdot")
+
+    a_plant_min_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Minimum Mass Flow Rate"
+    )
+    a_plant_min_mdot.setName("#{ems_name_airloop}_a_plant_min_mdot")
+
+    a_plant_max_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Maximum Mass Flow Rate"
+    )
+    a_plant_max_mdot.setName("#{ems_name_airloop}_a_plant_max_mdot")
+
+    a_plant_outlet_t = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Outlet Temperature"
+    )
+    a_plant_outlet_t.setName("#{ems_name_airloop}_a_plant_outlet_t")
+
+    a_plant_design_vdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Design Volume Flow Rate"
+    )
+    a_plant_design_vdot.setName("#{ems_name_airloop}_a_plant_design_vdot")
+
+    # Attach plant actuators to the coil (never referenced in EMS programs)
+    new_backup_heating_coil.setPlantMinimumMassFlowRateActuator(a_plant_min_mdot)
+    new_backup_heating_coil.setPlantMaximumMassFlowRateActuator(a_plant_max_mdot)
+    new_backup_heating_coil.setPlantOutletTemperatureActuator(a_plant_outlet_t)
+    new_backup_heating_coil.setPlantDesignVolumeFlowRateActuator(a_plant_design_vdot)
+    new_backup_heating_coil.setPlantMassFlowRateActuator(a_plant_mdot)
+
+    # -------------------------------------------------------------------------------
+    # Patch fix for removing redundant EMS objects from model
+    # -------------------------------------------------------------------------------
+    model.getEnergyManagementSystemPrograms.sort.each do |program|
+      if program.name.to_s.include?('initializationSimulationProgram')
+        program.remove()
+      elsif program.name.to_s.include?('overallSimulationProgram')
+        program.remove()
+      end
+    end
+    model.getEnergyManagementSystemProgramCallingManagers.sort.each do |pcm|
+      if pcm.name.to_s.include?('modelSetupandSizingProgramCallingManager')
+        pcm.remove()
+      elsif pcm.name.to_s.include?('overallModelSimulationProgramCallingManager')
+        pcm.remove()
+      end
+    end
+    model.getEnergyManagementSystemActuators.sort.each do |actuator|
+      if actuator.name.to_s.include?('plantDesignVolumeFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMaximumMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMinimumMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantOutletTemperature')
+        actuator.remove()
+      end
+    end
+
+  end
+
   # ---------------------------------------------------------
   # main measure code
   # ---------------------------------------------------------
@@ -2886,6 +3217,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_air_to_air_heatpump.setSupplyAirFlowRateDuringHeatingOperation(stage_flows_heating[num_heating_stages])
       # set no load design flow rate
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
+
+      # *********************************************************
+      # add dual fuel gas coil via ems
+      # *********************************************************
+      if (backup_ht_fuel_scheme == 'dual_fuel_gas_furnace_backup')
+        create_two_stage_dual_fuel_gas_coil_with_ems(
+          model,
+          runner,
+          air_loop_hvac,
+          new_dx_heating_coil,
+          orig_htg_coil_gross_cap_old,
+          new_air_to_air_heatpump,
+          hybrid_gas_coil_max_sat_low_high_delta_r,
+          hybrid_gas_coil_low_stage_time_duration_limit_min,
+          hybrid_gas_coil_high_stage_oat_limit_f
+        )
+      end
 
       # *********************************************************
       # add dcv to air loop if dcv flag is true
