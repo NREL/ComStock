@@ -103,26 +103,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
     args << hp_min_comp_lockout_temp_f
 
-    # add hybrid gas coil maximum supply air temperature deadband
-    hybrid_gas_coil_max_sat_low_high_delta_r = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_max_sat_low_high_delta_r', true)
-    hybrid_gas_coil_max_sat_low_high_delta_r.setDisplayName('Temperature deadband for hybrid gas heating coil maximum supply air temperature, R')
-    hybrid_gas_coil_max_sat_low_high_delta_r.setDefaultValue(10.0)
-    hybrid_gas_coil_max_sat_low_high_delta_r.setDescription('Specifies temperature deadband between low and high maximum supply air temperature for hybrid gas heating coil control logic.')
-    args << hybrid_gas_coil_max_sat_low_high_delta_r
-
-    # add hybrid gas coil low stage time duration limit
-    hybrid_gas_coil_low_stage_time_duration_limit_min = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_low_stage_time_duration_limit_min', true)
-    hybrid_gas_coil_low_stage_time_duration_limit_min.setDisplayName('Time duration limit for low stage operation before enabling high stage for hybrid gas heating coil, minutes')
-    hybrid_gas_coil_low_stage_time_duration_limit_min.setDefaultValue(30.0)
-    hybrid_gas_coil_low_stage_time_duration_limit_min.setDescription('Specifies time duration limit for low stage operation before enabling high stage for hybrid gas heating coil control logic.')
-    args << hybrid_gas_coil_low_stage_time_duration_limit_min
-
-    # add hybrid gas coil high stage outdoor air temperature limit
-    hybrid_gas_coil_high_stage_oat_limit_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_high_stage_oat_limit_f', true)
-    hybrid_gas_coil_high_stage_oat_limit_f.setDisplayName('Outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil, F')
-    hybrid_gas_coil_high_stage_oat_limit_f.setDefaultValue(17.0)
-    hybrid_gas_coil_high_stage_oat_limit_f.setDescription('Specifies outdoor air temperature limit for enabling high stage operation for hybrid gas heating coil control logic.')
-    args << hybrid_gas_coil_high_stage_oat_limit_f
+    # add hybrid gas coil 1st to 2nd stage capacity ratio
+    hybrid_gas_coil_stage_ratio = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_stage_ratio', true)
+    hybrid_gas_coil_stage_ratio.setDisplayName('1st to 2nd stage capacity ratio for hybrid gas heating coil for dual fuel systems')
+    hybrid_gas_coil_stage_ratio.setDefaultValue(0.5)
+    hybrid_gas_coil_stage_ratio.setDescription('Specifies capacity ratio between 1st and 2nd stage (e.g., ratio = 1st stage capacity / 2nd stage capacity) for hybrid gas heating coil control logic.')
+    args << hybrid_gas_coil_stage_ratio
 
     # make list of cchpc scenarios
     li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec carrier_48qe_dualfuel]
@@ -1228,8 +1214,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   def create_two_stage_dual_fuel_gas_coil_with_ems(
     model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old,
-    new_air_to_air_heatpump, hybrid_gas_coil_max_sat_low_high_delta_r,
-    hybrid_gas_coil_low_stage_time_duration_limit_min, hybrid_gas_coil_high_stage_oat_limit_f
+    new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio
   )
 
     # -------------------------------------------------------------------------------
@@ -1263,10 +1248,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # calculate gas usage as output var and add to meter
 
     # initialize constants
-    hybrid_gas_coil_max_sat_low_high_delta_k = hybrid_gas_coil_max_sat_low_high_delta_r * 5.0 / 9.0
-    hybrid_gas_coil_high_stage_oat_limit_c = OpenStudio.convert(hybrid_gas_coil_high_stage_oat_limit_f, 'F', 'C').get
     heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
-    heating_capacity_stage_1_w = heating_capacity_stage_2_w / 2.0
+    heating_capacity_stage_1_w = heating_capacity_stage_2_w * hybrid_gas_coil_stage_ratio
 
     # replace airloop name based on this hash and create Erl friendly name
     label_map = {
@@ -1401,7 +1384,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # Stage capacities
     ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
-    ems_program.addLine("SET cap_stage_1 = cap_stage_2 / 2.0")
+    ems_program.addLine("SET cap_stage_1 = #{heating_capacity_stage_1_w}")
 
     # Mechanical heating must be active
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
@@ -1620,9 +1603,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
     hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
-    hybrid_gas_coil_max_sat_low_high_delta_r = runner.getDoubleArgumentValue('hybrid_gas_coil_max_sat_low_high_delta_r', user_arguments)
-    hybrid_gas_coil_low_stage_time_duration_limit_min = runner.getDoubleArgumentValue('hybrid_gas_coil_low_stage_time_duration_limit_min', user_arguments)
-    hybrid_gas_coil_high_stage_oat_limit_f = runner.getDoubleArgumentValue('hybrid_gas_coil_high_stage_oat_limit_f', user_arguments)
+    hybrid_gas_coil_stage_ratio = runner.getDoubleArgumentValue('hybrid_gas_coil_stage_ratio', user_arguments)
     hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -3270,9 +3251,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           new_dx_heating_coil,
           orig_htg_coil_gross_cap_old,
           new_air_to_air_heatpump,
-          hybrid_gas_coil_max_sat_low_high_delta_r,
-          hybrid_gas_coil_low_stage_time_duration_limit_min,
-          hybrid_gas_coil_high_stage_oat_limit_f
+          hybrid_gas_coil_stage_ratio
         )
       end
 
