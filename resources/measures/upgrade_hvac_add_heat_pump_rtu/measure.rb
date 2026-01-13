@@ -1331,6 +1331,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     g_part_load_ratio_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
       model, "#{ems_name_airloop}_g_part_load_ratio_2"
     )
+    g_fuel_usage_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_fuel_usage_1_w"
+    )
+    g_fuel_usage_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_fuel_usage_2_w"
+    )
 
     # -------------------------------------------------------------------------------
     # EMS program
@@ -1402,18 +1408,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("IF #{g_stage_1.name} == 1")
     ems_program.addLine("  SET plf1 = 0.8 + (0.2 * #{g_part_load_ratio_1.name})")
     ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}")
-    ems_program.addLine("  SET Q_fuel_1 = Q_delivered_1 / (burner_eff * plf1)")
+    ems_program.addLine("  SET #{g_fuel_usage_1.name} = Q_delivered_1 / (burner_eff * plf1)")
     ems_program.addLine("ELSE")
-    ems_program.addLine("  SET Q_fuel_1 = 0.0")
+    ems_program.addLine("  SET #{g_fuel_usage_1.name} = 0.0")
     ems_program.addLine("ENDIF")
 
     # Stage 2 fuel usage
     ems_program.addLine("IF #{g_stage_2.name} == 1")
     ems_program.addLine("  SET plf2 = 0.8 + (0.2 * #{g_part_load_ratio_2.name})")
     ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}")
-    ems_program.addLine("  SET Q_fuel_2 = Q_delivered_2 / (burner_eff * plf2)")
+    ems_program.addLine("  SET #{g_fuel_usage_2.name} = Q_delivered_2 / (burner_eff * plf2)")
     ems_program.addLine("ELSE")
-    ems_program.addLine("  SET Q_fuel_2 = 0.0")
+    ems_program.addLine("  SET #{g_fuel_usage_2.name} = 0.0")
     ems_program.addLine("ENDIF")
 
     # ems program for initialization
@@ -1423,6 +1429,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program_initialization.addLine("SET #{g_stage_2.name} = 0")
     ems_program_initialization.addLine("SET #{g_part_load_ratio_1.name} = 0")
     ems_program_initialization.addLine("SET #{g_part_load_ratio_2.name} = 0")
+    ems_program_initialization.addLine("SET #{g_fuel_usage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_fuel_usage_2.name} = 0")
     ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
 
     # -------------------------------------------------------------------------------
@@ -1492,6 +1500,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_status_heating_plr_2.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_2.name}", model)
     output_var.setName("#{ems_ov_status_heating_plr_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_fuel_usage_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_fuel_usage_1)
+    ems_ov_fuel_usage_1.setName("#{ems_name_airloop}_ov_fuel_usage_1")
+    ems_ov_fuel_usage_1.setEMSVariableName("#{g_fuel_usage_1.name}")
+    ems_ov_fuel_usage_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_fuel_usage_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_1.name}", model)
+    output_var.setName("#{ems_ov_fuel_usage_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_fuel_usage_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_fuel_usage_2)
+    ems_ov_fuel_usage_2.setName("#{ems_name_airloop}_ov_fuel_usage_2")
+    ems_ov_fuel_usage_2.setEMSVariableName("#{g_fuel_usage_2.name}")
+    ems_ov_fuel_usage_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_fuel_usage_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_2.name}", model)
+    output_var.setName("#{ems_ov_fuel_usage_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
