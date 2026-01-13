@@ -1854,17 +1854,21 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
     end
     if back_up_type == 'dual_fuel_gas_furnace_backup'
-      # current example model has
-      # a total of 12 airloops
-      # and where only 6 are applicable
+      number_of_applicable_airloops = 6 # hard-coded based on example model
 
-      # get total number of EnergyManagementSystemProgram objects
-      count_ems_programs = model.getEnergyManagementSystemPrograms.size
-      count_ems_program_calling_managers = model.getEnergyManagementSystemProgramCallingManagers.size
+      # count energymanagementsystem:program objects with specific naming patterns
+      count_ems_prgm_init = model.getEnergyManagementSystemPrograms.select { |prgm| prgm.name.to_s.end_with?('_initialization') }.size
+      count_ems_prgm = model.getEnergyManagementSystemPrograms.select { |prgm| prgm.name.to_s.end_with?('_two_stage_gas_coil') }.size
 
-      # assert if number of ems programs is equal to applicable airloops times 2 + one ems that was already in the model
-      assert_equal(6*2 + 1, count_ems_programs, "expected #{6*2 + 1} ems programs but got #{count_ems_programs}")
-      assert_equal(6*2 + 1, count_ems_program_calling_managers, "expected #{6*2 + 1} ems program calling managers but got #{count_ems_program_calling_managers}")
+      # count energymanagementsystem:programcallingmanager objects with specific naming patterns
+      count_ems_pcm_init = model.getEnergyManagementSystemProgramCallingManagers.select { |pcm| pcm.name.to_s.end_with?('_initialization') }.size
+      count_ems_pcm = model.getEnergyManagementSystemProgramCallingManagers.select { |pcm| pcm.name.to_s.end_with?('_pcm_gas_coil') }.size
+
+      # assert counts
+      assert_equal(number_of_applicable_airloops, count_ems_prgm_init, "expected #{number_of_applicable_airloops} ems programs with '_initialization' but got #{count_ems_prgm_init}")
+      assert_equal(number_of_applicable_airloops, count_ems_prgm, "expected #{number_of_applicable_airloops} ems programs with '_two_stage_gas_coil' but got #{count_ems_prgm}")
+      assert_equal(number_of_applicable_airloops, count_ems_pcm_init, "expected #{number_of_applicable_airloops} ems program calling managers with '_initialization' but got #{count_ems_pcm_init}")
+      assert_equal(number_of_applicable_airloops, count_ems_pcm, "expected #{number_of_applicable_airloops} ems program calling managers with '_two_stage_gas_coil' but got #{count_ems_pcm}")
     end
 
     # assert cfm/ton violation
