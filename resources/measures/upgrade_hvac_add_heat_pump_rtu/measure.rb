@@ -1217,33 +1217,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio
   )
 
-    # -------------------------------------------------------------------------------
-    # EMS code structure
-    # -------------------------------------------------------------------------------
-    # argument list:
-    # maximum_supply_air_temperature_low_c
-    # maximum_supply_air_temperature_high_c
-    # hybrid_gas_coil_low_stage_time_duration_limit_min
-    # heating_capacity_stage_1_w
-    # heating_capacity_stage_2_w
-
-    # internal variables list:
-    # #{ems_name_airloop}_status_stage_1
-    # #{ems_name_airloop}_status_stage_2
-    # time_duration_low_stage_heating_minutes
-
-    # sensor list:
-    # [dx heating coil outlet node name] | System Node Temperature
-    # [dx heating coil outlet node name] | System Node Humidity Ratio
-    # [dx heating coil outlet node name] | System Node Mass Flow Rate
-    # status_dx_heating_coil = [dx heating coil name] | Heating Coil Runtime Fraction
-
-    # actuator list:
-    # Air Connection 1 | Outlet Temperature
-    # Air Connection 1 | Outlet Humidity Ratio
-    # Air Connection 1 | Mass Flow Rate
-    # -------------------------------------------------------------------------------
-
     # TODOs
     # calculate gas usage as output var and add to meter
 
@@ -1421,6 +1394,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("    ENDIF") # mdot > 0
     ems_program.addLine("  ENDIF")   # inlet < setpoint
     ems_program.addLine("ENDIF")     # dx runtime > 0
+
+    # define burner efficiency
+    ems_program.addLine("SET burner_eff = 0.8")
+
+    # Stage 1 fuel usage
+    ems_program.addLine("IF #{g_stage_1.name} == 1")
+    ems_program.addLine("  SET plf1 = 0.8 + (0.2 * #{g_part_load_ratio_1.name})")
+    ems_program.addLine("  SET Q_delivered_1 = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name}")
+    ems_program.addLine("  SET Q_fuel_1 = Q_delivered_1 / (burner_eff * plf1)")
+    ems_program.addLine("ELSE")
+    ems_program.addLine("  SET Q_fuel_1 = 0.0")
+    ems_program.addLine("ENDIF")
+
+    # Stage 2 fuel usage
+    ems_program.addLine("IF #{g_stage_2.name} == 1")
+    ems_program.addLine("  SET plf2 = 0.8 + (0.2 * #{g_part_load_ratio_2.name})")
+    ems_program.addLine("  SET Q_delivered_2 = #{s_coil_inlet_mdot.name} * cp * dT2_full * #{g_part_load_ratio_2.name}")
+    ems_program.addLine("  SET Q_fuel_2 = Q_delivered_2 / (burner_eff * plf2)")
+    ems_program.addLine("ELSE")
+    ems_program.addLine("  SET Q_fuel_2 = 0.0")
+    ems_program.addLine("ENDIF")
 
     # ems program for initialization
     ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
