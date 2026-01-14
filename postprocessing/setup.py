@@ -42,12 +42,13 @@ setup(
         'Programming Language :: Python :: 3.10',
     ],
     keywords='comstock postprocessing',
-    python_requires="==3.10.12",
+    python_requires="==3.12.12",
     install_requires=[
         'boto3',
         'botocore',
         'fsspec',
         'joblib',
+        'natsort',
         'nbformat',
         'pandas',
         'plotly',
@@ -58,7 +59,7 @@ setup(
         'scipy',
         'seaborn>=0.12.0',
         'xlrd',
-        'buildstock_query @ git+https://github.com/NREL/buildstock-query@main'
+        'buildstock_query @ git+https://github.com/NREL/buildstock-query@0479759'
     ],
     extras_require={
         'dev': [

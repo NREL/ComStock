@@ -11,7 +11,6 @@ from matplotlib import ticker
 import plotly.express as px
 import seaborn as sns
 import plotly.graph_objects as go
-from buildstock_query import BuildStockQuery
 import matplotlib.colors as mcolors
 from plotly.subplots import make_subplots
 from comstockpostproc.rse_utils_mixin import rse_by_group_total
@@ -3134,82 +3133,6 @@ class PlottingMixin():
         output_path = os.path.abspath(os.path.join(output_dir, filename))
         plt.savefig(output_path, bbox_inches='tight')
 
-
-    # get weighted load profiles
-    def wgt_by_btype(self, df, run_data, dict_wgts, upgrade_num, state, upgrade_name):
-        """
-        This method weights the timeseries profiles.
-        Returns dataframe with weighted kWh columns.
-        """
-        btype_list = df[self.BLDG_TYPE].unique()
-
-        applic_bldgs_list = list(df.loc[(df[self.UPGRADE_NAME].isin(upgrade_name)) & (df[self.UPGRADE_APPL]==True), self.BLDG_ID])
-        applic_bldgs_list = [int(x) for x in applic_bldgs_list]
-
-        dfs_base=[]
-        dfs_up=[]
-        for btype in btype_list:
-
-            # get building weights
-            btype_wgt = dict_wgts[btype]
-
-            # apply weights by building type
-            def apply_wgts(df):
-                # Identify columns that contain 'kwh' in their names
-                kwh_columns = [col for col in df.columns if 'kwh' in col]
-
-                # Apply the weight and add the suffix 'weighted'
-                weighted_df = df[kwh_columns].apply(lambda x: x * btype_wgt).rename(columns=lambda x: x + '_weighted')
-                # Concatenate the new weighted columns with the original DataFrame without the unweighted 'kwh' columns
-                df_wgt = pd.concat([df.drop(columns=kwh_columns), weighted_df], axis=1)
-
-                return df_wgt
-
-            # baseline load data - aggregate electricity total only
-            df_base_ts_agg = run_data.agg.aggregate_timeseries(
-                                                                upgrade_id=0,
-                                                                enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                          ('state_abbreviation', [f"{state}"]),
-                                                                          (run_data.bs_bldgid_column, applic_bldgs_list),
-                                                                          ],
-                                                                timestamp_grouping_func='hour',
-                                                                get_query_only=False
-                                                                )
-
-            # add baseline data
-            df_base_ts_agg_weighted = apply_wgts(df_base_ts_agg)
-            df_base_ts_agg_weighted[self.UPGRADE_NAME] = 'baseline'
-            dfs_base.append(df_base_ts_agg_weighted)
-
-            for upgrade in upgrade_num:
-                # upgrade load data - all enduses
-                upgrade_ts_agg = run_data.agg.aggregate_timeseries(
-                                                                    upgrade_id=upgrade.astype(str),
-                                                                    enduses=(list(self.END_USES_TIMESERIES_DICT.values())+["total_site_electricity_kwh"]),
-                                                                    restrict=[(('build_existing_model.building_type', [self.BLDG_TYPE_TO_SNAKE_CASE[btype]])),
-                                                                            ('state_abbreviation', [f"{state}"]),
-                                                                            ],
-                                                                    timestamp_grouping_func='hour',
-                                                                    get_query_only=False
-                                                                    )
-
-                # add upgrade data
-                df_upgrade_ts_agg_weighted = apply_wgts(upgrade_ts_agg)
-                df_upgrade_ts_agg_weighted[self.UPGRADE_NAME] = self.dict_upid_to_upname[upgrade]
-                dfs_up.append(df_upgrade_ts_agg_weighted)
-
-
-        # concatinate and combine baseline data
-        dfs_base_combined = pd.concat(dfs_base, join='outer', ignore_index=True)
-        dfs_base_combined = dfs_base_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_base_combined.loc[:, dfs_base_combined.columns.str.contains('_kwh')].columns].sum()
-
-        # concatinate and combine upgrade data
-        dfs_upgrade_combined = pd.concat(dfs_up, join='outer', ignore_index=True)
-        dfs_upgrade_combined = dfs_upgrade_combined.groupby(['time', self.UPGRADE_NAME], observed=True, as_index=False)[dfs_upgrade_combined.loc[:, dfs_upgrade_combined.columns.str.contains('_kwh')].columns].sum()
-
-        return dfs_base_combined, dfs_upgrade_combined
-
     # plot
     order_list = [
                 'interior_equipment',
@@ -3235,26 +3158,19 @@ class PlottingMixin():
         else:
             return 'Winter'
 
-    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, states, color_map, comstock_run_name): #, df, region, building_type, color_map, output_dir
-
-        # run crawler
-        run_data = BuildStockQuery('eulp',
-                                   'enduse',
-                                   self.comstock_run_name,
-                                   buildstock_type='comstock',
-                                   skip_reports=False)
+    def plot_measure_timeseries_peak_week_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None): #, df, region, building_type, color_map, output_dir
 
         # get upgrade ID
-        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        df_data = df.copy(deep=True)
+        # coerce data type of upgrade ID - arrives as float, need str of int for querying
+        df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
+        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0"), :]
         upgrade_num = list(df_upgrade[self.UPGRADE_ID].unique())
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
 
-        # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
-
         # apply queries and weighting
-        for state, state_name in states.items():
-            dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+        for location, location_name in timeseries_locations_to_plot.items():
+            dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, location, upgrade_name)
 
             # merge into single dataframe
             dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3283,13 +3199,13 @@ class PlottingMixin():
             # make dec 31st last week of year
             dfs_merged.loc[dfs_merged['Day_of_Year']==365, 'Week_of_Year'] = 55
             dfs_merged = dfs_merged.loc[dfs_merged['Year']==2018, :]
-            max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh_weighted'].max()
+            max_peak = dfs_merged.loc[:, 'total_site_electricity_kwh'].max()
 
             # find peak week by season
             seasons = ['Spring', 'Summer', 'Fall', 'Winter']
             for season in seasons:
-                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh_weighted", "Week_of_Year"]]
-                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh_weighted"] == peak_week["total_site_electricity_kwh_weighted"].max(), "Week_of_Year"][0]
+                peak_week = dfs_merged.loc[dfs_merged['Season']==season, ["total_site_electricity_kwh", "Week_of_Year"]]
+                peak_week = peak_week.loc[peak_week["total_site_electricity_kwh"] == peak_week["total_site_electricity_kwh"].max(), "Week_of_Year"].iloc[0]
 
 
                 # filter to the week
@@ -3300,7 +3216,7 @@ class PlottingMixin():
 
                 # rename columns
                 dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
-                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
+                dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh", "")
 
                 # convert hourly kWH to 15 minute MW
                 dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
@@ -3310,8 +3226,9 @@ class PlottingMixin():
                 # Create traces for area plot
                 traces = []
                 # add aggregate measure load
-                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "baseline"]
+                dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != "Baseline"]
                 dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
+
                 # if only 1 upgrade, plot end uses and total
                 if len(upgrade_num) == 1:
                     # loop through end uses
@@ -3340,19 +3257,19 @@ class PlottingMixin():
                 else:
                     # if more than 1 upgrade, add only aggregate loads
                     for upgrade in upgrade_num:
-                        dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
+                        dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)]]
                         upgrade_trace = go.Scatter(
                         x=dfs_merged_pw_up_mult['time'],
                         y=dfs_merged_pw_up_mult['Measure Total'],
                         mode='lines',
-                        line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                        name=self.dict_upid_to_upname[upgrade],
+                        line=dict(width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                        name=self.dict_upid_to_upname[int(upgrade)],
                         )
                         traces.append(upgrade_trace)
 
 
                 # add baseline load
-                dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="baseline"]
+                dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name']=="Baseline"]
                 dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
 
                 # Create a trace for the baseline load
@@ -3382,7 +3299,7 @@ class PlottingMixin():
                                     y=-0.35,  # Adjust this value as needed to place the title correctly
                                     xref='paper',
                                     yref='paper',
-                                    text=f"{season} Peak Week, Applicable Buildings - {state_name}",
+                                    text=f"{season} Peak Week, Applicable Buildings - {location_name}",
                                     showarrow=False,
                                     font=dict(
                                         size=16
@@ -3396,33 +3313,26 @@ class PlottingMixin():
                 title = f"{season}_peak_week"
                 fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
                 fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+                fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
                 if not os.path.exists(fig_sub_dir):
                     os.makedirs(fig_sub_dir)
                 fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
                 fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-                fig.write_image(fig_path, scale=10)
+                fig.write_image(fig_path, scale=6)
                 fig.write_html(fig_path_html)
+            # save timeseries data
+            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{location_name}.csv")
 
-            dfs_merged.to_csv(f"{fig_sub_dir}/timeseries_data_{state_name}.csv")
-
-    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, states, color_map, comstock_run_name):
-
-        # run crawler
-        run_data = BuildStockQuery('eulp',
-                                'enduse',
-                                self.comstock_run_name,
-                                buildstock_type='comstock',
-                                skip_reports=False)
+    def plot_measure_timeseries_season_average_by_state(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
-        df_upgrade = df.loc[df[self.UPGRADE_ID]!=0, :]
+        df_data = df.copy()
+        # coerce data type of upgrade ID - arrives as float, need str of int for querying
+        df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
+        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0") & (df_data[self.UPGRADE_ID]!=0), :]
         upgrade_num = list(df_upgrade[self.UPGRADE_ID].unique())
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
-
-        # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
 
         standard_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         upgrade_colors = {upgrade: standard_colors[i % len(standard_colors)] for i, upgrade in enumerate(upgrade_num)}
@@ -3442,15 +3352,15 @@ class PlottingMixin():
                 return 'Weekend'
 
         # apply queries and weighting
-        for state, state_name in states.items():
+        for location, location_name in timeseries_locations_to_plot.items():
 
             # check to see if timeseries file exists.
             # if it does, reload. Else, query data.
-            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
-            file_path = os.path.join(fig_sub_dir, f"timeseries_data_{state_name}.csv")
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
+            file_path = os.path.join(fig_sub_dir, f"timeseries_data_{location_name}.csv")
             dfs_merged=None
             if not os.path.exists(file_path):
-                dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, location, upgrade_name)
 
                 # merge into single dataframe
                 dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3478,7 +3388,7 @@ class PlottingMixin():
                 dfs_merged['Day_Type'] = dfs_merged['Day_of_Week'].apply(map_to_dow)
 
             dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Day_Type', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
-            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
+            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh'].max()
 
             # find peak week by season
             seasons = ['Summer', 'Shoulder', 'Winter']
@@ -3504,15 +3414,15 @@ class PlottingMixin():
 
                     # rename columns
                     dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("electricity_", "")
-                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh_weighted", "")
+                    dfs_merged_pw.columns = dfs_merged_pw.columns.str.replace("_kwh", "")
 
                     # convert hourly kWH to 15 minute MW
                     dfs_merged_pw.loc[:, self.order_list] = dfs_merged_pw.loc[:, self.order_list]/1000
                     dfs_merged_pw.loc[:, "total_site"] = dfs_merged_pw.loc[:, "total_site"]/1000
                     dfs_merged_pw = dfs_merged_pw.sort_values('Hour_of_Day')
-                    dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != 'baseline', :]
+                    dfs_merged_pw_up = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] != 'Baseline', :]
                     dfs_merged_pw_up.columns = dfs_merged_pw_up.columns.str.replace("total_site", "Measure Total")
-                    dfs_merged_pw_up = dfs_merged_pw_up.loc[dfs_merged_pw['in.upgrade_name'] != 'baseline', :]
+                    dfs_merged_pw_up = dfs_merged_pw_up.loc[dfs_merged_pw['in.upgrade_name'] != 'Baseline', :]
 
                     if len(upgrade_num) == 1:
                         # Create traces for area plot
@@ -3555,21 +3465,21 @@ class PlottingMixin():
                             showlegend = upgrade not in legend_entries
                             legend_entries.add(upgrade)
 
-                            dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade], :]
+                            dfs_merged_pw_up_mult = dfs_merged_pw_up.loc[dfs_merged_pw_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)], :]
                             upgrade_trace = go.Scatter(
                             x=dfs_merged_pw_up_mult['Hour_of_Day'],
                             y=dfs_merged_pw_up_mult['Measure Total'],
                             mode='lines',
-                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                            name=self.dict_upid_to_upname[upgrade],
-                            legendgroup=self.dict_upid_to_upname[upgrade],
+                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                            name=self.dict_upid_to_upname[int(upgrade)],
+                            legendgroup=self.dict_upid_to_upname[int(upgrade)],
                             showlegend=showlegend
                             )
                             fig.add_trace(upgrade_trace, row=row, col=col)
 
 
                     # add baseline load
-                    dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] == "baseline"]
+                    dfs_merged_pw_base = dfs_merged_pw.loc[dfs_merged_pw['in.upgrade_name'] == "Baseline"]
                     dfs_merged_pw_base.columns = dfs_merged_pw_base.columns.str.replace("total_site", "Baseline Total")
 
                     showlegend = 'Baseline Total' not in legend_entries
@@ -3592,7 +3502,7 @@ class PlottingMixin():
 
             # Update layout
             fig.update_layout(
-                title=f"Seasonal Average, Applicable Buildings - {state_name}</b>",
+                title=f"Seasonal Average, Applicable Buildings - {location_name}</b>",
                 title_x=0.04,  # Align title to the left
                 title_y=0.97,  # Move title to the bottom
                 title_xanchor='left',
@@ -3613,27 +3523,24 @@ class PlottingMixin():
             title = "seasonal_average_subplot"
             fig_name = f'{title.replace(" ", "_").lower()}.{self.image_type}'
             fig_name_html = f'{title.replace(" ", "_").lower()}.html'
-            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{state_name}"))
+            fig_sub_dir = os.path.abspath(os.path.join(output_dir, f"timeseries/{location_name}"))
             if not os.path.exists(fig_sub_dir):
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-            fig.write_image(fig_path, scale=10)
+            fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
 
-    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, states, color_map, comstock_run_name):
-
-        # run crawler
-        run_data = BuildStockQuery('eulp', 'enduse', self.comstock_run_name, buildstock_type='comstock', skip_reports=False)
+    def plot_measure_timeseries_annual_average_by_state_and_enduse(self, df, output_dir, timeseries_locations_to_plot, color_map, comstock_run_name, comstock_obj=None):
 
         # get upgrade ID
-        df_upgrade = df.loc[df[self.UPGRADE_ID] != 0, :]
+        df_data = df.copy()
+        # coerce data type of upgrade ID - arrives as float, need str of int for querying
+        df_data[self.UPGRADE_ID] = pd.to_numeric(df_data[self.UPGRADE_ID], errors="coerce").astype("Int64").astype(str)
+        df_upgrade = df_data.loc[(df_data[self.UPGRADE_ID]!="0"), :]
         upgrade_num = list(df_upgrade[self.UPGRADE_ID].unique())
         upgrade_name = list(df_upgrade[self.UPGRADE_NAME].unique())
-
-        # get weights
-        dict_wgts = df_upgrade.groupby(self.BLDG_TYPE, observed=True)[self.BLDG_WEIGHT].mean().to_dict()
 
         standard_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         upgrade_colors = {upgrade: standard_colors[i % len(standard_colors)] for i, upgrade in enumerate(upgrade_num)}
@@ -3653,7 +3560,7 @@ class PlottingMixin():
                         return 'Weekend'
 
         # apply queries and weighting
-        for state, state_name in states.items():
+        for state, state_name in timeseries_locations_to_plot.items():
 
             # check to see if timeseries data already exists
             # check to see if timeseries file exists.
@@ -3663,7 +3570,10 @@ class PlottingMixin():
             dfs_merged=None
 
             if not os.path.exists(file_path):
-                dfs_base_combined, dfs_upgrade_combined = self.wgt_by_btype(df, run_data, dict_wgts, upgrade_num, state, upgrade_name)
+
+                ######### This is where we get the weighted data
+                dfs_base_combined, dfs_upgrade_combined = comstock_obj.get_weighted_load_profiles_from_s3(df_data, upgrade_num, state, upgrade_name)
+                #########
 
                 # merge into single dataframe
                 dfs_merged = pd.concat([dfs_base_combined, dfs_upgrade_combined], ignore_index=True)
@@ -3690,11 +3600,10 @@ class PlottingMixin():
                 dfs_merged['Season'] = dfs_merged['Month'].apply(map_to_season)
 
             dfs_merged_gb = dfs_merged.groupby(['in.upgrade_name', 'Season', 'Hour_of_Day'], observed=True)[dfs_merged.loc[:, dfs_merged.columns.str.contains('_kwh')].columns].mean().reset_index()
-            max_peak = dfs_merged_gb.loc[:, 'total_site_electricity_kwh_weighted'].max()
 
             # rename columns, convert units
             dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("electricity_", "")
-            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("_kwh_weighted", "")
+            dfs_merged_gb.columns = dfs_merged_gb.columns.str.replace("_kwh", "")
 
             # find peak week by season
             seasons = ['Summer', 'Shoulder', 'Winter']
@@ -3742,7 +3651,7 @@ class PlottingMixin():
                         showlegend = True
 
                     # add upgrade
-                    dfs_merged_gb_season_up = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] != 'baseline', :]
+                    dfs_merged_gb_season_up = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] != 'Baseline', :]
                     # if only 1 upgrade, plot end uses and total
                     if len(upgrade_num) == 1:
                         trace = go.Scatter(
@@ -3757,21 +3666,21 @@ class PlottingMixin():
                     else:
                         # if more than 1 upgrade, add only aggregate loads
                         for upgrade in upgrade_num:
-                            dfs_merged_pw_up_mult = dfs_merged_gb_season_up.loc[dfs_merged_gb_season_up['in.upgrade_name'] == self.dict_upid_to_upname[upgrade]]
+                            dfs_merged_pw_up_mult = dfs_merged_gb_season_up.loc[dfs_merged_gb_season_up['in.upgrade_name'] == self.dict_upid_to_upname[int(upgrade)]]
 
                             upgrade_trace = go.Scatter(
                             x=dfs_merged_pw_up_mult['Hour_of_Day'],
                             y=dfs_merged_pw_up_mult[enduse]/1000,
                             mode='lines',
-                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[upgrade]]
-                            name=self.dict_upid_to_upname[upgrade],
-                            legendgroup=self.dict_upid_to_upname[upgrade],
+                            line=dict(color=upgrade_colors[upgrade], width=1.8, dash='solid'), #color=color_map[self.dict_upid_to_upname[int(upgrade)]]
+                            name=self.dict_upid_to_upname[int(upgrade)],
+                            legendgroup=self.dict_upid_to_upname[int(upgrade)],
                             showlegend=showlegend
                             )
                             fig.add_trace(upgrade_trace, row=row, col=col)
 
                     # add baseline load
-                    dfs_merged_gb_season_base = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] == "baseline"]
+                    dfs_merged_gb_season_base = dfs_merged_gb_season.loc[dfs_merged_gb_season['in.upgrade_name'] == "Baseline"]
                     baseline_trace = go.Scatter(
                         x=dfs_merged_gb_season_base['Hour_of_Day'],
                         y=dfs_merged_gb_season_base[enduse]/1000,
@@ -3824,5 +3733,5 @@ class PlottingMixin():
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
 
-            fig.write_image(fig_path, scale=10)
+            fig.write_image(fig_path, scale=6)
             fig.write_html(fig_path_html)
