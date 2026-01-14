@@ -2309,6 +2309,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         setback_value_arg = arguments[idx].clone
         setback_value_arg.setValue(setback_val) # set setback value
         argument_map[arg.name] = setback_value_arg
+      elsif arg.name == 'modify_setbacks'
+        modify_setbacks = arguments[idx].clone
+        modify_setbacks.setValue(true)
+        argument_map[arg.name] = modify_setbacks
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -2399,6 +2403,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         setback_value_arg = arguments[idx].clone
         setback_value_arg.setValue(setback_val) # set setback value
         argument_map[arg.name] = setback_value_arg
+      elsif arg.name == 'modify_setbacks'
+        modify_setbacks = arguments[idx].clone
+        modify_setbacks.setValue(true)
+        argument_map[arg.name] = modify_setbacks
       else
         argument_map[arg.name] = temp_arg_var
       end
