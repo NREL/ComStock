@@ -3194,7 +3194,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       when "match_original_primary_heating_fuel"
         if prim_ht_fuel_type == "electric"
           coil_type = :electric
-        elsif prim_ht_fuel_type == "natural gas"
+        elsif prim_ht_fuel_type == "gas"
           coil_type = :gas
         end
 
