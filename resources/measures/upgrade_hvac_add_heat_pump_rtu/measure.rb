@@ -1214,7 +1214,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   def create_two_stage_dual_fuel_gas_coil_with_ems(
     model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old,
-    new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio
+    new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio, hp_min_comp_lockout_temp_f
   )
 
     # get simulation timestep
@@ -1315,6 +1315,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     s_airloop_setpoint_t.setName("#{ems_name_airloop}_s_airloop_setpoint_t")
     s_airloop_setpoint_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
 
+    s_oat_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "Site Outdoor Air Drybulb Temperature"
+    )
+    s_oat_t.setName("#{ems_name_airloop}_s_oat_t")
+    s_oat_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+
     # -------------------------------------------------------------------------------
     # EMS global variables
     # -------------------------------------------------------------------------------
@@ -1361,9 +1367,15 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET burner_eff = 0.8")
     ems_program.addLine("SET #{g_fuel_usage_1.name} = 0.0")
     ems_program.addLine("SET #{g_fuel_usage_2.name} = 0.0")
+    ems_program.addLine("SET mech_heat_enable = 0")
 
     # Mechanical heating must be active
     ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
+    ems_program.addLine("  SET mech_heat_enable = 1")
+    ems_program.addLine("ELSEIF #{s_oat_t.name} < #{hp_min_comp_lockout_temp_f}")
+    ems_program.addLine("  SET mech_heat_enable = 1")
+    ems_program.addLine("ENDIF")
+    ems_program.addLine("IF mech_heat_enable == 1")
     ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
     ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
 
@@ -1404,7 +1416,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("      ENDIF") # Stage 1 sufficient?
     ems_program.addLine("    ENDIF")   # mdot > 0
     ems_program.addLine("  ENDIF")     # inlet < setpoint
-    ems_program.addLine("ENDIF")       # dx runtime > 0
+    ems_program.addLine("ENDIF")       # mech_heat_enable
 
     # Convert power to energy
     ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
@@ -3298,7 +3310,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           new_dx_heating_coil,
           orig_htg_coil_gross_cap_old,
           new_air_to_air_heatpump,
-          hybrid_gas_coil_stage_ratio
+          hybrid_gas_coil_stage_ratio,
+          hp_min_comp_lockout_temp_f
         )
       end
 
