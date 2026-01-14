@@ -4844,6 +4844,7 @@ census_division_name_recs	*
 american_housing_survey_region	*
 weather_file_2018	*
 weather_file_TMY3	*
+cec_climate_zone	*
 climate_zone_building_america	*
 climate_zone_ashrae_2006	*
 iso_region	*
