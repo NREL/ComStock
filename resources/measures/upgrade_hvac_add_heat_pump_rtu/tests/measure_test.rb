@@ -297,6 +297,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     path_to_jsons = "#{__dir__}/../resources/*.json"
     json_files = Dir.glob(path_to_jsons)
     json_files.each do |file_path|
+      puts("### checking json file: #{file_path}")
       begin
         content = File.read(file_path)
         hash = JSON.parse(content, symbolize_names: true)
@@ -381,6 +382,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     json_files = Dir.glob(path_to_jsons)
 
     json_files.each do |file_path|
+      puts("### checking json file: #{file_path}")
       begin
         content = File.read(file_path)
         hash = JSON.parse(content, symbolize_names: true)
@@ -392,6 +394,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       rescue JSON::ParserError => e
         flunk "JSON parsing failed for #{file_path}: #{e.message}"
       end
+    end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -500,6 +503,11 @@ class AddHeatPumpRtuTest < Minitest::Test
       calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
 
     elsif performance_category.include?('standard')
+
+      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
+      calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
+
+    elsif performance_category.include?('dualfuel')
 
       calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
       calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -976,6 +984,12 @@ class AddHeatPumpRtuTest < Minitest::Test
       rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
+      # puts("### checking coil")
+      # puts("heating_coil.name = #{heating_coil.name}")
+      # puts("rated_capacity_w = #{rated_capacity_w}")
+      # puts("rated_airflow_cfm = #{rated_airflow_cfm}")
+      # puts("cfm_per_ton = #{cfm_per_ton}")
+
       # check if resultant cfm/ton is violating min/max bounds
       assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | heating_coil = #{heating_coil.name}")
       assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | heating_coil = #{heating_coil.name}")
@@ -1028,44 +1042,15 @@ class AddHeatPumpRtuTest < Minitest::Test
       rated_airflow_cfm = OpenStudio.convert(rated_airflow_m_3_per_sec, 'm^3/s', 'cfm').get
       cfm_per_ton = rated_airflow_cfm / rated_capacity_ton
 
+      # puts("### checking coil")
+      # puts("cooling_coil.name = #{cooling_coil.name}")
+      # puts("rated_capacity_w = #{rated_capacity_w}")
+      # puts("rated_airflow_cfm = #{rated_airflow_cfm}")
+      # puts("cfm_per_ton = #{cfm_per_ton}")
+
       # check if resultant cfm/ton is violating min/max bounds
       assert_equal(cfm_per_ton.round(0) >= cfm_per_ton_min, true, "cfm_per_ton (#{cfm_per_ton}) is not larger than the threshold of cfm_per_ton_min (#{cfm_per_ton_min}) | cooling_coil = #{cooling_coil.name}")
       assert_equal(cfm_per_ton.round(0) <= cfm_per_ton_max, true, "cfm_per_ton (#{cfm_per_ton}) is not smaller than the threshold of cfm_per_ton_max (#{cfm_per_ton_max}) | cooling_coil = #{cooling_coil.name}")
-    end
-  end
-
-  def verify_cfm_per_ton(model, result)
-    # define min and max limits of cfm/ton
-    cfm_per_ton_min = 300
-    cfm_per_ton_max = 450
-
-    # Create an instance of the measure
-    measure = AddHeatPumpRtu.new
-
-    # initialize parameters
-    performance_category = nil
-
-    # check performance category
-    result.stepValues.each do |input_arg|
-      next unless input_arg.name == 'hprtu_scenario'
-
-      performance_category = input_arg.valueAsString
-
-      puts performance_category
-    end
-    refute_equal(performance_category, nil)
-
-    # loop through coils and check cfm/ton values
-    if performance_category.include?('high_eff')
-
-      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-      calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-
-    elsif performance_category.include?('standard')
-
-      calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
-      calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
-
     end
   end
 
@@ -1753,6 +1738,144 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
+  # This test is for dual fuel RTU unit
+  def test_380_full_service_restaurant_psz_gas_coil_dual_fuel_rtu
+    osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
+    epw_name = 'GA_ROBINS_AFB_722175_12.epw'
+
+    puts "\n######\nTEST:#{osm_name}\n######\n"
+
+    lookup_table_tests = [
+      {
+        'table_name': 'cap_mod_cooling_high_t',
+        'ind1': 19.44,
+        'ind2': 46.11,
+        'dep': 0.8631
+      },
+      {
+        'table_name': 'cap_mod_cooling_low_t',
+        'ind1': 22.22,
+        'ind2': 40.56,
+        'dep': 1.0385
+      },
+      {
+        'table_name': 'cap_mod_heating_high_t',
+        'ind1': 12.78,
+        'ind2': 10.0,
+        'dep': 1.0833
+      },
+      {
+        'table_name': 'eir_mod_cooling_high_t',
+        'ind1': 16.67,
+        'ind2': 40.56,
+        'dep': 1.2784
+      },
+      {
+        'table_name': 'eir_mod_cooling_low_t',
+        'ind1': 21.67,
+        'ind2': 46.11,
+        'dep': 1.3759
+      },
+      {
+        'table_name': 'eir_mod_heating_high_t',
+        'ind1': 12.78,
+        'ind2': -23.33,
+        'dep': 3.1502
+      }
+    ]
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'backup_ht_fuel_scheme'
+        backup_ht_fuel_scheme = arguments[idx].clone
+        backup_ht_fuel_scheme.setValue('dual_fuel_gas_furnace_backup')  
+        argument_map[arg.name] = backup_ht_fuel_scheme
+      elsif arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('carrier_48qe_dualfuel')  # carrier_48qe_dualfuel, two_speed_standard_eff
+        argument_map[arg.name] = hprtu_scenario
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # Apply the measure to the model and optionally run the model
+    result = set_weather_and_apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false, apply: true)
+    assert_equal('Success', result.value.valueName)
+    model = load_model(model_output_path(__method__))
+
+    # check performance category
+    performance_category = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'hprtu_scenario'
+      performance_category = input_arg.valueAsString
+    end
+
+    # check performance category
+    back_up_type = nil
+    result.stepValues.each do |input_arg|
+      next unless input_arg.name == 'backup_ht_fuel_scheme'
+      back_up_type = input_arg.valueAsString
+    end
+
+    # test lookup table values
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    if performance_category == 'carrier_48qe_dualfuel'
+      lookup_table_tests.each do |lookup_table_test|
+        # Check if lookup table is available
+        lookup_table_name = lookup_table_test[:table_name]
+        #table_multivar_lookups = model.getTableMultiVariableLookups
+        table_multivar_lookups = model.getTableLookups
+        lookup_table = table_multivar_lookups.find { |table| table.name.to_s == lookup_table_name }
+        refute_nil(lookup_table, "Cannot find table named #{lookup_table_name} from model.")
+
+        # Compare table lookup value against hard-coded values
+        dep_var_ref = lookup_table_test[:dep]
+        dep_var = AddHeatPumpRtu.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, lookup_table_test[:ind1], lookup_table_test[:ind2])
+        # puts("### lookup table test")
+        # puts("--- lookup_table_name = #{lookup_table_name}")
+        # puts("--- input_var1 = #{lookup_table_test[:ind1]} | input_var2 = #{lookup_table_test[:ind2]}")
+        # puts("--- dep_var reference = #{dep_var_ref} | dep_var from model = #{dep_var}")
+        assert_in_epsilon(dep_var_ref, dep_var, 0.001, "Table lookup value test didn't pass: table name = #{lookup_table_name} | ind_var1 = #{lookup_table_test[:ind1]} | ind_var2 = #{lookup_table_test[:ind2]} | expected #{dep_var_ref} but got #{dep_var}")
+      end
+    end
+    if back_up_type == 'dual_fuel_gas_furnace_backup'
+      number_of_applicable_airloops = 6 # hard-coded based on example model
+
+      # count energymanagementsystem:program objects with specific naming patterns
+      count_ems_prgm_init = model.getEnergyManagementSystemPrograms.select { |prgm| prgm.name.to_s.end_with?('_initialization') }.size
+      count_ems_prgm = model.getEnergyManagementSystemPrograms.select { |prgm| prgm.name.to_s.end_with?('_two_stage_gas_coil') }.size
+
+      # count energymanagementsystem:programcallingmanager objects with specific naming patterns
+      count_ems_pcm_init = model.getEnergyManagementSystemProgramCallingManagers.select { |pcm| pcm.name.to_s.end_with?('_initialization') }.size
+      count_ems_pcm = model.getEnergyManagementSystemProgramCallingManagers.select { |pcm| pcm.name.to_s.end_with?('_pcm_gas_coil') }.size
+
+      # assert counts
+      assert_equal(number_of_applicable_airloops, count_ems_prgm_init, "expected #{number_of_applicable_airloops} ems programs with '_initialization' but got #{count_ems_prgm_init}")
+      assert_equal(number_of_applicable_airloops, count_ems_prgm, "expected #{number_of_applicable_airloops} ems programs with '_two_stage_gas_coil' but got #{count_ems_prgm}")
+      assert_equal(number_of_applicable_airloops, count_ems_pcm_init, "expected #{number_of_applicable_airloops} ems program calling managers with '_initialization' but got #{count_ems_pcm_init}")
+      assert_equal(number_of_applicable_airloops, count_ems_pcm, "expected #{number_of_applicable_airloops} ems program calling managers with '_two_stage_gas_coil' but got #{count_ems_pcm}")
+    end
+
+    # assert cfm/ton violation
+    verify_cfm_per_ton(model, result)
+  end
+
+  ###########################################################################
   # This test is for cfm/ton check for upsized unit
   def test_380_full_service_restaurant_psz_gas_coil_upsizing
     osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
@@ -2185,6 +2308,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         setback_value_arg = arguments[idx].clone
         setback_value_arg.setValue(setback_val) # set setback value
         argument_map[arg.name] = setback_value_arg
+      elsif arg.name == 'modify_setbacks'
+        modify_setbacks = arguments[idx].clone
+        modify_setbacks.setValue(true)
+        argument_map[arg.name] = modify_setbacks
       else
         argument_map[arg.name] = temp_arg_var
       end
@@ -2233,7 +2360,7 @@ class AddHeatPumpRtuTest < Minitest::Test
     # Make sure no deltas are greater than the expected setback value
     deltas_out_of_range = schedule_deltas.any? { |x| x > setback_value_c }
 	
-	puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
+    puts("Temperature deltas in schedule match expected values: #{(deltas_out_of_range == false)}")
 
     assert_equal(deltas_out_of_range, false)
 	
@@ -2275,6 +2402,10 @@ class AddHeatPumpRtuTest < Minitest::Test
         setback_value_arg = arguments[idx].clone
         setback_value_arg.setValue(setback_val) # set setback value
         argument_map[arg.name] = setback_value_arg
+      elsif arg.name == 'modify_setbacks'
+        modify_setbacks = arguments[idx].clone
+        modify_setbacks.setValue(true)
+        argument_map[arg.name] = modify_setbacks
       else
         argument_map[arg.name] = temp_arg_var
       end

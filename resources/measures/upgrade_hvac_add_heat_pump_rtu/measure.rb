@@ -10,7 +10,10 @@ Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
+
+  # ---------------------------------------------------------
   # defining global variable
+  # ---------------------------------------------------------
   # adding tolerance because EnergyPlus unit conversion differs from manual conversion
   # reference: https://github.com/NREL/EnergyPlus/blob/337bfbadf019a80052578d1bad6112dca43036db/src/EnergyPlus/DataHVACGlobals.hh#L362-L368
   CFM_PER_TON_MIN_RATED = 300 # hard limit of 300
@@ -18,6 +21,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # CFM_PER_TON_MIN_OPERATIONAL = 200 # hard limit of 200 for operational minimum threshold for both heating/cooling
   # CFM_PER_TON_MAX_OPERATIONAL_HEATING = 600 # hard limit of 600 for operational maximum threshold for both heating
   # CFM_PER_TON_MAX_OPERATIONAL_COOLING = 500 # hard limit of 500 for operational maximum threshold for both cooling
+
+  # ---------------------------------------------------------
+  # required methods
+  # ---------------------------------------------------------
 
   # human readable name
   def name
@@ -40,7 +47,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     args = OpenStudio::Measure::OSArgumentVector.new
 
     # make list of backup heat options
-    li_backup_heat_options = %w[match_original_primary_heating_fuel electric_resistance_backup]
+    li_backup_heat_options = %w[match_original_primary_heating_fuel electric_resistance_backup dual_fuel_gas_furnace_backup]
     v_backup_heat_options = OpenStudio::StringVector.new
     li_backup_heat_options.each do |option|
       v_backup_heat_options << option
@@ -97,7 +104,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     args << hp_min_comp_lockout_temp_f
 
     # make list of cchpc scenarios
-    li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec]
+    li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec carrier_48qe_dualfuel]
     v_li_hprtu_scenarios = OpenStudio::StringVector.new
     li_hprtu_scenarios.each do |option|
       v_li_hprtu_scenarios << option
@@ -156,7 +163,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # modify setbacks or not
     modify_setbacks = OpenStudio::Measure::OSArgument.makeBoolArgument('modify_setbacks', false)
     modify_setbacks.setDisplayName('Modify setbacks in heating mode? True will adjust setbacks, according to value in setback value argument.')
-    modify_setbacks.setDefaultValue(true)
+    modify_setbacks.setDefaultValue(false)
     args << modify_setbacks
 
     # setback value
@@ -181,8 +188,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     result
   end
 
-  #### Predefined functions
+  # ---------------------------------------------------------
+  # supporting methods
+  # ---------------------------------------------------------
+
   # determine if the air loop is residential (checks to see if there is outdoor air system object)
+  # Determines if an air loop is a residential system based on its components.
+  # A system is considered residential if it does NOT contain an outdoor air system component.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop to check
+  # @return [Boolean] true if the air loop is a residential system (no outdoor air system), false otherwise
   def air_loop_res?(air_loop_hvac)
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
@@ -196,6 +211,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Determine if is evaporative cooler
+  # Checks if an air loop contains any evaporative cooler components.
+  #
+  # This method iterates through all supply components of the given air loop
+  # and determines if any evaporative cooling equipment is present.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop to check for evaporative coolers
+  # @return [Boolean] true if the air loop contains any evaporative cooler component, false otherwise
   def air_loop_evaporative_cooler?(air_loop_hvac)
     is_evap = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -210,6 +232,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # Determine if the air loop is a unitary system
   # @return [Bool] Returns true if a unitary system is present, false if not.
+  # Determines if an air loop HVAC system contains a unitary system component.
+  #
+  # This method checks the supply components of an air loop to identify if any
+  # of them are unitary system types, including standard unitary systems,
+  # air-to-air heat pumps, multi-speed heat pumps, or VAV changeover bypass systems.
+  #
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop HVAC system to check
+  # @return [Boolean] true if the air loop contains a unitary system component, false otherwise
   def air_loop_hvac_unitary_system?(air_loop_hvac)
     is_unitary_system = false
     air_loop_hvac.supplyComponents.each do |component|
@@ -224,6 +254,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   # Load curve to model from json
   # modified version from OS Standards to read from custom json file
+  # Adds a performance curve to the OpenStudio model based on curve data from standards.
+  # First checks if the curve already exists in the model and returns it if found.
+  # Otherwise, creates a new curve object of the appropriate type and configures it
+  # with coefficients and limits from the standards data.
+  #
+  # @param model [OpenStudio::Model::Model] the OpenStudio model object
+  # @param curve_name [String] the name of the curve to add
+  # @param standards_data_curve [Hash] hash containing the 'tables' key with curve data
+  # @param std [Standard] the standards object used to find curve data
+  # @return [OpenStudio::Model::Curve, OpenStudio::Model::TableLookup, nil] the curve object if found/created, nil if curve data not found
   def model_add_curve(model, curve_name, standards_data_curve, std)
     # First check model and return curve if it already exists
     existing_curves = []
@@ -404,6 +444,32 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Assign staging data from json
+  # Extracts and returns heat pump staging configuration data from a JSON data structure.
+  # Parses performance parameters including stage counts, capacity fractions, flow fractions,
+  # COP fractions, and other staging-related settings for both heating and cooling operations.
+  #
+  # @param staging_data_json [Hash] JSON hash containing staging data in 'tables']['curves'] structure
+  # @param std [Standard] OpenStudio Standards object used for data lookup
+  # @return [Array<Integer, Integer, Integer, Integer, Float, Float, Array, Array, Array, Array, Array, Array, Array, Array, Boolean, Float, Float>] 
+  #   Returns an array containing:
+  #   - num_heating_stages: number of heating stages
+  #   - num_cooling_stages: number of cooling stages
+  #   - rated_stage_num_heating: rated heating stage number
+  #   - rated_stage_num_cooling: rated cooling stage number
+  #   - final_rated_cooling_cop: rated cooling COP
+  #   - final_rated_heating_cop: rated heating COP
+  #   - stage_cap_fractions_heating: heating capacity fractions by stage
+  #   - stage_flow_fractions_heating: heating flow fractions by stage
+  #   - stage_cap_fractions_cooling: cooling capacity fractions by stage
+  #   - stage_flow_fractions_cooling: cooling flow fractions by stage
+  #   - stage_rated_cop_frac_heating: heating COP fractions by stage
+  #   - stage_rated_cop_frac_cooling: cooling COP fractions by stage
+  #   - boost_stage_num_and_max_temp_tuple: boost stage configuration
+  #   - stage_gross_rated_sensible_heat_ratio_cooling: sensible heat ratios for cooling stages
+  #   - enable_cycling_losses_above_lowest_speed: flag for cycling losses
+  #   - reference_cooling_cfm_per_ton: reference cooling airflow per ton
+  #   - reference_heating_cfm_per_ton: reference heating airflow per ton
+  # @return [nil] returns nil if staging data cannot be found in the JSON structure
   def assign_staging_data(staging_data_json, std)
     # Parse the JSON string into a Ruby hash
     # Find curve data
@@ -438,6 +504,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # Get rated cooling COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
+  #
+  # @param rated_capacity_w [Float] the rated cooling capacity in watts
+  # @return [Float] the rated cooling COP, clamped between min_cop (3.02) and max_cop (3.97)
   def get_rated_cop_cooling(rated_capacity_w)
     intercept = 3.881009
     coef_1 = -0.01034
@@ -451,6 +520,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # Get rated heating COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
+  # Calculates the rated Coefficient of Performance (COP) for heating based on the equipment's rated capacity.
+  # The calculation uses a linear regression model with capacity-based coefficients and applies
+  # minimum and maximum COP constraints to ensure the result falls within acceptable performance bounds.
+  #
+  # @param rated_capacity_w [Numeric] The rated heating capacity in Watts
+  # @return [Float] The rated heating COP, constrained between 3.46 and 3.99
   def get_rated_cop_heating(rated_capacity_w)
     intercept = 3.957724
     coef_1 = -0.008502
@@ -462,6 +537,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated cooling COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Calculates the rated Coefficient of Performance (COP) for cooling in advanced mode
+  # based on the rated capacity of the equipment.
+  #
+  # The COP is calculated using a linear regression model with capacity as the independent variable.
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance bounds.
+  #
+  # @param rated_capacity_w [Float] The rated cooling capacity in watts (W)
+  # @return [Float] The rated cooling COP, clamped between 3.34 and 4.29
   def get_rated_cop_cooling_adv(rated_capacity_w)
     intercept = 4.140806
     coef_1 = -0.007577
@@ -473,6 +556,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   end
 
   # Get rated heating COP from fitted regression - for advanced HP RTU (from Daikin Rebel data)
+  # Calculates the rated coefficient of performance (COP) for heating in advanced heat pump systems
+  # based on the rated capacity. The COP is determined using a linear regression model with
+  # capacity-based adjustments and is clamped between minimum and maximum values.
+  #
+  # @param rated_capacity_w [Float] the rated heating capacity in watts (W)
+  # @return [Float] the rated heating COP, clamped between 3.5 and 3.87
   def get_rated_cop_heating_adv(rated_capacity_w)
     intercept = 3.861114
     coef_1 = -0.003304
@@ -483,17 +572,79 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     rated_cop_heating.clamp(min_cop, max_cop)
   end
 
-  # Convert unit
+  # Get rated cooling COP from fitted regression - for Carrier dual fuel RTU (48QE)
+  # Calculates the rated coefficient of performance (COP) for cooling in Carrier's 48QE dual fuel RTU
+  # based on the rated capacity of the equipment.
+  #
+  # The COP is calculated using a linear regression model with capacity as the independent variable.
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance bounds.
+  #
+  # @param rated_capacity_w [Float] The rated cooling capacity in watts (W)
+  # @return [Float] The rated cooling COP, clamped between 3.07 and 3.91
+  def get_rated_cop_cooling_dualfuelrtu(rated_capacity_w)
+    intercept = 3.99207113
+    coef_1 = -0.00000969
+    min_cop = 3.07
+    max_cop = 3.91
+    rated_cop_cooling = intercept + (coef_1 * rated_capacity_w)
+    rated_cop_cooling.clamp(min_cop, max_cop)
+  end
+
+  # Get rated heating COP from fitted regression - for Carrier dual fuel RTU (48QE)
+  # Calculates the rated coefficient of performance (COP) for heating in a dual fuel RTU
+  # based on the rated capacity using a linear regression model.
+  #
+  # The COP is calculated using the formula: COP = intercept + (coefficient * capacity)
+  # The result is clamped between minimum and maximum COP values to ensure realistic performance.
+  #
+  # @param rated_capacity_w [Float] The rated heating capacity in watts
+  # @return [Float] The rated heating COP, clamped between 3.57 and 3.89
+  def get_rated_cop_heating_dualfuelrtu(rated_capacity_w)
+    intercept = 3.83411768
+    coef_1 = -0.00000337
+    min_cop = 3.57
+    max_cop = 3.89
+    rated_cop_heating = intercept + (coef_1 * rated_capacity_w)
+    rated_cop_heating.clamp(min_cop, max_cop)
+  end
+
+  # Converts airflow per cooling capacity from CFM per ton to cubic meters per second per watt.
+  #
+  # This conversion is used when transitioning between imperial and metric units for HVAC sizing calculations.
+  # The conversion accounts for both volumetric flow rate (CFM to m³/s) and capacity (tons to watts).
+  #
+  # @param cfm_per_ton [Float] airflow rate in cubic feet per minute per ton of cooling capacity
+  # @return [Float] airflow rate in cubic meters per second per watt of cooling capacity
   def cfm_per_ton_to_m_3_per_sec_watts(cfm_per_ton)
     OpenStudio.convert(OpenStudio.convert(cfm_per_ton, 'cfm', 'm^3/s').get, 'W', 'ton').get
   end
 
-  # Convert unit
+  # Converts airflow per cooling capacity from cubic meters per second per watt to CFM per ton.
+  #
+  # This conversion is used when transitioning between metric and imperial units for HVAC sizing calculations.
+  # The conversion accounts for both volumetric flow rate (m³/s to CFM) and capacity (watts to tons).
+  #
+  # @param m_3_per_sec_watts [Float] airflow rate in cubic meters per second per watt of cooling capacity
+  # @return [Float] airflow rate in cubic feet per minute per ton of cooling capacity
   def m_3_per_sec_watts_to_cfm_per_ton(m_3_per_sec_watts)
     OpenStudio.convert(OpenStudio.convert(m_3_per_sec_watts, 'm^3/s', 'cfm').get, 'ton', 'W').get
   end
 
-  # Adjust rated COP based on reference CFM/ton
+  # Adjusts the rated Coefficient of Performance (COP) based on reference airflow per ton of capacity.
+  #
+  # This method calculates an adjusted COP by evaluating how the actual sized airflow compares to
+  # a reference airflow rate (specified in CFM per ton). The adjustment uses an Energy Input Ratio (EIR)
+  # modifier curve as a function of flow fraction to determine the performance impact.
+  #
+  # @param runner [OpenStudio::Measure::OSRunner] the measure runner for logging
+  # @param airflow_sized_m_3_per_s [Float] the actual sized airflow rate in cubic meters per second
+  # @param reference_cfm_per_ton [Float] the reference airflow rate in cubic feet per minute per ton of capacity
+  # @param rated_capacity_w [Float] the rated capacity in watts
+  # @param original_rated_cop [Float] the original rated Coefficient of Performance before adjustment
+  # @param eir_modifier_curve_flow [OpenStudio::Model::Curve] the EIR modifier curve as a function of flow fraction
+  #   (supports CurveBiquadratic, CurveQuadratic, or CurveCubic types)
+  # @return [Float] the adjusted rated COP accounting for the difference between sized and reference airflow
+  # @raise [RuntimeError] if the eir_modifier_curve_flow is not a supported curve type
   def adjust_rated_cop_from_ref_cfm_per_ton(runner, airflow_sized_m_3_per_s, reference_cfm_per_ton, rated_capacity_w,
                                             original_rated_cop, eir_modifier_curve_flow)
     # get reference airflow
@@ -518,7 +669,35 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     original_rated_cop * (1.0 / modifier_eir)
   end
 
-  # Adjust CFM/ton based on limits
+  # Adjusts airflow and capacity for each stage to ensure CFM per ton ratios stay within acceptable bounds.
+  # This method validates and adjusts stage-level airflows and capacities to maintain CFM/ton ratios
+  # between minimum (300) and maximum (450) limits. Lower speed stages that cannot meet these limits
+  # may be disabled. If the rated/highest stage violates limits, airflow is adjusted to comply.
+  #
+  # The method:
+  # - Calculates flow per ton for each stage
+  # - Adjusts airflow or capacity if outside CFM/ton bounds
+  # - May disable lower stages if they cannot meet minimum airflow requirements
+  # - Ensures at least 2 stages remain active when possible
+  # - Updates stage flow fractions based on terminal supply airflow
+  #
+  # @param stage_cap_fractions [Hash] Hash of stage number to capacity fraction (relative to rated capacity)
+  # @param stage_flows [Hash] Hash of stage number to airflow in m³/s
+  # @param stage_flow_fractions [Hash] Hash of stage number to flow fraction (relative to design flow)
+  # @param dx_rated_cap_applied [Float] Applied rated DX capacity in watts after any upsizing
+  # @param rated_stage_num [Integer] The stage number that represents rated conditions
+  # @param old_terminal_sa_flow_m3_per_s [Float] Original terminal supply air flow rate in m³/s
+  # @param min_airflow_ratio [Float] Minimum allowable airflow ratio to maintain ventilation requirements
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop being modified
+  # @param heating_or_cooling [String] Either 'heating' or 'cooling' to identify which mode is being adjusted
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param debug_verbose [Boolean] Flag to enable detailed debug logging
+  # @return [Array<Hash, Hash, Hash, Hash, Integer>] Returns array containing:
+  #   - stage_flows: updated hash of stage flows in m³/s
+  #   - stage_caps: updated hash of stage capacities in watts
+  #   - stage_flow_fractions: updated hash of stage flow fractions
+  #   - stage_cap_fractions: updated hash of stage capacity fractions
+  #   - num_stages: final number of active stages after adjustments
   def adjust_cfm_per_ton_per_limits(stage_cap_fractions, stage_flows, stage_flow_fractions, dx_rated_cap_applied,
                                     rated_stage_num, old_terminal_sa_flow_m3_per_s, min_airflow_ratio, air_loop_hvac, heating_or_cooling, runner, debug_verbose)
     # determine capacities for each stage
@@ -635,7 +814,33 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     [stage_flows, stage_caps, stage_flow_fractions, stage_cap_fractions, num_stages]
   end
 
-  # Set coling coil stages in relevant objects/fields
+  # Sets up cooling coil configuration with appropriate number of stages and performance curves.
+  # Creates either a single-speed or multi-speed DX cooling coil based on the number of stages,
+  # and assigns performance curves, rated capacities, airflows, and other operating parameters
+  # to each stage. Handles stage-specific capacity fractions, flow rates, COP values, and
+  # sensible heat ratios.
+  #
+  # @param model [OpenStudio::Model::Model] the OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] the measure runner for logging
+  # @param stage_flows_cooling [Hash] hash mapping stage number to design airflow rate (m³/s)
+  # @param stage_caps_cooling [Hash] hash mapping stage number to cooling capacity (W)
+  # @param num_cooling_stages [Integer] total number of cooling stages
+  # @param final_rated_cooling_cop [Float] the rated cooling coefficient of performance
+  # @param cool_cap_ft_curve_stages [Hash] hash mapping stage number to capacity modifier curve (function of temperature)
+  # @param cool_eir_ft_curve_stages [Hash] hash mapping stage number to EIR modifier curve (function of temperature)
+  # @param cool_cap_ff_curve_stages [Hash] hash mapping stage number to capacity modifier curve (function of flow fraction)
+  # @param cool_eir_ff_curve_stages [Hash] hash mapping stage number to EIR modifier curve (function of flow fraction)
+  # @param cool_plf_fplr1 [OpenStudio::Model::Curve] part load fraction curve as function of part load ratio
+  # @param stage_rated_cop_frac_cooling [Hash] hash mapping stage number to COP fraction relative to rated COP
+  # @param stage_gross_rated_sensible_heat_ratio_cooling [Hash] hash mapping stage number to sensible heat ratio
+  # @param rated_stage_num_cooling [Integer] the stage number representing rated conditions
+  # @param enable_cycling_losses_above_lowest_speed [Boolean] flag to enable part load losses for speeds above stage 1
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] the air loop being modified
+  # @param always_on [OpenStudio::Model::ScheduleConstant] always-on schedule for availability
+  # @param _stage_caps_heating [Hash] hash of heating stage capacities (unused parameter)
+  # @param debug_verbose [Boolean] flag to enable detailed debug logging
+  # @return [OpenStudio::Model::CoilCoolingDXSingleSpeed, OpenStudio::Model::CoilCoolingDXMultiSpeed] 
+  #   the configured cooling coil object (single-speed for 1 stage, multi-speed for multiple stages)
   def set_cooling_coil_stages(model, runner, stage_flows_cooling, stage_caps_cooling, num_cooling_stages, final_rated_cooling_cop, cool_cap_ft_curve_stages, cool_eir_ft_curve_stages,
                               cool_cap_ff_curve_stages, cool_eir_ff_curve_stages, cool_plf_fplr1, stage_rated_cop_frac_cooling, stage_gross_rated_sensible_heat_ratio_cooling,
                               rated_stage_num_cooling, enable_cycling_losses_above_lowest_speed, air_loop_hvac, always_on, _stage_caps_heating, debug_verbose)
@@ -728,7 +933,36 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     new_dx_cooling_coil
   end
 
-  # Set coling coil stages in relevant objects/fields
+  # Sets up heating coil stages for a heat pump RTU system
+  #
+  # This method configures either a single-speed or multi-speed DX heating coil based on the number
+  # of heating stages defined. It validates that the number of capacity stages matches the number
+  # of flow stages, then creates and configures the appropriate coil type with performance curves,
+  # defrost settings, and crankcase heater specifications.
+  #
+  # @param model [OpenStudio::Model::Model] The OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param stage_flows_heating [Hash] Hash of heating airflow rates by stage number
+  # @param stage_caps_heating [Hash] Hash of heating capacities by stage number
+  # @param num_heating_stages [Integer] Number of heating stages
+  # @param final_rated_heating_cop [Float] Rated heating coefficient of performance
+  # @param heat_cap_ft_curve_stages [Hash] Hash of heating capacity function of temperature curves by stage
+  # @param heat_eir_ft_curve_stages [Hash] Hash of heating EIR function of temperature curves by stage
+  # @param heat_cap_ff_curve_stages [Hash] Hash of heating capacity function of flow fraction curves by stage
+  # @param heat_eir_ff_curve_stages [Hash] Hash of heating EIR function of flow fraction curves by stage
+  # @param heat_plf_fplr1 [OpenStudio::Model::Curve] Part load fraction correlation curve
+  # @param defrost_eir [OpenStudio::Model::Curve] Defrost energy input ratio curve
+  # @param _stage_rated_cop_frac_heating [Hash] Hash of COP fractions by stage (for multi-speed only)
+  # @param rated_stage_num_heating [Integer] The rated stage number for heating
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop HVAC system
+  # @param hp_min_comp_lockout_temp_f [Float] Minimum outdoor temperature for compressor operation in Fahrenheit
+  # @param enable_cycling_losses_above_lowest_speed [Boolean] Whether to apply part load fraction to speeds > 1
+  # @param always_on [OpenStudio::Model::ScheduleConstant] Schedule that is always on
+  # @param _stage_caps_cooling [Hash] Hash of cooling capacities by stage (unused but kept for compatibility)
+  # @param debug_verbose [Boolean] Flag to enable verbose debug logging
+  #
+  # @return [OpenStudio::Model::CoilHeatingDXSingleSpeed, OpenStudio::Model::CoilHeatingDXMultiSpeed]
+  #   Returns the newly created heating coil object (single-speed or multi-speed depending on num_heating_stages)
   def set_heating_coil_stages(model, runner, stage_flows_heating, stage_caps_heating, num_heating_stages, final_rated_heating_cop, heat_cap_ft_curve_stages, heat_eir_ft_curve_stages,
                               heat_cap_ff_curve_stages, heat_eir_ff_curve_stages, heat_plf_fplr1, defrost_eir, _stage_rated_cop_frac_heating, rated_stage_num_heating, air_loop_hvac, hp_min_comp_lockout_temp_f,
                               enable_cycling_losses_above_lowest_speed, always_on, _stage_caps_cooling, debug_verbose)
@@ -823,8 +1057,24 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
     new_dx_heating_coil
   end
-
-  # Get tabular data from sql file
+  
+  # Retrieves a specific numeric value from the OpenStudio SQL tabular data output.
+  #
+  # This method queries the TabularDataWithStrings table in the SQL file to extract
+  # a single double value based on the provided report structure identifiers.
+  #
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging
+  # @param _model [OpenStudio::Model::Model] The OpenStudio model (unused parameter)
+  # @param sql [OpenStudio::SqlFile] The SQL file object containing simulation results
+  # @param report_name [String] The name of the report (e.g., 'AnnualBuildingUtilityPerformanceSummary')
+  # @param report_for_string [String] The report scope identifier (e.g., 'Entire Facility')
+  # @param table_name [String] The name of the table within the report
+  # @param row_name [String] The row identifier in the table
+  # @param column_name [String] The column identifier in the table
+  #
+  # @return [OpenStudio::OptionalDouble] An OptionalDouble containing the queried value if found,
+  #   or an uninitialized OptionalDouble if the query fails. Registers an error with the runner
+  #   if the value cannot be retrieved.
   def get_tabular_data(runner, _model, sql, report_name, report_for_string, table_name, row_name, column_name)
     result = OpenStudio::OptionalDouble.new
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = '#{report_name}' AND ReportForString = '#{report_for_string}' AND TableName = '#{table_name}' AND RowName = '#{row_name}' AND ColumnName = '#{column_name}'"
@@ -836,7 +1086,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
     result
   end
-
+  
+  # Retrieves a dependent variable value from a 2D lookup table using bilinear interpolation.
+  #
+  # This method performs bilinear interpolation on a TableLookup object with exactly two
+  # independent variables. It extracts the independent variable arrays and dependent variable
+  # values, clamps input values to the table bounds, and interpolates between grid points.
+  #
+  # @param runner [Object] The runner object used for logging warnings and errors
+  # @param lookup_table [Object] A TableLookup object containing:
+  #   - independentVariables: Array of two independent variable arrays
+  #   - outputValues: Flattened array of dependent variable values
+  # @param input1 [Numeric] The first input value to interpolate (corresponds to first independent variable)
+  # @param input2 [Numeric] The second input value to interpolate (corresponds to second independent variable)
+  #
+  # @return [Numeric, false] The interpolated dependent variable value, or false if:
+  #   - The table doesn't have exactly two independent variables
+  #   - Table dimensions don't match output size
   def self.get_dep_var_from_lookup_table_with_interpolation(runner, lookup_table, input1, input2)
     if lookup_table.independentVariables.size == 2
       # Extract independent variable arrays
@@ -920,6 +1186,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+
+  # Determines if a thermostat schedule contains part of an optimum start sequence at a given index.
+  # Optimum start is identified when the zone will be occupied in the next 1-2 time steps
+  # and the heating schedule value falls within the specified min/max range.
+  #
+  # @param sch_zone_occ_annual_profile [Array] Annual occupancy schedule profile (0 = unoccupied, 1 = occupied)
+  # @param htg_schedule_annual_profile [Array] Annual heating schedule profile with temperature setpoints
+  # @param min_value [Float] Minimum threshold value for heating schedule to be considered optimum start
+  # @param max_value [Float] Maximum threshold value for heating schedule to be considered optimum start
+  # @param idx [Integer] Index position in the annual profile arrays to evaluate
+  # @return [Boolean, nil] Returns true if optimum start conditions are met, nil otherwise
   def opt_start?(sch_zone_occ_annual_profile, htg_schedule_annual_profile, min_value, max_value, idx)
     # method to determine if a thermostat schedule contains part of an optimum start sequence at a given index
     if (sch_zone_occ_annual_profile[idx + 1] == 1 || sch_zone_occ_annual_profile[idx + 2] == 1) &&
@@ -928,7 +1205,485 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
-  #### End predefined functions
+  # Creates a two-stage dual fuel gas backup heating coil with Energy Management System (EMS) controls
+  # for hybrid heat pump systems.
+  #
+  # The method creates a user-defined coil with EMS actuators and sensors to control:
+  # - Two-stage gas heating operation (stage 1 and stage 2 with different capacities)
+  # - Integration with existing heat pump for dual fuel operation
+  # - Part load ratio calculations for each heating stage
+  # - Gas consumption tracking and metering for both stages
+  # - Dynamic adjustment of outlet temperature, humidity ratio, and mass flow rate
+  # - Fuel usage metering and reporting for each stage
+  #
+  # @param model [OpenStudio::Model::Model] The OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging and error handling
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop to which the coil will be added
+  # @param new_dx_heating_coil [OpenStudio::Model::CoilHeatingDXSingleSpeed] The existing DX heating coil (heat pump)
+  # @param orig_htg_coil_gross_cap_old [Float] Original gross heating capacity in watts for stage 2 sizing
+  # @param new_air_to_air_heatpump [OpenStudio::Model::AirLoopHVACUnitarySystem] The heat pump unitary system
+  # @param hp_min_comp_lockout_temp_f [Float] Minimum outdoor temperature in Fahrenheit for heat pump operation
+  # @param dx_rated_htg_cap_applied [Float] Rated heating capacity of the DX coil after adjustments
+  # @return [void] Creates and configures the dual fuel gas coil system with EMS controls
+  def create_two_stage_dual_fuel_gas_coil_with_ems(
+    model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old,
+    new_air_to_air_heatpump, hp_min_comp_lockout_temp_f,
+    dx_rated_htg_cap_applied
+  )
+
+    # get simulation timestep
+    num_steps_per_hr = model.getSimulationControl.timestep.get.numberOfTimestepsPerHour
+
+    # initialize constants
+    heating_capacity_stage_1_w, heating_capacity_stage_2_w = get_dual_fuel_gas_coil_capacity(dx_rated_htg_cap_applied)
+
+    # replace airloop name based on this hash and create Erl friendly name
+    label_map = {
+      'wholebuilding' => 'wb',
+      'office'        => 'off',
+      'zone'          => 'zn',
+      'story'         => 'stry',
+      'ground'        => 'grnd',
+      'psz-ac'        => '',
+      'fullservicerestaurant' => 'fsr',
+      'dining'       => 'din',
+    }
+    ems_name_airloop = air_loop_hvac.name.to_s.downcase
+
+    # Replace longer keys first to avoid partial collisions
+    label_map.sort_by { |k, _| -k.length }.each do |key, value|
+      ems_name_airloop.gsub!(key, value)
+    end
+
+    # Replace non-alphanumeric with underscore
+    ems_name_airloop.gsub!(/[^a-z0-9]/, '_')
+
+    # Collapse underscores
+    ems_name_airloop.gsub!(/_+/, '_')
+    ems_name_airloop.gsub!(/^_|_$/, '')
+
+    # Ensure valid EMS identifier (must start with letter)
+    unless ems_name_airloop =~ /^[a-z]/
+      ems_name_airloop = "a_#{ems_name_airloop}"
+    end
+
+    # -------------------------------------------------------------------------------
+    # Create user-defined backup heating coil and attach early
+    # -------------------------------------------------------------------------------
+
+    new_backup_heating_coil = OpenStudio::Model::CoilUserDefined.new(model)
+    new_backup_heating_coil.setName("#{ems_name_airloop}_hybrid_gas_heating_coil")
+    new_backup_heating_coil.addToNode(new_air_to_air_heatpump.outletNode.get)
+
+    # -------------------------------------------------------------------------------
+    # EMS actuators
+    # -------------------------------------------------------------------------------
+
+    a_coil_outlet_t = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Outlet Temperature"
+    )
+    a_coil_outlet_t.setName("#{ems_name_airloop}_a_coil_outlet_t")
+
+    a_coil_outlet_hr = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Outlet Humidity Ratio"
+    )
+    a_coil_outlet_hr.setName("#{ems_name_airloop}_a_coil_outlet_hr")
+
+    a_coil_outlet_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil, "Air Connection 1", "Mass Flow Rate"
+    )
+    a_coil_outlet_mdot.setName("#{ems_name_airloop}_a_coil_outlet_mdot")
+
+    # -------------------------------------------------------------------------------
+    # EMS sensors
+    # -------------------------------------------------------------------------------
+
+    s_coil_inlet_t = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Temperature for Air Connection 1"
+    )
+    s_coil_inlet_t.setName("#{ems_name_airloop}_s_coil_outlet_t")
+    s_coil_inlet_t.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_coil_inlet_hr = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Humidity Ratio for Air Connection 1"
+    )
+    s_coil_inlet_hr.setName("#{ems_name_airloop}_s_coil_outlet_hr")
+    s_coil_inlet_hr.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_coil_inlet_mdot = OpenStudio::Model::EnergyManagementSystemInternalVariable.new(
+      model, "Inlet Mass Flow Rate for Air Connection 1"
+    )
+    s_coil_inlet_mdot.setName("#{ems_name_airloop}_s_coil_outlet_mdot")
+    s_coil_inlet_mdot.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
+
+    s_dx_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "Heating Coil Runtime Fraction"
+    )
+    s_dx_runtime_frac.setName("#{ems_name_airloop}_s_dx_runtime_frac")
+    s_dx_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
+
+    s_airloop_setpoint_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "System Node Setpoint Temperature"
+    )
+    s_airloop_setpoint_t.setName("#{ems_name_airloop}_s_airloop_setpoint_t")
+    s_airloop_setpoint_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+
+    s_oat_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "Site Outdoor Air Drybulb Temperature"
+    )
+    s_oat_t.setName("#{ems_name_airloop}_s_oat_t")
+    s_oat_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+
+    # -------------------------------------------------------------------------------
+    # EMS global variables
+    # -------------------------------------------------------------------------------
+
+    g_stage_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_stage_1"
+    )
+    g_stage_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_stage_2"
+    )
+    g_part_load_ratio_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_part_load_ratio_1"
+    )
+    g_part_load_ratio_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_part_load_ratio_2"
+    )
+    g_fuel_usage_1 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_fuel_usage_1_w"
+    )
+    g_fuel_usage_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_fuel_usage_2_w"
+    )
+
+    # -------------------------------------------------------------------------------
+    # EMS program
+    # -------------------------------------------------------------------------------
+
+    # ems program for two stage gas coil control
+    ems_program = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+    ems_program.setName("#{ems_name_airloop}_p_two_stage_gas_coil")
+
+    # Initialize flags, PLRs, actuator passthroughs, constants
+    ems_program.addLine("SET #{g_stage_1.name} = 0")
+    ems_program.addLine("SET #{g_stage_2.name} = 0")
+    ems_program.addLine("SET #{g_part_load_ratio_1.name} = 0")
+    ems_program.addLine("SET #{g_part_load_ratio_2.name} = 0")
+    ems_program.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
+    ems_program.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_inlet_hr.name}")
+    ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
+    ems_program.addLine("SET T_set = #{s_airloop_setpoint_t.name}")
+    ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
+    ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
+    ems_program.addLine("SET cap_stage_1 = #{heating_capacity_stage_1_w}")
+    ems_program.addLine("SET burner_eff = 0.8")
+    ems_program.addLine("SET #{g_fuel_usage_1.name} = 0.0")
+    ems_program.addLine("SET #{g_fuel_usage_2.name} = 0.0")
+    ems_program.addLine("SET mech_heat_enable = 0")
+
+    # Mechanical heating must be active
+    ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
+    ems_program.addLine("  SET mech_heat_enable = 1")
+    ems_program.addLine("ELSEIF #{s_oat_t.name} < #{hp_min_comp_lockout_temp_f}")
+    ems_program.addLine("  SET mech_heat_enable = 1")
+    ems_program.addLine("ENDIF")
+    ems_program.addLine("IF mech_heat_enable == 1")
+    ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
+    ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
+
+    # Stage 1
+    ems_program.addLine("      SET #{g_stage_1.name} = 1")
+    ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
+
+    # Check if Stage 1 alone meets setpoint
+    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
+    ems_program.addLine("        SET dT_used_1 = T_set - #{s_coil_inlet_t.name}")
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = dT_used_1 / dT1_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
+
+    # Fuel usage for Stage 1 only when Stage 2 OFF
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_1 * #{g_part_load_ratio_1.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = 0.0")
+    ems_program.addLine("      ELSE") # Stage 1 not enough → Stage 2 needed
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = 1.0")
+    ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1") # temp after stage 1
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name} / burner_eff")
+
+    # Stage 2 assist
+    ems_program.addLine("        SET #{g_stage_2.name} = 1")
+    ems_program.addLine("        SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
+    ems_program.addLine("        IF (T_after_stage_1 + dT2_full) >= T_set")
+    ems_program.addLine("          SET dT_used_2 = T_set - T_after_stage_1")
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = dT_used_2 / dT2_full")
+    ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_set")
+    ems_program.addLine("        ELSE")
+    ems_program.addLine("          SET dT_used_2 = dT2_full")
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = 1.0")
+    ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
+    ems_program.addLine("        ENDIF")
+
+    # Stage 2 fuel
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_2 * #{g_part_load_ratio_2.name} / burner_eff")
+    ems_program.addLine("      ENDIF") # Stage 1 sufficient?
+    ems_program.addLine("    ENDIF")   # mdot > 0
+    ems_program.addLine("  ENDIF")     # inlet < setpoint
+    ems_program.addLine("ENDIF")       # mech_heat_enable
+
+    # Convert power to energy
+    ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_1 = #{g_fuel_usage_1.name} * dt") # Joules
+    ems_program.addLine("SET #{ems_name_airloop}_E_fuel_2 = #{g_fuel_usage_2.name} * dt") # Joules
+
+    # ems program for initialization
+    ems_program_initialization = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
+    ems_program_initialization.setName("#{ems_name_airloop}_p_two_stage_gas_coil_initialization")
+    ems_program_initialization.addLine("SET #{g_stage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_stage_2.name} = 0")
+    ems_program_initialization.addLine("SET #{g_part_load_ratio_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_part_load_ratio_2.name} = 0")
+    ems_program_initialization.addLine("SET #{g_fuel_usage_1.name} = 0")
+    ems_program_initialization.addLine("SET #{g_fuel_usage_2.name} = 0")
+    ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
+
+    # -------------------------------------------------------------------------------
+    # Program calling manager
+    # -------------------------------------------------------------------------------
+
+    ems_pcm = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+    ems_pcm.setName("#{ems_name_airloop}_pcm_gas_coil")
+    ems_pcm.setCallingPoint("UserDefinedComponentModel")
+    ems_pcm.addProgram(ems_program)
+
+    ems_pcm_initialization = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
+    ems_pcm_initialization.setName("#{ems_name_airloop}_pcm_gas_coil_initialization")
+    ems_pcm_initialization.setCallingPoint("UserDefinedComponentModel")
+    ems_pcm_initialization.addProgram(ems_program_initialization)
+
+    # -------------------------------------------------------------------------------
+    # Attach EMS objects to coil
+    # -------------------------------------------------------------------------------
+
+    new_backup_heating_coil.setOverallSimulationProgram(ems_program)
+    new_backup_heating_coil.setInitializationSimulationProgram(ems_program_initialization)
+    new_backup_heating_coil.setOverallModelSimulationProgramCallingManager(ems_pcm)
+    new_backup_heating_coil.setModelSetupandSizingProgramCallingManager(ems_pcm_initialization)
+    new_backup_heating_coil.setAirOutletTemperatureActuator(a_coil_outlet_t)
+    new_backup_heating_coil.setAirOutletHumidityRatioActuator(a_coil_outlet_hr)
+    new_backup_heating_coil.setAirMassFlowRateActuator(a_coil_outlet_mdot)
+
+    # -------------------------------------------------------------------------------
+    # Output variable
+    # -------------------------------------------------------------------------------
+
+    ems_ov_status_heating_stage_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_stage_1)
+    ems_ov_status_heating_stage_1.setName("#{ems_name_airloop}_ov_status_heating_stage_1")
+    ems_ov_status_heating_stage_1.setEMSVariableName("#{g_stage_1.name}")
+    ems_ov_status_heating_stage_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_stage_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_1.name}", model)
+    output_var.setName("#{ems_ov_status_heating_stage_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_stage_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_stage_2)
+    ems_ov_status_heating_stage_2.setName("#{ems_name_airloop}_ov_status_heating_stage_2")
+    ems_ov_status_heating_stage_2.setEMSVariableName("#{g_stage_2.name}")
+    ems_ov_status_heating_stage_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_stage_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_2.name}", model)
+    output_var.setName("#{ems_ov_status_heating_stage_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_plr_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio_1)
+    ems_ov_status_heating_plr_1.setName("#{ems_name_airloop}_ov_status_heating_plr_1")
+    ems_ov_status_heating_plr_1.setEMSVariableName("#{g_part_load_ratio_1.name}")
+    ems_ov_status_heating_plr_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_plr_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_1.name}", model)
+    output_var.setName("#{ems_ov_status_heating_plr_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_status_heating_plr_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_part_load_ratio_2)
+    ems_ov_status_heating_plr_2.setName("#{ems_name_airloop}_ov_status_heating_plr_2")
+    ems_ov_status_heating_plr_2.setEMSVariableName("#{g_part_load_ratio_2.name}")
+    ems_ov_status_heating_plr_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_status_heating_plr_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_2.name}", model)
+    output_var.setName("#{ems_ov_status_heating_plr_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_fuel_usage_1 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_fuel_usage_1)
+    ems_ov_fuel_usage_1.setName("#{ems_name_airloop}_ov_fuel_usage_1")
+    ems_ov_fuel_usage_1.setEMSVariableName("#{g_fuel_usage_1.name}")
+    ems_ov_fuel_usage_1.setTypeOfDataInVariable("Averaged")
+    ems_ov_fuel_usage_1.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_1.name}", model)
+    output_var.setName("#{ems_ov_fuel_usage_1.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_ov_fuel_usage_2 = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_fuel_usage_2)
+    ems_ov_fuel_usage_2.setName("#{ems_name_airloop}_ov_fuel_usage_2")
+    ems_ov_fuel_usage_2.setEMSVariableName("#{g_fuel_usage_2.name}")
+    ems_ov_fuel_usage_2.setTypeOfDataInVariable("Averaged")
+    ems_ov_fuel_usage_2.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_2.name}", model)
+    output_var.setName("#{ems_ov_fuel_usage_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    # -------------------------------------------------------------------------------
+    # Define meter
+    # -------------------------------------------------------------------------------
+
+    gas_mtr_out_var_1 =
+      OpenStudio::Model::EnergyManagementSystemMeteredOutputVariable.new(
+        model,
+        "#{ems_name_airloop} Gas Heating Stage 1"
+      )
+
+    gas_mtr_out_var_1.setName("#{ems_name_airloop} Gas Heating Stage 1")
+    gas_mtr_out_var_1.setEMSVariableName("#{ems_name_airloop}_E_fuel_1")
+    gas_mtr_out_var_1.setUpdateFrequency('SystemTimestep')
+    gas_mtr_out_var_1.setString(4, ems_program.handle.to_s)
+    gas_mtr_out_var_1.setResourceType('NaturalGas')
+    gas_mtr_out_var_1.setGroupType('HVAC')
+    gas_mtr_out_var_1.setEndUseCategory('Heating')
+    gas_mtr_out_var_1.setEndUseSubcategory('Hybrid gas stage 1')
+    gas_mtr_out_var_1.setUnits('J')
+
+    gas_mtr_out_var_2 =
+      OpenStudio::Model::EnergyManagementSystemMeteredOutputVariable.new(
+        model,
+        "#{ems_name_airloop} Gas Heating Stage 2"
+      )
+
+    gas_mtr_out_var_2.setName("#{ems_name_airloop} Gas Heating Stage 2")
+    gas_mtr_out_var_2.setEMSVariableName("#{ems_name_airloop}_E_fuel_2")
+    gas_mtr_out_var_2.setUpdateFrequency('SystemTimestep')
+    gas_mtr_out_var_2.setString(4, ems_program.handle.to_s)
+    gas_mtr_out_var_2.setResourceType('NaturalGas')
+    gas_mtr_out_var_2.setGroupType('HVAC')
+    gas_mtr_out_var_2.setEndUseCategory('Heating')
+    gas_mtr_out_var_2.setEndUseSubcategory('Hybrid gas stage 2')
+    gas_mtr_out_var_2.setUnits('J')
+
+    # -------------------------------------------------------------------------------
+    # Dummy plant actuators (created but intentionally unused)
+    # Required to satisfy OpenStudio CoilUserDefined internal checks
+    # -------------------------------------------------------------------------------
+
+    a_plant_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Mass Flow Rate"
+    )
+    a_plant_mdot.setName("#{ems_name_airloop}_a_plant_mdot")
+
+    a_plant_min_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Minimum Mass Flow Rate"
+    )
+    a_plant_min_mdot.setName("#{ems_name_airloop}_a_plant_min_mdot")
+
+    a_plant_max_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Maximum Mass Flow Rate"
+    )
+    a_plant_max_mdot.setName("#{ems_name_airloop}_a_plant_max_mdot")
+
+    a_plant_outlet_t = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Outlet Temperature"
+    )
+    a_plant_outlet_t.setName("#{ems_name_airloop}_a_plant_outlet_t")
+
+    a_plant_design_vdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+      new_backup_heating_coil,
+      "Plant Connection",
+      "Design Volume Flow Rate"
+    )
+    a_plant_design_vdot.setName("#{ems_name_airloop}_a_plant_design_vdot")
+
+    # Attach plant actuators to the coil (never referenced in EMS programs)
+    new_backup_heating_coil.setPlantMinimumMassFlowRateActuator(a_plant_min_mdot)
+    new_backup_heating_coil.setPlantMaximumMassFlowRateActuator(a_plant_max_mdot)
+    new_backup_heating_coil.setPlantOutletTemperatureActuator(a_plant_outlet_t)
+    new_backup_heating_coil.setPlantDesignVolumeFlowRateActuator(a_plant_design_vdot)
+    new_backup_heating_coil.setPlantMassFlowRateActuator(a_plant_mdot)
+
+    # -------------------------------------------------------------------------------
+    # Patch fix for removing redundant EMS objects from model
+    # -------------------------------------------------------------------------------
+    model.getEnergyManagementSystemPrograms.sort.each do |program|
+      if program.name.to_s.include?('initializationSimulationProgram')
+        program.remove()
+      elsif program.name.to_s.include?('overallSimulationProgram')
+        program.remove()
+      end
+    end
+    model.getEnergyManagementSystemProgramCallingManagers.sort.each do |pcm|
+      if pcm.name.to_s.include?('modelSetupandSizingProgramCallingManager')
+        pcm.remove()
+      elsif pcm.name.to_s.include?('overallModelSimulationProgramCallingManager')
+        pcm.remove()
+      end
+    end
+    model.getEnergyManagementSystemActuators.sort.each do |actuator|
+      if actuator.name.to_s.include?('plantDesignVolumeFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMaximumMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantMinimumMassFlowRate')
+        actuator.remove()
+      elsif actuator.name.to_s.include?('plantOutletTemperature')
+        actuator.remove()
+      end
+    end
+
+  end
+
+  # Calculates the dual fuel gas coil capacities for a heating system based on the 
+  # given DX coil heating capacity. The method uses regression equations derived 
+  # from catalog data to estimate the capacities for two stages of operation. 
+  # Additionally, it enforces minimum capacity thresholds based on available data.
+  #
+  # @param [Float] dx_coil_heating_capacity_w The heating capacity of the DX coil in watts.
+  # @return [Array<Float>] An array containing two elements:
+  #   - The capacity for stage 1 in watts, with a minimum value of 19052.0 W.
+  #   - The capacity for stage 2 in watts, with a minimum value of 25793.0 W.
+  def get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
+
+    # calculate capacities with regression (from catalog data)
+    capacity_stage_1_w = 0.7353 * dx_coil_heating_capacity_w + 20245.0
+    capacity_stage_2_w = 0.6305 * dx_coil_heating_capacity_w + 12484.0
+
+    # cap minimum value of capacity_stage_1_w to 19052 (based on available data)
+    if capacity_stage_1_w < 19052.0
+      capacity_stage_1_w = 19052.0
+    end
+
+    # cap minimum value of capacity_stage_2_w to 25793 (based on available data)
+    if capacity_stage_2_w < 25793.0
+      capacity_stage_2_w = 25793.0
+    end
+
+    return capacity_stage_1_w, capacity_stage_2_w
+  end
+
+  # ---------------------------------------------------------
+  # main measure code
+  # ---------------------------------------------------------
 
   # define what happens when the measure is run
   def run(model, runner, user_arguments)
@@ -959,6 +1714,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     setback_value = runner.getDoubleArgumentValue('setback_value', user_arguments)
     modify_setbacks = runner.getBoolArgumentValue('modify_setbacks', user_arguments)
 
+    # ---------------------------------------------------------
     # build standard to use OS standards methods
     # ---------------------------------------------------------
     template = 'ComStock 90.1-2019'
@@ -1121,7 +1877,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       return true
     end
 
+    # ---------------------------------------------------------
     # call roof and/or window upgrades based on user input
+    # ---------------------------------------------------------
     condition_initial_roof = ''
     condition_final_roof = ''
     condition_initial_window = ''
@@ -1169,7 +1927,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       sql = sql.get if sql.is_initialized
     end
 
-    #########################################################################################################
+    # ---------------------------------------------------------
+    # Temporary section
+    # ---------------------------------------------------------
     ### This section includes temporary code to remove units with high OA fractiosn and night cycling
     ### This code should be removed when fix is initiated
     # add systems with high outdoor air ratios to a list for non-applicability
@@ -1250,8 +2010,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       applicable_area_m2 -= thermal_zone.floorArea * thermal_zone.multiplier
       # remove area served by air loop from applicability
     end
-    ### End of temp section
-    #########################################################################################################
 
     # ---------------------------------------------------------
     # check if any air loops are applicable to measure
@@ -1321,8 +2079,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         [15.5556, 19.4444, 'HRV']
       end
 
+    
     # ---------------------------------------------------------
-    # load performance data for standard performance units
+    # load performance data from json files
     # ---------------------------------------------------------
     custom_data_json = nil
     # if cchpc scenarios are set, use those curves. else, use the standard performance curves
@@ -1342,6 +2101,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'two_speed_lab_data'
       # read performance data
       path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_hprtu_lab_data.json"
+      custom_data_json = JSON.parse(File.read(path_data_curve))
+    when 'carrier_48qe_dualfuel'
+      # read performance data
+      path_data_curve = "#{File.dirname(__FILE__)}/resources/performance_maps_carrier_48qe_dualfuel.json"
       custom_data_json = JSON.parse(File.read(path_data_curve))
     end
 
@@ -1370,6 +2133,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
       cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
       cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
+    when 'carrier_48qe_dualfuel'
+      cool_cap_ft1 = model_add_curve(model, 'cap_mod_cooling_low_t', custom_data_json, std)
+      cool_cap_ft2 = model_add_curve(model, 'cap_mod_cooling_high_t', custom_data_json, std)
+      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2 }
     end
 
     # Curve Import - Cooling efficiency as a function of temperature
@@ -1394,6 +2161,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
       cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
       cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
+    when 'carrier_48qe_dualfuel'
+      cool_eir_ft1 = model_add_curve(model, 'eir_mod_cooling_low_t', custom_data_json, std)
+      cool_eir_ft2 = model_add_curve(model, 'eir_mod_cooling_high_t', custom_data_json, std)
+      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2 }
     end
 
     # Curve Import - Cooling capacity as a function of flow rate
@@ -1412,6 +2183,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
       cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
+    when 'carrier_48qe_dualfuel'
+      cool_cap_ff1 = model_add_curve(model, 'cap_mod_cooling_low_ff', custom_data_json, std)
+      cool_cap_ff2 = model_add_curve(model, 'cap_mod_cooling_high_ff', custom_data_json, std)
+      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff2 }
     end
 
     # Curve Import - Cooling efficiency as a function of flow rate
@@ -1430,6 +2205,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
       cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
+    when 'carrier_48qe_dualfuel'
+      cool_eir_ff1 = model_add_curve(model, 'eir_mod_cooling_low_ff', custom_data_json, std)
+      cool_eir_ff2 = model_add_curve(model, 'eir_mod_cooling_high_ff', custom_data_json, std)
+      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff2 }
     end
 
     # Curve Import - Cooling efficiency as a function of part load ratio
@@ -1442,6 +2221,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
     when 'cchpc_2027_spec'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
+    when 'carrier_48qe_dualfuel'
+      cool_plf_fplr1 = model_add_curve(model, 'plf_na_cooling_na_plr', custom_data_json, std)
     end
 
     # ---------------------------------------------------------
@@ -1467,6 +2248,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft3 = model_add_curve(model, 'h_cap_high', custom_data_json, std)
       heat_cap_ft4 = model_add_curve(model, 'h_cap_boost', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
+    when 'carrier_48qe_dualfuel'
+      heat_cap_ft1 = model_add_curve(model, 'cap_mod_heating_high_t', custom_data_json, std)
+      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1 }
     end
 
     # Curve Import - Heating efficiency as a function of temperature
@@ -1489,6 +2273,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft3 = model_add_curve(model, 'h_eir_high', custom_data_json, std)
       heat_eir_ft4 = model_add_curve(model, 'h_eir_boost', custom_data_json, std)
       heat_eir_ft_curve_stages = { 1 => heat_eir_ft1, 2 => heat_eir_ft2, 3 => heat_eir_ft3, 4 => heat_eir_ft4 }
+    when 'carrier_48qe_dualfuel'
+      heat_eir_ft1 = model_add_curve(model, 'eir_mod_heating_high_t', custom_data_json, std)
+      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1 }
     end
 
     # Curve Import - Heating capacity as a function of flow rate
@@ -1505,6 +2292,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
       heat_cap_ff_curve_stages = { 1 => heat_cap_ff1, 2 => heat_cap_ff1, 3 => heat_cap_ff1, 4 => heat_cap_ff1 }
+    when 'carrier_48qe_dualfuel'
+      heat_cap_ff1 = model_add_curve(model, 'cap_mod_heating_high_ff', custom_data_json, std)
+      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1 }
     end
 
     # Curve Import - Heating efficiency as a function of flow rate
@@ -1521,6 +2311,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'cchpc_2027_spec'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
       heat_eir_ff_curve_stages = { 1 => heat_eir_ff1, 2 => heat_eir_ff1, 3 => heat_eir_ff1, 4 => heat_eir_ff1 }
+    when 'carrier_48qe_dualfuel'
+      heat_eir_ff1 = model_add_curve(model, 'eir_mod_heating_high_ff', custom_data_json, std)
+      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1 }
     end
 
     # Curve Import - Heating efficiency as a function of part load ratio
@@ -1534,6 +2327,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
     when 'cchpc_2027_spec'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
+    when 'carrier_48qe_dualfuel'
+      heat_plf_fplr1 = model_add_curve(model, 'plf_na_heating_na_plr', custom_data_json, std)
     end
 
     # Curve Import - Defrost energy as a function of temperature
@@ -1547,14 +2342,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
     when 'cchpc_2027_spec'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
+    when 'carrier_48qe_dualfuel'
+      defrost_eir = model_add_curve(model, 'eir_mod_defrost_na_na', custom_data_json, std)
     end
 
     # ---------------------------------------------------------
     # replace existing applicable air loops with new heat pump rtu air loops
     # ---------------------------------------------------------
     selected_air_loops.sort.each do |air_loop_hvac|
-      # get necessary schedules, etc. from unitary system object
+
+      # *********************************************************
       # initialize variables before loop
+      # *********************************************************
       hvac_operation_sched = air_loop_hvac.availabilitySchedule
       unitary_availability_sched = 'tmp'
       control_zone = 'tmp'
@@ -1566,9 +2365,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       fan_static_pressure = 'tmp'
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
-
       equip_to_delete = []
-
       space_types_no_setback = [
         # 'Kitchen',
         # 'kitchen',
@@ -1600,9 +2397,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         'Guest Room',
         'guest room'
       ]
-
       setback_value_c = setback_value * 5 / 9 # convert to c
+      always_on = model.alwaysOnDiscreteSchedule
 
+      # *********************************************************
+      # modify zone thermostats for setbacks
+      # *********************************************************
       if modify_setbacks # modify setbacks if argument set to true
         zones = air_loop_hvac.thermalZones
         zones.sort.each do |thermal_zone|
@@ -1732,8 +2532,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           end
         end
       end
-      # end of setback modification
 
+      # *********************************************************
+      # gather information from existing air loop
+      # *********************************************************
       # for unitary systems
       if air_loop_hvac_unitary_system?(air_loop_hvac)
 
@@ -1894,34 +2696,21 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
+      # *********************************************************
       # delete equipment from original loop
-      equip_to_delete.each(&:remove)
+      # *********************************************************
+      equip_to_delete.each(&:remove)      
 
-      # set always on schedule; this will be used in other object definitions
-      always_on = model.alwaysOnDiscreteSchedule
-
-      # get thermal zone
-      thermal_zone = air_loop_hvac.thermalZones[0]
-
-      # Get the min OA flow rate from the OA; this is used below
-      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
-      controller_oa = oa_system.getControllerOutdoorAir
-      oa_flow_m3_per_s = nil
-      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
-      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
-        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
-      else
-        runner.registerError("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
-        return false
-      end
-
+      # *********************************************************
       # change sizing parameter to vav
+      # *********************************************************
       sizing = air_loop_hvac.sizingSystem
       sizing.setCentralCoolingCapacityControlMethod('VAV') # CC-TMP
 
-      # replace any CV terminal box with no reheat VAV terminal box
+      # *********************************************************
       # get old terminal box
+      # *********************************************************
+      thermal_zone = air_loop_hvac.thermalZones[0]
       if thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.is_initialized
         old_terminal = thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeReheat.get
       elsif thermal_zone.airLoopHVACTerminal.get.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
@@ -1939,7 +2728,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         return false
       end
 
+      # *********************************************************
       # get design supply air flow rate
+      # *********************************************************
       old_terminal_sa_flow_m3_per_s = nil
       if air_loop_hvac.designSupplyAirFlowRate.is_initialized
         old_terminal_sa_flow_m3_per_s = air_loop_hvac.designSupplyAirFlowRate.get
@@ -1949,24 +2740,45 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerError("No sizing data available for air loop #{air_loop_hvac.name} zone terminal box.")
       end
 
+      # *********************************************************
+      # get the min OA flow rate from the OA
+      # *********************************************************
+      oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
+      controller_oa = oa_system.getControllerOutdoorAir
+      oa_flow_m3_per_s = nil
+      if controller_oa.minimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.minimumOutdoorAirFlowRate.get
+      elsif controller_oa.autosizedMinimumOutdoorAirFlowRate.is_initialized
+        oa_flow_m3_per_s = controller_oa.autosizedMinimumOutdoorAirFlowRate.get
+      else
+        runner.registerError("No outdoor air sizing information was found for #{controller_oa.name}, which is required for setting ERV wheel power consumption.")
+        return false
+      end
+
+      # *********************************************************
       # define minimum flow rate needed to maintain ventilation - add in max fraction if in model
+      # *********************************************************
       if controller_oa.maximumFractionofOutdoorAirSchedule.is_initialized
         controller_oa.resetMaximumFractionofOutdoorAirSchedule
       end
       min_oa_flow_ratio = (oa_flow_m3_per_s / old_terminal_sa_flow_m3_per_s)
 
-      # remove old equipment
+      # *********************************************************
+      # remove old air terminals
+      # *********************************************************
       old_terminal.remove
       air_loop_hvac.removeBranchForZone(thermal_zone)
-      # define new terminal box
-      # new_terminal = OpenStudio::Model::AirTerminalSingleDuctConstantVolumeNoReheat.new(model, always_on)
+
+      # *********************************************************
+      # define new air terminals
+      # *********************************************************
       new_terminal = OpenStudio::Model::AirTerminalSingleDuctVAVHeatAndCoolNoReheat.new(model)
-      # set name of terminal box and add
       new_terminal.setName("#{thermal_zone.name} VAV Terminal")
       air_loop_hvac.addBranchForZone(thermal_zone, new_terminal.to_StraightComponent)
 
-      #################################### Start Sizing Logic
-
+      # *********************************************************
+      # sizing: get heating sizing temperature
+      # *********************************************************
       # get heating design day temperatures into list
       li_design_days = model.getDesignDays
       li_htg_dsgn_day_temps = []
@@ -2007,13 +2819,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      ## define number of stages, and capacity/airflow fractions for each stage
+      # *********************************************************
+      # sizing: get system specifications from custom data
+      # *********************************************************
       (_, _, rated_stage_num_heating, rated_stage_num_cooling, final_rated_cooling_cop, final_rated_heating_cop, stage_cap_fractions_heating,
       stage_flow_fractions_heating, stage_cap_fractions_cooling, stage_flow_fractions_cooling, stage_rated_cop_frac_heating,
       stage_rated_cop_frac_cooling, _, stage_gross_rated_sensible_heat_ratio_cooling, enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton,
       reference_heating_cfm_per_ton) = assign_staging_data(custom_data_json, std)
 
-      # get appropriate design heating load
+      # *********************************************************
+      # sizing: get appropriate design heating load
+      # *********************************************************
       orig_htg_coil_gross_cap_old = orig_htg_coil_gross_cap
       design_air_flow_from_zone_sizing_heating_m_3_per_s = old_terminal_sa_flow_m3_per_s
       if sizing_run
@@ -2071,11 +2887,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      # determine heating load curve; y=mx+b
+      # *********************************************************
+      # sizing: determine heating load curve; y=mx+b
+      # *********************************************************
       # assumes 0 load at 60F (15.556 C)
       htg_load_slope = (0 - orig_htg_coil_gross_cap) / (15.5556 - wntr_design_day_temp_c)
       htg_load_intercept = orig_htg_coil_gross_cap - (htg_load_slope * wntr_design_day_temp_c)
 
+      # *********************************************************
+      # sizing: get rated heating capacity with heating derating factor
+      # *********************************************************
       # calculate heat pump design load, derate factors, and required rated capacities (at stage 4) for different OA temperatures; assumes 75F interior temp (23.8889C)
       ia_temp_c = 23.8889
 
@@ -2091,6 +2912,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       req_rated_hp_cap_at_user_dsn_to_meet_load_at_user_dsn = dns_htg_load_at_user_dsn_temp / hp_derate_factor_at_user_dsn
 
+      # *********************************************************
+      # sizing: get upsized heating/cooling capacities based on user inputs
+      # *********************************************************
       # determine heat pump system sizing based on user-specified sizing temperature and user-specified maximum upsizing limits
       # upsize total cooling capacity using user-specified factor
       autosized_tot_clg_cap_upsized = orig_clg_coil_gross_cap * clg_oversizing_estimate
@@ -2099,7 +2923,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # get maximum heating capacity based on max cooling capacity and heating-to-cooling ratio
       max_heat_cap_w_upsize = autosized_tot_clg_cap_upsized * (performance_oversizing_factor + 1) * htg_to_clg_hp_ratio
 
-      # Sizing decision based on heating load level
+      # *********************************************************
+      # sizing: sizing decision based on heating load level
+      # *********************************************************
       heating_load_category = ''
       # If ratio of required heating capacity at rated conditions to cooling capacity is less than specified heating to cooling ratio, then size everything based on cooling
       # If heating load requires upsizing, but is below user-input cooling upsizing limit, then size based on design heating load
@@ -2155,6 +2981,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final upsizing percentage % = #{((dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap * 100).round(2)}")
       end
 
+      # *********************************************************
+      # sizing: get final upsizing factor
+      # *********************************************************
       # calculate applied upsizing factor
       upsize_factor = (dx_rated_htg_cap_applied - orig_clg_coil_gross_cap) / orig_clg_coil_gross_cap
 
@@ -2172,7 +3001,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: cfm/ton heating = #{m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)}")
       end
 
-      # adjust if rated/highest stage cfm/ton is violated
+      # *********************************************************
+      # sizing: adjust if rated/highest stage cfm/ton is violated
+      # *********************************************************
       cfm_per_ton_rated_heating = m_3_per_sec_watts_to_cfm_per_ton(design_heating_airflow_m_3_per_s / dx_rated_htg_cap_applied)
       cfm_per_ton_rated_cooling = m_3_per_sec_watts_to_cfm_per_ton(design_cooling_airflow_m_3_per_s / dx_rated_clg_cap_applied)
       if cfm_per_ton_rated_heating < CFM_PER_TON_MIN_RATED
@@ -2198,7 +3029,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: heating_load_category = #{heating_load_category}")
       end
 
-      # set airloop design airflow based on the maximum of heating and cooling design flow
+      # *********************************************************
+      # sizing: set airloop design airflow based on the maximum of heating and cooling design flow
+      # *********************************************************
       design_airflow_for_sizing_m_3_per_s = if design_cooling_airflow_m_3_per_s < design_heating_airflow_m_3_per_s
                                               design_heating_airflow_m_3_per_s
                                             else
@@ -2234,7 +3067,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: min_airflow_m3_per_s = #{min_airflow_m3_per_s}")
       end
 
-      # determine airflows for each stage of heating
+      # *********************************************************
+      # sizing: determine airflows for each stage of heating and cooling
+      # *********************************************************
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow
@@ -2248,7 +3083,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
       end
 
-      # determine airflows for each stage of cooling
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
       stage_flows_cooling = {}
@@ -2265,7 +3099,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
 
-      # heating - align stage CFM/ton bounds where possible
+      # *********************************************************
+      # sizing: align stage CFM/ton bounds where possible for heating/cooling
+      # *********************************************************
       # this may remove some lower stages
       stage_flows_heating, stage_caps_heating, _, _, num_heating_stages = adjust_cfm_per_ton_per_limits(
         stage_cap_fractions_heating,
@@ -2302,19 +3138,27 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: stage_flows_heating = #{stage_flows_heating}")
         runner.registerInfo("sizing summary: stage_flows_cooling = #{stage_flows_cooling}")
       end
-      #################################### Start performance curve assignment
 
-      # ---------------------------------------------------------
-      # cooling curve assignments
-      # ---------------------------------------------------------
+      # *********************************************************
+      # sizing: cooling curve assignments
+      # *********************************************************
       # adjust rated cooling cop
       if final_rated_cooling_cop == false
+        if hprtu_scenario == 'two_speed_standard_eff'
+          rated_cooling_cop = get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling])
+        elsif hprtu_scenario == 'variable_speed_high_eff'
+          rated_cooling_cop = get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling])
+        elsif hprtu_scenario == 'carrier_48qe_dualfuel'
+          rated_cooling_cop = get_rated_cop_cooling_dualfuelrtu(stage_caps_cooling[rated_stage_num_cooling])
+        else
+          rated_cooling_cop = get_rated_cop_cooling_adv(stage_caps_cooling[rated_stage_num_cooling])
+        end
         final_rated_cooling_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_cooling[rated_stage_num_cooling],
                                                                         reference_cooling_cfm_per_ton,
                                                                         stage_caps_cooling[rated_stage_num_cooling],
-                                                                        get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]),
+                                                                        rated_cooling_cop,
                                                                         cool_eir_ff_curve_stages[rated_stage_num_cooling])
-        runner.registerInfo("sizing summary: rated cooling COP adjusted from #{get_rated_cop_cooling(stage_caps_cooling[rated_stage_num_cooling]).round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: rated cooling COP adjusted from #{rated_cooling_cop.round(3)} to #{final_rated_cooling_cop.round(3)} based on reference cfm/ton of #{reference_cooling_cfm_per_ton.round(0)} (i.e., average value of actual products)")
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated cooling COP = #{final_rated_cooling_cop.round(3)}")
       end
 
@@ -2342,17 +3186,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         debug_verbose
       )
 
-      # ---------------------------------------------------------
-      # heating curve assignments
-      # ---------------------------------------------------------
+      # *********************************************************
+      # sizing: heating curve assignments
+      # *********************************************************
       # adjust rated heating cop
       if final_rated_heating_cop == false
+        if hprtu_scenario == 'two_speed_standard_eff'
+          rated_heating_cop = get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating])
+        elsif hprtu_scenario == 'variable_speed_high_eff'
+          rated_heating_cop = get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating])
+        elsif hprtu_scenario == 'carrier_48qe_dualfuel'
+          rated_heating_cop = get_rated_cop_heating_dualfuelrtu(stage_caps_heating[rated_stage_num_heating])
+        else
+          rated_heating_cop = get_rated_cop_heating_adv(stage_caps_heating[rated_stage_num_heating])
+        end
         final_rated_heating_cop = adjust_rated_cop_from_ref_cfm_per_ton(runner, stage_flows_heating[rated_stage_num_heating],
                                                                         reference_heating_cfm_per_ton,
                                                                         stage_caps_heating[rated_stage_num_heating],
-                                                                        get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]),
+                                                                        rated_heating_cop,
                                                                         heat_eir_ff_curve_stages[rated_stage_num_heating])
-        runner.registerInfo("sizing summary: rated heating COP adjusted from #{get_rated_cop_heating(stage_caps_heating[rated_stage_num_heating]).round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
+        runner.registerInfo("sizing summary: rated heating COP adjusted from #{rated_heating_cop.round(3)} to #{final_rated_heating_cop.round(3)} based on reference cfm/ton of #{reference_heating_cfm_per_ton.round(0)} (i.e., average value of actual products)")
         runner.registerInfo("sizing summary: sizing air loop (#{air_loop_hvac.name}): final rated heating COP = #{final_rated_heating_cop.round(3)}")
       end
 
@@ -2381,33 +3234,55 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         debug_verbose
       )
 
-      #################################### End performance curve assignment
-
+      # *********************************************************
       # add new supplemental heating coil
+      # *********************************************************
       new_backup_heating_coil = nil
-      # define backup heat source TODO: set capacity to equal full heating capacity
-      if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
+
+      case backup_ht_fuel_scheme
+      when "electric_resistance_backup"
+        coil_type = :electric
+
+      when "match_original_primary_heating_fuel"
+        if prim_ht_fuel_type == "electric"
+          coil_type = :electric
+        elsif prim_ht_fuel_type == "gas"
+          coil_type = :gas
+        end
+
+      when "dual_fuel_gas_furnace_backup"
+        coil_type = nil
+      end
+
+      if coil_type == :electric
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingElectric.new(model)
         new_backup_heating_coil.setEfficiency(1.0)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} electric resistance backup coil")
-      else
+
+      elsif coil_type == :gas
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
         new_backup_heating_coil.setGasBurnerEfficiency(0.80)
         new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
       end
-      # set availability schedule
-      new_backup_heating_coil.setAvailabilitySchedule(always_on)
-      # set capacity of backup heat to meet full heating load
-      new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
 
+      # shared capacity logic
+      if new_backup_heating_coil
+        new_backup_heating_coil.setNominalCapacity(orig_htg_coil_gross_cap_old)
+        new_backup_heating_coil.setAvailabilitySchedule(always_on)
+      end      
+
+      # *********************************************************
       # add new fan
+      # *********************************************************
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
       new_fan.setName("#{air_loop_hvac.name} VFD Fan")
       new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
 
+      # *********************************************************
       # set fan total efficiency, which determines fan power
+      # *********************************************************
       if hprtu_scenario == 'variable_speed_high_eff'
         # new_fan.setFanTotalEfficiency(0.57) # from PNNL
         std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
@@ -2428,13 +3303,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
       new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
 
-      # add new unitary system object
+      # *********************************************************
+      # add and configure new unitary system object
+      # *********************************************************
       new_air_to_air_heatpump = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)
       new_air_to_air_heatpump.setName("#{air_loop_hvac.name} Unitary Heat Pump System")
       new_air_to_air_heatpump.setSupplyFan(new_fan)
       new_air_to_air_heatpump.setHeatingCoil(new_dx_heating_coil)
       new_air_to_air_heatpump.setCoolingCoil(new_dx_cooling_coil)
-      new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
+      if new_backup_heating_coil
+        new_air_to_air_heatpump.setSupplementalHeatingCoil(new_backup_heating_coil)
+      end
       new_air_to_air_heatpump.addToNode(air_loop_hvac.supplyOutletNode)
 
       # set other features
@@ -2460,7 +3339,25 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # set no load design flow rate
       new_air_to_air_heatpump.setSupplyAirFlowRateWhenNoCoolingorHeatingisRequired(min_airflow_m3_per_s)
 
+      # *********************************************************
+      # add dual fuel gas coil via ems
+      # *********************************************************
+      if (backup_ht_fuel_scheme == 'dual_fuel_gas_furnace_backup')
+        create_two_stage_dual_fuel_gas_coil_with_ems(
+          model,
+          runner,
+          air_loop_hvac,
+          new_dx_heating_coil,
+          orig_htg_coil_gross_cap_old,
+          new_air_to_air_heatpump,
+          hp_min_comp_lockout_temp_f,
+          dx_rated_htg_cap_applied
+        )
+      end
+
+      # *********************************************************
       # add dcv to air loop if dcv flag is true
+      # *********************************************************
       if dcv == true
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
         controller_oa = oa_system.getControllerOutdoorAir
@@ -2468,7 +3365,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         controller_mv.setDemandControlledVentilation(true)
       end
 
+      # *********************************************************
       # add economizer
+      # *********************************************************
       if econ == true
         # set parameters
         oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get
@@ -2489,7 +3388,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       controller_oa = oa_system.getControllerOutdoorAir
       controller_oa.setLockoutType('LockoutWithHeating') unless controller_oa.getEconomizerControlType == 'NoEconomizer'
 
-      # Energy recovery
+      # *********************************************************
+      # add energy recovery
+      # *********************************************************
       # check for ERV, and get components
       # ERV components will be removed and replaced if ERV flag was selected
       # If ERV flag was not selected, ERV equipment will remain in place as-is
@@ -2507,7 +3408,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add energy recovery if specified by user and if the building type is applicable
       next unless (hr == true) && (btype_erv_applicable == true)
 
+      # *********************************************************
       # check for space type applicability
+      # *********************************************************
       thermal_zone_names_to_exclude = %w[Kitchen kitchen KITCHEN Dining dining DINING]
       # skip air loops that serve non-applicable space types and warn user
       if thermal_zone_names_to_exclude.any? { |word| thermal_zone.name.to_s.include?(word) }
@@ -2617,7 +3520,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # ---------------------------------------------------------
     # report final condition of model
+    # ---------------------------------------------------------
     condition_final_hprtu = "The building finished with heat pump RTUs replacing the HVAC equipment for #{selected_air_loops.size} air loops."
     condition_final = [condition_final_hprtu, condition_final_roof, condition_final_window].reject(&:empty?).join(' | ')
     runner.registerFinalCondition(condition_final)
