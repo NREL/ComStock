@@ -103,13 +103,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
     args << hp_min_comp_lockout_temp_f
 
-    # add hybrid gas coil 1st to 2nd stage capacity ratio
-    hybrid_gas_coil_stage_ratio = OpenStudio::Measure::OSArgument.makeDoubleArgument('hybrid_gas_coil_stage_ratio', true)
-    hybrid_gas_coil_stage_ratio.setDisplayName('1st to 2nd stage capacity ratio for hybrid gas heating coil for dual fuel systems')
-    hybrid_gas_coil_stage_ratio.setDefaultValue(0.5)
-    hybrid_gas_coil_stage_ratio.setDescription('Specifies capacity ratio between 1st and 2nd stage (e.g., ratio = 1st stage capacity / 2nd stage capacity) for hybrid gas heating coil control logic.')
-    args << hybrid_gas_coil_stage_ratio
-
     # make list of cchpc scenarios
     li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec carrier_48qe_dualfuel]
     v_li_hprtu_scenarios = OpenStudio::StringVector.new
@@ -1212,17 +1205,37 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
+  # Creates a two-stage dual fuel gas backup heating coil with Energy Management System (EMS) controls
+  # for hybrid heat pump systems.
+  #
+  # The method creates a user-defined coil with EMS actuators and sensors to control:
+  # - Two-stage gas heating operation (stage 1 and stage 2 with different capacities)
+  # - Integration with existing heat pump for dual fuel operation
+  # - Part load ratio calculations for each heating stage
+  # - Gas consumption tracking and metering for both stages
+  # - Dynamic adjustment of outlet temperature, humidity ratio, and mass flow rate
+  # - Fuel usage metering and reporting for each stage
+  #
+  # @param model [OpenStudio::Model::Model] The OpenStudio model object
+  # @param runner [OpenStudio::Measure::OSRunner] The measure runner for logging and error handling
+  # @param air_loop_hvac [OpenStudio::Model::AirLoopHVAC] The air loop to which the coil will be added
+  # @param new_dx_heating_coil [OpenStudio::Model::CoilHeatingDXSingleSpeed] The existing DX heating coil (heat pump)
+  # @param orig_htg_coil_gross_cap_old [Float] Original gross heating capacity in watts for stage 2 sizing
+  # @param new_air_to_air_heatpump [OpenStudio::Model::AirLoopHVACUnitarySystem] The heat pump unitary system
+  # @param hp_min_comp_lockout_temp_f [Float] Minimum outdoor temperature in Fahrenheit for heat pump operation
+  # @param dx_rated_htg_cap_applied [Float] Rated heating capacity of the DX coil after adjustments
+  # @return [void] Creates and configures the dual fuel gas coil system with EMS controls
   def create_two_stage_dual_fuel_gas_coil_with_ems(
     model, runner, air_loop_hvac, new_dx_heating_coil, orig_htg_coil_gross_cap_old,
-    new_air_to_air_heatpump, hybrid_gas_coil_stage_ratio, hp_min_comp_lockout_temp_f
+    new_air_to_air_heatpump, hp_min_comp_lockout_temp_f,
+    dx_rated_htg_cap_applied
   )
 
     # get simulation timestep
     num_steps_per_hr = model.getSimulationControl.timestep.get.numberOfTimestepsPerHour
 
     # initialize constants
-    heating_capacity_stage_2_w = orig_htg_coil_gross_cap_old
-    heating_capacity_stage_1_w = heating_capacity_stage_2_w * hybrid_gas_coil_stage_ratio
+    heating_capacity_stage_1_w, heating_capacity_stage_2_w = get_dual_fuel_gas_coil_capacity(dx_rated_htg_cap_applied)
 
     # replace airloop name based on this hash and create Erl friendly name
     label_map = {
@@ -1640,6 +1653,34 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
   end
 
+  # Calculates the dual fuel gas coil capacities for a heating system based on the 
+  # given DX coil heating capacity. The method uses regression equations derived 
+  # from catalog data to estimate the capacities for two stages of operation. 
+  # Additionally, it enforces minimum capacity thresholds based on available data.
+  #
+  # @param [Float] dx_coil_heating_capacity_w The heating capacity of the DX coil in watts.
+  # @return [Array<Float>] An array containing two elements:
+  #   - The capacity for stage 1 in watts, with a minimum value of 19052.0 W.
+  #   - The capacity for stage 2 in watts, with a minimum value of 25793.0 W.
+  def get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
+
+    # calculate capacities with regression (from catalog data)
+    capacity_stage_1_w = 0.7353 * dx_coil_heating_capacity_w + 20245.0
+    capacity_stage_2_w = 0.6305 * dx_coil_heating_capacity_w + 12484.0
+
+    # cap minimum value of capacity_stage_1_w to 19052 (based on available data)
+    if capacity_stage_1_w < 19052.0
+      capacity_stage_1_w = 19052.0
+    end
+
+    # cap minimum value of capacity_stage_2_w to 25793 (based on available data)
+    if capacity_stage_2_w < 25793.0
+      capacity_stage_2_w = 25793.0
+    end
+
+    return capacity_stage_1_w, capacity_stage_2_w
+  end
+
   # ---------------------------------------------------------
   # main measure code
   # ---------------------------------------------------------
@@ -1662,7 +1703,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
     hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
-    hybrid_gas_coil_stage_ratio = runner.getDoubleArgumentValue('hybrid_gas_coil_stage_ratio', user_arguments)
     hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -3310,8 +3350,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           new_dx_heating_coil,
           orig_htg_coil_gross_cap_old,
           new_air_to_air_heatpump,
-          hybrid_gas_coil_stage_ratio,
-          hp_min_comp_lockout_temp_f
+          hp_min_comp_lockout_temp_f,
+          dx_rated_htg_cap_applied
         )
       end
 
