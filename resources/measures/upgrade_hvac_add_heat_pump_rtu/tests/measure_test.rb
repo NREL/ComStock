@@ -236,23 +236,24 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(16, arguments.size)
+    assert_equal(17, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
     assert_equal('clg_oversizing_estimate', arguments[3].name)
     assert_equal('htg_to_clg_hp_ratio', arguments[4].name)
     assert_equal('hp_min_comp_lockout_temp_f', arguments[5].name)
-    assert_equal('hprtu_scenario', arguments[6].name)
-    assert_equal('hr', arguments[7].name)
-    assert_equal('dcv', arguments[8].name)
-    assert_equal('econ', arguments[9].name)
-    assert_equal('roof', arguments[10].name)
-    assert_equal('window', arguments[11].name)
-    assert_equal('sizing_run', arguments[12].name)
-    assert_equal('debug_verbose', arguments[13].name)
-    assert_equal('modify_setbacks', arguments[14].name)
-    assert_equal('setback_value', arguments[15].name)
+    assert_equal('hybrid_gas_coil_stage_ratio', arguments[6].name)
+    assert_equal('hprtu_scenario', arguments[7].name)
+    assert_equal('hr', arguments[8].name)
+    assert_equal('dcv', arguments[9].name)
+    assert_equal('econ', arguments[10].name)
+    assert_equal('roof', arguments[11].name)
+    assert_equal('window', arguments[12].name)
+    assert_equal('sizing_run', arguments[13].name)
+    assert_equal('debug_verbose', arguments[14].name)
+    assert_equal('modify_setbacks', arguments[15].name)
+    assert_equal('setback_value', arguments[16].name)
   end
 
   def data_point_ordering_check(lookup_table_in_hash)
@@ -1738,7 +1739,7 @@ class AddHeatPumpRtuTest < Minitest::Test
   end
 
   ###########################################################################
-  # This test is for cfm/ton check for dual fuel RTU unit
+  # This test is for dual fuel RTU unit
   def test_380_full_service_restaurant_psz_gas_coil_dual_fuel_rtu
     osm_name = '380_full_service_restaurant_psz_gas_coil.osm'
     epw_name = 'GA_ROBINS_AFB_722175_12.epw'
