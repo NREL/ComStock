@@ -273,7 +273,7 @@ class UpgradeHvacRtuAdvTest < Minitest::Test
   end
 
   def epw_input_path(epw_name)
-   File.join(File.dirname(__FILE__), "../../../tests/weather/#{epw_name}")
+    File.join(File.dirname(__FILE__), "../../../tests/weather/#{epw_name}")
   end
 
   def model_output_path(test_name)

@@ -320,7 +320,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       spms = plant_loop.supplyOutletNode.setpointManagers
 
       case loop_type
-      when 'Cooling'
+      when 'Cooling', 'Heating'
         # get control specifications
         spms.each do |spm|
           total_count_spm_chw_hw += 1
@@ -334,14 +334,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
           total_count_spm_cw += 1
           if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
             fraction_cw_oat_reset_enabled_sum += 1
-          end
-        end
-      when 'Heating'
-        # get control specifications
-        spms.each do |spm|
-          total_count_spm_chw_hw += 1
-          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
-            fraction_chw_hw_oat_reset_enabled_sum += 1
           end
         end
       end

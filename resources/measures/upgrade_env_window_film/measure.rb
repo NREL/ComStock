@@ -264,24 +264,22 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
     end
 
     # create hash: map_cec_to_iecc[CEC climate zone #] = ASHRAE climate zone #
-    "
     # reference map
-    CEC1 - 4B
-    CEC2 - 3C
-    CEC3 - 3C
-    CEC4 - 3C
-    CEC5 - 3C
-    CEC6 - 3C
-    CEC7 - 3B
-    CEC8 - 3B
-    CEC9 - 3B
-    CEC10 - 3B
-    CEC11 - 3B
-    CEC12 - 3B
-    CEC13 - 3B
-    CEC15 - 2B
-    CEC16 - 5B
-    "
+    # CEC1 - 4B
+    # CEC2 - 3C
+    # CEC3 - 3C
+    # CEC4 - 3C
+    # CEC5 - 3C
+    # CEC6 - 3C
+    # CEC7 - 3B
+    # CEC8 - 3B
+    # CEC9 - 3B
+    # CEC10 - 3B
+    # CEC11 - 3B
+    # CEC12 - 3B
+    # CEC13 - 3B
+    # CEC15 - 2B
+    # CEC16 - 5B
     map_cec_to_iecc = {
       1 => 4,
       2 => 3,
@@ -732,7 +730,6 @@ class EnvWindowFilm < OpenStudio::Measure::ModelMeasure
     ################################################################
 
     if area_changed_m2 == 0
-      area_changed_m2 == 0
       runner.registerAsNotApplicable('No changes in U-factor/SHGC/VLT since window film is not added.')
       return true
     else

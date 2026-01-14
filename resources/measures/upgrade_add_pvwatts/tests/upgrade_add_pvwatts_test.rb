@@ -201,7 +201,7 @@ class UpgradeAddPvwattsTest < Minitest::Test
 
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
-      #argument_map = OpenStudio::Measure::OSArgumentMap.new
+      # argument_map = OpenStudio::Measure::OSArgumentMap.new
       argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
       # apply the measure to the model and optionally run the model

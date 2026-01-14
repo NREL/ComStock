@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_add_thermostat_setback</name>
   <uid>5f19c384-dbef-4747-90b7-f7500d315bd8</uid>
-  <version_id>edf853e9-fb49-4a34-8143-4a14e1d71e33</version_id>
-  <version_modified>2025-10-21T17:21:21Z</version_modified>
+  <version_id>30753e4d-07fc-42c5-b0d0-e570754cb95d</version_id>
+  <version_modified>2026-01-13T17:22:55Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>UpgradeAddThermostatSetback</class_name>
   <display_name>Upgrade_Add_Thermostat_Setback</display_name>
@@ -118,7 +118,7 @@
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
+      <checksum>08D3D350</checksum>
     </file>
     <file>
       <filename>README.md</filename>
@@ -147,13 +147,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>37EA92F8</checksum>
+      <checksum>B04F88AC</checksum>
     </file>
     <file>
       <filename>sched_methods.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8788DDD5</checksum>
+      <checksum>48B2DCB1</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -165,7 +165,7 @@
       <filename>upgrade_add_thermostat_setback_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>88063E80</checksum>
+      <checksum>0CC50C6A</checksum>
     </file>
   </files>
 </measure>

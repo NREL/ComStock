@@ -71,13 +71,13 @@ class UnoccupiedOAControlsTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-	puts "run dir expanded=" + "#{File.expand_path(File.join(File.dirname(__FILE__),'output', test_name.to_s))}"
+	  puts "run dir expanded=" + "#{File.expand_path(File.join(File.dirname(__FILE__),'output', test_name.to_s))}"
     return File.join(File.dirname(__FILE__),"output","#{test_name}")
   end
 
   def model_input_path(osm_name)
     # return models_for_tests.select { |x| set[:model] == osm_name }
-	puts (File.expand_path(File.dirname(__FILE__))) #expands path relative to current wd, passing abs path back
+	  puts (File.expand_path(File.dirname(__FILE__))) #expands path relative to current wd, passing abs path back
     return File.expand_path(File.join(File.dirname(__FILE__), '../../../tests/models', osm_name))
   end
 
@@ -119,11 +119,11 @@ class UnoccupiedOAControlsTest < Minitest::Test
     end
 
     # copy the osm and epw to the test directory
-	#osm_path = File.expand_path(osm_path)
-	puts(osm_path)
+	  #osm_path = File.expand_path(osm_path)
+	  puts(osm_path)
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
-	new_osm_path = File.expand_path(new_osm_path)
-	puts(new_osm_path)
+	  new_osm_path = File.expand_path(new_osm_path)
+	  puts(new_osm_path)
     FileUtils.cp(osm_path, new_osm_path)
     new_epw_path = File.expand_path("#{run_dir(test_name)}/#{File.basename(epw_path)}")
     FileUtils.cp(epw_path, new_epw_path)
@@ -132,7 +132,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
 
     # load the test model
     if model.nil?
-	  puts 'loading test model 1'
+	    puts 'loading test model 1'
       model = load_model(new_osm_path)
     end
 
@@ -163,14 +163,14 @@ class UnoccupiedOAControlsTest < Minitest::Test
     result = runner.result
     result_success = result.value.valueName == 'Success'
 
-	# change back directory
+	  # change back directory
     Dir.chdir(start_dir)
 
     # Show the output
     show_output(result)
 
     # Save model
-	puts "saving model to" + File.expand_path(model_output_path(test_name))
+	  puts "saving model to" + File.expand_path(model_output_path(test_name))
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success
@@ -237,18 +237,18 @@ class UnoccupiedOAControlsTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(File.expand_path(model_output_path(__method__)))
 
-	no_constant_oa = true
-	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+	  no_constant_oa = true
+	  model.getAirLoopHVACs.sort.each do |air_loop_hvac|
 	  air_loop_oa_system = air_loop_hvac.airLoopHVACOutdoorAirSystem.get.getControllerOutdoorAir
-      if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized
+    if air_loop_oa_system.minimumOutdoorAirSchedule.get.to_ScheduleConstant.is_initialized
 	    no_constant_oa = false
 	  end
 	end
 
 	assert(no_constant_oa)
 
-#put in assertions here
-#then duplicate it for other models if needed
+  #put in assertions here
+  #then duplicate it for other models if needed
   end
 
   def test_constant_air_loop_sched
@@ -272,34 +272,35 @@ class UnoccupiedOAControlsTest < Minitest::Test
     result = apply_measure_and_run(__method__, measure, argument_map, osm_path, epw_path, run_model: false)
     model = load_model(File.expand_path(model_output_path(__method__)))
 
-	no_constant_loop_sched = true
-	model.getAirLoopHVACs.sort.each do |air_loop_hvac|
-      avail_sched = air_loop_hvac.availabilitySchedule #got an error checking this for initialization
-	  if avail_sched.to_ScheduleConstant.is_initialized
-        no_constant_loop_sched = false
-	  end
-	  #among unitary systems, check supply fan operating mode for constant schedules
-	  if UnoccupiedOAControlsTest.air_loop_hvac_unitary_system?(air_loop_hvac)
-	    air_loop_hvac.supplyComponents.each do |component|
-          obj_type = component.iddObjectType.valueName.to_s
-          case obj_type
-          when 'OS_AirLoopHVAC_UnitarySystem'
-            component = component.to_AirLoopHVACUnitarySystem.get
-          when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir'
-            component = component.to_AirLoopHVACUnitaryHeatPump_AirToAir.get
-          when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed'
-            component = component.to_AirLoopHVACUnitaryHeatPumpAirToAirMultiSpeed.get
-          when 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
-            component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
-		  component.getSupplyAirFanOperatingModeSchedule
-          if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized
-		    no_constant_loop_sched = false
-		  end
-		  end
+    no_constant_loop_sched = true
+    model.getAirLoopHVACs.sort.each do |air_loop_hvac|
+      # got an error checking this for initialization
+      avail_sched = air_loop_hvac.availabilitySchedule
+      no_constant_loop_sched = false if avail_sched.to_ScheduleConstant.is_initialized
+
+      # among unitary systems, check supply fan operating mode for constant schedules
+      next unless UnoccupiedOAControlsTest.air_loop_hvac_unitary_system?(air_loop_hvac)
+
+      air_loop_hvac.supplyComponents.each do |component|
+        obj_type = component.iddObjectType.valueName.to_s
+        case obj_type
+        when 'OS_AirLoopHVAC_UnitarySystem'
+          component = component.to_AirLoopHVACUnitarySystem.get
+        when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir'
+          component = component.to_AirLoopHVACUnitaryHeatPump_AirToAir.get
+        when 'OS_AirLoopHVAC_UnitaryHeatPump_AirToAir_MultiSpeed'
+          component = component.to_AirLoopHVACUnitaryHeatPumpAirToAirMultiSpeed.get
+        when 'OS_AirLoopHVAC_UnitaryHeatCool_VAVChangeoverBypass'
+          component = component.to_AirLoopHVACUnitaryHeatCoolVAVChangeoverBypass.get
         end
-	  end
+
+        component.getSupplyAirFanOperatingModeSchedule
+        if setMinimumOutdoorAirSchedule.to_ScheduleConstant.is_initialized
+          no_constant_loop_sched = false
+        end
+      end
     end
-	assert(no_constant_loop_sched)
+    assert(no_constant_loop_sched)
 
   end
 

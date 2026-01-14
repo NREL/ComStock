@@ -103,7 +103,7 @@ class SetEnvelopeToCurrentCode < OpenStudio::Measure::ModelMeasure
     end
 
     # Make a standard that matches the current code in force
-    standard = Standard.build("#{current_code_in_force}")
+    standard = Standard.build(current_code_in_force.to_s)
 
     # Check that a default construction set is defined
     bldg_def_const_set = model.getBuilding.defaultConstructionSet

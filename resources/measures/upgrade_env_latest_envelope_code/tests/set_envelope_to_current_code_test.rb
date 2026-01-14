@@ -101,18 +101,12 @@ class SetEnvelopeToCurrentCodeTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
-    if File.exist?(model_output_path(test_name))
-      FileUtils.rm(model_output_path(test_name))
-    end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(model_output_path(test_name))
+    FileUtils.rm_f(report_path(test_name))
 
     # create an instance of a runner
     runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)

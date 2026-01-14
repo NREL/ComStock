@@ -160,17 +160,12 @@ class HVACHydronicGSHP < OpenStudio::Measure::ModelMeasure
   def vav_terminals?(air_loop_hvac)
     air_loop_hvac.thermalZones.each do |thermal_zone| # iterate thru thermal zones and modify zone-level terminal units
       thermal_zone.equipment.each do |equip|
-        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalDualDuctVAV.is_initialized
-          return true
-        elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
+        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized ||
+           equip.to_AirTerminalDualDuctVAV.is_initialized ||
+           equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
           return true
         end
       end

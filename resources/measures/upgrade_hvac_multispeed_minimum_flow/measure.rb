@@ -63,14 +63,12 @@ class MultispeedMinimumFlow < OpenStudio::Ruleset::WorkspaceUserScript
       else
         runner.registerAsNotApplicable("Multispeed performance object -- #{ms_perf_obj.name} -- does not specify speed 1 heating and cooling flow ratios, and therefore does not provide necessary information to set the no load flow ratio. No model changes will be made to this object.")
       end
-    end
 
-    # check if any airflow ratio fields are blank; if so, replace with 0s.
-    li_multispeed_perf.each do |ms_perf_obj|
+      # check if any airflow ratio fields are blank; if so, replace with 1s
       # get object indices
       num_fields = ms_perf_obj.numFields
       fields_list = (0...(0 + (num_fields - 1)))
-      # loop through indicies to replace any 0s
+      # loop through indicies to replace any blanks with 1s
       fields_list.sort.each do |field|
         # replace blanks after position 5 with 1s
         next unless (field >= 5) && !ms_perf_obj.getDouble(field, false).is_initialized

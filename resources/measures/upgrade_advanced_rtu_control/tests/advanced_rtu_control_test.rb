@@ -70,8 +70,8 @@ class AdvancedRTUControlTest < Minitest::Test
 
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
-    puts 'run dir expanded=' + "#{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
-    return File.join(File.dirname(__FILE__), 'output', "#{test_name}")
+    puts "run dir expanded=#{File.expand_path(File.join(File.dirname(__FILE__), 'output', test_name.to_s))}"
+    return File.join(File.dirname(__FILE__), 'output', test_name.to_s)
   end
 
   def model_input_path(osm_name)
@@ -102,18 +102,14 @@ class AdvancedRTUControlTest < Minitest::Test
     assert(File.exist?(epw_path))
 
     # create run directory if it does not exist
-    if !File.exist?(run_dir(test_name))
-      FileUtils.mkdir_p(run_dir(test_name))
-    end
+    FileUtils.mkdir_p(run_dir(test_name))
     assert(File.exist?(run_dir(test_name)))
 
     # remove prior runs if they exist
     # if File.exist?(model_output_path(test_name))
     # FileUtils.rm(model_output_path(test_name))
     # end
-    if File.exist?(report_path(test_name))
-      FileUtils.rm(report_path(test_name))
-    end
+    FileUtils.rm_f(report_path(test_name))
 
     # copy the osm and epw to the test directory
     # osm_path = File.expand_path(osm_path)
@@ -165,7 +161,7 @@ class AdvancedRTUControlTest < Minitest::Test
     show_output(result)
 
     # Save model
-    puts 'saving model to' + File.expand_path(model_output_path(test_name))
+    puts "saving model to#{File.expand_path(model_output_path(test_name))}"
     model.save(File.expand_path(model_output_path(test_name)), true)
 
     if run_model && result_success

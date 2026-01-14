@@ -53,21 +53,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
     'add_packaged_gshp'
   end
 
-  # human readable description
-  def description
-    'Measure replaces existing packaged single-zone RTU system types with ground source heat pump RTUs.'
-  end
-
-  # human readable description of modeling approach
-  def modeler_description
-    'Modeler has option to set backup heat source, prevelence of heat pump oversizing, heat pump oversizing limit, and addition of energy recovery. This measure will work on unitary PSZ systems as well as single-zone, constant air volume air loop PSZ systems.'
-  end
-
-  # Define the name and description that will appear in the OpenStudio application
-  def name
-    'add_packaged_gshp'
-  end
-
   def description
     'This measure replaces packaged single zone systems with a packaged water-to-air ground source heat pump system.'
   end
@@ -299,9 +284,8 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
         # dont delete diffusers from PSZs, these will be reused
         next if equip.to_AirTerminalSingleDuctConstantVolumeNoReheat.is_initialized
 
-        if equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized
-          zones_to_skip << thermal_zone.name.get
-        elsif equip.to_ZoneHVACUnitHeater.is_initialized
+        if equip.to_ZoneHVACBaseboardConvectiveElectric.is_initialized ||
+           equip.to_ZoneHVACUnitHeater.is_initialized
           zones_to_skip << thermal_zone.name.get
         else
           equip_to_delete << equip
@@ -751,7 +735,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleRuleset.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
             return false
@@ -796,7 +780,7 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
           if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleRuleset.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
             return false
@@ -853,9 +837,24 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
 
     # loop through thermal zones and add
     model.getThermalZones.each do |thermal_zone|
-      # skip if zone has baseboards and should not get a GHP
-      next if zones_to_skip.include? thermal_zone.name.get
-      next if unconditioned_zones.include? thermal_zone.name.get
+      # skip if zone was unconditioned in baseline
+      if unconditioned_zones.include? thermal_zone.name.get
+        runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
+        next
+      end
+
+      # if zone has baseboards and should not get a GHP, add electric baseboard if needed
+      if zones_to_skip.include? thermal_zone.name.get
+        if thermal_zone.equipment.empty?
+          baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
+          baseboard.setName("#{thermal_zone.name} Electric Baseboard")
+          baseboard.setEfficiency(1.0)
+          baseboard.autosizeNominalCapacity
+          baseboard.setAvailabilitySchedule(model.alwaysOnDiscreteSchedule)
+          baseboard.addToThermalZone(thermal_zone)
+        end
+        next
+      end
 
       # set always on schedule; this will be used in other object definitions
       always_on = model.alwaysOnDiscreteSchedule
@@ -1012,22 +1011,6 @@ class AddPackagedGSHP < OpenStudio::Measure::ModelMeasure
       # get outlet node of preheat coil to place setpoint manager
       preheat_sm_location = preheat_coil.outletModelObject.get.to_Node.get
       preheat_coil_setpoint_manager.addToNode(preheat_sm_location)
-    end
-
-    # for zones that got skipped, check if there are already baseboards. if not, add them.
-    model.getThermalZones.each do |thermal_zone|
-      if unconditioned_zones.include? thermal_zone.name.get
-        runner.registerInfo("Thermal zone #{thermal_zone} was unconditioned in the baseline, and will not receive a packaged GHP.")
-      elsif zones_to_skip.include? thermal_zone.name.get
-        if thermal_zone.equipment.empty?
-          baseboard = OpenStudio::Model::ZoneHVACBaseboardConvectiveElectric.new(model)
-          baseboard.setName("#{thermal_zone.name} Electric Baseboard")
-          baseboard.setEfficiency(1.0)
-          baseboard.autosizeNominalCapacity
-          baseboard.setAvailabilitySchedule(model.alwaysOnDiscreteSchedule)
-          baseboard.addToThermalZone(thermal_zone)
-        end
-      end
     end
 
     # set initial and final conditions for reporting

@@ -311,9 +311,6 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       table.setName(data['name'])
       table.setOutputUnitType(data['output_unit_type'])
       table
-    else
-      # OpenStudio.logFree(OpenStudio::Error, 'openstudio.Model.Model', "#{curve_name}' has an invalid form: #{data['form']}', cannot create this curve.")
-      nil
     end
   end
 
@@ -1403,11 +1400,9 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
         airloop_na_tz = []
         # air loops with non applicable thermal zones
         air_loop_hvac.thermalZones.sort.each do |tz|
-          # skip food service air loops
-          if ['kitchen', 'KITCHEN', 'Kitchen', 'Dining', 'dining'].any? { |word| tz.name.get.include?(word) }
-            airloop_na_tz << tz
-          # skip non-conditioned thermal zones
-          elsif !OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz)
+          # skip food service air loops and non-conditioned thermal zones
+          if ['kitchen', 'KITCHEN', 'Kitchen', 'Dining', 'dining'].any? { |word| tz.name.get.include?(word) } ||
+             (!OpenstudioStandards::ThermalZone.thermal_zone_heated?(tz) && !OpenstudioStandards::ThermalZone.thermal_zone_cooled?(tz))
             airloop_na_tz << tz
           else
             airloop_applicable_tz << tz
@@ -1544,17 +1539,13 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       # loop through reheat types - if gas is found, assume new system to non applicable thermal zone uses gas. Otherwise, assume electric
       model.getAirTerminalSingleDuctVAVReheats.each do |terminal|
         reheat_coil = terminal.reheatCoil
-        if reheat_coil.to_CoilHeatingWater.is_initialized
-          htg_type = 'NaturalGas'
-        elsif reheat_coil.to_CoilHeatingGas.is_initialized
+        if reheat_coil.to_CoilHeatingWater.is_initialized || reheat_coil.to_CoilHeatingGas.is_initialized
           htg_type = 'NaturalGas'
         end
       end
       model.getAirTerminalSingleDuctParallelPIUReheats.each do |terminal|
         reheat_coil = terminal.reheatCoil
-        if reheat_coil.to_CoilHeatingWater.is_initialized
-          htg_type = 'NaturalGas'
-        elsif reheat_coil.to_CoilHeatingGas.is_initialized
+        if reheat_coil.to_CoilHeatingWater.is_initialized || reheat_coil.to_CoilHeatingGas.is_initialized
           htg_type = 'NaturalGas'
         end
       end
@@ -1753,19 +1744,12 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
       air_loop_hvac.sizingSystem.setCentralCoolingDesignSupplyAirTemperature(doas_dat_clg_c)
       air_loop_hvac.sizingSystem.setCentralHeatingDesignSupplyAirTemperature(doas_dat_htg_c)
 
-      # remove any existing ERV
+      # remove any existing ERV and electric heat pump coil so only electric resistance heating coil remains
       air_loop_hvac.supplyComponents.each do |component|
-        next unless component.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized
-
-        component.remove
-      end
-
-      # remove electric heat pump coil so only electric resistance heating coil remains
-      # this is needed since constructor method does not have electric resistance heating only
-      air_loop_hvac.supplyComponents.each do |component|
-        next unless component.to_CoilHeatingDXSingleSpeed.is_initialized
-
-        component.remove
+        if component.to_HeatExchangerAirToAirSensibleAndLatent.is_initialized ||
+           component.to_CoilHeatingDXSingleSpeed.is_initialized
+          component.remove
+        end
       end
 
       # add ERV/HRV
@@ -1954,21 +1938,19 @@ class HvacVrfHrDoas < OpenStudio::Measure::ModelMeasure
     end
 
     ######################################################
-    # puts("### clean dummy VRF outdoor unit object")
-    ######################################################
-    model.getAirConditionerVariableRefrigerantFlows.each do |obj|
-      if obj.name.to_s == vrf_outdoor_unit_name
-        # puts("&&& deleting dummy VRF object: #{obj.name}")
-        obj.remove
-      end
-    end
-
-    ######################################################
-    # puts("### overriding other curves")
+    # puts("### clean dummy VRF outdoor unit object and override other curves")
     ######################################################
     # modifying cooling EIR modifier curve (function of part-load ratio)")
     # curve derived from comparing PLR performance between Daikin data, Mitsubishi data, and Daikin spec sheet
     model.getAirConditionerVariableRefrigerantFlows.each do |obj|
+      # delete dummy VRF object
+      if obj.name.to_s == vrf_outdoor_unit_name
+        # puts("&&& deleting dummy VRF object: #{obj.name}")
+        obj.remove
+        next
+      end
+
+      # override curves for actual VRF objects
       # puts("&&& overriding other curves: outdoor unit name = #{obj.name}")
       next unless obj.coolingEnergyInputRatioModifierFunctionofLowPartLoadRatioCurve.is_initialized
 

@@ -199,9 +199,7 @@ def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limi
   all_week_rules = { iweek_previous_week_rule: week_1_rules }
 
   # temporary loop for debugging
-  week_n_rules.each do |sch_rule|
-    sch_rule.daySchedule
-  end
+  week_n_rules.each(&:daySchedule)
 
   # For each subsequent week, check if it is same as previous
   # If same, then append to Schedule:Rule of previous week
@@ -223,7 +221,7 @@ def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limi
     else
       # Create a new week schedule for this week
       num_week_scheds += 1
-      week_sch_name = sch_name + '_ws' + num_week_scheds.to_s
+      week_sch_name = "#{sch_name}_ws#{num_week_scheds}"
       week_n_rules = std.make_week_ruleset_sched_from_168(model, sch_ruleset, all_week_values[iweek], start_date,
                                                           end_date, week_sch_name)
       all_week_rules[:iweek_previous_week_rule] = week_n_rules
@@ -233,9 +231,7 @@ def make_ruleset_sched_from_8760(model, _runner, values, sch_name, sch_type_limi
   end
 
   # temporary loop for debugging
-  week_n_rules.each do |sch_rule|
-    sch_rule.daySchedule
-  end
+  week_n_rules.each(&:daySchedule)
 
   # Need to handle week 52 with days 365 and 366
   # For each of these days, check if it matches a day from the previous week

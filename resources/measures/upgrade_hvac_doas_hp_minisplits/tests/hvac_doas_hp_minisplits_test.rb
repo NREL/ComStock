@@ -28,7 +28,7 @@ class HvacDoasHpMinisplitsTest < Minitest::Test
     assert_equal(3, arguments.size)
   end
 
- # return file paths to test models in test directory
+  # return file paths to test models in test directory
   def models_for_tests
     paths = Dir.glob(File.join(File.dirname(__FILE__), '../../../tests/models/*.osm'))
     paths = paths.map { |path| File.expand_path(path) }
@@ -138,10 +138,6 @@ class HvacDoasHpMinisplitsTest < Minitest::Test
   def models_to_test
     test_sets = []
     test_sets << { model: 'LargeOffice_VAV_chiller_boiler', weather: 'VA_MANASSAS_724036_12', result: 'NA' }
-    #test_sets << { model: 'Stripmall_Pre1980_8A', weather: 'GA_ROBINS_AFB_722175_12', result: 'Success' }
-    #test_sets << { model: 'Stripmall_Pre1980_8A_new_OA', weather: 'GA_ROBINS_AFB_722175_12', result: 'Success' }
-    #test_sets << { model: 'Baseboard_electric_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
-    #test_sets << { model: 'Quick_Service_Restaurant_Pre1980_3A', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     test_sets << { model: 'Quick_Service_Restaurant_CA', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
     return test_sets
   end
@@ -168,7 +164,6 @@ class HvacDoasHpMinisplitsTest < Minitest::Test
 
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
-      #argument_map = OpenStudio::Measure::OSArgumentMap.new
       argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
       # apply the measure to the model and optionally run the model
@@ -180,5 +175,4 @@ class HvacDoasHpMinisplitsTest < Minitest::Test
       assert_equal(set[:result].to_s, result.value.valueName.to_s)
     end
   end
-
 end

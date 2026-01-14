@@ -39,18 +39,11 @@
 module MakePerformanceCurves
   # method to convert csv value to float
   def convert_to_float(value)
-    # check if value is empty
-    if value.to_s.empty?
-      # value is empty; return nil
-      nil
-    elsif value.to_f != value
-      # elsif not value.to_f.to_s.include? value.to_s
-      # value is not a number; return nil
-      nil
-    else
-      # value is a number; convert to float
-      value.to_f
-    end
+    # check if value is empty or not a number; return nil
+    return nil if value.to_s.empty? || !value.to_s.match?(/^-?\d+\.?\d*$/)
+
+    # value is a number; convert to float
+    value.to_f
   end
 
   def read_performance_curve_data(data_path, runner)

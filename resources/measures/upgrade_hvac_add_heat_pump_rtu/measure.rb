@@ -6,7 +6,7 @@
 # see the URL below for information on how to write OpenStudio measures
 # http://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/
 require 'openstudio-standards'
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
@@ -1350,97 +1350,57 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # ---------------------------------------------------------
     # Curve Import - Cooling capacity as a function of temperature
     case hprtu_scenario
-    when 'variable_speed_high_eff'
+    when 'variable_speed_high_eff', 'cchpc_2027_spec'
       cool_cap_ft1 = model_add_curve(model, 'cool_cap_ft1', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'cool_cap_ft2', custom_data_json, std)
       cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
       cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
       cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
-    when 'two_speed_standard_eff'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       cool_cap_ft1 = model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
       cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
       cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2 }
-    when 'two_speed_lab_data'
-      cool_cap_ft1 = model_add_curve(model, 'c_cap_low_T', custom_data_json, std)
-      cool_cap_ft2 = model_add_curve(model, 'c_cap_high_T', custom_data_json, std)
-      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2 }
-    when 'cchpc_2027_spec'
-      cool_cap_ft1 = model_add_curve(model, 'cool_cap_ft1', custom_data_json, std)
-      cool_cap_ft2 = model_add_curve(model, 'cool_cap_ft2', custom_data_json, std)
-      cool_cap_ft3 = model_add_curve(model, 'cool_cap_ft3', custom_data_json, std)
-      cool_cap_ft4 = model_add_curve(model, 'cool_cap_ft4', custom_data_json, std)
-      cool_cap_ft_curve_stages = { 1 => cool_cap_ft1, 2 => cool_cap_ft2, 3 => cool_cap_ft3, 4 => cool_cap_ft4 }
     end
 
     # Curve Import - Cooling efficiency as a function of temperature
     case hprtu_scenario
-    when 'variable_speed_high_eff'
+    when 'variable_speed_high_eff', 'cchpc_2027_spec'
       cool_eir_ft1 = model_add_curve(model, 'cool_eir_ft1', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'cool_eir_ft2', custom_data_json, std)
       cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
       cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
       cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
-    when 'two_speed_standard_eff'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       cool_eir_ft1 = model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
       cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
       cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2 }
-    when 'two_speed_lab_data'
-      cool_eir_ft1 = model_add_curve(model, 'c_eir_low_T', custom_data_json, std)
-      cool_eir_ft2 = model_add_curve(model, 'c_eir_high_T', custom_data_json, std)
-      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2 }
-    when 'cchpc_2027_spec'
-      cool_eir_ft1 = model_add_curve(model, 'cool_eir_ft1', custom_data_json, std)
-      cool_eir_ft2 = model_add_curve(model, 'cool_eir_ft2', custom_data_json, std)
-      cool_eir_ft3 = model_add_curve(model, 'cool_eir_ft3', custom_data_json, std)
-      cool_eir_ft4 = model_add_curve(model, 'cool_eir_ft4', custom_data_json, std)
-      cool_eir_ft_curve_stages = { 1 => cool_eir_ft1, 2 => cool_eir_ft2, 3 => cool_eir_ft3, 4 => cool_eir_ft4 }
     end
 
     # Curve Import - Cooling capacity as a function of flow rate
     case hprtu_scenario
-    when 'variable_speed_high_eff'
+    when 'variable_speed_high_eff', 'cchpc_2027_spec'
       cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
       cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
-    when 'two_speed_standard_eff'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
       cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
       cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff2 }
-    when 'two_speed_lab_data'
-      cool_cap_ff1 = model_add_curve(model, 'c_cap_low_ff', custom_data_json, std)
-      cool_cap_ff2 = model_add_curve(model, 'c_cap_high_ff', custom_data_json, std)
-      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff2 }
-    when 'cchpc_2027_spec'
-      cool_cap_ff1 = model_add_curve(model, 'cool_cap_ff1', custom_data_json, std)
-      cool_cap_ff_curve_stages = { 1 => cool_cap_ff1, 2 => cool_cap_ff1, 3 => cool_cap_ff1, 4 => cool_cap_ff1 }
     end
 
     # Curve Import - Cooling efficiency as a function of flow rate
     case hprtu_scenario
-    when 'variable_speed_high_eff'
+    when 'variable_speed_high_eff', 'cchpc_2027_spec'
       cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
       cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
-    when 'two_speed_standard_eff'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
       cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
       cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff2 }
-    when 'two_speed_lab_data'
-      cool_eir_ff1 = model_add_curve(model, 'c_eir_low_ff', custom_data_json, std)
-      cool_eir_ff2 = model_add_curve(model, 'c_eir_high_ff', custom_data_json, std)
-      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff2 }
-    when 'cchpc_2027_spec'
-      cool_eir_ff1 = model_add_curve(model, 'cool_eir_ff1', custom_data_json, std)
-      cool_eir_ff_curve_stages = { 1 => cool_eir_ff1, 2 => cool_eir_ff1, 3 => cool_eir_ff1, 4 => cool_eir_ff1 }
     end
 
     # Curve Import - Cooling efficiency as a function of part load ratio
     case hprtu_scenario
-    when 'variable_speed_high_eff'
-      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
-    when 'two_speed_standard_eff'
-      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
-    when 'two_speed_lab_data'
-      cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
-    when 'cchpc_2027_spec'
+    when 'variable_speed_high_eff', 'two_speed_standard_eff', 'two_speed_lab_data', 'cchpc_2027_spec'
       cool_plf_fplr1 = model_add_curve(model, 'cool_plf_plr1', custom_data_json, std)
     end
 
@@ -1455,10 +1415,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_cap_ft3 = model_add_curve(model, 'heat_cap_ft3', custom_data_json, std)
       heat_cap_ft4 = model_add_curve(model, 'heat_cap_ft4', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1, 2 => heat_cap_ft2, 3 => heat_cap_ft3, 4 => heat_cap_ft4 }
-    when 'two_speed_standard_eff'
-      heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
-      heat_cap_ft_curve_stages = { 1 => heat_cap_ft1 }
-    when 'two_speed_lab_data'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       heat_cap_ft1 = model_add_curve(model, 'h_cap_T', custom_data_json, std)
       heat_cap_ft_curve_stages = { 1 => heat_cap_ft1 }
     when 'cchpc_2027_spec'
@@ -1477,10 +1434,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       heat_eir_ft3 = model_add_curve(model, 'heat_eir_ft3', custom_data_json, std)
       heat_eir_ft4 = model_add_curve(model, 'heat_eir_ft4', custom_data_json, std)
       heat_eir_ft_curve_stages = { 1 => heat_eir_ft1, 2 => heat_eir_ft2, 3 => heat_eir_ft3, 4 => heat_eir_ft4 }
-    when 'two_speed_standard_eff'
-      heat_eir_ft1 = model_add_curve(model, 'h_eir_T', custom_data_json, std)
-      heat_eir_ft_curve_stages = { 1 => heat_eir_ft1 }
-    when 'two_speed_lab_data'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       heat_eir_ft1 = model_add_curve(model, 'h_eir_T', custom_data_json, std)
       heat_eir_ft_curve_stages = { 1 => heat_eir_ft1 }
     when 'cchpc_2027_spec'
@@ -1496,10 +1450,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'variable_speed_high_eff'
       heat_cap_ff1 = model_add_curve(model, 'heat_cap_ff1', custom_data_json, std)
       heat_cap_ff_curve_stages = { 1 => heat_cap_ff1, 2 => heat_cap_ff1, 3 => heat_cap_ff1, 4 => heat_cap_ff1 }
-    when 'two_speed_standard_eff'
-      heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
-      heat_cap_ff_curve_stages = { 1 => heat_cap_ff1 }
-    when 'two_speed_lab_data'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       heat_cap_ff1 = model_add_curve(model, 'h_cap_allstages_ff', custom_data_json, std)
       heat_cap_ff_curve_stages = { 1 => heat_cap_ff1 }
     when 'cchpc_2027_spec'
@@ -1512,10 +1463,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     when 'variable_speed_high_eff'
       heat_eir_ff1 = model_add_curve(model, 'heat_eir_ff1', custom_data_json, std)
       heat_eir_ff_curve_stages = { 1 => heat_eir_ff1, 2 => heat_eir_ff1, 3 => heat_eir_ff1, 4 => heat_eir_ff1 }
-    when 'two_speed_standard_eff'
-      heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
-      heat_eir_ff_curve_stages = { 1 => heat_eir_ff1 }
-    when 'two_speed_lab_data'
+    when 'two_speed_standard_eff', 'two_speed_lab_data'
       heat_eir_ff1 = model_add_curve(model, 'h_eir_allstages_ff', custom_data_json, std)
       heat_eir_ff_curve_stages = { 1 => heat_eir_ff1 }
     when 'cchpc_2027_spec'
@@ -1526,26 +1474,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Curve Import - Heating efficiency as a function of part load ratio
     heat_plf_fplr1 = nil
     case hprtu_scenario
-    when 'variable_speed_high_eff'
-      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
-    when 'two_speed_standard_eff'
-      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
-    when 'two_speed_lab_data'
-      heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
-    when 'cchpc_2027_spec'
+    when 'variable_speed_high_eff', 'two_speed_standard_eff', 'two_speed_lab_data', 'cchpc_2027_spec'
       heat_plf_fplr1 = model_add_curve(model, 'heat_plf_plr1', custom_data_json, std)
     end
 
     # Curve Import - Defrost energy as a function of temperature
     defrost_eir = nil
     case hprtu_scenario
-    when 'variable_speed_high_eff'
-      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
-    when 'two_speed_standard_eff'
-      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
-    when 'two_speed_lab_data'
-      defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
-    when 'cchpc_2027_spec'
+    when 'variable_speed_high_eff', 'two_speed_standard_eff', 'two_speed_lab_data', 'cchpc_2027_spec'
       defrost_eir = model_add_curve(model, 'defrost_eir', custom_data_json, std)
     end
 
@@ -1782,7 +1718,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleRuleset.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
             return false
@@ -1872,7 +1808,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
           if supply_fan_avail_sched.to_ScheduleConstant.is_initialized
             supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
           elsif supply_fan_avail_sched.to_ScheduleRuleset.is_initialized
-            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleConstant.get
+            supply_fan_avail_sched = supply_fan_avail_sched.to_ScheduleRuleset.get
           else
             runner.registerError("Supply fan availability schedule type for #{supply_fan.name} not supported.")
             return false
@@ -2199,11 +2135,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       end
 
       # set airloop design airflow based on the maximum of heating and cooling design flow
-      design_airflow_for_sizing_m_3_per_s = if design_cooling_airflow_m_3_per_s < design_heating_airflow_m_3_per_s
-                                              design_heating_airflow_m_3_per_s
-                                            else
-                                              design_cooling_airflow_m_3_per_s
-                                            end
+      design_airflow_for_sizing_m_3_per_s = [design_cooling_airflow_m_3_per_s, design_heating_airflow_m_3_per_s].max
 
       # reset supply airflow if less than minimum OA
       design_airflow_for_sizing_m_3_per_s = oa_flow_m3_per_s if oa_flow_m3_per_s > design_airflow_for_sizing_m_3_per_s
@@ -2240,12 +2172,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # if oversizing is not specified (upsize_factor = 0.0), then use cooling design airflow
       stage_flows_heating = {}
       stage_flow_fractions_heating.each do |stage, ratio|
-        airflow = if upsize_factor == 0.0
+        airflow = if upsize_factor.zero?
                     ratio * design_cooling_airflow_m_3_per_s
                   else
                     ratio * design_heating_airflow_m_3_per_s
                   end
-        stage_flows_heating[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
+        stage_flows_heating[stage] = [airflow, min_airflow_m3_per_s].max
       end
 
       # determine airflows for each stage of cooling
@@ -2254,7 +2186,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       stage_flows_cooling = {}
       stage_flow_fractions_cooling.sort.each do |stage, ratio|
         airflow = ratio * design_cooling_airflow_m_3_per_s
-        stage_flows_cooling[stage] = airflow >= min_airflow_m3_per_s ? airflow : min_airflow_m3_per_s
+        stage_flows_cooling[stage] = [airflow, min_airflow_m3_per_s].max
       end
 
       if debug_verbose

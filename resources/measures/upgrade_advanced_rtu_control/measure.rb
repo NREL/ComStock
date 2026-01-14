@@ -415,7 +415,7 @@ class AdvancedRTUControl < OpenStudio::Measure::ModelMeasure
         # if min OA flow rate is 0, or if it isn't set, calculate it
         if min_oa_flow_rate_cont == 0
           min_oa_flow_rate = thermal_zone_outdoor_airflow_rate(thermal_zone)
-        elsif
+        else
           min_oa_flow_rate = min_oa_flow_rate_cont
         end
         thermal_zone.equipment.each do |equip|

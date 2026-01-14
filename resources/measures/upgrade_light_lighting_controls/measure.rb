@@ -39,7 +39,7 @@ require 'csv'
 require 'openstudio-standards'
 
 # require all .rb files in resources folder
-Dir[File.dirname(__FILE__) + '/resources/*.rb'].each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
 
 # start the measure
 class LightingControls < OpenStudio::Measure::ModelMeasure
@@ -257,13 +257,13 @@ class LightingControls < OpenStudio::Measure::ModelMeasure
           surface_normal = surface.outwardNormal
           if surface.surfaceType == 'Wall'
             # @todo stop skipping non-vertical walls
-            if !(surface_normal.z.abs < 0.001) && !surface.subSurfaces.empty?
+            if surface_normal.z.abs >= 0.001 && !surface.subSurfaces.empty?
               runner.registerWarning("Cannot currently handle non-vertical walls; skipping windows on #{surface.name} in #{space.name} for daylight sensor positioning.")
               next
             end
           elsif surface.surfaceType == 'RoofCeiling'
             # @todo stop skipping non-horizontal roofs
-            if !(surface_normal.to_s == straight_upward.to_s) && !surface.subSurfaces.empty?
+            if surface_normal.to_s != straight_upward.to_s && !surface.subSurfaces.empty?
               runner.registerWarning("Cannot currently handle non-horizontal roofs; skipping skylights on #{surface.name} in #{space.name} for daylight sensor positioning.")
               runner.registerInfo("---Surface #{surface.name} has outward normal of #{surface_normal.to_s.gsub(
                 /\[|\]/, '|'

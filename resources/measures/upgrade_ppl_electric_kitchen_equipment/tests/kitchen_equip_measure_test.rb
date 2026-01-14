@@ -45,7 +45,6 @@ require_relative '../measure'
 require_relative '../../../../test/helpers/minitest_helper'
 
 class PplElectricKitchenEquipment < Minitest::Test
-
   def test_number_of_arguments_and_argument_names
     # create an instance of the measure
     measure = ElectrifyKitchenEquipment.new
@@ -194,7 +193,7 @@ class PplElectricKitchenEquipment < Minitest::Test
 
       # set arguments here; will vary by measure
       arguments = measure.arguments(model)
-      #argument_map = OpenStudio::Measure::OSArgumentMap.new
+      # argument_map = OpenStudio::Measure::OSArgumentMap.new
       argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
       # apply the measure to the model and optionally run the model
@@ -206,5 +205,4 @@ class PplElectricKitchenEquipment < Minitest::Test
       assert_equal(set[:result].to_s, result.value.valueName.to_s)
     end
   end
-
 end
