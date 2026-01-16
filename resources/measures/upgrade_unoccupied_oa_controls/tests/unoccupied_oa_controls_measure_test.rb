@@ -119,7 +119,7 @@ class UnoccupiedOAControlsTest < Minitest::Test
     end
 
     # copy the osm and epw to the test directory
-	  #osm_path = File.expand_path(osm_path)
+	  # osm_path = File.expand_path(osm_path)
 	  puts(osm_path)
     new_osm_path = "#{run_dir(test_name)}/#{File.basename(osm_path)}"
 	  new_osm_path = File.expand_path(new_osm_path)

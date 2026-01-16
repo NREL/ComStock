@@ -57,12 +57,12 @@ class DFLoadShedTest < Minitest::Test
     # }
     test_sets << {
       model: '3340_small_office_OS38', # small office
-      weather: 'IL_Dupage_3340_18',
+      weather: 'CO_FortCollins_16',
       result: 'Success'
     }
     test_sets << {
       model: '4774_secondary_school_OS38', # secondary school
-      weather: 'MI_Tulip_City_4774_18',
+      weather: 'CO_FortCollins_16',
       result: 'Success'
     }
     # test: not applicable building type

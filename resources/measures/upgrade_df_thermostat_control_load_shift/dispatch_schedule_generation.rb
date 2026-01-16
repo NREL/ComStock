@@ -915,7 +915,7 @@ def read_emission_factors(model, scenario, year = 2021)
     egrid_region = grid_region.chop
   end
   # read egrid factors
-  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/egrid/egrid_subregion_emissions_factors.csv"
+  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/resources/egrid/egrid_subregion_emissions_factors.csv"
   unless File.file?(egrid_subregion_emissions_factors_csv)
     raise "Unable to find file: #{egrid_subregion_emissions_factors_csv}"
   end
@@ -940,7 +940,7 @@ def read_emission_factors(model, scenario, year = 2021)
                       else
                         scenario
                       end
-    emissions_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
+    emissions_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
     raise "Unable to find file: #{emissions_csv}" unless File.file?(emissions_csv)
 
     cambium_co2e_kg_per_mwh = CSV.read(emissions_csv, converters: :float).flatten
@@ -999,7 +999,7 @@ def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   #   cambium_grid_region = grid_region
   #   egrid_region = grid_region.chop
   # end
-  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  load_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
 
   CSV.read(load_csv, converters: :float).flatten

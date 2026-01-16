@@ -76,7 +76,7 @@ end
 # create methods to call other measures for package runs
 # putting this code in a resource file prevents issues with the OS app parsing
 def call_pv(model, runner)
-  pv_measure_path = File.join(__dir__, '../../upgrade_add_pvwatts/measure.rb')
+  pv_measure_path = File.join(__dir__, '../upgrade_add_pvwatts/measure.rb')
   unless File.exist?(pv_measure_path)
     runner.registerError('PV measure not found. Check that this measure exists in your file structure and modify the measure path if necessary.')
     return false
