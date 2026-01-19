@@ -1000,7 +1000,7 @@ def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
 
   grid_region = grid_region.get
-  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  load_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
 
   grid_load_data = CSV.read(load_csv, converters: :float).flatten
