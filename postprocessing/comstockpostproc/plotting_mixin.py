@@ -52,6 +52,8 @@ class PlottingMixin():
         if applicability == 'applicable_only':
             scenarios = ['applicable_only']
 
+        scenarios = ['applicable_only']
+
         for applicable_scenario in scenarios:
 
             df_scen = df.copy()
@@ -63,7 +65,18 @@ class PlottingMixin():
             df_scen[pv_excess] = df_scen[self.col_name_to_weighted(self.ANN_ELEC_PV_KBTU, 'tbtu')] - df_scen[pv_used]
 
             if applicable_scenario == 'applicable_only':
-                applic_bldgs = df_scen.loc[(df_scen[self.UPGRADE_NAME]!='Baseline') & (df_scen['applicability']==True), self.BLDG_ID]
+                #applic_bldgs.to_csv('debug_applicable_buildings.csv', index=False)
+                # Find intersection of applicable buildings across all non-baseline upgrades
+                non_baseline_upgrades = df_scen.loc[df_scen[self.UPGRADE_NAME]!='Baseline', self.UPGRADE_NAME].unique()
+                applic_bldgs_sets = []
+                for upgrade in non_baseline_upgrades:
+                    upgrade_applic_bldgs = set(df_scen.loc[(df_scen[self.UPGRADE_NAME]==upgrade) & (df_scen['applicability']==True), self.BLDG_ID])
+                    applic_bldgs_sets.append(upgrade_applic_bldgs)
+                # Get intersection of all sets
+                if applic_bldgs_sets:
+                    applic_bldgs = set.intersection(*applic_bldgs_sets)
+                else:
+                    applic_bldgs = set()
                 df_scen = df_scen.loc[df_scen[self.BLDG_ID].isin(applic_bldgs), :]
 
             df_emi_gb = (df_scen.groupby(column_for_grouping, observed=True)[wtd_cols_enduse_ann_en + wtd_cols_pv_ann_en + [pv_excess, pv_used]].sum()).reset_index()
@@ -172,7 +185,7 @@ class PlottingMixin():
                 os.makedirs(fig_sub_dir)
             fig_path = os.path.abspath(os.path.join(fig_sub_dir, fig_name))
             fig_path_html = os.path.abspath(os.path.join(fig_sub_dir, fig_name_html))
-            fig.write_image(fig_path, scale=10)
+            #fig.write_image(fig_path, scale=10)
             fig.write_html(fig_path_html)
             df_emi_gb_long.to_csv(os.path.join(fig_sub_dir, f'{title.replace(" ", "_").lower()}_{applicable_scenario}.csv'), index=False)
 
