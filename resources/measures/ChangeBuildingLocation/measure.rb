@@ -338,10 +338,10 @@ class ChangeBuildingLocation < OpenStudio::Measure::ModelMeasure
     # set climate zone
     climate_zones.clear
     if args['climate_zone'].include?('CEC')
-      climate_zones.setClimateZone('CEC', args['climate_zone'].gsub('T24-CEC', ''))
+      climate_zones.setClimateZone('CEC', args['climate_zone'].gsub('CEC T24-CEC', '').gsub('T24-CEC', ''))
       runner.registerInfo("Setting Climate Zone to #{climate_zones.getClimateZones('CEC').first.value}")
     else
-      climate_zones.setClimateZone('ASHRAE', args['climate_zone'].gsub('ASHRAE 169-2006-', ''))
+      climate_zones.setClimateZone('ASHRAE', args['climate_zone'].gsub(/ASHRAE .*-.*-/, ''))
       runner.registerInfo("Setting Climate Zone to #{climate_zones.getClimateZones('ASHRAE').first.value}")
     end
 
