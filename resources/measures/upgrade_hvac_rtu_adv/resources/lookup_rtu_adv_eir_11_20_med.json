@@ -1,0 +1,58 @@
+{
+    "tables": {
+        "curves": {
+            "table": [
+                {
+                    "name": "lookup_rtu_adv_eir_11_20_med",
+                    "category": "eir_fn_of_T",
+                    "form": "MultiVariableLookupTable",
+                    "number_independent_variables": 2,
+                    "interpolation_method": "LinearInterpolationOfTable",
+                    "number_of_interpolation_points": 2,
+                    "curve_type": "Biquadratic",
+                    "normalization_reference": 1.0,
+                    "output_unit_type": "Dimensionless",
+                    "minimum_independent_variable_1": 13.89,
+                    "maximum_independent_variable_1": 25.0,
+                    "input_unit_type_x1": "Temperature",
+                    "minimum_independent_variable_2": 23.89,
+                    "maximum_independent_variable_2": 51.67,
+                    "input_unit_type_x2": "Temperature",
+                    "minimum_dependent_variable_output": 0.529,
+                    "maximum_dependent_variable_output": 2.067,
+                    "notes": "cooling capacity modifier function of temperatures for ['med'] stages",
+                    "data_point1": "13.89,23.89,0.6715",
+                    "data_point2": "13.89,29.44,0.8519",
+                    "data_point3": "13.89,35.0,1.06",
+                    "data_point4": "13.89,40.56,1.3305",
+                    "data_point5": "13.89,46.11,1.6573",
+                    "data_point6": "13.89,51.67,2.0501",
+                    "data_point7": "16.67,23.89,0.6956",
+                    "data_point8": "16.67,29.44,0.8744",
+                    "data_point9": "16.67,35.0,1.0773",
+                    "data_point10": "16.67,40.56,1.3531",
+                    "data_point11": "16.67,46.11,1.6829",
+                    "data_point12": "16.67,51.67,2.0672",
+                    "data_point13": "19.44,23.89,0.6241",
+                    "data_point14": "19.44,29.44,0.7933",
+                    "data_point15": "19.44,35.0,0.9859",
+                    "data_point16": "19.44,40.56,1.2643",
+                    "data_point17": "19.44,46.11,1.5982",
+                    "data_point18": "19.44,51.67,2.009",
+                    "data_point19": "22.22,23.89,0.5617",
+                    "data_point20": "22.22,29.44,0.7132",
+                    "data_point21": "22.22,35.0,0.8906",
+                    "data_point22": "22.22,40.56,1.1354",
+                    "data_point23": "22.22,46.11,1.4397",
+                    "data_point24": "22.22,51.67,1.8082",
+                    "data_point25": "25.0,23.89,0.5286",
+                    "data_point26": "25.0,29.44,0.667",
+                    "data_point27": "25.0,35.0,0.8262",
+                    "data_point28": "25.0,40.56,1.0625",
+                    "data_point29": "25.0,46.11,1.3371",
+                    "data_point30": "25.0,51.67,1.6747"
+                }
+            ]
+        }
+    }
+}

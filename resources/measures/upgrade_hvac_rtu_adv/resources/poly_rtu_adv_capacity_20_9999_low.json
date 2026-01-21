@@ -1,0 +1,33 @@
+{
+    "tables": {
+        "curves": {
+            "table": [
+                {
+                    "name": "poly_rtu_adv_capacity_20_9999_low",
+                    "category": "capacity_fn_of_ff",
+                    "form": "Cubic",
+                    "dependent_variable": "Capacity",
+                    "independent_variable_1": "fraction of flow",
+                    "independent_variable_2": null,
+                    "coeff_1": 0.6362179434794036,
+                    "coeff_2": 0.5389308446680282,
+                    "coeff_3": -0.1763911796963111,
+                    "coeff_4": null,
+                    "coeff_5": null,
+                    "coeff_6": null,
+                    "coeff_7": null,
+                    "coeff_8": null,
+                    "coeff_9": null,
+                    "coeff_10": null,
+                    "minimum_independent_variable_1": 0.504,
+                    "maximum_independent_variable_1": 1.62,
+                    "minimum_independent_variable_2": null,
+                    "maximum_independent_variable_2": null,
+                    "minimum_dependent_variable_output": 0.857,
+                    "maximum_dependent_variable_output": 1.054,
+                    "notes": "effort from EUSS/SDR project for the high-efficiency RTU upgrade"
+                }
+            ]
+        }
+    }
+}

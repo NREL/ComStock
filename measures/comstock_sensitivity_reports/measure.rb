@@ -145,6 +145,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     result << OpenStudio::IdfObject.load('Output:Variable,*,VRF Heat Pump Heat Recovery Energy,RunPeriod;').get # J
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Outdoor Air Mass Flow Rate,RunPeriod;').get
     result << OpenStudio::IdfObject.load('Output:Variable,*,Air System Mixed Air Mass Flow Rate,RunPeriod;').get # kg/s
+    result << OpenStudio::IdfObject.load("Output:Variable,*,Air System Mixed Air Mass Flow Rate,#{timeseries_timestep};").get # kg/s
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{elec} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{gas} Energy,RunPeriod;").get # J
     result << OpenStudio::IdfObject.load("Output:Variable,*,Water Heater #{fuel_oil} Energy,RunPeriod;").get # J
@@ -660,6 +661,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
 
+    standard_air_density = 1.225 #kg/m3, using standard air density since need a single value
+
     # get building floor area properties
     total_building_area_m2 = 0.0
     var_val_query = "SELECT Value FROM TabularDataWithStrings WHERE ReportName = 'AnnualBuildingUtilityPerformanceSummary' AND ReportForString = 'Entire Facility' AND TableName = 'Building Area' AND RowName = 'Total Building Area' AND ColumnName = 'Area' AND Units = 'm2'"
@@ -1050,6 +1053,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_weighted_fan_power_minimum_flow_fraction = 0.0
     air_system_weighted_fan_static_pressure = 0.0
     air_system_weighted_fan_efficiency = 0.0
+    air_system_total_vav_mass_flow_kg_s = 0.0
+    air_system_total_des_flow_rate_m3_s = 0.0
+    air_system_vav_avg_flow_ratio = -999
+    des_flow_rate_m3_s = 0
     economizer_statistics = []
     model.getAirLoopHVACs.sort.each do |air_loop_hvac|
       # check if unitary system
@@ -1069,6 +1076,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       fan_minimum_flow_frac = 0.0
       fan_static_pressure = 0.0
       fan_efficiency = 0.0
+      fan_var_vol = false
       supply_fan = air_loop_hvac.supplyFan
       if supply_fan.is_initialized
         supply_fan = supply_fan.get
@@ -1083,10 +1091,18 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
         elsif supply_fan.to_FanVariableVolume.is_initialized
+          fan_var_vol = true
           supply_fan = supply_fan.to_FanVariableVolume.get
           fan_minimum_flow_frac = supply_fan.fanPowerMinimumFlowFraction
           fan_static_pressure = supply_fan.pressureRise
           fan_efficiency = supply_fan.fanTotalEfficiency
+          if supply_fan.autosizedMaximumFlowRate.is_initialized
+            des_flow_rate_m3_s = supply_fan.autosizedMaximumFlowRate.get
+          elsif supply_fan.maximumFlowRate.is_initialized
+            des_flow_rate_m3_s = supply_fan.maximumFlowRate.get
+          else
+            des_flow_rate_m3_s = -999 # placeholder if value can't be accessed
+          end
         else
           runner.registerWarning("Supply Fan type not recognized for air loop hvac '#{air_loop_hvac.name}'.")
         end
@@ -1127,13 +1143,31 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         }
       end
 
-      # add to weighted
+      # Get airflow time series for average flow rate
+      ts_ahu_ma_flow_rate_kg_s = sql.timeSeries(ann_env_pd, timeseries_timestep, 'Air System Mixed Air Mass Flow Rate', air_loop_hvac.name.to_s.upcase)
+      ts_ahu_ma_flow_rate_kg_s_list = convert_timeseries_to_list(ts_ahu_ma_flow_rate_kg_s)
+
+      unless ts_ahu_ma_flow_rate_kg_s_list.nil?
+        average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
+      else
+        average_non_zero_loop_mass_flow_kg_s = -999
+      end
+
+      # Add to weighted
       air_system_total_mass_flow_kg_s += air_loop_mass_flow_rate_kg_s
       air_system_total_oa_mass_flow_kg_s += air_loop_oa_mass_flow_rate_kg_s
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
+      if fan_var_vol
+        air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for SP reset measure
+        air_system_total_des_flow_rate_m3_s += des_flow_rate_m3_s
+      end
     end
+
+    # Convert design flow rate from volumetric to mass flow
+    air_system_total_des_flow_rate_kg_s = air_system_total_des_flow_rate_m3_s * standard_air_density
+
     average_outdoor_air_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_total_oa_mass_flow_kg_s / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_average_outdoor_air_fraction', average_outdoor_air_fraction)
     air_system_fan_power_minimum_flow_fraction = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_power_minimum_flow_fraction / air_system_total_mass_flow_kg_s : 0.0
@@ -1142,6 +1176,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_air_system_fan_static_pressure', air_system_fan_static_pressure, 'Pa')
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
+    air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow_kg_s.to_f / air_system_total_des_flow_rate_kg_s.to_f : -999
 
     # calculate economizer variables
     if economizer_statistics.empty?
@@ -1321,6 +1356,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     end
 
     runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
+    runner.registerValue('com_report_air_sys_vav_avg_flow_ratio', air_system_vav_avg_flow_ratio)
     runner.registerValue('com_report_zone_hvac_total_outdoor_air_mass_flow_rate', zone_hvac_total_oa_mass_flow_kg_s, 'kg/s')
     zone_hvac_average_outdoor_air_fraction = zone_hvac_total_mass_flow_kg_s > 0.0 ? zone_hvac_total_oa_mass_flow_kg_s / zone_hvac_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_zone_hvac_average_outdoor_air_fraction', zone_hvac_average_outdoor_air_fraction)
@@ -1336,6 +1372,111 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_total_building_average_oa_mass_flow_rate', total_building_avg_oa_mass_flow_rate_kg_s, 'kg/s')
     total_building_avg_oa_fraction = total_building_avg_oa_mass_flow_rate_kg_s / total_building_avg_mass_flow_rate_kg_s
     runner.registerValue('com_report_total_building_average_outdoor_air_fraction', total_building_avg_oa_fraction)
+
+    # Collect pump specifications
+    all_pumps = []
+
+    # Helper method to classify plant loop type
+    def system_type_for(pump)
+      loop = pump.plantLoop
+      return :unknown unless loop.is_initialized
+
+      plant_loop = loop.get
+      if plant_loop.supplyComponents.any? do |comp|
+          comp.to_WaterHeaterMixed.is_initialized || comp.to_WaterHeaterStratified.is_initialized
+        end
+        :swh  # Service Water Heating
+      else
+        :hvac  # Space Heating/Cooling
+      end
+    end
+
+    # Constant speed pumps
+    model.getPumpConstantSpeeds.each do |pump|
+      flow = pump.ratedFlowRate.is_initialized ? pump.ratedFlowRate.get : nil
+      eff  = pump.motorEfficiency
+      sys  = system_type_for(pump)
+
+      all_pumps << {
+        pump: pump,
+        flow: flow,
+        efficiency: eff,
+        type: :constant,
+        system: sys
+      }
+    end
+
+    # Variable speed pumps
+    model.getPumpVariableSpeeds.each do |pump|
+      flow = pump.ratedFlowRate.is_initialized ? pump.ratedFlowRate.get : nil
+      eff  = pump.motorEfficiency
+      sys  = system_type_for(pump)
+
+      all_pumps << {
+        pump: pump,
+        flow: flow,
+        efficiency: eff,
+        type: :variable,
+        system: sys
+      }
+    end
+
+    # Rated-flow-weighted motor efficiency (overall)
+    total_flow = all_pumps.sum { |p| p[:flow].to_f }
+    weighted_eff_sum = all_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
+
+    avg_eff = total_flow.positive? ? weighted_eff_sum / total_flow : 0.0
+    runner.registerValue('com_report_pump_flow_weighted_avg_motor_efficiency', avg_eff)
+
+    # Rated-flow-weighted motor efficiency by type
+    const_pumps = all_pumps.select { |p| p[:type] == :constant }
+    var_pumps   = all_pumps.select { |p| p[:type] == :variable }
+
+    const_flow = const_pumps.sum { |p| p[:flow].to_f }
+    var_flow   = var_pumps.sum   { |p| p[:flow].to_f }
+
+    const_eff_sum = const_pumps.sum { |p| p[:flow].to_f * p[:efficiency] }
+    var_eff_sum   = var_pumps.sum   { |p| p[:flow].to_f * p[:efficiency] }
+
+    avg_eff_const = const_flow.positive? ? const_eff_sum / const_flow : 0.0
+    avg_eff_var   = var_flow.positive? ? var_eff_sum / var_flow : 0.0
+
+    runner.registerValue(
+      'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd', avg_eff_const
+    )
+    runner.registerValue(
+      'com_report_pump_flow_weighted_avg_motor_efficiency_var_spd', avg_eff_var
+    )
+
+    # Pump counts by system and type
+    hvac_pumps = all_pumps.select { |p| p[:system] == :hvac }
+    swh_pumps  = all_pumps.select { |p| p[:system] == :swh }
+
+    hvac_const = hvac_pumps.count { |p| p[:type] == :constant }
+    hvac_var   = hvac_pumps.count { |p| p[:type] == :variable }
+    swh_const  = swh_pumps.count  { |p| p[:type] == :constant }
+    swh_var    = swh_pumps.count  { |p| p[:type] == :variable }
+
+    runner.registerValue('com_report_pump_count_hvac_const_spd', hvac_const)
+    runner.registerValue('com_report_pump_count_hvac_var_spd',   hvac_var)
+    runner.registerValue('com_report_pump_count_swh_const_spd',  swh_const)
+    runner.registerValue('com_report_pump_count_swh_var_spd',    swh_var)
+
+    # Total rated power
+    total_const_pwr_w = model.getPumpConstantSpeeds.sum do |pump|
+      pump.ratedPowerConsumption.is_initialized ? pump.ratedPowerConsumption.get : 0.0
+    end
+
+    total_var_pwr_w = model.getPumpVariableSpeeds.sum do |pump|
+      pump.ratedPowerConsumption.is_initialized ? pump.ratedPowerConsumption.get : 0.0
+    end
+
+    runner.registerValue(
+      'com_report_pump_total_constant_speed_pump_power_w', total_const_pwr_w, 'W'
+    )
+    runner.registerValue(
+      'com_report_pump_total_variable_speed_pump_power_w', total_var_pwr_w, 'W'
+    )
 
     # calculate building heating and cooling
     building_heated_zone_area_m2 = 0.0
@@ -1362,6 +1503,15 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     weighted_thermostat_cooling_min_c = 0.0
     weighted_thermostat_cooling_max_c = 0.0
     weighted_thermostat_cooling_area_m2 = 0.0
+    zones_with_htg_setbacks = []
+    zones_with_clg_setbacks = []
+    zones_htg_tstats = [] # Zones with heating thermostats
+    zones_clg_tstats = [] # Zones with cooling thermostats
+    has_clg_setback_all_tstats = false
+    has_htg_setback_all_tstats = false
+    at_least_one_clg_setback = false # At least one zone with a cooling setback
+    at_least_one_htg_setback = false # At least one zone with a heating setback
+
     model.getThermalZones.sort.each do |zone|
       next unless zone.thermostatSetpointDualSetpoint.is_initialized
 
@@ -1369,16 +1519,25 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       thermostat = zone.thermostatSetpointDualSetpoint.get
       if thermostat.heatingSetpointTemperatureSchedule.is_initialized
         thermostat_heating_schedule = thermostat.heatingSetpointTemperatureSchedule.get
+        zones_htg_tstats << zone
         if thermostat_heating_schedule.to_ScheduleRuleset.is_initialized
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleRuleset.get
-          cool_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
-          weighted_thermostat_heating_min_c += cool_min_max['min'] * floor_area_m2
-          weighted_thermostat_heating_max_c += cool_min_max['max'] * floor_area_m2
+          htg_min_max = OpenstudioStandards::Schedules.schedule_ruleset_get_min_max(thermostat_heating_schedule)
+          if htg_min_max['max'] > htg_min_max['min']
+            zones_with_htg_setbacks << zone # Add to list of zones with setbacks
+            at_least_one_htg_setback = true
+          end
+          weighted_thermostat_heating_min_c += htg_min_max['min'] * floor_area_m2
+          weighted_thermostat_heating_max_c += htg_min_max['max'] * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
         elsif thermostat_heating_schedule.to_ScheduleInterval.is_initialized
           thermostat_heating_schedule = thermostat_heating_schedule.to_ScheduleInterval.get
           ts = thermostat_heating_schedule.timeSeries
           interval_values_array = ts.values
+          if interval_values_array.max > interval_values_array.min
+            zones_with_htg_setbacks << zone # Add to list of zones with setbacks
+            at_least_one_htg_setback = true
+          end
           weighted_thermostat_heating_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_heating_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_heating_area_m2 += floor_area_m2
@@ -1391,6 +1550,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         # weighted_thermostat_heating_area_m2 += floor_area_m2
       end
       if thermostat.coolingSetpointTemperatureSchedule.is_initialized
+        zones_clg_tstats << zone
         thermostat_cooling_schedule = thermostat.coolingSetpointTemperatureSchedule.get
         if thermostat_cooling_schedule.to_ScheduleRuleset.is_initialized
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleRuleset.get
@@ -1398,16 +1558,42 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
           weighted_thermostat_cooling_min_c += cool_min_max['min'] * floor_area_m2
           weighted_thermostat_cooling_max_c += cool_min_max['max'] * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
+          if cool_min_max['max'] > cool_min_max['min']
+            zones_with_clg_setbacks << zone # Add to list of zones with setbacks
+            at_least_one_clg_setback = true
+          end
         elsif thermostat_cooling_schedule.to_ScheduleInterval.is_initialized
           thermostat_cooling_schedule = thermostat_cooling_schedule.to_ScheduleInterval.get
           ts = thermostat_cooling_schedule.timeSeries
           interval_values_array = ts.values
+          if interval_values_array.max > interval_values_array.min
+            zones_with_clg_setbacks << zone # Add to list of zones with setbacks
+            at_least_one_clg_setback = true
+          end
           weighted_thermostat_cooling_min_c += interval_values_array.min * floor_area_m2
           weighted_thermostat_cooling_max_c += interval_values_array.max * floor_area_m2
           weighted_thermostat_cooling_area_m2 += floor_area_m2
         end
       end
     end
+
+    # Set setback variable reporting
+    if zones_with_clg_setbacks & zones_clg_tstats == zones_clg_tstats
+      has_clg_setback_all_tstats = true
+    else
+      has_clg_setback_all_tstats = false
+    end
+
+    if zones_with_htg_setbacks & zones_htg_tstats == zones_htg_tstats
+      has_htg_setback_all_tstats = true
+    else
+      has_htg_setback_all_tstats = false
+    end
+
+    runner.registerValue('com_report_has_htg_setback_all_tstats', has_htg_setback_all_tstats)
+    runner.registerValue('com_report_has_clg_setback_all_tstats', has_clg_setback_all_tstats)
+    runner.registerValue('com_report_has_at_least_one_htg_setback', at_least_one_htg_setback)
+    runner.registerValue('com_report_has_at_least_one_clg_setback', at_least_one_clg_setback)
 
     # Thermostat heating setpoint minimum and maximum
     if weighted_thermostat_heating_area_m2 > 0.0
