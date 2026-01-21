@@ -998,7 +998,6 @@ end
 def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
   raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
-
   grid_region = grid_region.get
   load_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
