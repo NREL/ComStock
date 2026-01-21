@@ -1,0 +1,33 @@
+{
+    "tables": {
+        "curves": {
+            "table": [
+                {
+                    "name": "poly_rtu_adv_eir_11_20_plr",
+                    "category": "eir_fn_of_plr",
+                    "form": "Linear",
+                    "dependent_variable": "eir",
+                    "independent_variable_1": "fraction of plr",
+                    "independent_variable_2": null,
+                    "coeff_1": 0.06891343612869624,
+                    "coeff_2": 0.947828397686959,
+                    "coeff_3": null,
+                    "coeff_4": null,
+                    "coeff_5": null,
+                    "coeff_6": null,
+                    "coeff_7": null,
+                    "coeff_8": null,
+                    "coeff_9": null,
+                    "coeff_10": null,
+                    "minimum_independent_variable_1": 0.333,
+                    "maximum_independent_variable_1": 1.0,
+                    "minimum_independent_variable_2": null,
+                    "maximum_independent_variable_2": null,
+                    "minimum_dependent_variable_output": 0.37,
+                    "maximum_dependent_variable_output": 1.0,
+                    "notes": "effort from EUSS/SDR project for the high-efficiency RTU upgrade"
+                }
+            ]
+        }
+    }
+}

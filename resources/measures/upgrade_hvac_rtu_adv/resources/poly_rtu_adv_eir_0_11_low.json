@@ -1,0 +1,33 @@
+{
+    "tables": {
+        "curves": {
+            "table": [
+                {
+                    "name": "poly_rtu_adv_eir_0_11_low",
+                    "category": "eir_fn_of_ff",
+                    "form": "Cubic",
+                    "dependent_variable": "EIR",
+                    "independent_variable_1": "fraction of flow",
+                    "independent_variable_2": null,
+                    "coeff_1": 1.393681390704048,
+                    "coeff_2": -0.545230094688003,
+                    "coeff_3": 0.14389506900907692,
+                    "coeff_4": null,
+                    "coeff_5": null,
+                    "coeff_6": null,
+                    "coeff_7": null,
+                    "coeff_8": null,
+                    "coeff_9": null,
+                    "coeff_10": null,
+                    "minimum_independent_variable_1": 0.577,
+                    "maximum_independent_variable_1": 1.613,
+                    "minimum_independent_variable_2": null,
+                    "maximum_independent_variable_2": null,
+                    "minimum_dependent_variable_output": 0.882,
+                    "maximum_dependent_variable_output": 1.208,
+                    "notes": "effort from EUSS/SDR project for the high-efficiency RTU upgrade"
+                }
+            ]
+        }
+    }
+}

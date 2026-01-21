@@ -7,6 +7,7 @@ require 'minitest/autorun'
 require 'openstudio'
 require 'openstudio/measure/ShowRunnerOutput'
 require 'openstudio-standards'
+require 'json'
 require_relative '../measure'
 
 class ComStockSensitivityReportsTest < Minitest::Test
@@ -292,5 +293,42 @@ class ComStockSensitivityReportsTest < Minitest::Test
     osm_path = "#{__dir__}/base_0000008.osm"
     epw_path = "#{__dir__}/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw"
     assert(run_test(__method__, osm_path, epw_path))
+  end
+
+  def test_pump_spec
+    # bldg0006100
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/bldg0006100.osm"
+    epw_path = "#{__dir__}/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw"
+    result = assert(run_test(__method__, osm_path, epw_path))
+
+    output_txt = JSON.parse(File.read("#{run_dir(__method__)}/output.txt"))
+    output_txt.each do |output_var|
+      puts("### DEBUGGING: output_var = #{output_var['name']} | value = #{output_var['value']}")
+      
+      # check values with values from example model
+      if output_var['name'] == 'com_report_pump_flow_weighted_avg_motor_efficiency'
+        assert_in_delta(0.9086, output_var['value'].to_f, 0.01)
+      end
+      if output_var['name'] == 'com_report_pump_flow_weighted_avg_motor_efficiency_const_spd'
+        assert_in_delta(0.8011, output_var['value'].to_f, 0.01)
+      end
+      if output_var['name'] == 'com_report_pump_flow_weighted_avg_motor_efficiency_var_spd'
+        assert_in_delta(0.9260, output_var['value'].to_f, 0.01)
+      end
+      if output_var['name'] == 'com_report_pump_count_hvac_const_spd'
+        assert_equal(0, output_var['value'])
+      end
+      if output_var['name'] == 'com_report_pump_count_hvac_var_spd'
+        assert_equal(2, output_var['value'])
+      end
+      if output_var['name'] == 'com_report_pump_count_swh_const_spd'
+        assert_equal(1, output_var['value'])
+      end
+      if output_var['name'] == 'com_report_pump_count_swh_var_spd'
+        assert_equal(1, output_var['value'])
+      end
+
+    end
   end
 end

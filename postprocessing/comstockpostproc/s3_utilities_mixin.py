@@ -161,7 +161,6 @@ class S3UtilitiesMixin:
             s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
             # print(f"Downloading {s3_file_path} from s3 bucket {bucket_name} to {local_path}...")
             s3_client.download_file(bucket_name, s3_file_path, local_path)
-            self.s3_client.download_file(bucket_name, s3_file_path, local_path)
 
         return local_path
 
@@ -204,9 +203,9 @@ class S3UtilitiesMixin:
             return lkup
         else:
             try:
-                df = pd.read_csv(local_path, delimiter=delimiter, **args)
+                df = pd.read_csv(local_path, delimiter=delimiter, low_memory=False, **args)
             except UnicodeDecodeError:
-                df = pd.read_csv(local_path, delimiter=delimiter, encoding='latin-1', **args)
+                df = pd.read_csv(local_path, delimiter=delimiter, low_memory=False, encoding='latin-1', **args)
 
         return df
 
@@ -220,7 +219,7 @@ class S3UtilitiesMixin:
             output_dir = os.path.abspath(os.path.join(current_dir, '..', 'output', self.dataset_name))
         # PyAthena >2.18.0 implements an s3 filesystem that replaces s3fs but does not implement file.open()
         # Make fsspec use the s3fs s3 filesystem implementation for writing files to S3
-        register_implementation("s3", s3fs.S3FileSystem, clobber=True)
+        #register_implementation("s3", s3fs.S3FileSystem, clobber=True)
         out_fs, out_fs_path = url_to_fs(output_dir, profile=aws_profile_name)
         output_dir = {
             'fs': out_fs,

@@ -1,0 +1,58 @@
+{
+    "tables": {
+        "curves": {
+            "table": [
+                {
+                    "name": "lookup_rtu_adv_eir_0_11_low",
+                    "category": "eir_fn_of_T",
+                    "form": "MultiVariableLookupTable",
+                    "number_independent_variables": 2,
+                    "interpolation_method": "LinearInterpolationOfTable",
+                    "number_of_interpolation_points": 2,
+                    "curve_type": "Biquadratic",
+                    "normalization_reference": 1.0,
+                    "output_unit_type": "Dimensionless",
+                    "minimum_independent_variable_1": 13.89,
+                    "maximum_independent_variable_1": 25.0,
+                    "input_unit_type_x1": "Temperature",
+                    "minimum_independent_variable_2": 23.89,
+                    "maximum_independent_variable_2": 51.67,
+                    "input_unit_type_x2": "Temperature",
+                    "minimum_dependent_variable_output": 0.502,
+                    "maximum_dependent_variable_output": 2.243,
+                    "notes": "cooling capacity modifier function of temperatures for ['low'] stages",
+                    "data_point1": "13.89,23.89,0.6399",
+                    "data_point2": "13.89,29.44,0.8238",
+                    "data_point3": "13.89,35.0,1.0437",
+                    "data_point4": "13.89,40.56,1.353",
+                    "data_point5": "13.89,46.11,1.7351",
+                    "data_point6": "13.89,51.67,2.2432",
+                    "data_point7": "16.67,23.89,0.6411",
+                    "data_point8": "16.67,29.44,0.8413",
+                    "data_point9": "16.67,35.0,1.0812",
+                    "data_point10": "16.67,40.56,1.3865",
+                    "data_point11": "16.67,46.11,1.7544",
+                    "data_point12": "16.67,51.67,2.231",
+                    "data_point13": "19.44,23.89,0.6188",
+                    "data_point14": "19.44,29.44,0.7908",
+                    "data_point15": "19.44,35.0,1.0075",
+                    "data_point16": "19.44,40.56,1.3109",
+                    "data_point17": "19.44,46.11,1.6958",
+                    "data_point18": "19.44,51.67,2.1951",
+                    "data_point19": "22.22,23.89,0.5451",
+                    "data_point20": "22.22,29.44,0.7055",
+                    "data_point21": "22.22,35.0,0.9032",
+                    "data_point22": "22.22,40.56,1.1776",
+                    "data_point23": "22.22,46.11,1.5142",
+                    "data_point24": "22.22,51.67,1.9682",
+                    "data_point25": "25.0,23.89,0.5019",
+                    "data_point26": "25.0,29.44,0.6509",
+                    "data_point27": "25.0,35.0,0.8344",
+                    "data_point28": "25.0,40.56,1.0918",
+                    "data_point29": "25.0,46.11,1.4251",
+                    "data_point30": "25.0,51.67,1.8636"
+                }
+            ]
+        }
+    }
+}

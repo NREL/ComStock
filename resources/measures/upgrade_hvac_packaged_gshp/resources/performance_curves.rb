@@ -230,7 +230,7 @@ module MakePerformanceCurves
       end
       wb_values = data['wb_data'].uniq.sort
       # get db data values if relevant
-      if ['sen_clg_cap', 'htg_cap htg_pow'].include?(curve_type)
+      if ['sen_clg_cap', 'htg_cap', 'htg_pow'].include?(curve_type)
         if data['db_data'].empty?
           runner.registerError("No DB temp performance curve data at path (#{path})")
           return false
