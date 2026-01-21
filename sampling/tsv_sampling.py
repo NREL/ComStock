@@ -523,7 +523,7 @@ class ComStockBaseSampler:
                                 [col for col in list(tsv_lkup) if col != dep_col]
                             ]
                         if tsv_lkup.shape[0] == 0:
-                            warn(f'TSV lookup reduced to 0 for {attr}, dep hash {dep_hash}. This will cause an error.')
+                            warn(f'TSV lookup reduced to 0 for {attr}. This occurs when the sampling combination does not exist. This will cause an error. The dependency hash is {dep_hash}. Check that variables in the dependency hash are listed as dependency options in the {attr} tsv.')
                             results_dict['drop_me'] = True
                             res.append(results_dict)
                             break
