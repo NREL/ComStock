@@ -1,0 +1,8 @@
+{
+  "seed_file" : "test.osm",
+  "weather_file": "test.epw",
+  "measure_paths": ["./"],
+  "file_paths": ["./"],
+  "run_directory": "./run",
+  "steps" : [{"measure_dir_name" : "python_plugin_load_summary"}]
+}

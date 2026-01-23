@@ -48,7 +48,7 @@ OS:RunPeriod,
   1,                                      !- Begin Month
   1,                                      !- Begin Day of Month
   12,                                     !- End Month
-  30,                                     !- End Day of Month
+  31,                                     !- End Day of Month
   ,                                       !- Use Weather File Holidays and Special Days
   ,                                       !- Use Weather File Daylight Saving Period
   ,                                       !- Apply Weekend Holiday Rule
@@ -91,7 +91,7 @@ OS:RunPeriodControl:DaylightSavingTime,
 
 OS:YearDescription,
   {a2bbeb8f-4a74-4cc8-8666-0e8636e09743}, !- Handle
-  2016,                                   !- Calendar Year
+  2018,                                   !- Calendar Year
   ,                                       !- Day of Week for Start Day
   ;                                       !- Is Leap Year
 
