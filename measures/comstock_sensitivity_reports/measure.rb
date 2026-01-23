@@ -661,8 +661,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # build standard to access methods
     std = Standard.build('ComStock 90.1-2013')
 	
-	standard_air_density = 1.225 #kg/m3, using standard air density since need a single value 
-
     standard_air_density = 1.225 #kg/m3, using standard air density since need a single value
 
     # get building floor area properties
@@ -1179,6 +1177,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     air_system_fan_total_efficiency = air_system_total_mass_flow_kg_s > 0.0 ? air_system_weighted_fan_efficiency / air_system_total_mass_flow_kg_s : 0.0
     runner.registerValue('com_report_air_system_fan_total_efficiency', air_system_fan_total_efficiency)
     air_system_vav_avg_flow_ratio = air_system_total_des_flow_rate_kg_s > 0.0 ? air_system_total_vav_mass_flow_kg_s.to_f / air_system_total_des_flow_rate_kg_s.to_f : -999
+
     # calculate economizer variables
     if economizer_statistics.empty?
       runner.registerValue('com_report_hvac_economizer_control_type', 'NoEconomizer')
@@ -1355,8 +1354,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       zone_hvac_total_mass_flow_kg_s += zone_equip_mass_flow_rate_kg_s
       zone_hvac_total_oa_mass_flow_kg_s += zone_equip_oa_mass_flow_rate_kg_s
     end
-	
-	
 
     runner.registerValue('com_report_zone_hvac_total_mass_flow_rate', zone_hvac_total_mass_flow_kg_s, 'kg/s')
     runner.registerValue('com_report_air_sys_vav_avg_flow_ratio', air_system_vav_avg_flow_ratio)
