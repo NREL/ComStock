@@ -1321,6 +1321,12 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     )
     s_dx_runtime_frac.setName("#{ems_name_airloop}_s_dx_runtime_frac")
     s_dx_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
+    
+    s_dx_heating_load = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, "Heating Coil Heating Rate"
+    )
+    s_dx_heating_load.setName("#{ems_name_airloop}_s_dx_heating_load")
+    s_dx_heating_load.setKeyName(new_dx_heating_coil.name.to_s)
 
     s_airloop_setpoint_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
       model, "System Node Setpoint Temperature"
@@ -1356,6 +1362,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     g_fuel_usage_2 = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
       model, "#{ems_name_airloop}_g_fuel_usage_2_w"
     )
+    g_dx_load_during_hybrid_heating = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(
+      model, "#{ems_name_airloop}_g_dx_load_during_hybrid_heating_w"
+    )
 
     # -------------------------------------------------------------------------------
     # EMS program
@@ -1380,6 +1389,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET burner_eff = 0.8")
     ems_program.addLine("SET #{g_fuel_usage_1.name} = 0.0")
     ems_program.addLine("SET #{g_fuel_usage_2.name} = 0.0")
+    ems_program.addLine("SET #{g_dx_load_during_hybrid_heating.name} = 0.0")
     ems_program.addLine("SET mech_heat_enable = 0")
 
     # Mechanical heating must be active
@@ -1395,6 +1405,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Stage 1
     ems_program.addLine("      SET #{g_stage_1.name} = 1")
     ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
+    ems_program.addLine("      SET #{g_dx_load_during_hybrid_heating.name} = #{s_dx_heating_load.name}")
 
     # Check if Stage 1 alone meets setpoint
     ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
@@ -1445,6 +1456,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program_initialization.addLine("SET #{g_part_load_ratio_2.name} = 0")
     ems_program_initialization.addLine("SET #{g_fuel_usage_1.name} = 0")
     ems_program_initialization.addLine("SET #{g_fuel_usage_2.name} = 0")
+    ems_program_initialization.addLine("SET #{g_dx_load_during_hybrid_heating.name} = 0.0")
     ems_program_initialization.addLine("SET #{a_coil_outlet_t.name} = #{s_coil_inlet_t.name}")
 
     # -------------------------------------------------------------------------------
@@ -1534,6 +1546,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_fuel_usage_2.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_2.name}", model)
     output_var.setName("#{ems_ov_fuel_usage_2.name}")
+    output_var.setKeyValue("*")
+    output_var.setReportingFrequency("Timestep")
+
+    ems_dx_load_during_hybrid_heating = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_dx_load_during_hybrid_heating)
+    ems_dx_load_during_hybrid_heating.setName("#{ems_name_airloop}_ov_dx_load_during_hybrid_heating")
+    ems_dx_load_during_hybrid_heating.setEMSVariableName("#{g_dx_load_during_hybrid_heating.name}")
+    ems_dx_load_during_hybrid_heating.setTypeOfDataInVariable("Averaged")
+    ems_dx_load_during_hybrid_heating.setUpdateFrequency("SystemTimeStep")
+    output_var = OpenStudio::Model::OutputVariable.new("#{ems_dx_load_during_hybrid_heating.name}", model)
+    output_var.setName("#{ems_dx_load_during_hybrid_heating.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
