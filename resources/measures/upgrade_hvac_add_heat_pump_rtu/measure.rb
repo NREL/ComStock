@@ -1186,7 +1186,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
   end
 
-
   # Determines if a thermostat schedule contains part of an optimum start sequence at a given index.
   # Optimum start is identified when the zone will be occupied in the next 1-2 time steps
   # and the heating schedule value falls within the specified min/max range.
@@ -1495,7 +1494,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_status_heating_stage_1.setTypeOfDataInVariable("Averaged")
     ems_ov_status_heating_stage_1.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_1.name}", model)
-    output_var.setName("#{ems_ov_status_heating_stage_1.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
@@ -1505,7 +1503,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_status_heating_stage_2.setTypeOfDataInVariable("Averaged")
     ems_ov_status_heating_stage_2.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_stage_2.name}", model)
-    output_var.setName("#{ems_ov_status_heating_stage_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
@@ -1515,7 +1512,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_status_heating_plr_1.setTypeOfDataInVariable("Averaged")
     ems_ov_status_heating_plr_1.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_1.name}", model)
-    output_var.setName("#{ems_ov_status_heating_plr_1.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
@@ -1525,7 +1521,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_status_heating_plr_2.setTypeOfDataInVariable("Averaged")
     ems_ov_status_heating_plr_2.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_status_heating_plr_2.name}", model)
-    output_var.setName("#{ems_ov_status_heating_plr_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
@@ -1535,7 +1530,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_fuel_usage_1.setTypeOfDataInVariable("Averaged")
     ems_ov_fuel_usage_1.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_1.name}", model)
-    output_var.setName("#{ems_ov_fuel_usage_1.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
@@ -1545,19 +1539,18 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_ov_fuel_usage_2.setTypeOfDataInVariable("Averaged")
     ems_ov_fuel_usage_2.setUpdateFrequency("SystemTimeStep")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_ov_fuel_usage_2.name}", model)
-    output_var.setName("#{ems_ov_fuel_usage_2.name}")
     output_var.setKeyValue("*")
     output_var.setReportingFrequency("Timestep")
 
     ems_dx_load_during_hybrid_heating = OpenStudio::Model::EnergyManagementSystemOutputVariable.new(model,g_dx_load_during_hybrid_heating)
-    ems_dx_load_during_hybrid_heating.setName("#{ems_name_airloop}_ov_dx_load_during_hybrid_heating")
+    ems_dx_load_during_hybrid_heating.setName("#{ems_name_airloop}_dx_load_during_hybrid_heating")
     ems_dx_load_during_hybrid_heating.setEMSVariableName("#{g_dx_load_during_hybrid_heating.name}")
     ems_dx_load_during_hybrid_heating.setTypeOfDataInVariable("Averaged")
     ems_dx_load_during_hybrid_heating.setUpdateFrequency("SystemTimeStep")
+    ems_dx_load_during_hybrid_heating.setUnits("W")
     output_var = OpenStudio::Model::OutputVariable.new("#{ems_dx_load_during_hybrid_heating.name}", model)
-    output_var.setName("#{ems_dx_load_during_hybrid_heating.name}")
     output_var.setKeyValue("*")
-    output_var.setReportingFrequency("Timestep")
+    output_var.setReportingFrequency("Hourly")
 
     # -------------------------------------------------------------------------------
     # Define meter
