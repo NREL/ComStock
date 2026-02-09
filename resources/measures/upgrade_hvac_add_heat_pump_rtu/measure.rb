@@ -1413,13 +1413,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
 
     # Fuel usage for Stage 1 only when Stage 2 OFF
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_1 * #{g_part_load_ratio_1.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_1 / #{g_part_load_ratio_1.name} / burner_eff")
     ems_program.addLine("        SET #{g_fuel_usage_2.name} = 0.0")
     ems_program.addLine("      ELSE") # Stage 1 not enough → Stage 2 needed
     ems_program.addLine("        SET #{g_part_load_ratio_1.name} = 1.0")
     ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1") # temp after stage 1
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT1_full * #{g_part_load_ratio_1.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT1_full / #{g_part_load_ratio_1.name} / burner_eff")
 
     # Stage 2 assist
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
@@ -1435,7 +1435,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("        ENDIF")
 
     # Stage 2 fuel
-    ems_program.addLine("        SET #{g_fuel_usage_2.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_2 * #{g_part_load_ratio_2.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_2 / #{g_part_load_ratio_2.name} / burner_eff")
     ems_program.addLine("      ENDIF") # Stage 1 sufficient?
     ems_program.addLine("    ENDIF")   # mdot > 0
     ems_program.addLine("  ENDIF")     # inlet < setpoint
