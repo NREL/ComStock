@@ -1404,12 +1404,13 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Stage 1
     ems_program.addLine("      SET #{g_stage_1.name} = 1")
     ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
+    ems_program.addLine("      SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
     ems_program.addLine("      SET #{g_dx_load_during_hybrid_heating.name} = #{s_dx_heating_load.name}")
 
     # Check if Stage 1 alone meets setpoint
     ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
     ems_program.addLine("        SET dT_used_1 = T_set - #{s_coil_inlet_t.name}")
-    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = @Max (dT_used_1 / dT1_full) 0.7")
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = @Max (dT_used_1 / dT2_full) 0.7")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
 
     # Fuel usage for Stage 1 only when Stage 2 OFF
@@ -1423,7 +1424,6 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # Stage 2 assist
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
-    ems_program.addLine("        SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
     ems_program.addLine("        IF (T_after_stage_1 + dT2_full) >= T_set")
     ems_program.addLine("          SET dT_used_2 = T_set - T_after_stage_1")
     ems_program.addLine("          SET #{g_part_load_ratio_2.name} = @Max (dT_used_2 / dT2_full) 0.7")
