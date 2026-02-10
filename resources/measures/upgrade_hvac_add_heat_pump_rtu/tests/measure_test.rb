@@ -2476,79 +2476,139 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   # ##########################################################################
   # This section tests proper application of dual fuel RTU option
-  def get_aggregated_values_from_csv(csv_data, substring)
-    # initialize sum
-    value_sum = 0
+  # -----------------------------
+  # Constants
+  # -----------------------------
+  W_TO_KW = 1.0 / 1000.0
+  DEFAULT_THERMAL_EFFICIENCY = 0.8
 
-    # loop through each row and sum values when substring is found in header
-    csv_data.each do |row|
-      row.each do |header, value|
-        if header.include?(substring)
-          value_sum += value.to_f
-        end 
-      end
-    end
-    value_sum / 1000.0
+  # -----------------------------
+  # Helpers
+  # -----------------------------
+  def normalize_header(str)
+    str
+      .to_s
+      .gsub(/[[:space:]]+/, ' ')
+      .strip
+      .downcase
   end
 
-  def get_aggregated_alternative_values_from_csv(csv_data, model)
-    # initialize variables
-    value_sum_elec_equivalent = 0.0
-    value_sum_gas_equivalent = 0.0
-    thermal_efficiency = 0.8
+  def sum_columns_by_substring(csv_data, substring)
+    return 0.0 if csv_data.empty?
 
-    # column header mapping for EMS
-    label_map = {
-      'wholebuilding' => 'wb',
-      'office'        => 'off',
-      'zone'          => 'zn',
-      'story'         => 'stry',
-      'ground'        => 'grnd',
-      'psz-ac'        => '',
-      'fullservicerestaurant' => 'fsr',
-      'dining'        => 'din'
-    }
-
-    # 1. Pre-clean headers for matching (remove non-breaking spaces and extra whitespace)
-    # We map the original header to a "searchable" version
-    headers = csv_data.first.headers
-    clean_headers = {}
-    headers.each do |h|
-      # Replace non-breaking spaces (\u00A0) and multiple spaces with a single standard space
-      clean_headers[h] = h.gsub(/[[:space:]]+/, ' ').strip
+    sub = substring.downcase
+    headers = csv_data.headers.select do |h|
+      h.downcase.include?(sub)
     end
 
-    # 2. Map zones
+    csv_data.sum do |row|
+      headers.sum { |h| row[h].to_f }
+    end * W_TO_KW
+  end
+
+  def find_header(headers, normalized_headers, zone_name_norm, includes:)
+    headers.find do |h|
+      normalized_headers[h].include?(zone_name_norm) &&
+        includes.all? { |s| h.include?(s) }
+    end
+  end
+
+  # -----------------------------
+  # CSV aggregation (simple)
+  # -----------------------------
+  def get_aggregated_values_from_csv(csv_data, substring)
+    sum_columns_by_substring(csv_data, substring)
+  end
+
+  # -----------------------------
+  # CSV aggregation (EMS-based)
+  # -----------------------------
+  def get_aggregated_alternative_values_from_csv(
+    csv_data,
+    model,
+    thermal_efficiency: DEFAULT_THERMAL_EFFICIENCY
+  )
+    return [0.0, 0.0] if csv_data.empty?
+
+    headers = csv_data.headers
+    normalized_headers =
+      headers.to_h { |h| [h, normalize_header(h)] }
+
+    elec_equiv_kwh = 0.0
+    gas_equiv_kwh  = 0.0
+
+    label_map = {
+      'wholebuilding'          => 'wb',
+      'office'                 => 'off',
+      'zone'                   => 'zn',
+      'story'                  => 'stry',
+      'ground'                 => 'grnd',
+      'psz-ac'                 => '',
+      'fullservicerestaurant'  => 'fsr',
+      'dining'                 => 'din'
+    }
+
     zone_map = []
+
     model.getThermalZones.each do |tz|
       full_name = tz.name.get
-      # Clean the model name the same way we cleaned headers
-      clean_full_name = full_name.gsub(/[[:space:]]+/, ' ').strip.upcase
+      zone_norm = normalize_header(full_name)
 
-      # Generate EMS name
       ems_name = full_name.downcase
       label_map.each { |k, v| ems_name.gsub!(k, v) }
-      ems_name = ems_name.gsub(/[^a-z0-9]/, '_').gsub(/_+/, '_').gsub(/^_+|_+$/, '')
 
-      # Search using the cleaned strings and case-insensitive matching
+      ems_name =
+        ems_name
+          .gsub(/[^a-z0-9]/, '_')
+          .gsub(/_+/, '_')
+          .gsub(/^_+|_+$/, '')
+
       zone_data = {
-        heat_rate: headers.find { |h| clean_headers[h].upcase.include?(clean_full_name) && h.include?("HEAT PUMP HEATING COIL:Heating Coil Heating Rate") },
-        elec_rate: headers.find { |h| clean_headers[h].upcase.include?(clean_full_name) && h.include?("HEAT PUMP HEATING COIL:Heating Coil Electricity Rate") },
-        
-        # Added .downcase and a more flexible check for the EMS columns
-        dx_load:   headers.find { |h| h.downcase.include?(ems_name) && h.downcase.include?("dx_load_during_hybrid_heating") },
-        plr_1:     headers.find { |h| h.downcase.include?(ems_name) && h.downcase.include?("status_heating_plr_1") },
-        plr_2:     headers.find { |h| h.downcase.include?(ems_name) && h.downcase.include?("status_heating_plr_2") }
+        heat_rate: find_header(
+          headers,
+          normalized_headers,
+          zone_norm,
+          includes: [
+            'HEAT PUMP HEATING COIL:Heating Coil Heating Rate'
+          ]
+        ),
+        elec_rate: find_header(
+          headers,
+          normalized_headers,
+          zone_norm,
+          includes: [
+            'HEAT PUMP HEATING COIL:Heating Coil Electricity Rate'
+          ]
+        ),
+        dx_load: headers.find do |h|
+          h.downcase.include?(ems_name) &&
+            h.downcase.include?(
+              'dx_load_during_hybrid_heating'
+            )
+        end,
+        plr_1: headers.find do |h|
+          h.downcase.include?(ems_name) &&
+            h.downcase.include?('status_heating_plr_1')
+        end,
+        plr_2: headers.find do |h|
+          h.downcase.include?(ems_name) &&
+            h.downcase.include?('status_heating_plr_2')
+        end
       }
 
-      if zone_data[:heat_rate] && zone_data[:dx_load]
+      missing =
+        zone_data.select { |_, v| v.nil? }.keys
+
+      if missing.empty?
         zone_map << zone_data
       else
-        puts "--- Skipping Zone: #{full_name} (EMS match attempt: #{ems_name}) ---"
+        puts(
+          "--- Skipping Zone: #{full_name}, " \
+          "missing columns: #{missing.join(', ')} ---"
+        )
       end
     end
 
-    # 3. Process Rows
     csv_data.each do |row|
       zone_map.each do |z|
         heat_rate = row[z[:heat_rate]].to_f
@@ -2557,167 +2617,259 @@ class AddHeatPumpRtuTest < Minitest::Test
         plr_1     = row[z[:plr_1]].to_f
         plr_2     = row[z[:plr_2]].to_f
 
-        op_cop = (elec_rate > 0) ? (heat_rate / elec_rate) : 0
-        plr = (plr_2 != 0) ? plr_2 : plr_1
+        next if dx_load <= 0
 
-        if op_cop > 0
-          value_sum_elec_equivalent += (dx_load / op_cop)
+        op_cop =
+          elec_rate.positive? ? heat_rate / elec_rate : 0.0
+        plr =
+          plr_2.positive? ? plr_2 : plr_1
+
+        if op_cop.positive?
+          elec_equiv_kwh +=
+            (dx_load / op_cop) * W_TO_KW
         end
 
-        if plr > 0
-          # Formula: dx_load / 0.8 / plr
-          value_sum_gas_equivalent += (dx_load / thermal_efficiency / plr)
+        if plr.positive?
+          gas_equiv_kwh +=
+            (dx_load / thermal_efficiency / plr) *
+            W_TO_KW
         end
       end
     end
 
-    return value_sum_elec_equivalent / 1000.0, value_sum_gas_equivalent / 1000.0
+    [elec_equiv_kwh, gas_equiv_kwh]
   end
 
+  # -----------------------------
+  # Measure argument prep
+  # -----------------------------
   def prepare_arg_map(measure, model, hp_t, fuel_scheme)
     args = measure.arguments(model)
-    map = OpenStudio::Measure.convertOSArgumentVectorToMap(args)
-    
+    map =
+      OpenStudio::Measure
+        .convertOSArgumentVectorToMap(args)
+
     settings = {
       'hp_min_comp_lockout_temp_f' => hp_t,
-      'hprtu_scenario'             => 'carrier_48qe_dualfuel',
+      'hprtu_scenario'             =>
+        'carrier_48qe_dualfuel',
       'backup_ht_fuel_scheme'      => fuel_scheme,
       'debug_verbose'              => true
     }
 
     settings.each do |name, val|
       next unless map[name]
+
       arg = map[name].clone
       arg.setValue(val)
       map[name] = arg
     end
+
     map
   end
 
+  # -----------------------------
+  # Capacity calculations
+  # -----------------------------
   def calculate_capacities(model, type)
-    dx_cap, gas_cap = 0.0, 0.0
+    dx_cap_w  = 0.0
+    gas_cap_w = 0.0
 
     model.getCoilHeatingDXSingleSpeeds.each do |coil|
-      next unless coil.ratedTotalHeatingCapacity.is_initialized
-      val = coil.ratedTotalHeatingCapacity.get
-      dx_cap += val
-      # Only calculate dual fuel gas cap for upgrades
-      _, capacity_stage_2_w = AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(val) if type == 'up'
-      gas_cap += capacity_stage_2_w if type == 'up'
+      next unless
+        coil.ratedTotalHeatingCapacity.is_initialized
+
+      cap = coil.ratedTotalHeatingCapacity.get
+      dx_cap_w += cap
+
+      next unless type == 'up'
+
+      _, stage2_w =
+        AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(cap)
+
+      gas_cap_w += stage2_w
     end
 
-    # Check standard gas coils for reference scenario
     if type == 'ref'
       model.getCoilHeatingGass.each do |coil|
-        gas_cap += coil.nominalCapacity.get if coil.nominalCapacity.is_initialized
+        next unless coil.nominalCapacity.is_initialized
+        gas_cap_w += coil.nominalCapacity.get
       end
     end
 
-    { dx: dx_cap, gas: gas_cap }
+    { dx_w: dx_cap_w, gas_w: gas_cap_w }
   end
 
-  def get_usage_data(run_id, type, test_name, model)
-    csv_p = "#{File.dirname(__FILE__)}/output/#{run_id}/run/eplusout.csv"
-    csv_d = CSV.read(csv_p, headers: true)
-    
-    # Determine gas substring based on scenario type
-    gas_sub = type == 'up' ? "_ov_fuel_usage" : 
-              "GAS BACKUP COIL:Heating Coil NaturalGas Rate [W](Hourly)"
+  # -----------------------------
+  # Usage extraction
+  # -----------------------------
+  def get_usage_data(run_id, type, _test_name, model)
+    csv_path =
+      "#{File.dirname(__FILE__)}/output/" \
+      "#{run_id}/run/eplusout.csv"
 
-    # get alternative energy usage
-    if type == 'up'
-      hp_elec_equiv, hp_gas_equiv = get_aggregated_alternative_values_from_csv(csv_d, model)
-    else
-      hp_elec_equiv, hp_gas_equiv = 0.0, 0.0
-    end
-    
-    # Return data hash
+    csv_data = CSV.read(csv_path, headers: true)
+
+    gas_substring =
+      if type == 'up'
+        '_ov_fuel_usage'
+      else
+        'GAS BACKUP COIL:Heating Coil NaturalGas Rate ' \
+        '[W](Hourly)'
+      end
+
+    hp_elec_equiv, hp_gas_equiv =
+      if type == 'up'
+        get_aggregated_alternative_values_from_csv(
+          csv_data,
+          model
+        )
+      else
+        [0.0, 0.0]
+      end
+
     {
-      hp_elec: get_aggregated_values_from_csv(
-        csv_d, "HEAT PUMP HEATING COIL:Heating Coil Electricity Rate [W](Hourly)"
+      hp_elec_kwh:
+        sum_columns_by_substring(
+          csv_data,
+          'HEAT PUMP HEATING COIL:Heating Coil ' \
+          'Electricity Rate [W](Hourly)'
         ),
-      gas:     get_aggregated_values_from_csv(
-        csv_d, gas_sub
+      gas_kwh:
+        sum_columns_by_substring(csv_data, gas_substring),
+      hp_load_kwh:
+        sum_columns_by_substring(
+          csv_data,
+          'dx_load_during_hybrid_heating [W](Hourly)'
         ),
-      hp_load_equiv: get_aggregated_values_from_csv(
-        csv_d, "dx_load_during_hybrid_heating [W](Hourly)"
+      defrost_kwh:
+        sum_columns_by_substring(
+          csv_data,
+          'HEAT PUMP HEATING COIL:Heating Coil ' \
+          'Defrost Electricity Rate [W](Hourly)'
         ),
-      defrost: get_aggregated_values_from_csv(
-        csv_d, "HEAT PUMP HEATING COIL:Heating Coil Defrost Electricity Rate [W](Hourly)"
-        ),
-      hp_elec_equiv: hp_elec_equiv,
-      hp_gas_equiv: hp_gas_equiv,
+      hp_elec_equiv_kwh: hp_elec_equiv,
+      hp_gas_equiv_kwh:  hp_gas_equiv
     }
   end
 
+  # -----------------------------
+  # Results output
+  # -----------------------------
   def save_results_to_csv(results)
-    path = "#{File.dirname(__FILE__)}/output/overall_results.csv"
-    cols = ['osm', 'epw', 'hp_t', 'type', 'dx_w', 'gas_w', 'hp_kwh', 'gas_kwh', 'gas_equiv_kwh', 'defrost_kwh']
-    
-    CSV.open(path, 'w') { |csv| csv << cols; results.each { |r| csv << r } }
+    path =
+      "#{File.dirname(__FILE__)}/output/" \
+      'overall_results.csv'
+
+    headers = %w[
+      osm epw hp_t type
+      dx_w gas_w
+      hp_kwh gas_kwh gas_equiv_kwh
+      defrost_kwh
+    ]
+
+    CSV.open(path, 'w') do |csv|
+      csv << headers
+      results.each { |r| csv << r }
+    end
   end
 
+  # -----------------------------
+  # Main test runner
+  # -----------------------------
   def test_dual_fuel_rtu_example_models
     osm_epw_pair = {
       '310_retailstandalone_DC.osm' => 'G5101370.epw',
-      # '310_retailstandalone_MA.osm' => 'G0900110.epw',
-      # '310_retailstandalone_MN.osm' => 'G2701230.epw',
+      '310_retailstandalone_MA.osm' => 'G0900110.epw',
+      '310_retailstandalone_MN.osm' => 'G2701230.epw',
     }
-    hp_lockout_temps = [0] #[-10, 0, 17, 47]
-    overall_results = []
+
+    hp_lockout_temps = [-10, 0, 17, 47]
+    results = []
     test_name = 'test_dual_fuel_rtu_example_models'
 
-    puts "\n######\nTEST:#{test_name}\n######\n"
+    puts "\n######\nTEST: #{test_name}\n######\n"
 
-    osm_epw_pair.each_with_index do |(osm_name, epw_name), idx_run|
-      osm_p = model_input_path(osm_name)
-      epw_p = epw_input_path(epw_name)
+    osm_epw_pair.each_with_index do |(osm, epw), idx|
+      osm_p = model_input_path(osm)
+      epw_p = epw_input_path(epw)
 
       hp_lockout_temps.each do |hp_t|
-        # Define scenarios to iterate through
         scenarios = [
-          { type: 'ref', fuel: 'match_original_primary_heating_fuel' },
-          { type: 'up',  fuel: 'dual_fuel_gas_furnace_backup' }
+          {
+            type: 'ref',
+            fuel: 'match_original_primary_heating_fuel'
+          },
+          {
+            type: 'up',
+            fuel: 'dual_fuel_gas_furnace_backup'
+          }
         ]
 
         scenarios.each do |scen|
-          # Create a unique ID for this specific run
-          run_id = "#{test_name}_#{idx_run}_#{scen[:type]}_#{hp_t.to_i}"
-          
-          # 1. Setup Arguments & Simulation
-          measure = AddHeatPumpRtu.new
-          model = load_model(osm_p)
-          arg_map = prepare_arg_map(measure, model, hp_t, scen[:fuel])
-          
-          # Run simulation (args broken into lines for readability)
-          set_weather_and_apply_measure_and_run(
-            run_id, measure, arg_map, osm_p, epw_p, 
-            run_model: true, apply: true
-          )
-          
-          # 2. Extract Data
-          out_model = load_model(model_output_path(run_id))
-          caps = calculate_capacities(out_model, scen[:type])
-          usage = get_usage_data(run_id, scen[:type], test_name, out_model)
+          run_id =
+            "#{test_name}_#{idx}_" \
+            "#{scen[:type]}_#{hp_t.to_i}"
 
-          # 3. Compile Results Row
-          overall_results << [
-            osm_name, epw_name, hp_t, scen[:type], 
-            caps[:dx], caps[:gas], 
-            usage[:hp_elec], usage[:gas], usage[:defrost]
+          measure = AddHeatPumpRtu.new
+          model   = load_model(osm_p)
+
+          arg_map =
+            prepare_arg_map(
+              measure,
+              model,
+              hp_t,
+              scen[:fuel]
+            )
+
+          set_weather_and_apply_measure_and_run(
+            run_id,
+            measure,
+            arg_map,
+            osm_p,
+            epw_p,
+            run_model: true,
+            apply: true
+          )
+
+          out_model =
+            load_model(model_output_path(run_id))
+
+          caps  =
+            calculate_capacities(out_model, scen[:type])
+          usage =
+            get_usage_data(
+              run_id,
+              scen[:type],
+              test_name,
+              out_model
+            )
+
+          results << [
+            osm, epw, hp_t, scen[:type],
+            caps[:dx_w], caps[:gas_w],
+            usage[:hp_elec_kwh],
+            usage[:gas_kwh],
+            0.0,
+            usage[:defrost_kwh]
           ]
 
-          if scen[:type] == 'up'
-            overall_results << [
-              osm_name, epw_name, hp_t, scen[:type] + "_with_gas_equiv", 
-              caps[:dx], caps[:gas], 
-              usage[:hp_elec] - usage[:hp_elec_equiv], usage[:gas] + usage[:hp_gas_equiv], usage[:defrost]
-            ]
-          end
+          next unless scen[:type] == 'up'
+
+          results << [
+            osm, epw, hp_t, 'up_with_gas_equiv',
+            caps[:dx_w], caps[:gas_w],
+            usage[:hp_elec_kwh] -
+              usage[:hp_elec_equiv_kwh],
+            usage[:gas_kwh] +
+              usage[:hp_gas_equiv_kwh],
+            usage[:hp_gas_equiv_kwh],
+            usage[:defrost_kwh]
+          ]
         end
       end
     end
 
-    save_results_to_csv(overall_results)
+    save_results_to_csv(results)
   end
 end
