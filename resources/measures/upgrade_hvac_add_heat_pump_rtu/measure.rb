@@ -1234,7 +1234,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     num_steps_per_hr = model.getSimulationControl.timestep.get.numberOfTimestepsPerHour
 
     # initialize constants
-    heating_capacity_stage_1_w, heating_capacity_stage_2_w = get_dual_fuel_gas_coil_capacity(dx_rated_htg_cap_applied)
+    heating_capacity_stage_1_w, heating_capacity_stage_2_w = AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(dx_rated_htg_cap_applied)
 
     # replace airloop name based on this hash and create Erl friendly name
     label_map = {
@@ -1677,7 +1677,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # @return [Array<Float>] An array containing two elements:
   #   - The capacity for stage 1 in watts, with a minimum value of 19052.0 W.
   #   - The capacity for stage 2 in watts, with a minimum value of 25793.0 W.
-  def get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
+  def self.get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
 
     # calculate capacities with regression (from catalog data)
     capacity_stage_1_w = 0.7353 * dx_coil_heating_capacity_w + 20245.0
