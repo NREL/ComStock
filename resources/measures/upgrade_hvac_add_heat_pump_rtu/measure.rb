@@ -1401,7 +1401,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
     ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
 
-    # Stage 1
+    # --- Stage 1 Logic ---
     ems_program.addLine("      SET #{g_stage_1.name} = 1")
     ems_program.addLine("      SET dT1_full = cap_stage_1 / #{s_coil_inlet_mdot.name} / cp")
     ems_program.addLine("      SET dT2_full = cap_stage_2 / #{s_coil_inlet_mdot.name} / cp")
@@ -1410,33 +1410,47 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     # Check if Stage 1 alone meets setpoint
     ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
     ems_program.addLine("        SET dT_used_1 = T_set - #{s_coil_inlet_t.name}")
-    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = @Max (dT_used_1 / dT2_full) 0.7")
+    
+    # PLR is ratio of needed rise to full system capacity
+    ems_program.addLine("        SET plr_1 = dT_used_1 / dT2_full") 
+    # PLF must be >= 0.7 and >= PLR
+    ems_program.addLine("        SET plf_1 = @Max plr_1 0.7") 
+    
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = plr_1")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
-
-    # Fuel usage for Stage 1 only when Stage 2 OFF
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_1 / #{g_part_load_ratio_1.name} / burner_eff")
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_1) / plf_1 / burner_eff")
     ems_program.addLine("        SET #{g_fuel_usage_2.name} = 0.0")
-    ems_program.addLine("      ELSE") # Stage 1 not enough → Stage 2 needed
-    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = 1.0")
-    ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
-    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1") # temp after stage 1
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = #{s_coil_inlet_mdot.name} * cp * dT1_full / #{g_part_load_ratio_1.name} / burner_eff")
 
-    # Stage 2 assist
+    # --- Stage 1 not enough -> Stage 2 needed ---
+    ems_program.addLine("      ELSE") 
+    ems_program.addLine("        SET plr_1 = dT1_full / dT2_full")
+    ems_program.addLine("        SET plf_1 = @Max plr_1 0.7") # assuming (1) 0.7 limit and (2) no part-load factor affecting fuel usage
+    
+    ems_program.addLine("        SET #{g_part_load_ratio_1.name} = plr_1")
+    ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
+    ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1")
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT1_full) / plf_1 / burner_eff")
+
+    # --- Stage 2 assist ---
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
     ems_program.addLine("        IF (T_after_stage_1 + dT2_full) >= T_set")
     ems_program.addLine("          SET dT_used_2 = T_set - T_after_stage_1")
-    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = @Max (dT_used_2 / dT2_full) 0.7")
+    ems_program.addLine("          SET plr_2 = dT_used_2 / dT2_full")
+    ems_program.addLine("          SET plf_2 = @Max plr_2 0.7") # assuming (1) 0.7 limit and (2) no part-load factor affecting fuel usage
+    
+    ems_program.addLine("          SET #{g_part_load_ratio_2.name} = plr_2")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_set")
     ems_program.addLine("        ELSE")
     ems_program.addLine("          SET dT_used_2 = dT2_full")
+    ems_program.addLine("          SET plr_2 = 1.0")
+    ems_program.addLine("          SET plf_2 = 1.0")
+    
     ems_program.addLine("          SET #{g_part_load_ratio_2.name} = 1.0")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
     ems_program.addLine("        ENDIF")
 
-    # Stage 2 fuel
-    ems_program.addLine("        SET #{g_fuel_usage_2.name} = #{s_coil_inlet_mdot.name} * cp * dT_used_2 / #{g_part_load_ratio_2.name} / burner_eff")
-    ems_program.addLine("      ENDIF") # Stage 1 sufficient?
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_2) / plf_2 / burner_eff")
+    ems_program.addLine("      ENDIF")
     ems_program.addLine("    ENDIF")   # mdot > 0
     ems_program.addLine("  ENDIF")     # inlet < setpoint
     ems_program.addLine("ENDIF")       # mech_heat_enable
