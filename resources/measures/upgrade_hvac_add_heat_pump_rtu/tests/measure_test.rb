@@ -2623,6 +2623,7 @@ class AddHeatPumpRtuTest < Minitest::Test
           elec_rate.positive? ? heat_rate / elec_rate : 0.0
         plr =
           plr_2.positive? ? plr_2 : plr_1
+        plf = plr < 0.7 ? 0.7 : plr
 
         if op_cop.positive?
           elec_equiv_kwh +=
@@ -2631,7 +2632,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
         if plr.positive?
           gas_equiv_kwh +=
-            (dx_load / thermal_efficiency / plr) *
+            (dx_load / thermal_efficiency / plf) *
             W_TO_KW
         end
       end
