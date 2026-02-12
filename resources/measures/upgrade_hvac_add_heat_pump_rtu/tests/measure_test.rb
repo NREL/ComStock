@@ -2871,6 +2871,91 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
     end
 
-    save_results_to_csv(results)
+    # Remove the index that contains the specific lockout temp (hp_t)
+    # from the grouping key if it was there, and ensure 'type' is consistent 
+    # across the temperatures you want to compare.
+    grouped_results = results.group_by { |r| [r[0], r[1], r[3]] }
+    grouped_results.each do |metadata, rows|
+      puts("### --------------------------------------------------------------")
+      puts("### metadata = #{metadata}")
+      # Sort by lockout temperature descending (e.g., [40, 20, 0])
+      # As temperature goes DOWN, we expect specific trends.
+      sorted_rows = rows.sort_by { |r| r[2] }.reverse
+
+      puts("### sorted_rows = #{sorted_rows}")
+
+      sorted_rows.each_cons(2) do |higher_t_row, lower_t_row|
+
+        # Variables for clarity
+        h_temp, l_temp = higher_t_row[2], lower_t_row[2]
+        
+        # HP Electric Usage (Column 6)
+        h_hp_kwh, l_hp_kwh = higher_t_row[6], lower_t_row[6]
+        
+        # Defrost Usage (Column 9)
+        h_defrost, l_defrost = higher_t_row[9], lower_t_row[9]
+        
+        # Gas/Backup Usage (Column 7) - Adding this as it completes the logic!
+        h_gas, l_gas = higher_t_row[7], lower_t_row[7]
+
+        puts("--- h_temp = #{h_temp} | h_hp_kwh = #{h_hp_kwh} | h_defrost = #{h_defrost} | h_gas = #{h_gas}")
+        puts("--- l_temp = #{l_temp} | l_hp_kwh = #{l_hp_kwh} | l_defrost = #{l_defrost} | l_gas = #{l_gas}")
+
+        # 1. HP Usage Check: Lower Lockout -> More HP runtime -> Higher HP kWh
+        if abs(l_hp_kwh - h_hp_kwh) / h_hp_kwh > 0.1 # Only assert if there's a meaningful difference to avoid noise
+          assert(
+            l_hp_kwh > h_hp_kwh, 
+            "Trend Error (HP kWh) for #{metadata}: At #{l_temp}F, HP usage should be > than at #{h_temp}F."
+          )
+        end
+
+        # 2. Defrost Check: Lower Lockout -> More runtime in frost zones -> Higher Defrost kWh
+        if abs(l_defrost - h_defrost) / h_defrost > 0.1 # Only assert if there's a meaningful difference to avoid noise
+          assert(
+            l_defrost > h_defrost, 
+            "Trend Error (Defrost) for #{metadata}: At #{l_temp}F, Defrost should be > than at #{h_temp}F."
+          )
+        end
+
+        # 3. Gas Check: Lower Lockout -> Less reliance on boiler -> Lower Gas kWh
+        if abs(l_gas - h_gas) / h_gas > 0.1 # Only assert if there's a meaningful difference to avoid noise
+          assert(
+            l_gas < h_gas, 
+            "Trend Error (Gas) for #{metadata}: At #{l_temp}F, Gas usage should be < than at #{h_temp}F."
+          )
+        end
+      end
+
+      # assert: equivalent gas usage conversion is within COP range of 3 and 4 and gas thermal efficiency of 0.8
+      MIN_COP = 3.0
+      MAX_COP = 4.0
+      GAS_EFFICIENCY = 0.8
+      puts("### --------------------------------------------------------------")
+      puts("### Performing COP range check for gas equivalent calculations...")
+      rows.each do |row|
+        # Only perform this check for the 'up_with_gas_equiv' rows 
+        # or wherever column 8 is populated.
+        next unless metadata.include?("up_with_gas_equiv")
+
+        hp_kwh = row[6]
+        gas_equiv_kwh = row[8]
+
+        # Calculation logic: (HP_kWh * COP) / Efficiency
+        min_expected_gas = (hp_kwh * MIN_COP) / GAS_EFFICIENCY
+        max_expected_gas = (hp_kwh * MAX_COP) / GAS_EFFICIENCY
+
+        puts("--- min_expected_gas = #{min_expected_gas.round(2)} kWh | max_expected_gas = #{max_expected_gas.round(2)} kWh | actual_gas_equiv_kwh = #{gas_equiv_kwh.round(2)} kWh")
+
+        # Assertion
+        assert(
+          gas_equiv_kwh >= min_expected_gas && gas_equiv_kwh <= max_expected_gas,
+          "COP Range Error for #{metadata}: Gas equiv (#{gas_equiv_kwh}) is outside " \
+          "expected range [#{min_expected_gas.round(2)} - #{max_expected_gas.round(2)}] " \
+          "based on HP usage of #{hp_kwh}."
+        )
+      end
+    end
+
+    # save_results_to_csv(results)
   end
 end
