@@ -2788,6 +2788,9 @@ class AddHeatPumpRtuTest < Minitest::Test
     hp_lockout_temps = [-10, 0, 17, 47]
     results = []
     test_name = 'test_dual_fuel_rtu_example_models'
+    min_cop = 3.0
+    max_cop = 4.0
+    gas_thermal_efficiency = 0.8
 
     puts "\n######\nTEST: #{test_name}\n######\n"
 
@@ -2927,9 +2930,6 @@ class AddHeatPumpRtuTest < Minitest::Test
       end
 
       # assert: equivalent gas usage conversion is within COP range of 3 and 4 and gas thermal efficiency of 0.8
-      MIN_COP = 3.0
-      MAX_COP = 4.0
-      GAS_EFFICIENCY = 0.8
       puts("### --------------------------------------------------------------")
       puts("### Performing COP range check for gas equivalent calculations...")
       rows.each do |row|
@@ -2941,8 +2941,8 @@ class AddHeatPumpRtuTest < Minitest::Test
         gas_equiv_kwh = row[8]
 
         # Calculation logic: (HP_kWh * COP) / Efficiency
-        min_expected_gas = (hp_kwh * MIN_COP) / GAS_EFFICIENCY
-        max_expected_gas = (hp_kwh * MAX_COP) / GAS_EFFICIENCY
+        min_expected_gas = (hp_kwh * min_cop) / gas_thermal_efficiency
+        max_expected_gas = (hp_kwh * max_cop) / gas_thermal_efficiency
 
         puts("--- min_expected_gas = #{min_expected_gas.round(2)} kWh | max_expected_gas = #{max_expected_gas.round(2)} kWh | actual_gas_equiv_kwh = #{gas_equiv_kwh.round(2)} kWh")
 
