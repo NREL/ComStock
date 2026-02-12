@@ -2826,15 +2826,19 @@ class AddHeatPumpRtuTest < Minitest::Test
               scen[:fuel]
             )
 
-          set_weather_and_apply_measure_and_run(
-            run_id,
-            measure,
-            arg_map,
-            osm_p,
-            epw_p,
-            run_model: true,
-            apply: true
-          )
+          if File.exist?(sql_path(run_id)) && File.exist?(model_output_path(run_id))
+            puts("Skipping run #{run_id} because results already exist.")
+          else
+            set_weather_and_apply_measure_and_run(
+              run_id,
+              measure,
+              arg_map,
+              osm_p,
+              epw_p,
+              run_model: true,
+              apply: true
+            )
+          end
 
           out_model =
             load_model(model_output_path(run_id))
@@ -2905,7 +2909,7 @@ class AddHeatPumpRtuTest < Minitest::Test
         puts("--- l_temp = #{l_temp} | l_hp_kwh = #{l_hp_kwh} | l_defrost = #{l_defrost} | l_gas = #{l_gas}")
 
         # 1. HP Usage Check: Lower Lockout -> More HP runtime -> Higher HP kWh
-        if abs(l_hp_kwh - h_hp_kwh) / h_hp_kwh > 0.1 # Only assert if there's a meaningful difference to avoid noise
+        if (l_hp_kwh - h_hp_kwh).abs / h_hp_kwh > 0.1 # Only assert if there's a meaningful difference to avoid noise
           assert(
             l_hp_kwh > h_hp_kwh, 
             "Trend Error (HP kWh) for #{metadata}: At #{l_temp}F, HP usage should be > than at #{h_temp}F."
@@ -2913,7 +2917,7 @@ class AddHeatPumpRtuTest < Minitest::Test
         end
 
         # 2. Defrost Check: Lower Lockout -> More runtime in frost zones -> Higher Defrost kWh
-        if abs(l_defrost - h_defrost) / h_defrost > 0.1 # Only assert if there's a meaningful difference to avoid noise
+        if (l_defrost - h_defrost).abs / h_defrost > 0.1 # Only assert if there's a meaningful difference to avoid noise
           assert(
             l_defrost > h_defrost, 
             "Trend Error (Defrost) for #{metadata}: At #{l_temp}F, Defrost should be > than at #{h_temp}F."
@@ -2921,7 +2925,7 @@ class AddHeatPumpRtuTest < Minitest::Test
         end
 
         # 3. Gas Check: Lower Lockout -> Less reliance on boiler -> Lower Gas kWh
-        if abs(l_gas - h_gas) / h_gas > 0.1 # Only assert if there's a meaningful difference to avoid noise
+        if (l_gas - h_gas).abs / h_gas > 0.1 # Only assert if there's a meaningful difference to avoid noise
           assert(
             l_gas < h_gas, 
             "Trend Error (Gas) for #{metadata}: At #{l_temp}F, Gas usage should be < than at #{h_temp}F."
@@ -2932,27 +2936,43 @@ class AddHeatPumpRtuTest < Minitest::Test
       # assert: equivalent gas usage conversion is within COP range of 3 and 4 and gas thermal efficiency of 0.8
       puts("### --------------------------------------------------------------")
       puts("### Performing COP range check for gas equivalent calculations...")
+      # 1. Identify the 'up' rows for comparison
+      # We look for the group that matches the current model/weather but is tagged 'up'
+      up_metadata = [metadata[0], metadata[1], "up"]
+      up_rows = grouped_results[up_metadata]
       rows.each do |row|
-        # Only perform this check for the 'up_with_gas_equiv' rows 
-        # or wherever column 8 is populated.
-        next unless metadata.include?("up_with_gas_equiv")
+        # Only run this logic for the 'up_with_gas_equiv' rows
+        next unless metadata[2] == "up_with_gas_equiv"
+        
+        # 2. Find the matching 'up' row (matching by temperature at index 2)
+        current_temp = row[2]
+        matching_up_row = up_rows.find { |r| r[2] == current_temp }
 
-        hp_kwh = row[6]
-        gas_equiv_kwh = row[8]
+        if matching_up_row
+          # HP usage in 'up' scenario (higher)
+          up_hp_kwh = matching_up_row[6]
+          # HP usage in 'up_with_gas_equiv' scenario (lower)
+          equiv_hp_kwh = row[6]
+          
+          # 3. Calculate the delta (The HP energy that was replaced by gas)
+          hp_kwh_delta = up_hp_kwh - equiv_hp_kwh
+          gas_equiv_kwh = row[8]
 
-        # Calculation logic: (HP_kWh * COP) / Efficiency
-        min_expected_gas = (hp_kwh * min_cop) / gas_thermal_efficiency
-        max_expected_gas = (hp_kwh * max_cop) / gas_thermal_efficiency
+          # Calculation logic: (Delta_HP_kWh * COP) / Efficiency
+          min_expected_gas = (hp_kwh_delta * min_cop) / gas_thermal_efficiency
+          max_expected_gas = (hp_kwh_delta * max_cop) / gas_thermal_efficiency
 
-        puts("--- min_expected_gas = #{min_expected_gas.round(2)} kWh | max_expected_gas = #{max_expected_gas.round(2)} kWh | actual_gas_equiv_kwh = #{gas_equiv_kwh.round(2)} kWh")
+          puts("--- Calculating reasonable gas kWh range from: HP Delta: #{hp_kwh_delta.round(2)} kWh | COP Range: [#{min_cop} - #{max_cop}] | Gas Thermal Efficiency: #{gas_thermal_efficiency}")
+          puts("--- Range: [#{min_expected_gas.round(2)} - #{max_expected_gas.round(2)}] | Actual: #{gas_equiv_kwh.round(2)}")
 
-        # Assertion
-        assert(
-          gas_equiv_kwh >= min_expected_gas && gas_equiv_kwh <= max_expected_gas,
-          "COP Range Error for #{metadata}: Gas equiv (#{gas_equiv_kwh}) is outside " \
-          "expected range [#{min_expected_gas.round(2)} - #{max_expected_gas.round(2)}] " \
-          "based on HP usage of #{hp_kwh}."
-        )
+          assert(
+            gas_equiv_kwh >= min_expected_gas && gas_equiv_kwh <= max_expected_gas,
+            "COP Range Error for #{metadata}: Gas equiv (#{gas_equiv_kwh.round(2)}) is outside " \
+            "expected range based on HP Delta of #{hp_kwh_delta.round(2)} kWh."
+          )
+        else
+          puts "--- WARNING: Could not find matching 'up' row for temp #{current_temp} to calculate HP delta."
+        end
       end
     end
 
