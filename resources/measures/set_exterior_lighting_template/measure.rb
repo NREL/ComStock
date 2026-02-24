@@ -174,8 +174,8 @@ class SetExteriorLightingTemplate < OpenStudio::Measure::ModelMeasure
 
     # load exterior_lighting_properties
     # @todo allow variance in lighting generation and lighting zone number once available in openstudio-standards
-    exterior_lighting_properties = OpenstudioStandards::ExteriorLighting.model_get_exterior_lighting_properties(lighting_generation: 'default',
-                                                                                                                lighting_zone: 3)
+    exterior_lighting_properties = OpenstudioStandards::ExteriorLighting.exterior_lighting_properties(lighting_generation: 'default',
+                                                                                                      lighting_zone: 3)
     # make sure lighting properties were found
     if exterior_lighting_properties.nil?
       runner.registerError("Exterior lighting properties not found for #{template}, ext lighting zone #{exterior_lighting_zone_number}, none will be added to model.")

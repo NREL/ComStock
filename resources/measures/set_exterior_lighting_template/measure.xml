@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>set_exterior_lighting_template</name>
   <uid>7d3e15d7-3749-4baa-b7b3-960dc3bd12fc</uid>
-  <version_id>bbaa1a51-fa7b-463b-9a2c-b8c7b495b3b4</version_id>
-  <version_modified>2025-07-25T18:55:47Z</version_modified>
+  <version_id>11d32933-3e6d-41b2-a7af-e291b62461d7</version_id>
+  <version_modified>2026-02-24T20:59:19Z</version_modified>
   <xml_checksum>4EB6C100</xml_checksum>
   <class_name>SetExteriorLightingTemplate</class_name>
   <display_name>Set Exterior Lighting Template</display_name>
@@ -540,7 +540,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>C2918447</checksum>
+      <checksum>DEC4ADB1</checksum>
     </file>
     <file>
       <filename>deer_building_types.rb</filename>
