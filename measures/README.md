@@ -33,7 +33,7 @@ This measure calculates utility bills for electricity, natural gas, propane, and
 ### run_directory_cleanup
 This measure deletes most of the model run files after the simulation is complete to save drive space on large runs.
 
-### scout_loads_summary
+### loads_summary
 This measure attributes HVAC loads to their originating source, such as window solar gain, wall conduction, or delayed radiant gains from internal equipent.
 
 ### simulation_settings_check
