@@ -169,11 +169,11 @@ class SetInteriorEquipmentTemplate < OpenStudio::Measure::ModelMeasure
       set_gas_equipment = false
       set_ventilation = false
       standard.space_type_apply_internal_loads(space_type,
-                                               set_people,
-                                               set_lights,
-                                               set_electric_equipment,
-                                               set_gas_equipment,
-                                               set_ventilation)
+                                               set_people: set_people,
+                                               set_lights: set_lights,
+                                               set_electric_equipment: set_electric_equipment,
+                                               set_gas_equipment: set_gas_equipment,
+                                               set_ventilation: set_ventilation)
     end
 
     log_messages_to_runner(runner, debug = false)
