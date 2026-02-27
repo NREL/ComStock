@@ -193,7 +193,7 @@ class FaultHvacEconomizerDamperStuck < OpenStudio::Ruleset::ModelUserScript
           runner.registerInfo("Modifying the economizer called #{controlleroutdoorair.name}")
 
           # create dummy min/max OA fraction schedules (meant for fault incidence) if there aren't any existing schedules
-          identifier_ctrloa = std.ems_friendly_name(controlleroutdoorair.name.to_s)
+          identifier_ctrloa = OpenstudioStandards::HVAC.ems_friendly_name(controlleroutdoorair.name.to_s)
           sch_fraction_oa_min_type = nil
           sch_fraction_oa_max_type = nil
           if controlleroutdoorair.minimumFractionofOutdoorAirSchedule.empty?
