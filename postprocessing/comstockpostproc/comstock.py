@@ -116,7 +116,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # self.s3_client = boto3.client('s3', config=botocore.client.Config(max_pool_connections=50))
         # self.s3_resource = boto3.resource('s3')
         if self.athena_table_name is not None:
-            self.athena_client = BuildStockQuery(workgroup='eulp',
+            self.athena_client = BuildStockQuery(workgroup='comcore',
                                                  db_name='enduse',
                                                  buildstock_type='comstock',
                                                  table_name=self.athena_table_name,
@@ -387,7 +387,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def download_timeseries_data_for_ami_comparison(self, ami, reload_from_csv=True, save_individual_regions=False):
 
         # Initialize Athena client
-        athena_client = BuildStockQuery(workgroup='eulp',
+        athena_client = BuildStockQuery(workgroup='comcore',
                                     db_name='enduse',
                                     table_name=self.comstock_run_name,
                                     buildstock_type='comstock',
@@ -1068,7 +1068,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_defs = col_defs[(col_defs['location'] == 'geospatial') & (col_defs['full_metadata'] == True)]
         col_def_names = col_defs['original_col_name'].tolist()
 
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
+        file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
         geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
         # TODO nhgis_county_gisjoin column should be added to the geospatial data file
         geospatial_data = geospatial_data.with_columns(
@@ -1161,7 +1161,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         col_def_names.append('ID')  # Used for join only
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/EPA/EJSCREEN/{self.ejscreen_file_name}'
+        file_path = os.path.join(self.truth_data_dir, self.ejscreen_file_name)
         ejscreen = pl.scan_csv(file_path).select(col_def_names)
         ejscreen = ejscreen.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
@@ -1208,7 +1208,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             col_def_types[c] = str
 
         # Read the buildstock.csv and join columns onto annual results by building ID
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/EPA/CEJST/{self.cejst_file_name}'
+        file_path = os.path.join(self.truth_data_dir, self.cejst_file_name)
         cejst = pl.scan_csv(file_path).select(col_def_names)
         cejst = cejst.with_columns([pl.col(tract_col).cast(pl.Utf8)])
 
@@ -2200,8 +2200,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'nhgis_tract_gisjoin': self.TRACT_ID,
             'nhgis_puma_gisjoin': self.PUMA_ID,
         }
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
-        geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
+        geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        geospatial_data = pl.scan_csv(geospatial_data_path, infer_schema_length=None)
         geospatial_data = geospatial_data.select(list(geo_cols.keys()))
         geospatial_data = geospatial_data.rename(geo_cols)
         # Cast tract column from Categorical to String for joining
@@ -2379,8 +2379,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'nhgis_tract_gisjoin': self.TRACT_ID,
             'nhgis_puma_gisjoin': self.PUMA_ID,
         }
-        file_path = f's3://eulp/truth_data/{self.truth_data_version}/spatial_lookups/{self.geospatial_lookup_file_name}'
-        geospatial_data = pl.scan_csv(file_path, infer_schema_length=None)
+        geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
+        geospatial_data = pl.scan_csv(geospatial_data_path, infer_schema_length=None)
         geospatial_data = geospatial_data.select(list(geo_cols.keys()))
         geospatial_data = geospatial_data.rename(geo_cols)
         # Cast tract column from Categorical to String for joining
@@ -2436,7 +2436,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # The allocated weights have a tract for each building
         # Assign the EIA Utility ID for each building based on this tract
-        tract_to_util_file_path = f's3://eulp/truth_data/{self.truth_data_version}/{self.tract_to_util_map_file_name}'
+        tract_to_util_file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(tract_to_util_file_path)
         alloc_wts = alloc_wts.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
@@ -3403,6 +3403,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     logger.info(f'Already added weighted savings column: {weighted_saving_cols}')
                     continue
 
+                # Check if the unweighted savings column actually exists before trying to use it
+                if unweighted_saving_cols not in existing_col_names:
+                    logger.debug(f'Skipping {unweighted_saving_cols} as it does not exist (likely processing baseline)')
+                    continue
+
                 old_unit = self.units_from_col_name(unweighted_saving_cols)
                 new_unit = self.units_from_col_name(weighted_saving_cols)
                 conv_fact = self.conv_fact(old_unit, new_unit)
@@ -3414,6 +3419,34 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Create weighted emissions for each enduse group
         # TODO once end-use emissions are reported, sum those columns directly
         logger.debug('Adding enduse group emissions columns')
+        # Ensure a combined total emissions column with egrid exists so later
+        # code can reference it safely. If it doesn't exist, build it from any
+        # available weighted emissions component columns or create a zero column.
+        total_col = 'calc.weighted.emissions.total_with_egrid..co2e_mmt'
+        try:
+            lf_cols = getattr(input_lf, 'columns', None)
+            if lf_cols is None:
+                lf_cols = input_lf.collect_schema().names()
+        except Exception:
+            lf_cols = []
+
+        if total_col not in lf_cols:
+            comp_candidates = [
+                'calc.weighted.emissions.electricity.egrid_2021_subregion..co2e_mmt',
+                'calc.weighted.emissions.natural_gas..co2e_mmt',
+                'calc.weighted.emissions.fuel_oil..co2e_mmt',
+                'calc.weighted.emissions.propane..co2e_mmt',
+                'calc.weighted.emissions.district_heating..co2e_mmt',
+                'calc.weighted.emissions.district_cooling..co2e_mmt',
+            ]
+            present = [c for c in comp_candidates if c in lf_cols]
+            if present:
+                expr = None
+                for c in present:
+                    expr = pl.col(c) if expr is None else expr + pl.col(c)
+                input_lf = input_lf.with_columns([expr.alias(total_col)])
+            else:
+                input_lf = input_lf.with_columns([pl.lit(0.0).alias(total_col)])
         for col in (self.COLS_ENDUSE_GROUP_ANN_ENGY + self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY):
             fuel, enduse_gp = col.replace('calc.enduse_group.', '').replace('.energy_consumption..kwh', '').split('.')
             tot_engy = f'calc.weighted.{fuel}.total.energy_consumption..tbtu'
@@ -4549,8 +4582,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 engine = create_engine(
                     f"awsathena+rest://:@athena.us-west-2.amazonaws.com:443/{database_name}?work_group={workgroup}"
                 )
-                meta = sa.MetaData(bind=engine)
-                metadata_tbl = sa.Table(metadata_tblname, meta, autoload=True)
+                meta = sa.MetaData()
+                metadata_tbl = sa.Table(metadata_tblname, meta, autoload_with=engine)
                 logger.info(f"Loaded metadata table: {metadata_tblname}")
 
                 # Extract the partition columns from the table name
@@ -4614,7 +4647,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 if 'puma' in bys:
                     regions = ("South", "Midwest", "Northeast", "West")
                     for region in regions:
-                        q = sa.select(cols).where(metadata_tbl.c["in.census_region_name"].in_([region]))
+                        q = sa.select(*cols).where(metadata_tbl.c["in.census_region_name"].in_([region]))
                         view_name = metadata_tblname.replace('_by_state_and_puma_parquet', '_puma')
                         view_name = f"{view_name}_{region.lower()}_vu"
                         db_plus_vu = f'{database_name}_{view_name}'
@@ -4623,10 +4656,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         view = sa.Table(view_name, meta)
                         create_view = CreateView(view, q, or_replace=True)
                         logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
-                        engine.execute(create_view)
+                        with engine.begin() as conn:
+                            conn.execute(create_view)
 
                 else:
-                    q = sa.select(cols)
+                    q = sa.select(*cols)
                     view_name = metadata_tblname.replace('_parquet', '')
                     view_name = f"{view_name}_vu"
                     db_plus_vu = f'{database_name}_{view_name}'
@@ -4635,7 +4669,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     view = sa.Table(view_name, meta)
                     create_view = CreateView(view, q, or_replace=True)
                     logger.info(f"Creating metadata view: {view_name}, partitioned by {bys}")
-                    engine.execute(create_view)
+                    with engine.begin() as conn:
+                        conn.execute(create_view)
 
             # Get a list of timeseries tables
             get_ts_tables_kw = {
@@ -4654,8 +4689,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 engine = create_engine(
                     f"awsathena+rest://:@athena.us-west-2.amazonaws.com:443/{database_name}?work_group={workgroup}"
                 )
-                meta = sa.MetaData(bind=engine)
-                ts_tbl = sa.Table(ts_tblname, meta, autoload=True)
+                meta = sa.MetaData()
+                ts_tbl = sa.Table(ts_tblname, meta, autoload_with=engine)
                 cols = list(filter(ComStock.column_filter, ts_tbl.columns))
                 cols_aliased = []
                 for col in cols:
@@ -4681,7 +4716,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
                 cols = cols_aliased
 
-                q = sa.select(cols)
+                q = sa.select(*cols)
                 view_name = f"{ts_tblname}_vu"
 
                 db_plus_vu = f'{database_name}_{view_name}'
@@ -4690,7 +4725,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 view = sa.Table(view_name, meta)
                 create_view = CreateView(view, q, or_replace=True)
                 logger.info(f"Creating timeseries view: {view_name}")
-                engine.execute(create_view)
+                with engine.begin() as conn:
+                    conn.execute(create_view)
                 logger.debug('Columns in view:')
                 for c in cols:
                     logger.debug(c)
@@ -4770,7 +4806,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             weight_view_table = f'{self.comstock_run_name}_md_agg_national_by_state_vu'
 
         # Initialize Athena client
-        athena_client = BuildStockQuery(workgroup='eulp',
+        athena_client = BuildStockQuery(workgroup='comcore',
                                     db_name='enduse',
                                     table_name=self.comstock_run_name,
                                     buildstock_type='comstock',

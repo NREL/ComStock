@@ -58,10 +58,10 @@ Note: Access to the SSO requires an NREL network account. We do not currently su
 
 ## Installation
 
-Create a new conda environment with **python 3.9** or above (only need to do this once):
+Create a new conda environment with **python 3.12.12** or above (only need to do this once):
 ```
 # Local
-$ conda create -y -n comstockpostproc python=3.9 pip
+$ conda create -y -n comstockpostproc python=3.12.12 pip
 $ conda activate comstockpostproc
 
 # HPC Eagle (NREL Staff)

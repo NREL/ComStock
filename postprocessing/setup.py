@@ -58,6 +58,8 @@ setup(
         's3fs',
         'scipy',
         'seaborn>=0.12.0',
+        'SQLAlchemy==1.4.46',
+        'sqlalchemy-views==0.3.2',
         'xlrd',
         'buildstock_query @ git+https://github.com/NREL/buildstock-query@0479759'
     ],
