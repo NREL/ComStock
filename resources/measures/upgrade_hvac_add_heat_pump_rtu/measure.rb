@@ -1683,8 +1683,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   #   - The capacity for stage 2 in watts, with a minimum value of 25793.0 W.
   def self.get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
     # calculate capacities with regression (from catalog data)
-    capacity_stage_1_w = (0.7353 * dx_coil_heating_capacity_w) + 20245.0
-    capacity_stage_2_w = (0.6305 * dx_coil_heating_capacity_w) + 12484.0
+    capacity_stage_1_w = (0.6305 * dx_coil_heating_capacity_w) + 12484.0
+    capacity_stage_2_w = (0.7353 * dx_coil_heating_capacity_w) + 20245.0
 
     # cap minimum value of capacity_stage_1_w to 19052 (based on available data)
     if capacity_stage_1_w < 19052.0
