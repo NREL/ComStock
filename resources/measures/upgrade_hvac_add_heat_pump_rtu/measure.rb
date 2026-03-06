@@ -1231,7 +1231,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     num_steps_per_hr = model.getSimulationControl.timestep.get.numberOfTimestepsPerHour
 
     # initialize constants
-    heating_capacity_stage_1_w, heating_capacity_stage_2_w = AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(dx_rated_htg_cap_applied)
+    heating_capacity_stage_1_w, heating_capacity_stage_2_w = AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(
+      dx_rated_htg_cap_applied,
+      orig_htg_coil_gross_cap_old,
+      false
+      )
+
+    # if heating_capacity_stage_1_w or heating_capacity_stage_2_w is nil, register error
+    if heating_capacity_stage_1_w.nil? || heating_capacity_stage_2_w.nil?
+      runner.registerError("Failed to calculate dual fuel gas coil capacities for air loop #{air_loop_hvac.name}. Check inputs and calculations.")
+      return false
+    end
 
     # replace airloop name based on this hash and create Erl friendly name
     label_map = {
@@ -1681,19 +1691,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
   # @return [Array<Float>] An array containing two elements:
   #   - The capacity for stage 1 in watts, with a minimum value of 19052.0 W.
   #   - The capacity for stage 2 in watts, with a minimum value of 25793.0 W.
-  def self.get_dual_fuel_gas_coil_capacity(dx_coil_heating_capacity_w)
-    # calculate capacities with regression (from catalog data)
-    capacity_stage_1_w = (0.6305 * dx_coil_heating_capacity_w) + 12484.0
-    capacity_stage_2_w = (0.7353 * dx_coil_heating_capacity_w) + 20245.0
+  def self.get_dual_fuel_gas_coil_capacity(
+    dx_coil_heating_capacity_w,
+    orig_htg_coil_gross_cap_old,
+    use_manufacturer_spec
+    )
 
-    # cap minimum value of capacity_stage_1_w to 19052 (based on available data)
-    if capacity_stage_1_w < 19052.0
-      capacity_stage_1_w = 19052.0
-    end
+    capacity_stage_1_w, capacity_stage_2_w = nil, nil
 
-    # cap minimum value of capacity_stage_2_w to 25793 (based on available data)
-    if capacity_stage_2_w < 25793.0
-      capacity_stage_2_w = 25793.0
+    if use_manufacturer_spec
+      # calculate capacities with regression (from catalog data)
+      # capacity_stage_1_w = (0.871 * dx_coil_heating_capacity_w) # catalog data plus intercept at zero
+      # capacity_stage_2_w = capacity_stage_1_w * 1.4 # assuming 40% increase
+      capacity_stage_1_w = (0.6305 * dx_coil_heating_capacity_w) + 12484.0 # assuming from catalog data
+      capacity_stage_2_w = (0.7353 * dx_coil_heating_capacity_w) + 20245.0 # assuming from catalog data
+    else
+      capacity_stage_2_w = orig_htg_coil_gross_cap_old
+      capacity_stage_1_w = capacity_stage_2_w * 0.7 # assume stage 1 is 70% of stage 2 capacity
     end
 
     return capacity_stage_1_w, capacity_stage_2_w
