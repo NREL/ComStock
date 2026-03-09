@@ -2575,7 +2575,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       next unless type == 'up'
 
       _, stage2_w =
-        AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(cap)
+        AddHeatPumpRtu.get_dual_fuel_gas_coil_capacity(cap, 0, true)
 
       gas_cap_w += stage2_w
     end
