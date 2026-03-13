@@ -1344,7 +1344,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       model, 'Site Outdoor Air Drybulb Temperature'
     )
     s_oat_t.setName("#{ems_name_airloop}_s_oat_t")
-    s_oat_t.setKeyName(air_loop_hvac.supplyOutletNode.name.to_s)
+    s_oat_t.setKeyName("Environment")
 
     # -------------------------------------------------------------------------------
     # EMS global variables
