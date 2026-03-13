@@ -1346,6 +1346,23 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     s_oat_t.setName("#{ems_name_airloop}_s_oat_t")
     s_oat_t.setKeyName("Environment")
 
+    s_fan_rise_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, 'Fan Rise in Air Temperature'
+    )
+    s_fan_rise_t.setName("#{ems_name_airloop}_s_fan_rise_t")
+    fan_component = new_air_to_air_heatpump.supplyFan
+    fan_key_name = nil
+    if fan_component.respond_to?(:is_initialized)
+      if fan_component.is_initialized
+        fan_key_name = fan_component.get.name.to_s
+      else
+        runner.registerError("No supply fan found for #{air_loop_hvac.name}; fan rise sensor not set.")
+      end
+    else
+      fan_key_name = fan_component.name.to_s
+    end
+    s_fan_rise_t.setKeyName(fan_key_name) if fan_key_name
+
     # -------------------------------------------------------------------------------
     # EMS global variables
     # -------------------------------------------------------------------------------
@@ -1389,6 +1406,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET #{a_coil_outlet_hr.name} = #{s_coil_inlet_hr.name}")
     ems_program.addLine("SET #{a_coil_outlet_mdot.name} = #{s_coil_inlet_mdot.name}")
     ems_program.addLine("SET T_set = #{s_airloop_setpoint_t.name}")
+    ems_program.addLine("SET fan_dT = @Max #{s_fan_rise_t.name} 0.0")
+    ems_program.addLine('SET T_set_eff = T_set - fan_dT')
     ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
     ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
     ems_program.addLine("SET cap_stage_1 = #{heating_capacity_stage_1_w}")
@@ -1405,7 +1424,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine('  SET mech_heat_enable = 1')
     ems_program.addLine('ENDIF')
     ems_program.addLine('IF mech_heat_enable == 1')
-    ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set")
+    ems_program.addLine("  IF #{s_coil_inlet_t.name} < T_set_eff")
     ems_program.addLine("    IF #{s_coil_inlet_mdot.name} > 0.0")
 
     # --- Stage 1 Logic ---
@@ -1415,8 +1434,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("      SET #{g_dx_load_during_hybrid_heating.name} = #{s_dx_heating_load.name}")
 
     # Check if Stage 1 alone meets setpoint
-    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set")
-    ems_program.addLine("        SET dT_used_1 = T_set - #{s_coil_inlet_t.name}")
+    ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set_eff")
+    ems_program.addLine("        SET dT_used_1 = T_set_eff - #{s_coil_inlet_t.name}")
 
     # PLR is ratio of needed rise to full system capacity
     ems_program.addLine('        SET plr_1 = dT_used_1 / dT2_full')
@@ -1440,8 +1459,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
 
     # --- Stage 2 assist ---
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
-    ems_program.addLine('        IF (T_after_stage_1 + dT2_full) >= T_set')
-    ems_program.addLine('          SET dT_used_2 = T_set - T_after_stage_1')
+    ems_program.addLine('        IF (T_after_stage_1 + dT2_full) >= T_set_eff')
+    ems_program.addLine('          SET dT_used_2 = T_set_eff - T_after_stage_1')
     ems_program.addLine('          SET plr_2 = dT_used_2 / dT2_full')
     ems_program.addLine('          SET plf_2 = @Max plr_2 0.7') # assuming (1) 0.7 limit and (2) no part-load factor affecting fuel usage
 
