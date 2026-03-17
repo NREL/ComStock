@@ -481,7 +481,8 @@ class PlottingMixin():
                         kind='bar',
                         errorbar=None,
                         aspect=1.5,
-                        legend=False
+                        legend=False,
+                        dodge=False
                     )
                 else:
                     # With group-by
@@ -651,7 +652,8 @@ class PlottingMixin():
                         kind='bar',
                         errorbar=None,
                         aspect=1.5,
-                        legend=False
+                        legend=False,
+                        dodge=False
                     )
                     ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
                     # Add error bars for CBECS bars only
@@ -763,7 +765,8 @@ class PlottingMixin():
                             "markeredgecolor":"black",
                             "markersize":"2"
                         },
-                        legend=False
+                        legend=False,
+                        dodge=False
                     )
                 elif group_by is self.HVAC_SYS:
                     g = sns.catplot(
@@ -888,7 +891,8 @@ class PlottingMixin():
                             "markeredgecolor":"black",
                             "markersize":"8"
                         },
-                        legend=False
+                        legend=False,
+                        dodge=False
                     )
                 else:
                     # With group-by
@@ -1006,7 +1010,8 @@ class PlottingMixin():
                             errorbar=None,
                             kind='bar',
                             aspect=1.5,
-                            legend=False
+                            legend=False,
+                            dodge=False
                         )
                         ax = g.ax if hasattr(g, 'ax') else g.axes[0, 0]
                         # Add error bars for CBECS bars only
@@ -1113,7 +1118,8 @@ class PlottingMixin():
                             errorbar=None,
                             kind='bar',
                             aspect=1.5,
-                            legend=False
+                            legend=False,
+                            dodge=False
                         )
                     else:
                         g = sns.catplot(
@@ -1220,7 +1226,8 @@ class PlottingMixin():
                                         "markerfacecolor": "yellow",
                                         "markeredgecolor": "black",
                                         "markersize": "2"},
-                                legend_out=False  # Draw legend inside the plot area
+                                legend_out=False,  # Draw legend inside the plot area
+                                dodge=False
                              )
                          else:
                              g = sns.catplot(
@@ -1530,7 +1537,8 @@ class PlottingMixin():
                                 "markeredgecolor":"black",
                                 "markersize":"8"
                             },
-                            legend=False
+                            legend=False,
+                            dodge=False
                         )
                     else:
                         # With group-by

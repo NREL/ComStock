@@ -153,8 +153,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        logger.info(f"type of self.data columns: {self.data.collect_schema().names(), self.data.dtypes, len(self.data.collect_schema().names()), len(self.data.dtypes)}")
-        logger.info(f"type of comstock_df columns: {comstock_df.collect_schema().names(), comstock_df.dtypes}")
+        #logger.info(f"type of self.data columns: {self.data.collect_schema().names(), self.data.dtypes, len(self.data.collect_schema().names()), len(self.data.dtypes)}")
+        #logger.info(f"type of comstock_df columns: {comstock_df.collect_schema().names(), comstock_df.dtypes}")
 
         assert isinstance(self.data, pl.LazyFrame)
         assert isinstance(comstock_df, pl.LazyFrame)
@@ -264,7 +264,7 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             LazyFramePlotter.plot_with_lazy(plot_method=self.plot_energy_by_enduse_and_fuel_type,
                                             lazy_frame=lazy_frame.clone(),
                                             columns=([self.DATASET] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE),
-                                            indclude_base_weight=False)(**BASIC_PARAMS)
+                                            include_base_weight=False)(**BASIC_PARAMS)
 
     def make_qoi_plots(self, lazy_frame, column_for_grouping, color_map, output_dir):
         BASIC_PARAMS = {

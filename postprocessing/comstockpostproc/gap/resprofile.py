@@ -73,7 +73,7 @@ class ResidentialProfile(GapPlottingMixin,S3UtilitiesMixin):
         Queries resstock for timestep total net energy by county. Not used here - generates a multi-GB file that times out when attempting to download.
         """
 
-        run = BuildStockQuery(workgroup='eulp',
+        run = BuildStockQuery(workgroup='comcore',
                              db_name='buildstock_sdr',
                              table_name=(
                                  f'resstock_{self.resstock_version}_metadata_state_vu',
@@ -117,7 +117,7 @@ class ResidentialProfile(GapPlottingMixin,S3UtilitiesMixin):
         Queries resstock for ending-hour total net electricity by state. 
         """
 
-        run = BuildStockQuery(workgroup='eulp',
+        run = BuildStockQuery(workgroup='comcore',
                               db_name='buildstock_sdr',
                               table_name=(
                                 f'resstock_{self.resstock_version}_metadata_state_vu',

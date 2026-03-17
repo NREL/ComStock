@@ -68,7 +68,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         """
         Queries ComStock for ending-hour total electricity by state
         """
-        run = BuildStockQuery(workgroup='eulp',
+        run = BuildStockQuery(workgroup='comcore',
                               db_name='buildstock_sdr',
                               table_name=(
                                   self.metadata_db,
@@ -138,7 +138,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
         return com_load
 
     def comstock_total_by_utility(self):
-        run = BuildStockQuery(workgroup='eulp',
+        run = BuildStockQuery(workgroup='comcore',
                               db_name='buildstock_sdr',
                               table_name=(
                                   self.metadata_db,
@@ -185,7 +185,7 @@ class CommercialProfile(NamingMixin, S3UtilitiesMixin):
             df = pd.read_parquet(local_path)
         else:
             logger.info('Querying ComStock on OEDI for Total Electricity by Tract and Utility ID')
-            run = BuildStockQuery(workgroup='eulp',
+            run = BuildStockQuery(workgroup='comcore',
                                 db_name='buildstock_sdr',
                                 table_name=(
                                     f'{self.full_metadata_db}',
