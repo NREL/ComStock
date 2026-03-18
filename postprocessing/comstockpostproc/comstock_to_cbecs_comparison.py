@@ -153,8 +153,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             if not os.path.exists(p):
                 os.makedirs(p)
 
-        logger.info(f"type of self.data columns: {self.data.collect_schema().names(), self.data.dtypes, len(self.data.collect_schema().names()), len(self.data.dtypes)}")
-        logger.info(f"type of comstock_df columns: {comstock_df.collect_schema().names(), comstock_df.dtypes}")
+        #logger.info(f"type of self.data columns: {self.data.collect_schema().names(), self.data.dtypes, len(self.data.collect_schema().names()), len(self.data.dtypes)}")
+        #logger.info(f"type of comstock_df columns: {comstock_df.collect_schema().names(), comstock_df.dtypes}")
 
         assert isinstance(self.data, pl.LazyFrame)
         assert isinstance(comstock_df, pl.LazyFrame)
