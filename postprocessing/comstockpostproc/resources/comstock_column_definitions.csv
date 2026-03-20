@@ -311,10 +311,6 @@ results.csv,build_existing_model.set_electric_equipment_bpr_modify_wkdy_bpr,,FAL
 results.csv,build_existing_model.set_electric_equipment_bpr_modify_wknd_bpr,,FALSE,FALSE,boolean,,,Specifies if weekend base to peak ratio modifications were made to the plug load schedules in model
 results.csv,build_existing_model.set_electric_equipment_bpr_wkdy_bpr,,FALSE,FALSE,float,,,Specifies the ratio of weekday base power consumption to peak power consumption for plug load schedules
 results.csv,build_existing_model.set_electric_equipment_bpr_wknd_bpr,,FALSE,FALSE,float,,,Specifies the ratio of weekend base power consumption to peak power consumption for plug load schedules
-results.csv,build_existing_model.set_exterior_lighting_template_applicable,,FALSE,FALSE,boolean,,,Specifies if the exterior lighting template is applicable to model
-results.csv,build_existing_model.set_exterior_lighting_template_as_constructed_template,,FALSE,FALSE,string,,,Specifies the exterior lighting template for the year the building was first constructed
-results.csv,build_existing_model.set_exterior_lighting_template_climate_zone,,FALSE,FALSE,string,,,Specifies the climate zone used to determine energy code-informed  exterior lighting properties in model
-results.csv,build_existing_model.set_exterior_lighting_template_template,,FALSE,FALSE,string,,,Specifies the energy code used to determine exterior lighting properties in model
 results.csv,build_existing_model.set_heating_fuel_applicable,,FALSE,FALSE,boolean,,,Dictates if HVAC heating fuel specified was used in model
 results.csv,build_existing_model.set_heating_fuel_heating_fuel,,FALSE,FALSE,string,,,Specifies primary HVAC heating fuel type
 results.csv,build_existing_model.set_hvac_template_applicable,,FALSE,FALSE,boolean,,,Specifies if the hvac template is applicable to model
