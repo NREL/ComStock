@@ -31,8 +31,9 @@ baseline:
   n_buildings_represented: 57787
   custom_gems: True
 
-os_version: os_380_stds_e61d7d4
-os_sha: f953b6fcaf
+os_version: os_3_10_0_stds_0_8_6
+os_version: 3.10.0
+os_sha: 86d7e215a1
 max_minutes_per_sim: 360
 
 workflow_generator:
@@ -89,10 +90,10 @@ upgrades:
   - upgrade_name: Energy Recovery
     options:
       - option: hvac_exhaust_air_energy_or_heat_recovery|add_energy_or_heat_recovery
-  - upgrade_name: Advanced RTU Controls  
+  - upgrade_name: Advanced RTU Controls
     options:
       - option: hvac_advanced_rtu_controls|advanced_rtu_dcv_econ
-  - upgrade_name: Unoccupied AHU Control 
+  - upgrade_name: Unoccupied AHU Control
     options:
       - option: hvac_unocc_oa_control|unocc_oa_control
   - upgrade_name: Hydronic GHP
