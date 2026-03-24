@@ -41,57 +41,57 @@ require 'date'
 require 'openstudio-standards'
 
 def cambium_emissions_scenarios
-  %w[
-    AER_95DecarbBy2035
-    AER_95DecarbBy2050
-    AER_HighRECost
-    AER_LowRECost
-    AER_MidCase
-    LRMER_95DecarbBy2035_15
-    LRMER_95DecarbBy2035_30
-    LRMER_95DecarbBy2035_15_2025start
-    LRMER_95DecarbBy2035_25_2025start
-    LRMER_95DecarbBy2050_15
-    LRMER_95DecarbBy2050_30
-    LRMER_HighRECost_15
-    LRMER_HighRECost_30
-    LRMER_LowRECost_15
-    LRMER_LowRECost_30
-    LRMER_LowRECost_15_2025start
-    LRMER_LowRECost_25_2025start
-    LRMER_MidCase_15
-    LRMER_MidCase_30
-    LRMER_MidCase_15_2025start
-    LRMER_MidCase_25_2025start
+  [
+    'AER_95DecarbBy2035',
+    'AER_95DecarbBy2050',
+    'AER_HighRECost',
+    'AER_LowRECost',
+    'AER_MidCase',
+    'LRMER_95DecarbBy2035_15',
+    'LRMER_95DecarbBy2035_30',
+    'LRMER_95DecarbBy2035_15_2025start',
+    'LRMER_95DecarbBy2035_25_2025start',
+    'LRMER_95DecarbBy2050_15',
+    'LRMER_95DecarbBy2050_30',
+    'LRMER_HighRECost_15',
+    'LRMER_HighRECost_30',
+    'LRMER_LowRECost_15',
+    'LRMER_LowRECost_30',
+    'LRMER_LowRECost_15_2025start',
+    'LRMER_LowRECost_25_2025start',
+    'LRMER_MidCase_15',
+    'LRMER_MidCase_30',
+    'LRMER_MidCase_15_2025start',
+    'LRMER_MidCase_25_2025start'
   ]
 end
 
 def grid_regions
-  %w[
-    AZNMc
-    AKGD
-    AKMS
-    CAMXc
-    ERCTc
-    FRCCc
-    HIMS
-    HIOA
-    MROEc
-    MROWc
-    NEWEc
-    NWPPc
-    NYSTc
-    RFCEc
-    RFCMc
-    RFCWc
-    RMPAc
-    SPNOc
-    SPSOc
-    SRMVc
-    SRMWc
-    SRSOc
-    SRTVc
-    SRVCc
+  [
+    'AZNMc',
+    'AKGD',
+    'AKMS',
+    'CAMXc',
+    'ERCTc',
+    'FRCCc',
+    'HIMS',
+    'HIOA',
+    'MROEc',
+    'MROWc',
+    'NEWEc',
+    'NWPPc',
+    'NYSTc',
+    'RFCEc',
+    'RFCMc',
+    'RFCWc',
+    'RMPAc',
+    'SPNOc',
+    'SPSOc',
+    'SRMVc',
+    'SRMWc',
+    'SRSOc',
+    'SRTVc',
+    'SRVCc'
   ]
 end
 
@@ -130,14 +130,14 @@ def read_epw(model, epw_path = nil)
   # Put dateTimes into array
   times = []
   os_times = weather_ts.dateTimes
-  os_times.each do |time|
-    times << time.toString
+  (0..(os_times.size - 1)).each do |i|
+    times << os_times[i].toString
   end
   # Put values into array
   vals = []
   os_vals = weather_ts.values
-  os_vals.each do |val|
-    vals << val
+  (0..(os_vals.size - 1)).each do |i|
+    vals << os_vals[i]
   end
   vals
 end
@@ -178,8 +178,8 @@ def create_binsamples(oat, option)
                 'other' => [] }
   }
   (0..nd - 1).each do |d|
-    oatmax = oat[(24 * d)..(24 * (d + 1)) - 1].max
-    oatmaxind = oat[(24 * d)..(24 * (d + 1)) - 1].index(oat[(24 * d)..(24 * (d + 1)) - 1].max)
+    oatmax = oat[24 * d..(24 * (d + 1)) - 1].max
+    oatmaxind = oat[24 * d..(24 * (d + 1)) - 1].index(oat[24 * d..(24 * (d + 1)) - 1].max)
     if oatmax >= 32.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
         combbins['ext-hot']['morning'] << (d + 1)
@@ -311,7 +311,7 @@ end
 def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir)
+  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -410,7 +410,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'ElectricityPurchased:Facility'
+  timeseriesname = 'Electricity:Facility'
   unless available_time_series.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
   end
@@ -426,8 +426,8 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    elec_vals.each do |val|
-      vals << val
+    (0..(elec_vals.size - 1)).each do |i|
+      vals << elec_vals[i]
     end
   end
   # raise if vals is empty
@@ -442,8 +442,8 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
     vals = []
     electricity_results.each do |electricity_result|
       elec_vals = electricity_result.values
-      elec_vals.each do |val|
-        vals << val
+      (0..(elec_vals.size - 1)).each do |i|
+        vals << elec_vals[i]
       end
     end
     raise 'load profile for the sample run returned empty' if vals.empty?
@@ -510,7 +510,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
                                          run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir)
+  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -605,7 +605,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'ElectricityPurchased:Facility'
+  timeseriesname = 'Electricity:Facility'
   unless available_time_series.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
   end
@@ -622,8 +622,8 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    elec_vals.each do |val|
-      vals << val
+    (0..(elec_vals.size - 1)).each do |i|
+      vals << elec_vals[i]
     end
   end
   # raise if vals is empty
@@ -638,8 +638,8 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     vals = []
     electricity_results.each do |electricity_result|
       elec_vals = electricity_result.values
-      elec_vals.each do |val|
-        vals << val
+      (0..(elec_vals.size - 1)).each do |i|
+        vals << elec_vals[i]
       end
     end
     raise 'load profile for the sample run returned empty' if vals.empty?
@@ -727,7 +727,7 @@ end
 def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir)
+  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
   osm_name = 'in.osm'
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
@@ -748,10 +748,6 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   model.getRunPeriod.setEndMonth(12)
   model.getRunPeriod.setEndDayOfMonth(31)
   model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr) if num_timesteps_in_hr != 4
-  # add purchased electricity meter in output
-  meter = OpenStudio::Model::OutputMeter.new(model)
-  meter.setName('ElectricityPurchased:Facility')
-  meter.setReportingFrequency('timestep')
   # model.getSimulationControl.setDoZoneSizingCalculation(false)
   # model.getSimulationControl.setDoSystemSizingCalculation(false)
   # model.getSimulationControl.setDoPlantSizingCalculation(false)
@@ -822,13 +818,9 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'ElectricityPurchased:Facility'
+  timeseriesname = 'Electricity:Facility'
   unless available_time_series.include?(timeseriesname)
-    puts('ElectricityPurchased:Facility is not available. Use Electricity:Facility.')
-    timeseriesname = 'Electricity:Facility'
-    unless available_time_series.include?(timeseriesname)
-      raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
-    end
+    raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
   end
 
   reportingfrequency = 'Zone Timestep'
@@ -843,8 +835,8 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    elec_vals.each do |val|
-      vals << val
+    (0..(elec_vals.size - 1)).each do |i|
+      vals << elec_vals[i]
     end
   end
   raise 'load profile for the sample run returned empty' if vals.empty?
@@ -914,7 +906,7 @@ def read_emission_factors(model, scenario, year = 2021)
 
   grid_region = grid_region.get
   puts("Using grid region #{grid_region} from model building additional properties.")
-  if %w[AKMS AKGD HIMS HIOA].include? grid_region
+  if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
     cambium_grid_region = nil
     egrid_region = grid_region
     puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
@@ -923,7 +915,7 @@ def read_emission_factors(model, scenario, year = 2021)
     egrid_region = grid_region.chop
   end
   # read egrid factors
-  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/egrid/egrid_subregion_emissions_factors.csv"
+  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/resources/egrid/egrid_subregion_emissions_factors.csv"
   unless File.file?(egrid_subregion_emissions_factors_csv)
     raise "Unable to find file: #{egrid_subregion_emissions_factors_csv}"
   end
@@ -948,7 +940,7 @@ def read_emission_factors(model, scenario, year = 2021)
                       else
                         scenario
                       end
-    emissions_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
+    emissions_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
     raise "Unable to find file: #{emissions_csv}" unless File.file?(emissions_csv)
 
     cambium_co2e_kg_per_mwh = CSV.read(emissions_csv, converters: :float).flatten
@@ -966,8 +958,6 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
       sum = slice.reduce(:+).to_f
       hourly_load << sum
     end
-  else
-    hourly_load = load
   end
   # convert load from J to mwh
   hourly_load_mwh = []
@@ -981,7 +971,7 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
         raise 'Unable to calculate emissions for run periods not of length 8760 or 8784'
       end
 
-      puts("Leap year but emissions factor data has 8760 hours. Copying Feb 28 data for Feb 29.")
+      # leap year, copy Feb 28 data for Feb 29
       factor = factor[0..1415] + factor[1392..1415] + factor[1416..8759]
     end
     hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
@@ -998,22 +988,21 @@ end
 def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
   raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
+
   grid_region = grid_region.get
-  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  puts("Using grid region #{grid_region} from model building additional properties.")
+  # if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
+  #   cambium_grid_region = nil
+  #   egrid_region = grid_region
+  #   puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
+  # else
+  #   cambium_grid_region = grid_region
+  #   egrid_region = grid_region.chop
+  # end
+  load_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
-  grid_load_data = CSV.read(load_csv, converters: :float).flatten
-  year = model.getYearDescription.calendarYear.to_i
-  if leap_year?(year)
-    if grid_load_data.size == 8760
-      puts("Leap year but grid load data has 8760 hours. Copying Feb 28 data for Feb 29.")
-      # hour index at which Feb 28 starts in a non-leap year
-      feb_28_start = (31 + 28 - 1) * 24
-      grid_load_data = grid_load_data[0...feb_28_start + 24] + 
-                      grid_load_data[feb_28_start...feb_28_start + 24] + 
-                      grid_load_data[feb_28_start + 24..-1]
-    end
-  end
-  grid_load_data
+
+  CSV.read(load_csv, converters: :float).flatten
 end
 
 def round_down(number)

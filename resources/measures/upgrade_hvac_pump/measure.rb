@@ -72,21 +72,21 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     # add outdoor air temperature reset for chilled water supply temperature
     chw_hw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('chw_hw_oat_reset', true)
     chw_hw_oat_reset.setDisplayName('Add outdoor air temperature reset' \
-    ' for chilled/hot water supply temperature?')
+                                    ' for chilled/hot water supply temperature?')
     chw_hw_oat_reset.setDefaultValue(false)
     args << chw_hw_oat_reset
 
     # add outdoor air temperature reset for condenser water temperature
     cw_oat_reset = OpenStudio::Measure::OSArgument.makeBoolArgument('cw_oat_reset', true)
     cw_oat_reset.setDisplayName('Add outdoor air temperature reset' \
-    ' for condenser water temperature?')
+                                ' for condenser water temperature?')
     cw_oat_reset.setDefaultValue(false)
     args << cw_oat_reset
 
     # print out details?
     debug_verbose = OpenStudio::Measure::OSArgument.makeBoolArgument('debug_verbose', true)
     debug_verbose.setDisplayName('Print out detailed debugging logs' \
-    ' if this parameter is true')
+                                 ' if this parameter is true')
     debug_verbose.setDefaultValue(false)
     args << debug_verbose
 
@@ -320,7 +320,7 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
       spms = plant_loop.supplyOutletNode.setpointManagers
 
       case loop_type
-      when 'Cooling'
+      when 'Cooling', 'Heating'
         # get control specifications
         spms.each do |spm|
           total_count_spm_chw_hw += 1
@@ -334,14 +334,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
           total_count_spm_cw += 1
           if spm.to_SetpointManagerFollowOutdoorAirTemperature.is_initialized
             fraction_cw_oat_reset_enabled_sum += 1
-          end
-        end
-      when 'Heating'
-        # get control specifications
-        spms.each do |spm|
-          total_count_spm_chw_hw += 1
-          if spm.to_SetpointManagerOutdoorAirReset.is_initialized
-            fraction_chw_hw_oat_reset_enabled_sum += 1
           end
         end
       end
@@ -367,7 +359,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   # hard-coding this because of https://github.com/NREL/openstudio-standards/issues/1915
   # @param plant_loop [OpenStudio::Model::PlantLoop] plant loop
   # @return [Boolean] returns true if successful, false if not
-  # rubocop:disable Naming/PredicateMethod
   def plant_loop_apply_prm_baseline_condenser_water_temperatures(runner, plant_loop)
     sizing_plant = plant_loop.sizingPlant
     loop_type = sizing_plant.loopType
@@ -537,7 +528,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
     cw_t_stpt_manager.setOffsetTemperatureDifference(approach_k)
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Determine the performance rating method specified
   # design condenser water temperature, approach, and range
@@ -587,7 +577,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
   end
 
   # define what happens when the measure is run
-  # rubocop:disable Naming/PredicateMethod
   def run(model, runner, user_arguments)
     super # Do **NOT** remove this line
 
@@ -928,7 +917,6 @@ class UpgradeHvacPump < OpenStudio::Measure::ModelMeasure
 
     return true
   end
-  # rubocop:enable Naming/PredicateMethod
 end
 
 # register the measure to be used by the application

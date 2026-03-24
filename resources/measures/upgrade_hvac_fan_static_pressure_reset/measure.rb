@@ -24,20 +24,13 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
   def vav_terminals?(air_loop_hvac)
     air_loop_hvac.thermalZones.each do |thermal_zone| # iterate thru thermal zones and modify zone-level terminal units
       thermal_zone.equipment.each do |equip|
-        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized
+        if equip.to_AirTerminalSingleDuctVAVHeatAndCoolNoReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVReheat.is_initialized ||
+           equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized ||
+           equip.to_AirTerminalDualDuctVAV.is_initialized ||
+           equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
           return true
-        elsif equip.to_AirTerminalSingleDuctVAVHeatAndCoolReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalSingleDuctVAVReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalSingleDuctVAVNoReheat.is_initialized
-          return true
-        elsif equip.to_AirTerminalDualDuctVAV.is_initialized
-          return true
-        elsif equip.to_AirTerminalDualDuctVAVOutdoorAir.is_initialized
-          return true
-        else
-          next
         end
       end
     end
@@ -106,14 +99,14 @@ class FanStaticPressureReset < OpenStudio::Measure::ModelMeasure
         next
       end
       # skip non-VAV systems
-      next if !['VAV', 'PVAV'].any? { |word| air_loop_hvac.name.get.include?(word) } && !vav_terminals?(air_loop_hvac)
+      next if ['VAV', 'PVAV'].none? { |word| air_loop_hvac.name.get.include?(word) } && !vav_terminals?(air_loop_hvac)
 
 
       overall_sel_air_loops << air_loop_hvac
     end
 
     # register na if no applicable air loops
-    if overall_sel_air_loops.length == 0
+    if overall_sel_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops found in model')
       return true
     end

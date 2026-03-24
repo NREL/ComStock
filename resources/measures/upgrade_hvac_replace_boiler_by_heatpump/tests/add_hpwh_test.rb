@@ -42,10 +42,10 @@ require_relative '../measure'
 require 'fileutils'
 require_relative '../../../../test/helpers/minitest_helper'
 
-class AddHpwhTest < Minitest::Test
+class ReplaceBoilerWithHeatPumpTest < Minitest::Test
   def test_good_argument_values
     # create an instance of the measure
-    measure = AddHpwh.new
+    measure = ReplaceBoilerWithHeatPump.new
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new
@@ -93,7 +93,7 @@ class AddHpwhTest < Minitest::Test
 
   def test_empty_model
     # create an instance of the measure
-    measure = AddHpwh.new
+    measure = ReplaceBoilerWithHeatPump.new
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new
@@ -132,7 +132,7 @@ class AddHpwhTest < Minitest::Test
 
   def test_custom_args_pumpedcondenser_specific_zone
     # create an instance of the measure
-    measure = AddHpwh.new
+    measure = ReplaceBoilerWithHeatPump.new
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new
@@ -182,7 +182,7 @@ class AddHpwhTest < Minitest::Test
 
   def test_custom_args_wrappedcondenser_specific_zone
     # create an instance of the measure
-    measure = AddHpwh.new
+    measure = ReplaceBoilerWithHeatPump.new
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new

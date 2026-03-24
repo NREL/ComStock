@@ -106,7 +106,7 @@ class UnoccupiedOAControls < OpenStudio::Measure::ModelMeasure
     is_res_system = true
     air_loop_hvac.supplyComponents.each do |component|
       obj_type = component.iddObjectType.valueName.to_s
-	  next unless obj_type == 'OS_AirLoopHVAC_OutdoorAirSystem'
+      next unless obj_type == 'OS_AirLoopHVAC_OutdoorAirSystem'
       is_res_system = false
     end
     return is_res_system

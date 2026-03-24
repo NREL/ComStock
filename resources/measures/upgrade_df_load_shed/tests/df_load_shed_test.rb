@@ -57,12 +57,12 @@ class DFLoadShedTest < Minitest::Test
     # }
     test_sets << {
       model: '3340_small_office_OS38', # small office
-      weather: 'IL_Dupage_3340_18',
+      weather: 'CO_FortCollins_16',
       result: 'Success'
     }
     test_sets << {
       model: '4774_secondary_school_OS38', # secondary school
-      weather: 'MI_Tulip_City_4774_18',
+      weather: 'CO_FortCollins_16',
       result: 'Success'
     }
     # test: not applicable building type
@@ -76,6 +76,7 @@ class DFLoadShedTest < Minitest::Test
   end
 
   def load_model(osm_path)
+    osm_path = File.expand_path(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
@@ -264,7 +265,7 @@ class DFLoadShedTest < Minitest::Test
       # argument_map['apply_measure'] = apply_measure
 
       # actual hourly timestep
-      if demand_flexibility_objective.valueAsString == 'grid peak load' or demand_flexibility_objective.valueAsString == 'emissions'
+      if demand_flexibility_objective.valueAsString == 'grid peak load' || demand_flexibility_objective.valueAsString == 'emissions'
         timestep = 1
       else
         timestep = num_timesteps_in_hr.valueAsInteger

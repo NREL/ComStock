@@ -41,57 +41,57 @@ require 'date'
 require 'openstudio-standards'
 
 def cambium_emissions_scenarios
-  %w[
-    AER_95DecarbBy2035
-    AER_95DecarbBy2050
-    AER_HighRECost
-    AER_LowRECost
-    AER_MidCase
-    LRMER_95DecarbBy2035_15
-    LRMER_95DecarbBy2035_30
-    LRMER_95DecarbBy2035_15_2025start
-    LRMER_95DecarbBy2035_25_2025start
-    LRMER_95DecarbBy2050_15
-    LRMER_95DecarbBy2050_30
-    LRMER_HighRECost_15
-    LRMER_HighRECost_30
-    LRMER_LowRECost_15
-    LRMER_LowRECost_30
-    LRMER_LowRECost_15_2025start
-    LRMER_LowRECost_25_2025start
-    LRMER_MidCase_15
-    LRMER_MidCase_30
-    LRMER_MidCase_15_2025start
-    LRMER_MidCase_25_2025start
+  [
+    'AER_95DecarbBy2035',
+    'AER_95DecarbBy2050',
+    'AER_HighRECost',
+    'AER_LowRECost',
+    'AER_MidCase',
+    'LRMER_95DecarbBy2035_15',
+    'LRMER_95DecarbBy2035_30',
+    'LRMER_95DecarbBy2035_15_2025start',
+    'LRMER_95DecarbBy2035_25_2025start',
+    'LRMER_95DecarbBy2050_15',
+    'LRMER_95DecarbBy2050_30',
+    'LRMER_HighRECost_15',
+    'LRMER_HighRECost_30',
+    'LRMER_LowRECost_15',
+    'LRMER_LowRECost_30',
+    'LRMER_LowRECost_15_2025start',
+    'LRMER_LowRECost_25_2025start',
+    'LRMER_MidCase_15',
+    'LRMER_MidCase_30',
+    'LRMER_MidCase_15_2025start',
+    'LRMER_MidCase_25_2025start'
   ]
 end
 
 def grid_regions
-  %w[
-    AZNMc
-    AKGD
-    AKMS
-    CAMXc
-    ERCTc
-    FRCCc
-    HIMS
-    HIOA
-    MROEc
-    MROWc
-    NEWEc
-    NWPPc
-    NYSTc
-    RFCEc
-    RFCMc
-    RFCWc
-    RMPAc
-    SPNOc
-    SPSOc
-    SRMVc
-    SRMWc
-    SRSOc
-    SRTVc
-    SRVCc
+  [
+    'AZNMc',
+    'AKGD',
+    'AKMS',
+    'CAMXc',
+    'ERCTc',
+    'FRCCc',
+    'HIMS',
+    'HIOA',
+    'MROEc',
+    'MROWc',
+    'NEWEc',
+    'NWPPc',
+    'NYSTc',
+    'RFCEc',
+    'RFCMc',
+    'RFCWc',
+    'RMPAc',
+    'SPNOc',
+    'SPSOc',
+    'SRMVc',
+    'SRMWc',
+    'SRSOc',
+    'SRTVc',
+    'SRVCc'
   ]
 end
 
@@ -105,7 +105,7 @@ end
 
 ### if year is leap year
 def leap_year?(year)
-  (year % 4).zero? && !(year % 100).zero? || (year % 400).zero?
+  ((year % 4).zero? && !(year % 100).zero?) || (year % 400).zero?
 end
 
 ### obtain oat profile from epw file
@@ -130,14 +130,14 @@ def read_epw(model, epw_path = nil)
   # Put dateTimes into array
   times = []
   os_times = weather_ts.dateTimes
-  (0..(os_times.size - 1)).each do |i|
-    times << os_times[i].toString
+  os_times.each do |time|
+    times << time.toString
   end
   # Put values into array
   vals = []
   os_vals = weather_ts.values
-  (0..(os_vals.size - 1)).each do |i|
-    vals << os_vals[i]
+  os_vals.each do |val|
+    vals << val
   end
   vals
 end
@@ -178,90 +178,90 @@ def create_binsamples(oat, option)
                 'other' => [] }
   }
   (0..nd - 1).each do |d|
-    oatmax = oat[24 * d..24 * (d + 1) - 1].max
-    oatmaxind = oat[24 * d..24 * (d + 1) - 1].index(oat[24 * d..24 * (d + 1) - 1].max)
+    oatmax = oat[(24 * d)..(24 * (d + 1)) - 1].max
+    oatmaxind = oat[(24 * d)..(24 * (d + 1)) - 1].index(oat[(24 * d)..(24 * (d + 1)) - 1].max)
     if oatmax >= 32.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-        combbins['ext-hot']['morning'] << d + 1
+        combbins['ext-hot']['morning'] << (d + 1)
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-        combbins['ext-hot']['noon'] << d + 1
+        combbins['ext-hot']['noon'] << (d + 1)
       elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-        combbins['ext-hot']['afternoon'] << d + 1
+        combbins['ext-hot']['afternoon'] << (d + 1)
       elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-        combbins['ext-hot']['late-afternoon'] << d + 1
+        combbins['ext-hot']['late-afternoon'] << (d + 1)
       elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-        combbins['ext-hot']['evening'] << d + 1
+        combbins['ext-hot']['evening'] << (d + 1)
       else
-        combbins['ext-hot']['other'] << d + 1
+        combbins['ext-hot']['other'] << (d + 1)
       end
     elsif oatmax >= 30.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-        combbins['hot']['morning'] << d + 1
+        combbins['hot']['morning'] << (d + 1)
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-        combbins['hot']['noon'] << d + 1
+        combbins['hot']['noon'] << (d + 1)
       elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-        combbins['hot']['afternoon'] << d + 1
+        combbins['hot']['afternoon'] << (d + 1)
       elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-        combbins['hot']['late-afternoon'] << d + 1
+        combbins['hot']['late-afternoon'] << (d + 1)
       elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-        combbins['hot']['evening'] << d + 1
+        combbins['hot']['evening'] << (d + 1)
       else
-        combbins['hot']['other'] << d + 1
+        combbins['hot']['other'] << (d + 1)
       end
     elsif oatmax >= 26.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-        combbins['mild']['morning'] << d + 1
+        combbins['mild']['morning'] << (d + 1)
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-        combbins['mild']['noon'] << d + 1
+        combbins['mild']['noon'] << (d + 1)
       elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-        combbins['mild']['afternoon'] << d + 1
+        combbins['mild']['afternoon'] << (d + 1)
       elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-        combbins['mild']['late-afternoon'] << d + 1
+        combbins['mild']['late-afternoon'] << (d + 1)
       elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-        combbins['mild']['evening'] << d + 1
+        combbins['mild']['evening'] << (d + 1)
       else
-        combbins['mild']['other'] << d + 1
+        combbins['mild']['other'] << (d + 1)
       end
     elsif oatmax >= 20.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-        combbins['cool-mild']['morning'] << d + 1
+        combbins['cool-mild']['morning'] << (d + 1)
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-        combbins['cool-mild']['noon'] << d + 1
+        combbins['cool-mild']['noon'] << (d + 1)
       elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-        combbins['cool-mild']['afternoon'] << d + 1
+        combbins['cool-mild']['afternoon'] << (d + 1)
       elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-        combbins['cool-mild']['late-afternoon'] << d + 1
+        combbins['cool-mild']['late-afternoon'] << (d + 1)
       elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-        combbins['cool-mild']['evening'] << d + 1
+        combbins['cool-mild']['evening'] << (d + 1)
       else
-        combbins['cool-mild']['other'] << d + 1
+        combbins['cool-mild']['other'] << (d + 1)
       end
     elsif oatmax >= 15.0
       if (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-        combbins['cool']['morning'] << d + 1
+        combbins['cool']['morning'] << (d + 1)
       elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-        combbins['cool']['noon'] << d + 1
+        combbins['cool']['noon'] << (d + 1)
       elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-        combbins['cool']['afternoon'] << d + 1
+        combbins['cool']['afternoon'] << (d + 1)
       elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-        combbins['cool']['late-afternoon'] << d + 1
+        combbins['cool']['late-afternoon'] << (d + 1)
       elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-        combbins['cool']['evening'] << d + 1
+        combbins['cool']['evening'] << (d + 1)
       else
-        combbins['cool']['other'] << d + 1
+        combbins['cool']['other'] << (d + 1)
       end
     elsif (oatmaxind >= 9.0) && (oatmaxind <= 11.0)
-      combbins['cold']['morning'] << d + 1
+      combbins['cold']['morning'] << (d + 1)
     elsif (oatmaxind > 11.0) && (oatmaxind <= 14.0)
-      combbins['cold']['noon'] << d + 1
+      combbins['cold']['noon'] << (d + 1)
     elsif (oatmaxind > 14.0) && (oatmaxind <= 15.0)
-      combbins['cold']['afternoon'] << d + 1
+      combbins['cold']['afternoon'] << (d + 1)
     elsif (oatmaxind > 15.0) && (oatmaxind <= 17.0)
-      combbins['cold']['late-afternoon'] << d + 1
+      combbins['cold']['late-afternoon'] << (d + 1)
     elsif (oatmaxind > 17.0) && (oatmaxind <= 20.0)
-      combbins['cold']['evening'] << d + 1
+      combbins['cold']['evening'] << (d + 1)
     else
-      combbins['cold']['other'] << d + 1
+      combbins['cold']['other'] << (d + 1)
     end
   end
   ns = 0
@@ -311,7 +311,7 @@ end
 def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
+  FileUtils.mkdir_p(run_dir)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -410,7 +410,7 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   unless available_time_series.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
   end
@@ -426,8 +426,8 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    (0..(elec_vals.size - 1)).each do |i|
-      vals << elec_vals[i]
+    elec_vals.each do |val|
+      vals << val
     end
   end
   # raise if vals is empty
@@ -442,8 +442,8 @@ def model_run_simulation_on_doy(model, doy, num_timesteps_in_hr, epw_path = nil,
     vals = []
     electricity_results.each do |electricity_result|
       elec_vals = electricity_result.values
-      (0..(elec_vals.size - 1)).each do |i|
-        vals << elec_vals[i]
+      elec_vals.each do |val|
+        vals << val
       end
     end
     raise 'load profile for the sample run returned empty' if vals.empty?
@@ -496,7 +496,7 @@ def run_samples(model, selectdays, num_timesteps_in_hr, epw_path = nil)
           y_seed[key][keykey] = if y_seed[key][keykey] == []
                                   yd.map { |a| a / ns }
                                 else
-                                  yd.zip(y_seed[key][keykey]).map { |a, b| (a / ns + b) }
+                                  yd.zip(y_seed[key][keykey]).map { |a, b| ((a / ns) + b) }
                                 end
         end
       end
@@ -510,7 +510,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
                                          run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
+  FileUtils.mkdir_p(run_dir)
   # Save the model to energyplus idf
   osm_name = 'in.osm'
   osw_name = 'in.osw'
@@ -605,7 +605,7 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   unless available_time_series.include?(timeseriesname)
     raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
   end
@@ -622,8 +622,8 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    (0..(elec_vals.size - 1)).each do |i|
-      vals << elec_vals[i]
+    elec_vals.each do |val|
+      vals << val
     end
   end
   # raise if vals is empty
@@ -638,8 +638,8 @@ def model_run_simulation_on_part_of_year(model, max_doy, num_timesteps_in_hr, ep
     vals = []
     electricity_results.each do |electricity_result|
       elec_vals = electricity_result.values
-      (0..(elec_vals.size - 1)).each do |i|
-        vals << elec_vals[i]
+      elec_vals.each do |val|
+        vals << val
       end
     end
     raise 'load profile for the sample run returned empty' if vals.empty?
@@ -688,13 +688,13 @@ def run_part_year_samples(model, max_doy, selectdays, num_timesteps_in_hr, epw_p
       ns = selectdays[key][keykey].length.to_f
       selectdays[key][keykey].each do |doy|
         if ns == 1
-          y_seed[key][keykey] = yd[(doy * 24 - 24)..(doy * 24 - 1)]
+          y_seed[key][keykey] = yd[((doy * 24) - 24)..((doy * 24) - 1)]
         elsif ns > 1
           y_seed[key][keykey] = if y_seed[key][keykey] == []
-                                  yd[(doy * 24 - 24)..(doy * 24 - 1)].map { |a| a / ns }
+                                  yd[((doy * 24) - 24)..((doy * 24) - 1)].map { |a| a / ns }
                                 else
-                                  yd[(doy * 24 - 24)..(doy * 24 - 1)].zip(y_seed[key][keykey]).map do |a, b|
-                                    (a / ns + b)
+                                  yd[((doy * 24) - 24)..((doy * 24) - 1)].zip(y_seed[key][keykey]).map do |a, b|
+                                    ((a / ns) + b)
                                   end
                                 end
         end
@@ -727,7 +727,7 @@ end
 def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, run_dir = "#{Dir.pwd}/Run")
   ### reference: https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/utilities/simulation.rb#L187
   # Make the directory if it doesn't exist
-  FileUtils.mkdir_p(run_dir) unless Dir.exist?(run_dir)
+  FileUtils.mkdir_p(run_dir)
   osm_name = 'in.osm'
   osw_name = 'in.osw'
   OpenStudio.logFree(OpenStudio::Debug, 'openstudio.model.Model', "Starting simulation here: #{run_dir}.")
@@ -748,6 +748,10 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   model.getRunPeriod.setEndMonth(12)
   model.getRunPeriod.setEndDayOfMonth(31)
   model.getTimestep.setNumberOfTimestepsPerHour(num_timesteps_in_hr) if num_timesteps_in_hr != 4
+  # add purchased electricity meter in output
+  meter = OpenStudio::Model::OutputMeter.new(model)
+  meter.setName('ElectricityPurchased:Facility')
+  meter.setReportingFrequency('timestep')
   # model.getSimulationControl.setDoZoneSizingCalculation(false)
   # model.getSimulationControl.setDoSystemSizingCalculation(false)
   # model.getSimulationControl.setDoPlantSizingCalculation(false)
@@ -818,9 +822,13 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
     raise "envperiod of #{envperiod} not included in available options: #{available_env_periods}"
   end
 
-  timeseriesname = 'Electricity:Facility'
+  timeseriesname = 'ElectricityPurchased:Facility'
   unless available_time_series.include?(timeseriesname)
-    raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
+    puts('ElectricityPurchased:Facility is not available. Use Electricity:Facility.')
+    timeseriesname = 'Electricity:Facility'
+    unless available_time_series.include?(timeseriesname)
+      raise "timeseriesname of #{timeseriesname} not included in available options: #{available_time_series}"
+    end
   end
 
   reportingfrequency = 'Zone Timestep'
@@ -835,8 +843,8 @@ def load_prediction_from_full_run(model, num_timesteps_in_hr, epw_path = nil, ru
   vals = []
   electricity_results.each do |electricity_result|
     elec_vals = electricity_result.values
-    (0..(elec_vals.size - 1)).each do |i|
-      vals << elec_vals[i]
+    elec_vals.each do |val|
+      vals << val
     end
   end
   raise 'load profile for the sample run returned empty' if vals.empty?
@@ -906,7 +914,7 @@ def read_emission_factors(model, scenario, year = 2021)
 
   grid_region = grid_region.get
   puts("Using grid region #{grid_region} from model building additional properties.")
-  if %w[AKMS AKGD HIMS HIOA].include? grid_region
+  if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
     cambium_grid_region = nil
     egrid_region = grid_region
     puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
@@ -915,7 +923,7 @@ def read_emission_factors(model, scenario, year = 2021)
     egrid_region = grid_region.chop
   end
   # read egrid factors
-  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/egrid/egrid_subregion_emissions_factors.csv"
+  egrid_subregion_emissions_factors_csv = "#{File.dirname(__FILE__)}/resources/egrid/egrid_subregion_emissions_factors.csv"
   unless File.file?(egrid_subregion_emissions_factors_csv)
     raise "Unable to find file: #{egrid_subregion_emissions_factors_csv}"
   end
@@ -928,7 +936,7 @@ def read_emission_factors(model, scenario, year = 2021)
   if [2018, 2019, 2020, 2021].include?(year)
     egrid_co2e_kg_per_mwh = egrid_subregion_hsh[0][:"#{year}"] * lbm_to_kg
   elsif year == 'average'
-    egrid_co2e_kg_per_mwh = (egrid_subregion_hsh[0][:"2018"] + egrid_subregion_hsh[0][:"2019"] + egrid_subregion_hsh[0][:"2020"] + egrid_subregion_hsh[0][:"2021"]) / 4.0 * lbm_to_kg
+    egrid_co2e_kg_per_mwh = (egrid_subregion_hsh[0][:'2018'] + egrid_subregion_hsh[0][:'2019'] + egrid_subregion_hsh[0][:'2020'] + egrid_subregion_hsh[0][:'2021']) / 4.0 * lbm_to_kg
   else
     raise "Unable to find eGRID data for year: #{year}"
   end
@@ -940,7 +948,7 @@ def read_emission_factors(model, scenario, year = 2021)
                       else
                         scenario
                       end
-    emissions_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
+    emissions_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario_lookup}/#{cambium_grid_region}.csv"
     raise "Unable to find file: #{emissions_csv}" unless File.file?(emissions_csv)
 
     cambium_co2e_kg_per_mwh = CSV.read(emissions_csv, converters: :float).flatten
@@ -958,10 +966,12 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
       sum = slice.reduce(:+).to_f
       hourly_load << sum
     end
+  else
+    hourly_load = load
   end
   # convert load from J to mwh
   hourly_load_mwh = []
-  hourly_load.each { |val| hourly_load_mwh << val * j_to_mwh }
+  hourly_load.each { |val| hourly_load_mwh << (val * j_to_mwh) }
   # calculate emissions
   case factor
   when Array
@@ -971,7 +981,7 @@ def emissions_prediction(load, factor, num_timesteps_in_hr)
         raise 'Unable to calculate emissions for run periods not of length 8760 or 8784'
       end
 
-      # leap year, copy Feb 28 data for Feb 29
+      puts('Leap year but emissions factor data has 8760 hours. Copying Feb 28 data for Feb 29.')
       factor = factor[0..1415] + factor[1392..1415] + factor[1416..8759]
     end
     hourly_emissions_kg = hourly_load_mwh.zip(factor).map { |n, f| n * f }
@@ -988,21 +998,21 @@ end
 def load_prediction_from_grid_data(model, scenario = 'Load_MidCase_2035')
   grid_region = model.getBuilding.additionalProperties.getFeatureAsString('grid_region')
   raise 'Unable to find grid region in model building additional properties' unless grid_region.is_initialized
-
   grid_region = grid_region.get
-  puts("Using grid region #{grid_region} from model building additional properties.")
-  # if ['AKMS', 'AKGD', 'HIMS', 'HIOA'].include? grid_region
-  #   cambium_grid_region = nil
-  #   egrid_region = grid_region
-  #   puts("Grid region '#{grid_region}' is not available in Cambium.  Using eGrid factors only for electricty related emissions.")
-  # else
-  #   cambium_grid_region = grid_region
-  #   egrid_region = grid_region.chop
-  # end
-  load_csv = "#{File.dirname(__FILE__)}/cambium/#{scenario}/#{grid_region}.csv"
+  load_csv = "#{File.dirname(__FILE__)}/resources/cambium/#{scenario}/#{grid_region}.csv"
   raise "Unable to find file: #{load_csv}" unless File.file?(load_csv)
 
-  CSV.read(load_csv, converters: :float).flatten
+  grid_load_data = CSV.read(load_csv, converters: :float).flatten
+  year = model.getYearDescription.calendarYear.to_i
+  if leap_year?(year) && (grid_load_data.size == 8760)
+    puts('Leap year but grid load data has 8760 hours. Copying Feb 28 data for Feb 29.')
+    # hour index at which Feb 28 starts in a non-leap year
+    feb_28_start = (31 + 28 - 1) * 24
+    grid_load_data = grid_load_data[0...feb_28_start + 24] +
+                     grid_load_data[feb_28_start...feb_28_start + 24] +
+                     grid_load_data[feb_28_start + 24..-1]
+  end
+  grid_load_data
 end
 
 def round_down(number)
@@ -1016,8 +1026,8 @@ def find_daily_peak_window(daily_load, peak_len, num_timesteps_in_hr, peak_windo
   case peak_window_strategy
   when 'max savings'
     # peak_sum = (0...peak_len).map { |i| load[maxload_ind - i, peak_len].sum }
-    peak_sum = (0..peak_len * num_timesteps_in_hr - 1).map do |i|
-      daily_load[(maxload_ind - i)..(maxload_ind - i + peak_len * num_timesteps_in_hr - 1)].sum
+    peak_sum = (0..(peak_len * num_timesteps_in_hr) - 1).map do |i|
+      daily_load[(maxload_ind - i)..(maxload_ind - i + (peak_len * num_timesteps_in_hr) - 1)].sum
     end
     peak_ind = maxload_ind - peak_sum.index(peak_sum.max)
   when 'start with peak'
@@ -1027,8 +1037,8 @@ def find_daily_peak_window(daily_load, peak_len, num_timesteps_in_hr, peak_windo
                  maxload_ind
                end
   when 'end with peak'
-    peak_ind = if maxload_ind >= peak_len * num_timesteps_in_hr - 1
-                 maxload_ind - peak_len * num_timesteps_in_hr + 1
+    peak_ind = if maxload_ind >= (peak_len * num_timesteps_in_hr) - 1
+                 maxload_ind - (peak_len * num_timesteps_in_hr) + 1
                else
                  0
                end
@@ -1069,8 +1079,8 @@ def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, pe
   temperature_range = seasons[season]
   (0..nd - 1).each do |d|
     range_start = d * 24 * num_timesteps_in_hr
-    range_end = (d + 1) * 24 * num_timesteps_in_hr - 1
-    temps = oat[d * 24..d * 24 + 23]
+    range_end = ((d + 1) * 24 * num_timesteps_in_hr) - 1
+    temps = oat[d * 24..(d * 24) + 23]
     avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
     next unless (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1])
 
@@ -1078,18 +1088,18 @@ def peak_schedule_generation(annual_load, oat, peak_len, num_timesteps_in_hr, pe
                                       peak_window_strategy)
     # peak and rebound schedule
     if prepeak_len.zero?
-      peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + peak_len * num_timesteps_in_hr - 1)] =
+      peak_schedule[(range_start + peak_ind)..(range_start + peak_ind + (peak_len * num_timesteps_in_hr) - 1)] =
         Array.new(peak_len * num_timesteps_in_hr, 1)
       if rebound_len.positive?
-        range_rebound_start = range_start + peak_ind + peak_len * num_timesteps_in_hr - 1
-        range_rebound_end = range_start + peak_ind + (peak_len + rebound_len) * num_timesteps_in_hr
-        peak_schedule[range_rebound_start..range_rebound_end] = (0..rebound_len * num_timesteps_in_hr + 1).map do |i|
-          1.0 - i.to_f / (rebound_len * num_timesteps_in_hr + 1)
+        range_rebound_start = range_start + peak_ind + (peak_len * num_timesteps_in_hr) - 1
+        range_rebound_end = range_start + peak_ind + ((peak_len + rebound_len) * num_timesteps_in_hr)
+        peak_schedule[range_rebound_start..range_rebound_end] = (0..(rebound_len * num_timesteps_in_hr) + 1).map do |i|
+          1.0 - (i.to_f / ((rebound_len * num_timesteps_in_hr) + 1))
         end
       end
     # prepeak schedule
     elsif peak_ind >= prepeak_len
-      peak_schedule[(range_start + peak_ind - prepeak_len * num_timesteps_in_hr)..(range_start + peak_ind - 1)] =
+      peak_schedule[(range_start + peak_ind - (prepeak_len * num_timesteps_in_hr))..(range_start + peak_ind - 1)] =
         Array.new(prepeak_len * num_timesteps_in_hr, 1)
     else
       peak_schedule[range_start..(range_start + peak_ind - 1)] = Array.new(peak_ind, 1)
@@ -1263,7 +1273,7 @@ def peak_schedule_generation_fix(climatezone, oat, rebound_len = 0, prepeak_len 
   peak_end_htg = peak_window_fix_based_on_climate_zone[climatezone]['wint_end'] - 1
   (0..nd - 1).each do |d|
     range_start = d * 24
-    range_end = d * 24 + 23
+    range_end = (d * 24) + 23
     temps = oat[range_start..range_end]
     avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
     if (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1])
@@ -1277,12 +1287,12 @@ def peak_schedule_generation_fix(climatezone, oat, rebound_len = 0, prepeak_len 
           range_rebound_start_clg = range_start + peak_end_clg
           range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
           peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map do |i|
-            1.0 - i.to_f / (rebound_len + 1)
+            1.0 - (i.to_f / (rebound_len + 1))
           end
           range_rebound_start_htg = range_start + peak_end_htg
           range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
           peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map do |i|
-            1.0 - i.to_f / (rebound_len + 1)
+            1.0 - (i.to_f / (rebound_len + 1))
           end
         end
       # prepeak schedule
@@ -1330,7 +1340,7 @@ def peak_schedule_generation_oat(oat, peak_len, peak_lag, rebound_len = 0, prepe
   temperature_range = seasons[season]
   (0..nd - 1).each do |d|
     range_start = d * 24
-    range_end = d * 24 + 23
+    range_end = (d * 24) + 23
     temps = oat[range_start..range_end]
     avg_temp = temps.inject { |sum, el| sum + el }.to_f / temps.size
     next unless (avg_temp > temperature_range[0]) && (avg_temp < temperature_range[1])
@@ -1347,12 +1357,12 @@ def peak_schedule_generation_oat(oat, peak_len, peak_lag, rebound_len = 0, prepe
         range_rebound_start_clg = range_start + peak_end_clg
         range_rebound_end_clg = range_start + peak_end_clg + 1 + rebound_len
         peak_schedule_clg[range_rebound_start_clg..range_rebound_end_clg] = (0..rebound_len + 1).map do |i|
-          1.0 - i.to_f / (rebound_len + 1)
+          1.0 - (i.to_f / (rebound_len + 1))
         end
         range_rebound_start_htg = range_start + peak_end_htg
         range_rebound_end_htg = range_start + peak_end_htg + 1 + rebound_len
         peak_schedule_htg[range_rebound_start_htg..range_rebound_end_htg] = (0..rebound_len + 1).map do |i|
-          1.0 - i.to_f / (rebound_len + 1)
+          1.0 - (i.to_f / (rebound_len + 1))
         end
       end
     # prepeak schedule

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>fan_static_pressure_reset</name>
   <uid>62500b92-9756-4bba-8b8e-af2a97bf512f</uid>
-  <version_id>2f9f466c-3c68-48f6-9568-0db3760000b1</version_id>
-  <version_modified>2025-10-21T16:22:27Z</version_modified>
+  <version_id>05a359ef-a642-4981-8774-e498de4cad1b</version_id>
+  <version_modified>2026-01-13T17:22:58Z</version_modified>
   <xml_checksum>B3180F38</xml_checksum>
   <class_name>FanStaticPressureReset</class_name>
   <display_name>Fan Static Pressure Reset</display_name>
@@ -53,7 +53,7 @@
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>CD7F5672</checksum>
+      <checksum>08D3D350</checksum>
     </file>
     <file>
       <filename>README.md</filename>
@@ -82,7 +82,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9193ADBE</checksum>
+      <checksum>1D494D0F</checksum>
     </file>
     <file>
       <filename>example_model.osm</filename>
@@ -94,7 +94,7 @@
       <filename>fan_static_pressure_reset_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>B24C2561</checksum>
+      <checksum>2009D783</checksum>
     </file>
   </files>
 </measure>

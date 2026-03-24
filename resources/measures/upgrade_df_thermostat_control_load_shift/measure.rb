@@ -36,7 +36,7 @@
 # *******************************************************************************
 
 # require all .rb files in resources folder
-Dir["#{File.dirname(__FILE__)}/resources/*.rb"].sort.each { |file| require file }
+Dir["#{File.dirname(__FILE__)}/*.rb"].sort.each { |file| require file }
 
 require 'openstudio'
 require 'date'

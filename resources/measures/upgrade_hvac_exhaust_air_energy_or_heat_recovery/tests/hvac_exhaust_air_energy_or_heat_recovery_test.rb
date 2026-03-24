@@ -82,6 +82,7 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
   end
 
   def load_model(osm_path)
+    osm_path = File.expand_path(osm_path)
     translator = OpenStudio::OSVersion::VersionTranslator.new
     model = translator.loadModel(OpenStudio::Path.new(osm_path))
     assert(!model.empty?)
@@ -170,7 +171,7 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
   # create an array of hashes with model name, weather, and expected result
   def models_to_test
     test_sets = []
-    test_sets << { model: 'PSZ-AC_with_gas_coil_heat_3B', weather: 'CA_LOS-ANGELES-DOWNTOWN-USC_722874S_16', result: 'Success' }
+    test_sets << { model: '310_PSZ-AC with electric coil', weather: 'Nashville Metropoli TN', result: 'Success' }
     return test_sets
   end
 
@@ -200,6 +201,7 @@ class HVACExhaustAirEnergyOrHeatRecoveryTest < Minitest::Test
 
       # apply the measure to the model and optionally run the model
       result = apply_measure_and_run(instance_test_name, measure, argument_map, osm_path, epw_path, run_model: false)
+      puts result
 
       # check the measure result; result values will equal Success, Fail, or Not Applicable
       # also check the amount of warnings, info, and error messages
