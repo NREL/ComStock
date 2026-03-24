@@ -1314,6 +1314,14 @@ class PlottingMixin():
 
         # Extract the units from the name of the first column
         units = self.nice_units(self.units_from_col_name(wtd_end_use_cols[0]))
+        hue_order = list(color_map.keys())
+        palette = [color_map[name] for name in hue_order]
+        row_name = 'Fuel and End Use'
+        row_label_map = {
+            col: self.col_name_to_nice_name(col).replace(' Energy Consumption', '')
+            for col in wtd_end_use_cols
+        }
+        row_order = [row_label_map[col] for col in wtd_end_use_cols]
 
         for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE, observed=True):
             for group_by in group_bys:
@@ -1347,18 +1355,28 @@ class PlottingMixin():
                     var_name=var_name,
                     value_name=val_name
                 )
-                # logger.debug(tots_long)
+                tots_long[column_for_grouping] = pd.Categorical(
+                    tots_long[column_for_grouping].astype(str),
+                    categories=hue_order,
+                    ordered=True,
+                )
+                tots_long[row_name] = pd.Categorical(
+                    tots_long[var_name].map(row_label_map),
+                    categories=row_order,
+                    ordered=True,
+                )
 
                 g = sns.catplot(
                     data=tots_long,
                     x=x_col,
                     y=val_name,
-                    row=var_name,
+                    row=row_name,
                     hue=column_for_grouping,
                     estimator=agg_method,
                     order=x_order,
-                    hue_order=list(color_map.keys()),
-                    palette=color_map.values(),
+                    row_order=row_order,
+                    hue_order=hue_order,
+                    palette=palette,
                     sharex=False,
                     kind='bar',
                     errorbar=None,
@@ -1373,10 +1391,8 @@ class PlottingMixin():
                 for ax in g.axes.flatten():
                     # Improve the title and move to the y-axis label
                     ax_title = ax.get_title()
-                    ax_title = ax_title.replace(f'{var_name} = ', '')
-                    ax_units = self.units_from_col_name(ax_title)
-                    ax_title = self.col_name_to_nice_name(ax_title)
-                    ax_title = ax_title.replace('Energy Consumption', f'({ax_units})')
+                    ax_title = ax_title.replace(f'{row_name} = ', '')
+                    ax_title = f'{ax_title} ({units})'
                     ax_title = ax_title.replace(' ', '\n')
                     ax.set_ylabel(ax_title, rotation=0, ha='right')
                     ax.set_title('')

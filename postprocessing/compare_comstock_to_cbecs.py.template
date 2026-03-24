@@ -87,7 +87,7 @@ def main():
                                         comstock_list=[comstock],
                                         upgrade_id='All',
                                         make_comparison_plots=True,
-                                        make_hvac_plots=True)
+                                        make_hvac_plots=False)
     comp.export_to_csv_wide()  # May comment this out after run once
 
 # Code to execute the script
