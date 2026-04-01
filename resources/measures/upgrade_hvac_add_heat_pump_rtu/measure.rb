@@ -1322,11 +1322,11 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     s_coil_inlet_mdot.setName("#{ems_name_airloop}_s_coil_outlet_mdot")
     s_coil_inlet_mdot.setInternalDataIndexKeyName(new_backup_heating_coil.name.to_s)
 
-    s_dx_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(
+    s_dx_heat_runtime_frac = OpenStudio::Model::EnergyManagementSystemSensor.new(
       model, 'Heating Coil Runtime Fraction'
     )
-    s_dx_runtime_frac.setName("#{ems_name_airloop}_s_dx_runtime_frac")
-    s_dx_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
+    s_dx_heat_runtime_frac.setName("#{ems_name_airloop}_s_dx_heat_runtime_frac")
+    s_dx_heat_runtime_frac.setKeyName(new_dx_heating_coil.name.to_s)
 
     s_dx_heating_load = OpenStudio::Model::EnergyManagementSystemSensor.new(
       model, 'Heating Coil Heating Rate'
@@ -1362,6 +1362,20 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       fan_key_name = fan_component.name.to_s
     end
     s_fan_rise_t.setKeyName(fan_key_name) if fan_key_name
+
+    # Zone temperature and heating setpoint sensors (PSZ-AC: one zone per air loop)
+    zone = air_loop_hvac.thermalZones.first
+    s_zone_air_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, 'Zone Mean Air Temperature'
+    )
+    s_zone_air_t.setName("#{ems_name_airloop}_s_zone_air_t")
+    s_zone_air_t.setKeyName(zone.name.to_s)
+
+    s_zone_htg_setpoint_t = OpenStudio::Model::EnergyManagementSystemSensor.new(
+      model, 'Zone Thermostat Heating Setpoint Temperature'
+    )
+    s_zone_htg_setpoint_t.setName("#{ems_name_airloop}_s_zone_htg_setpoint_t")
+    s_zone_htg_setpoint_t.setKeyName(zone.name.to_s)
 
     # -------------------------------------------------------------------------------
     # EMS global variables
@@ -1418,9 +1432,9 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine('SET mech_heat_enable = 0')
 
     # Mechanical heating must be active
-    ems_program.addLine("IF #{s_dx_runtime_frac.name} > 0.0")
+    ems_program.addLine("IF #{s_dx_heat_runtime_frac.name} > 0.0")
     ems_program.addLine('  SET mech_heat_enable = 1')
-    ems_program.addLine("ELSEIF #{s_oat_t.name} < #{hp_min_comp_lockout_temp_f}")
+    ems_program.addLine("ELSEIF (#{s_oat_t.name} < #{hp_min_comp_lockout_temp_f}) && (#{s_zone_air_t.name} < #{s_zone_htg_setpoint_t.name})")
     ems_program.addLine('  SET mech_heat_enable = 1')
     ems_program.addLine('ENDIF')
     ems_program.addLine('IF mech_heat_enable == 1')
