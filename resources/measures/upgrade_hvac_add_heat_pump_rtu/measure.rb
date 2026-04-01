@@ -1236,6 +1236,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_htg_coil_gross_cap_old,
       false
       )
+    heating_capacity_stage_2_additive_w = heating_capacity_stage_2_w - heating_capacity_stage_1_w
 
     # if heating_capacity_stage_1_w or heating_capacity_stage_2_w is nil, register error
     if heating_capacity_stage_1_w.nil? || heating_capacity_stage_2_w.nil?
@@ -1423,7 +1424,7 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET fan_dT = @Max #{s_fan_rise_t.name} 0.0")
     ems_program.addLine('SET T_set_eff = T_set - fan_dT')
     ems_program.addLine("SET cp = @CpAirFnW #{s_coil_inlet_hr.name}")
-    ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_w}")
+    ems_program.addLine("SET cap_stage_2 = #{heating_capacity_stage_2_additive_w}")
     ems_program.addLine("SET cap_stage_1 = #{heating_capacity_stage_1_w}")
     ems_program.addLine('SET burner_eff = 0.8')
     ems_program.addLine("SET #{g_fuel_usage_1.name} = 0.0")
@@ -1451,45 +1452,43 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("      IF (#{s_coil_inlet_t.name} + dT1_full) >= T_set_eff")
     ems_program.addLine("        SET dT_used_1 = T_set_eff - #{s_coil_inlet_t.name}")
 
-    # PLR is ratio of needed rise to full system capacity
-    ems_program.addLine('        SET plr_1 = dT_used_1 / dT2_full')
-    # PLF must be >= 0.7 and >= PLR
-    ems_program.addLine('        SET plf_1 = @Max plr_1 0.7')
+    # PLR = Q_delivered / Qnom_stage1 (EnergyPlus: PLR = HeatingCoilLoad / NominalCapacity)
+    ems_program.addLine('        SET plr_1 = dT_used_1 / dT1_full')
 
     ems_program.addLine("        SET #{g_part_load_ratio_1.name} = plr_1")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_set")
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_1) / plf_1 / burner_eff")
+    # PLF = 1.0 (no PLF curve): FuelUse = Q / efficiency
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_1) / burner_eff")
     ems_program.addLine("        SET #{g_fuel_usage_2.name} = 0.0")
 
     # --- Stage 1 not enough -> Stage 2 needed ---
     ems_program.addLine('      ELSE')
-    ems_program.addLine('        SET plr_1 = dT1_full / dT2_full')
-    ems_program.addLine('        SET plf_1 = @Max plr_1 0.7') # assuming (1) 0.7 limit and (2) no part-load factor affecting fuel usage
+    ems_program.addLine('        SET plr_1 = 1.0') # Stage 1 firing at full capacity: PLR = 1.0
 
     ems_program.addLine("        SET #{g_part_load_ratio_1.name} = plr_1")
     ems_program.addLine("        SET T_after_stage_1 = #{s_coil_inlet_t.name} + dT1_full")
     ems_program.addLine("        SET #{a_coil_outlet_t.name} = T_after_stage_1")
-    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT1_full) / plf_1 / burner_eff")
+    # PLF = 1.0 (no PLF curve, and PLR=1 at full load anyway): FuelUse = Q / efficiency
+    ems_program.addLine("        SET #{g_fuel_usage_1.name} = (#{s_coil_inlet_mdot.name} * cp * dT1_full) / burner_eff")
 
     # --- Stage 2 assist ---
     ems_program.addLine("        SET #{g_stage_2.name} = 1")
     ems_program.addLine('        IF (T_after_stage_1 + dT2_full) >= T_set_eff')
     ems_program.addLine('          SET dT_used_2 = T_set_eff - T_after_stage_1')
-    ems_program.addLine('          SET plr_2 = dT_used_2 / dT2_full')
-    ems_program.addLine('          SET plf_2 = @Max plr_2 0.7') # assuming (1) 0.7 limit and (2) no part-load factor affecting fuel usage
+    ems_program.addLine('          SET plr_2 = dT_used_2 / dT2_full') # PLR = Q_delivered / Qnom_stage2
 
     ems_program.addLine("          SET #{g_part_load_ratio_2.name} = plr_2")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_set")
     ems_program.addLine('        ELSE')
     ems_program.addLine('          SET dT_used_2 = dT2_full')
     ems_program.addLine('          SET plr_2 = 1.0')
-    ems_program.addLine('          SET plf_2 = 1.0')
 
     ems_program.addLine("          SET #{g_part_load_ratio_2.name} = 1.0")
     ems_program.addLine("          SET #{a_coil_outlet_t.name} = T_after_stage_1 + dT2_full")
     ems_program.addLine('        ENDIF')
 
-    ems_program.addLine("        SET #{g_fuel_usage_2.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_2) / plf_2 / burner_eff")
+    # PLF = 1.0 (no PLF curve): FuelUse = Q / efficiency
+    ems_program.addLine("        SET #{g_fuel_usage_2.name} = (#{s_coil_inlet_mdot.name} * cp * dT_used_2) / burner_eff")
     ems_program.addLine('      ENDIF')
     ems_program.addLine('    ENDIF')   # mdot > 0
     ems_program.addLine('  ENDIF')     # inlet < setpoint
