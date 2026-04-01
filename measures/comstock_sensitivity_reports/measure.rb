@@ -112,6 +112,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # request service water heating use
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Use Connections Hot Water Volume,RunPeriod;').get
 
+    # request refrigeration defrost energy
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Refrigeration Case Defrost Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Refrigeration Walk In Defrost Electricity Energy,RunPeriod;').get # J
+
     # request coil and fan energy use for HVAC equipment
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Tower Make Up Water Volume,RunPeriod;').get # m3
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
@@ -192,7 +196,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         next
       end
     end
-
 
     # result << OpenStudio::IdfObject.load("Output:Variable,*,Fan #{elec} Energy,RunPeriod;").get # J
     # result << OpenStudio::IdfObject.load("Output:Variable,*,Humidifier #{elec} Energy,RunPeriod;").get # J
@@ -3799,6 +3802,27 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # report out weater heater unmet demand heat transfer
     runner.registerValue('com_report_shw_hp_water_heater_unmet_heat_transfer_demand_j', heat_pump_water_heater_unmet_heat_transfer_demand_j)
     runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
+
+    # Refrigeration cases and walk-ins
+    refrigeration_case_count = 0.0
+    refrigeration_case_total_defrost_electric_j = 0.0
+    model.getRefrigerationCases.sort.each do |ref_case|
+      refrigeration_case_count += 1.0
+      defrost_electric_j = sql_get_report_variable_data_double(runner, sql, ref_case, 'Refrigeration Case Defrost Electricity Energy')
+      refrigeration_case_total_defrost_electric_j += defrost_electric_j
+    end
+    runner.registerValue('com_report_refrigeration_case_count', refrigeration_case_count)
+    runner.registerValue('com_report_refrigeration_case_total_defrost_electric_j', refrigeration_case_total_defrost_electric_j, 'J')
+
+    refrigeration_walk_in_count = 0.0
+    refrigeration_walk_in_total_defrost_electric_j = 0.0
+    model.getRefrigerationWalkIns.sort.each do |walk_in|
+      refrigeration_walk_in_count += 1.0
+      defrost_electric_j = sql_get_report_variable_data_double(runner, sql, walk_in, 'Refrigeration Walk In Defrost Electricity Energy')
+      refrigeration_walk_in_total_defrost_electric_j += defrost_electric_j
+    end
+    runner.registerValue('com_report_refrigeration_walk_in_count', refrigeration_walk_in_count)
+    runner.registerValue('com_report_refrigeration_walk_in_total_defrost_electric_j', refrigeration_walk_in_total_defrost_electric_j, 'J')
 
     # Error and Warning count from eplusout.err file (sql does not have data)
     err_path = File.join(File.dirname(sql.path.to_s), 'eplusout.err')
