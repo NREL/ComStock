@@ -676,7 +676,7 @@ def run(model, runner, user_arguments)
 
 	  # set sensor for zone cooling load from cooling coil cooling rate
 	  sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
-	  sens_clg_coil_rate.setName("sens_zn_clg_rate_#{std.ems_friendly_name(zone.name.get.to_s)}")
+	  sens_clg_coil_rate.setName("sens_zn_clg_rate_#{OpenstudioStandards::HVAC.ems_friendly_name(zone.name.get.to_s)}")
 	  sens_clg_coil_rate.setKeyName("#{clg_coil.name.get}")
 	  # EMS variables are added to lists for export
 	  li_ems_clg_coil_rate << sens_clg_coil_rate
@@ -684,21 +684,21 @@ def run(model, runner, user_arguments)
 	  # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
 	  # TODO need to confirm if this variable is reliable
 	  sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
-	  sens_min_oa_rate.setName("sens_min_oa_flow_#{std.ems_friendly_name(oa_controller.name.get.to_s)}")
+	  sens_min_oa_rate.setName("sens_min_oa_flow_#{OpenstudioStandards::HVAC.ems_friendly_name(oa_controller.name.get.to_s)}")
 	  sens_min_oa_rate.setKeyName("#{air_loop_hvac.name.get}")
 
 	  li_ems_sens_min_flow << sens_min_oa_rate
 
 	  # set sensor - Air System Outdoor Air Economizer Status
 	  sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
-	  sens_econ_status.setName("sens_econ_status_#{std.ems_friendly_name(oa_controller.name.get.to_s)}")
+	  sens_econ_status.setName("sens_econ_status_#{OpenstudioStandards::HVAC.ems_friendly_name(oa_controller.name.get.to_s)}")
 	  sens_econ_status.setKeyName("#{air_loop_hvac.name.get}")
 	  li_ems_sens_econ_status << sens_econ_status
 
 	  #### Actuators #####
 	  # set actuator - oa controller air mass flow rate
 	  act_oa_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(oa_controller,'Outdoor Air Controller', 'Air Mass Flow Rate')
-	  act_oa_flow.setName("act_oa_flow_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+	  act_oa_flow.setName("act_oa_flow_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
 	  li_ems_act_oa_flow << act_oa_flow
 
 	  #### Program #####
@@ -706,7 +706,7 @@ def run(model, runner, user_arguments)
 	  prgrm_econ_override = model.getEnergyManagementSystemTrendVariableByName('econ_override')
 	  unless prgrm_econ_override.is_initialized
 	    prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-		prgrm_econ_override.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_program")
+		prgrm_econ_override.setName("#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}_program")
 		prgrm_econ_override_body = <<-EMS
 		SET #{act_oa_flow.name} = #{act_oa_flow.name},
 		SET sens_zn_clg_rate = #{sens_clg_coil_rate.name},
@@ -721,7 +721,7 @@ def run(model, runner, user_arguments)
 		prgrm_econ_override.setBody(prgrm_econ_override_body)
 	  end
 	  programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-	  programs_at_beginning_of_timestep.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
+	  programs_at_beginning_of_timestep.setName("#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
 	  programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
 	  programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
 	  end

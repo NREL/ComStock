@@ -114,14 +114,12 @@ class ComStockBaseSampler:
             'year_bin_of_last_interior_equipment_replacement', 'year_bin_of_last_service_water_heating_replacement'
         ],
         [
-            'building_size_lighting_tech', 'energy_code_compliance_exterior_lighting',
+            'building_size_lighting_tech',
             'energy_code_compliance_interior_lighting',
-            'energy_code_followed_during_last_exterior_lighting_replacement',
             'energy_code_followed_during_last_interior_lighting_replacement',
-            'energy_code_in_force_during_last_exterior_lighting_replacement',
             'energy_code_in_force_during_last_interior_lighting_replacement', 'lighting_generation',
             'ltg_sch_base_peak_ratio_type', 'ltg_sch_weekday_base_peak_ratio', 'ltg_sch_weekend_base_peak_ratio',
-            'year_bin_of_last_exterior_lighting_replacement', 'year_bin_of_last_interior_lighting_replacement'
+            'year_bin_of_last_interior_lighting_replacement'
         ],
         [
             'energy_code_compliance_roof', 'energy_code_compliance_walls', 'energy_code_compliance_windows',
