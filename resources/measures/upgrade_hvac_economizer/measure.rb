@@ -338,25 +338,25 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
 
       # set sensor for zone cooling load from cooling coil cooling rate
       sens_clg_coil_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Cooling Coil Total Cooling Rate')
-      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      sens_clg_coil_rate.setName("sens_zn_clg_rate_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
       sens_clg_coil_rate.setKeyName(clg_coil.name.get)
       li_ems_clg_coil_rate << sens_clg_coil_rate
 
       # set sensor - Outdoor Air Controller Minimum Mass Flow Rate
       sens_min_oa_rate = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Mechanical Ventilation Requested Mass Flow Rate')
-      sens_min_oa_rate.setName("sens_min_oa_flow_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      sens_min_oa_rate.setName("sens_min_oa_flow_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
       sens_min_oa_rate.setKeyName(air_loop_hvac.name.get)
       li_ems_sens_min_flow << sens_min_oa_rate
 
       # set sensor - Air System Outdoor Air Economizer Status
       sens_econ_status = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Air System Outdoor Air Economizer Status')
-      sens_econ_status.setName("sens_econ_status_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      sens_econ_status.setName("sens_econ_status_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
       sens_econ_status.setKeyName(air_loop_hvac.name.get)
       li_ems_sens_econ_status << sens_econ_status
 
       # set sensor for zone cooling load from cooling coil cooling rate
       sens_nighttimevar = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Schedule Value')
-      sens_nighttimevar.setName("sens_nighttimevar_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      sens_nighttimevar.setName("sens_nighttimevar_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
       sens_nighttimevar.setKeyName(min_oa_flow_sch_nighttime_variability_name)
       li_ems_ref << sens_nighttimevar
 
@@ -364,13 +364,13 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       if zone_fan_exhaust_available
         zone_fan_exhaust_names.each_with_index do |zone_fan_exhaust_name, i|
           sens_zn_ex_fan = OpenStudio::Model::EnergyManagementSystemSensor.new(model, 'Fan Electricity Rate')
-          sens_zn_ex_fan.setName("sens_zn_ex_fan_#{std.ems_friendly_name(zone_fan_exhaust_name)}")
+          sens_zn_ex_fan.setName("sens_zn_ex_fan_#{OpenstudioStandards::HVAC.ems_friendly_name(zone_fan_exhaust_name)}")
           sens_zn_ex_fan.setKeyName(zone_fan_exhaust_name)
         end
       end
 
       # set global variable for debugging
-      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      dummy_debugging = OpenStudio::Model::EnergyManagementSystemGlobalVariable.new(model, "dummy_debugging_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
       li_ems_ref << dummy_debugging
 
       #### Actuators #####
@@ -378,7 +378,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
       act_oa_flow = OpenStudio::Model::EnergyManagementSystemActuator.new(oa_controller,
                                                                           'Outdoor Air Controller',
                                                                           'Air Mass Flow Rate')
-      act_oa_flow.setName("act_oa_flow_#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
+      act_oa_flow.setName("act_oa_flow_#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}")
 
       li_ems_act_oa_flow << act_oa_flow
 
@@ -393,12 +393,12 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
 
       unless prgrm_econ_override.is_initialized
         prgrm_econ_override = OpenStudio::Model::EnergyManagementSystemProgram.new(model)
-        prgrm_econ_override.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_program")
+        prgrm_econ_override.setName("#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}_program")
         prgrm_econ_override.addLine("SET #{act_oa_flow.name} = #{act_oa_flow.name}")
         if zone_fan_exhaust_available
           cmd_ex_fan = ''
           zone_fan_exhaust_names.each_with_index do |zone_fan_exhaust_name, i|
-            prgrm_econ_override.addLine("SET sens_zn_ex_fan_#{i.to_i} = sens_zn_ex_fan_#{std.ems_friendly_name(zone_fan_exhaust_name)}")
+            prgrm_econ_override.addLine("SET sens_zn_ex_fan_#{i.to_i} = sens_zn_ex_fan_#{OpenstudioStandards::HVAC.ems_friendly_name(zone_fan_exhaust_name)}")
             if i == 0
               cmd_ex_fan = "SET sens_load_ref = sens_zn_ex_fan_#{i.to_i}"
             else
@@ -426,7 +426,7 @@ class HVACEconomizer < OpenStudio::Measure::ModelMeasure
         prgrm_econ_override.addLine('ENDIF')
       end
       programs_at_beginning_of_timestep = OpenStudio::Model::EnergyManagementSystemProgramCallingManager.new(model)
-      programs_at_beginning_of_timestep.setName("#{std.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
+      programs_at_beginning_of_timestep.setName("#{OpenstudioStandards::HVAC.ems_friendly_name(air_loop_hvac.name.get.to_s)}_Programs_At_Beginning_Of_Timestep")
       programs_at_beginning_of_timestep.setCallingPoint('InsideHVACSystemIterationLoop')
       programs_at_beginning_of_timestep.addProgram(prgrm_econ_override)
     end

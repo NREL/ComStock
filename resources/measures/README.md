@@ -36,7 +36,6 @@ Measures are added to the workflow in order they first appear in the [`options_l
 |                                          | Remove unused objects from the model |
 | set_wall_template                        | Updates wall construction properties if template is newer than the template of original construction |
 | set_roof_template                        | Updates roof construction properties if template is newer than the template of original construction |
-| set_exterior_lighting_template           | Updates exterior lighting properties if template is newer than the template of original construction |
 | set_interior_equipment_template          | Updates interior equipment properties if template is newer than the template of original construction |
 | set_service_water_heating_template       | Updates SWH equipment efficiencies and controls if template is newer than the template of original construction |
 | set_hvac_template                        | Move to next measure unless template is newer than template of original construction |
