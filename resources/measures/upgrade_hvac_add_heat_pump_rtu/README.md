@@ -27,7 +27,7 @@ Specifies if the backup heat fuel type is a gas furnace or electric resistance c
 **Required:** true,
 **Model Dependent:** false
 
-**Choice Display Names** ["match_original_primary_heating_fuel", "electric_resistance_backup"]
+**Choice Display Names** ["match_original_primary_heating_fuel", "electric_resistance_backup", "dual_fuel_gas_furnace_backup"]
 
 
 ### Maximum Performance Oversizing Factor
@@ -85,7 +85,7 @@ Determines performance assumptions. two_speed_standard_eff is a standard efficie
 **Required:** true,
 **Model Dependent:** false
 
-**Choice Display Names** ["two_speed_standard_eff", "two_speed_lab_data", "variable_speed_high_eff", "cchpc_2027_spec"]
+**Choice Display Names** ["two_speed_standard_eff", "two_speed_lab_data", "variable_speed_high_eff", "cchpc_2027_spec", "carrier_48qe_dualfuel"]
 
 
 ### Add Energy Recovery?
