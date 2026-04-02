@@ -1494,8 +1494,10 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine('  ENDIF')     # inlet < setpoint
     ems_program.addLine('ENDIF')       # mech_heat_enable
 
-    # Convert power to energy
-    ems_program.addLine("SET dt = 60 / #{num_steps_per_hr} * 60") # in seconds
+    # Convert power (W) to energy (J) using actual system timestep duration.
+    # @SystemTimeStep is a built-in ERL variable returning the current system timestep in hours,
+    # which may be shorter than the zone timestep during HVAC sub-iterations.
+    ems_program.addLine('SET dt = SystemTimeStep * 3600') # system timestep in seconds
     ems_program.addLine("SET #{ems_name_airloop}_E_fuel_1 = #{g_fuel_usage_1.name} * dt") # Joules
     ems_program.addLine("SET #{ems_name_airloop}_E_fuel_2 = #{g_fuel_usage_2.name} * dt") # Joules
 
