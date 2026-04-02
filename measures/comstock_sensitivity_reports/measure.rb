@@ -648,7 +648,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
 
-    if ann_env_pd == false
+    if (ann_env_pd.nil?) || (!ann_env_pd == false)
       runner.registerError('Cannot find a weather runperiod. Make sure you ran an annual simulation, not just the design days.')
       return false
     end
@@ -1153,7 +1153,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       unless ts_ahu_ma_flow_rate_kg_s_list.nil?
         average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
       else
-        average_non_zero_loop_mass_flow_kg_s = -999
+        average_non_zero_loop_mass_flow_kg_s = 0.0
       end
 
       # Add to weighted
@@ -1162,8 +1162,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
-      if fan_var_vol
-        air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for SP reset measure
+      if fan_var_vol && average_non_zero_loop_mass_flow_kg_s > 0.0
+        air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for Static Pressure Reset measure
         air_system_total_des_flow_rate_m3_s += des_flow_rate_m3_s
       end
     end

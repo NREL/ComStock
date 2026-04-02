@@ -305,7 +305,7 @@ class ComStockSensitivityReportsTest < Minitest::Test
     output_txt = JSON.parse(File.read("#{run_dir(__method__)}/output.txt"))
     output_txt.each do |output_var|
       puts("### DEBUGGING: output_var = #{output_var['name']} | value = #{output_var['value']}")
-      
+
       # check values with values from example model
       if output_var['name'] == 'com_report_pump_flow_weighted_avg_motor_efficiency'
         assert_in_delta(0.9086, output_var['value'].to_f, 0.01)
@@ -328,7 +328,6 @@ class ComStockSensitivityReportsTest < Minitest::Test
       if output_var['name'] == 'com_report_pump_count_swh_var_spd'
         assert_equal(1, output_var['value'])
       end
-
     end
   end
 end
