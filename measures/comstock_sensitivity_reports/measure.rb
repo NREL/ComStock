@@ -648,7 +648,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
 
-    if (ann_env_pd.nil?) || (!ann_env_pd == false)
+    if (ann_env_pd.nil?) || (ann_env_pd == false)
       runner.registerError('Cannot find a weather runperiod. Make sure you ran an annual simulation, not just the design days.')
       return false
     end
