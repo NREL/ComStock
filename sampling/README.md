@@ -86,16 +86,16 @@ To start the TSV generation process do the following:
 - From this directory, run the following command:
 
 ```
-$ python tsv_sampling.py tsv_version sim_year n_samples n_buckets hvac_sizing -p bucket_definition_file.csv
+$ python tsv_sampling.py tsv_version sim_year n_samples n_buckets hvac_sizing -p sample_input_20250916-1309_XXX.csv
 ```
 
 - Where:
     - `tsv_version` is the version of tsv files to sample from (e.g., v26)
     - `sim_year` is the simulation year (2015-2019)
-    - `n_samples` is the number of samples you wish to generate. If using a bucket definition file, which is expected for allocation sampling, this number needs to match the number of samples in the bucket definition file.
-    - `n_buckets` is an speed optimization for the allocation sampling approach. If using the testing bucket definition file or not using a bucket allocation file set this value to 1. If using a production bucket definition file set this value to the number of samples per bucket, which is found by looking at the number of repeated values in the production bucket allocation file.
+    - `n_samples` is the number of samples you wish to generate. If using a bucket definition file, which is expected for allocation sampling, this number needs to match the number of samples in the bucket definition file (~10k sample, n_samples = 8602, full sample, n_samples = 103224). 
+    - `n_buckets` is an speed optimization for the allocation sampling approach. If using the testing bucket definition file or not using a bucket allocation file set this value to 1. If using a production bucket definition file set this value to the number of samples per bucket, which is found by looking at the number of repeated values in the production bucket allocation file (~10k sample, n_buckets =1, full sample, n_buckets = 12).
     - `hvac_sizing` dictates whether the HVAC systems in the models are autosized or hardsized (use "autosize" or "hardsize" for this argument).
-    - `bucket_definition_file` is the CSV file that specifies which combination of primary attributes need to be sampled and how often they should be sampled.
+    - `sample_input_20250916-1309_XXX.csv` is the CSV file that specifies which combination of primary attributes need to be sampled and how often they should be sampled. Choose the file name corresponding to the size of the sample you want to generate (~10k sample = 'sample_input_20250916-1309_8602.csv', full sample = 'sample_input_20250916-1309_103224.csv')
 - This will generate a buildstock.csv file and save it to `.\output-buildstocks\intermediate`.
 - The name of the file will include the date, tsv version, simulation year, your username, and number of samples. For example: `buildstock_20221020_v17_2018_alebar_500.csv`.
 
