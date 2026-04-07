@@ -3804,25 +3804,44 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
 
     # Refrigeration cases and walk-ins
-    refrigeration_case_count = 0.0
-    refrigeration_case_total_defrost_electric_j = 0.0
+    # Medium temperature: caseOperatingTemperature > -3C; Low temperature: <= -3C
+    refrigeration_med_temp_case_count = 0.0
+    refrigeration_med_temp_case_total_defrost_electric_j = 0.0
+    refrigeration_low_temp_case_count = 0.0
+    refrigeration_low_temp_case_total_defrost_electric_j = 0.0
     model.getRefrigerationCases.sort.each do |ref_case|
-      refrigeration_case_count += 1.0
       defrost_electric_j = sql_get_report_variable_data_double(runner, sql, ref_case, 'Refrigeration Case Defrost Electricity Energy')
-      refrigeration_case_total_defrost_electric_j += defrost_electric_j
+      if ref_case.caseOperatingTemperature > -3.0
+        refrigeration_med_temp_case_count += 1.0
+        refrigeration_med_temp_case_total_defrost_electric_j += defrost_electric_j
+      else
+        refrigeration_low_temp_case_count += 1.0
+        refrigeration_low_temp_case_total_defrost_electric_j += defrost_electric_j
+      end
     end
-    runner.registerValue('com_report_refrigeration_case_count', refrigeration_case_count)
-    runner.registerValue('com_report_refrigeration_case_total_defrost_electric_j', refrigeration_case_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_med_temp_case_count', refrigeration_med_temp_case_count)
+    runner.registerValue('com_report_refrigeration_med_temp_case_total_defrost_electric_j', refrigeration_med_temp_case_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_low_temp_case_count', refrigeration_low_temp_case_count)
+    runner.registerValue('com_report_refrigeration_low_temp_case_total_defrost_electric_j', refrigeration_low_temp_case_total_defrost_electric_j, 'J')
 
-    refrigeration_walk_in_count = 0.0
-    refrigeration_walk_in_total_defrost_electric_j = 0.0
+    refrigeration_med_temp_walk_in_count = 0.0
+    refrigeration_med_temp_walk_in_total_defrost_electric_j = 0.0
+    refrigeration_low_temp_walk_in_count = 0.0
+    refrigeration_low_temp_walk_in_total_defrost_electric_j = 0.0
     model.getRefrigerationWalkIns.sort.each do |walk_in|
-      refrigeration_walk_in_count += 1.0
       defrost_electric_j = sql_get_report_variable_data_double(runner, sql, walk_in, 'Refrigeration Walk In Defrost Electricity Energy')
-      refrigeration_walk_in_total_defrost_electric_j += defrost_electric_j
+      if walk_in.operatingTemperature > -3.0
+        refrigeration_med_temp_walk_in_count += 1.0
+        refrigeration_med_temp_walk_in_total_defrost_electric_j += defrost_electric_j
+      else
+        refrigeration_low_temp_walk_in_count += 1.0
+        refrigeration_low_temp_walk_in_total_defrost_electric_j += defrost_electric_j
+      end
     end
-    runner.registerValue('com_report_refrigeration_walk_in_count', refrigeration_walk_in_count)
-    runner.registerValue('com_report_refrigeration_walk_in_total_defrost_electric_j', refrigeration_walk_in_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_med_temp_walk_in_count', refrigeration_med_temp_walk_in_count)
+    runner.registerValue('com_report_refrigeration_med_temp_walk_in_total_defrost_electric_j', refrigeration_med_temp_walk_in_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_low_temp_walk_in_count', refrigeration_low_temp_walk_in_count)
+    runner.registerValue('com_report_refrigeration_low_temp_walk_in_total_defrost_electric_j', refrigeration_low_temp_walk_in_total_defrost_electric_j, 'J')
 
     # Error and Warning count from eplusout.err file (sql does not have data)
     err_path = File.join(File.dirname(sql.path.to_s), 'eplusout.err')
