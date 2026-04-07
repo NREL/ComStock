@@ -1302,8 +1302,12 @@ class PlottingMixin():
         wtd_end_use_cols = [self.col_name_to_weighted(c, 'tbtu') for c in end_use_cols]
 
         # Grocery-specific refrigeration defrost detail columns (subset of refrigeration)
-        grocery_detail_wtd_cols = [
-            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_DETAIL_ENDUSE
+        grocery_detail_wtd_cols_med_temp = [
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_MED_TEMP_DETAIL_ENDUSE
+            if self.col_name_to_weighted(c, 'tbtu') in df.columns
+        ]
+        grocery_detail_wtd_cols_low_temp = [
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_LOW_TEMP_DETAIL_ENDUSE
             if self.col_name_to_weighted(c, 'tbtu') in df.columns
         ]
 
@@ -1326,8 +1330,8 @@ class PlottingMixin():
 
         for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE, observed=True):
             # Include refrigeration defrost detail columns for Grocery buildings
-            if bldg_type == 'Grocery' and grocery_detail_wtd_cols:
-                wtd_end_use_cols_this = wtd_end_use_cols + grocery_detail_wtd_cols
+            if bldg_type == 'Grocery' and (grocery_detail_wtd_cols_med_temp or grocery_detail_wtd_cols_low_temp):
+                wtd_end_use_cols_this = wtd_end_use_cols + grocery_detail_wtd_cols_med_temp + grocery_detail_wtd_cols_low_temp
             else:
                 wtd_end_use_cols_this = wtd_end_use_cols
 
