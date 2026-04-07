@@ -142,6 +142,8 @@ class NamingMixin():
     ANN_ELEC_INTLTG_KBTU = 'out.electricity.interior_lighting.energy_consumption..kwh'
     ANN_ELEC_PUMPS_KBTU = 'out.electricity.pumps.energy_consumption..kwh'
     ANN_ELEC_REFRIG_KBTU = 'out.electricity.refrigeration.energy_consumption..kwh'
+    ANN_ELEC_REFRIG_CASE_DEFROST_KBTU = 'out.electricity.refrigeration_case_defrost.energy_consumption..kwh'
+    ANN_ELEC_REFRIG_WALKIN_DEFROST_KBTU = 'out.electricity.refrigeration_walkin_defrost.energy_consumption..kwh'
     ANN_ELEC_SWH_KBTU = 'out.electricity.water_systems.energy_consumption..kwh'
     ANN_ELEC_PV_KBTU = 'out.electricity.pv.energy_consumption..kwh' #new?
 
@@ -749,6 +751,12 @@ class NamingMixin():
     # List of Refrigeration, electricity end use columns
     COLS_REFRIG_ELEC_ENDUSE = [
         ANN_ELEC_REFRIG_KBTU
+    ]
+
+    # Refrigeration sub-category detail columns for Grocery buildings (subset of refrigeration, not added to COLS_ENDUSE_ANN_ENGY)
+    COLS_GROCERY_REFRIG_DETAIL_ENDUSE = [
+        ANN_ELEC_REFRIG_CASE_DEFROST_KBTU,
+        ANN_ELEC_REFRIG_WALKIN_DEFROST_KBTU
     ]
 
     # List of HVAC end use group columns

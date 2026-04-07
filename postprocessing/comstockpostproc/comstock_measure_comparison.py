@@ -150,10 +150,12 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
             plot_method=self.plot_floor_area_and_energy_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
             columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE))(**BASIC_PARAMS)
+        _lf_schema = lazy_frame.collect_schema().names()
+        _grocery_detail_cols = [c for c in self.lazyframe_plotter.WTD_COLS_GROCERY_REFRIG_DETAIL if c in _lf_schema]
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_end_use_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
-            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
+            columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + _grocery_detail_cols + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_histograms_by_building_type,
                                         lazy_frame=lazy_frame.clone(), columns=(self.lazyframe_plotter.BASE_COLUMNS + self.lazyframe_plotter.EUI_ANN_TOTL_COLUMNS + [self.BLDG_TYPE]))(**BASIC_PARAMS)
         LazyFramePlotter.plot_with_lazy(plot_method=self.plot_eui_boxplots_by_building_type,

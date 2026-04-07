@@ -52,6 +52,7 @@ class UnitsMixin():
         'btu_to_kbtu' : (1.0 / 1e3),
         'million_btu_to_kbtu': (1e9 / 1e6),
         'million_btu_to_kwh': (1000 / 3.412141633127942),
+        'j_to_kwh' : 1.0 / 3_600_000,
         'gj_to_kbtu' : 947.8171203133173,
         'gj_to_kwh' : 277.77777777777777,
         'w_per_m2_k_to_btu_per_ft2_f_hr': 0.17611,

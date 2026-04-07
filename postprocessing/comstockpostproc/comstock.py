@@ -213,6 +213,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.add_buildstock_csv_columns()
                 self.data = self.downselect_imported_columns(self.data)
                 self.rename_columns_and_convert_units()
+                self.add_refrig_defrost_kwh_columns()
                 self.set_column_data_types()
                 self.fix_supermarket_building_type_name()
                 self.remove_unused_as_simulated_geog_cols()
@@ -1819,6 +1820,24 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         logger.debug(geog_cols_to_remove)
         self.data = self.data.drop(geog_cols_to_remove)
 
+    def add_refrig_defrost_kwh_columns(self):
+        """Derive kWh-based refrigeration defrost columns from the Joule-based sensitivity report params."""
+        params_case = 'out.params.refrigeration_case_defrost_energy..j'
+        params_walkin = 'out.params.refrigeration_walkin_defrost_energy..j'
+        j_to_kwh = self.conv_fact('j', 'kwh')
+        existing_cols = self.data.collect_schema().names()
+        cols_to_add = []
+        if params_case in existing_cols:
+            cols_to_add.append((pl.col(params_case) * j_to_kwh).alias(self.ANN_ELEC_REFRIG_CASE_DEFROST_KBTU))
+        elif not self.skip_missing_columns:
+            logger.warning(f'Column {params_case} not found; cannot create {self.ANN_ELEC_REFRIG_CASE_DEFROST_KBTU}')
+        if params_walkin in existing_cols:
+            cols_to_add.append((pl.col(params_walkin) * j_to_kwh).alias(self.ANN_ELEC_REFRIG_WALKIN_DEFROST_KBTU))
+        elif not self.skip_missing_columns:
+            logger.warning(f'Column {params_walkin} not found; cannot create {self.ANN_ELEC_REFRIG_WALKIN_DEFROST_KBTU}')
+        if cols_to_add:
+            self.data = self.data.with_columns(cols_to_add)
+
     def add_missing_energy_columns(self):
         # Put in zeroes for end-use columns that aren't used in ComStock yet
         for engy_col in (self.COLS_TOT_ANN_ENGY + self.COLS_ENDUSE_ANN_ENGY + self.COLS_GEN_ANN_ENGY):
@@ -2241,6 +2260,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Universal
         pcs += [self.UPGRADE_APPL, self.UPGRADE_NAME, self.BLDG_ID, self.CZ_ASHRAE, self.DATASET, self.BLDG_WEIGHT]
         pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_ENDUSE_ANN_ENGY]
+        pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_GROCERY_REFRIG_DETAIL_ENDUSE]
         pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.MASS.CO2E_MMT) for c in self.GHG_FUEL_COLS]
 
         cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
@@ -2326,7 +2346,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                                 column_downselection='detailed')
 
             # Select only columns needed for plotting
-            wtd_agg_outs = wtd_agg_outs.select(self.plotting_columns())
+            available_cols = set(wtd_agg_outs.collect_schema().names())
+            plot_cols = [c for c in self.plotting_columns() if c in available_cols]
+            wtd_agg_outs = wtd_agg_outs.select(plot_cols)
 
             # Write data to parquet file, hive partition on upgrade to make later processing faster
             file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
@@ -3371,6 +3393,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_TOT_ANN_ENGY +
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
+                    self.COLS_GROCERY_REFRIG_DETAIL_ENDUSE +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY +
                     self.load_component_cols()):

@@ -108,7 +108,18 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Combine into a single dataframe for convenience
         # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
 
-        #There is no such a join='inner' in polars.concat, implement it manually
+        # Preserve optional grocery refrigeration detail columns in mixed CBECS/ComStock comparisons
+        # by adding zero-filled placeholders where they are missing before schema intersection.
+        optional_enduse_cols = list(self.lazyframe_plotter.WTD_COLS_GROCERY_REFRIG_DETAIL)
+        dfs_with_optional_cols = []
+        for df in dfs_to_concat:
+            missing_optional_cols = [c for c in optional_enduse_cols if c not in df.collect_schema().names()]
+            if missing_optional_cols:
+                df = df.with_columns([pl.lit(0.0).alias(c) for c in missing_optional_cols])
+            dfs_with_optional_cols.append(df)
+        dfs_to_concat = dfs_with_optional_cols
+
+        # There is no such a join='inner' in polars.concat, implement it manually
         common_columns = set(dfs_to_concat[0].collect_schema().names())
         for df in dfs_to_concat:
             common_columns = common_columns.intersection(set(df.collect_schema().names()))
@@ -211,7 +222,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_end_use_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
+            columns=(
+                [column_for_grouping]
+                + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE
+                + self.lazyframe_plotter.WTD_COLS_GROCERY_REFRIG_DETAIL
+                + [self.BLDG_TYPE, self.CEN_DIV]
+            ))(**BASIC_PARAMS)
 
         logger.info('Making EUI histogram by building type plots')
         LazyFramePlotter.plot_with_lazy(
