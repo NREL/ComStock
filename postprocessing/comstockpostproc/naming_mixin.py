@@ -142,12 +142,10 @@ class NamingMixin():
     ANN_ELEC_INTLTG_KBTU = 'out.electricity.interior_lighting.energy_consumption..kwh'
     ANN_ELEC_PUMPS_KBTU = 'out.electricity.pumps.energy_consumption..kwh'
     ANN_ELEC_REFRIG_KBTU = 'out.electricity.refrigeration.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_CASE_DEFROST_KBTU = 'out.electricity.refrigeration_case_defrost.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_WALKIN_DEFROST_KBTU = 'out.electricity.refrigeration_walkin_defrost.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KBTU = 'out.electricity.refrigeration_med_temp_case_defrost.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KBTU = 'out.electricity.refrigeration_low_temp_case_defrost.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KBTU = 'out.electricity.refrigeration_med_temp_walkin_defrost.energy_consumption..kwh'
-    ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KBTU = 'out.electricity.refrigeration_low_temp_walkin_defrost.energy_consumption..kwh'
+    ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KWH = 'out.params.refrigeration_med_temp_case_defrost_energy..kwh'
+    ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KWH = 'out.params.refrigeration_low_temp_case_defrost_energy..kwh'
+    ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KWH = 'out.params.refrigeration_med_temp_walkin_defrost_energy..kwh'
+    ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KWH = 'out.params.refrigeration_low_temp_walkin_defrost_energy..kwh'
     ANN_ELEC_SWH_KBTU = 'out.electricity.water_systems.energy_consumption..kwh'
     ANN_ELEC_PV_KBTU = 'out.electricity.pv.energy_consumption..kwh' #new?
 
@@ -758,23 +756,23 @@ class NamingMixin():
     ]
 
     # Refrigeration sub-category detail columns for Grocery buildings (subset of refrigeration, not added to COLS_ENDUSE_ANN_ENGY)
-    COLS_GROCERY_REFRIG_DETAIL_ENDUSE = [
-        ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KBTU,
-        ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KBTU,
-        ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KBTU,
-        ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KBTU
+    COLS_GROCERY_REFRIG_DEFROST_ENDUSE = [
+        ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KWH,
+        ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KWH,
+        ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KWH,
+        ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KWH
     ]
 
     # Refrigeration medium temperature detail columns for Grocery buildings
-    COLS_GROCERY_REFRIG_MED_TEMP_DETAIL_ENDUSE = [
-        ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KBTU,
-        ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KBTU
+    COLS_GROCERY_REFRIG_MED_TEMP_DEFROST_ENDUSE = [
+        ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KWH,
+        ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KWH
     ]
 
     # Refrigeration low temperature detail columns for Grocery buildings
-    COLS_GROCERY_REFRIG_LOW_TEMP_DETAIL_ENDUSE = [
-        ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KBTU,
-        ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KBTU
+    COLS_GROCERY_REFRIG_LOW_TEMP_DEFROST_ENDUSE = [
+        ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KWH,
+        ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KWH
     ]
 
     # List of HVAC end use group columns

@@ -1303,11 +1303,11 @@ class PlottingMixin():
 
         # Grocery-specific refrigeration defrost detail columns (subset of refrigeration)
         grocery_detail_wtd_cols_med_temp = [
-            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_MED_TEMP_DETAIL_ENDUSE
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_MED_TEMP_DEFROST_ENDUSE
             if self.col_name_to_weighted(c, 'tbtu') in df.columns
         ]
         grocery_detail_wtd_cols_low_temp = [
-            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_LOW_TEMP_DETAIL_ENDUSE
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_LOW_TEMP_DEFROST_ENDUSE
             if self.col_name_to_weighted(c, 'tbtu') in df.columns
         ]
 
