@@ -322,6 +322,18 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             logger.error(f"CSV export failed: {e}")
 
     def _validate_building_type(self, building_type: str | None) -> str | None:
+        """
+        Validates that the provided building type is a recognized ComStock building type.
+
+        Args:
+            building_type (str | None): The building type string to validate, or None to skip filtering.
+
+        Returns:
+            str | None: The stripped, validated building type string, or None if input was None.
+
+        Raises:
+            ValueError: If building_type is not in the list of valid building types.
+        """
         if building_type is None:
             return None
 
@@ -334,6 +346,20 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         return requested
 
     def _filter_to_building_type(self, lazy_frame: pl.LazyFrame, building_type: str) -> pl.LazyFrame:
+        """
+        Filters a LazyFrame to rows matching the specified building type.
+
+        Args:
+            lazy_frame (pl.LazyFrame): The input LazyFrame to filter.
+            building_type (str): The building type value to filter on.
+
+        Returns:
+            pl.LazyFrame: A LazyFrame containing only rows where the building type column
+                matches the specified building_type.
+
+        Raises:
+            ValueError: If the building type column is not present in the LazyFrame schema.
+        """
         schema = lazy_frame.collect_schema().names()
         if self.BLDG_TYPE not in schema:
             raise ValueError(f"Cannot filter by building type; missing required column: {self.BLDG_TYPE}")
