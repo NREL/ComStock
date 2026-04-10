@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>com_stock_sensitivity_reports</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>77e7e9b0-bc0d-4c7d-941a-f1ef6e059cee</version_id>
-  <version_modified>2026-04-07T20:45:33Z</version_modified>
+  <version_id>0ad8a8a4-f8a1-48f1-b0b0-f935cb175743</version_id>
+  <version_modified>2026-04-10T21:18:29Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>ComStockSensitivityReports</class_name>
   <display_name>ComStock_Sensitivity_Reports</display_name>
@@ -238,7 +238,13 @@
       <filename>comstock_sensitivity_reports_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>486ECDB4</checksum>
+      <checksum>C59279DB</checksum>
+    </file>
+    <file>
+      <filename>grocery.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B7565D16</checksum>
     </file>
     <file>
       <filename>ground_heat_exchanger.osm</filename>

@@ -295,6 +295,14 @@ class ComStockSensitivityReportsTest < Minitest::Test
     assert(run_test(__method__, osm_path, epw_path))
   end
 
+  def test_grocery_store
+    # test_grocery_store
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/grocery.osm"
+    epw_path = "#{__dir__}/USA_AL_Mobile-Downtown.AP.722235_TMY3.epw"
+    assert(run_test(__method__, osm_path, epw_path))
+  end
+
   def test_pump_spec
     # bldg0006100
     puts "\n######\nTEST:#{__method__}\n######\n"
