@@ -1301,6 +1301,16 @@ class PlottingMixin():
         end_use_cols = self.COLS_ENDUSE_ANN_ENGY
         wtd_end_use_cols = [self.col_name_to_weighted(c, 'tbtu') for c in end_use_cols]
 
+        # Grocery-specific refrigeration defrost detail columns (subset of refrigeration)
+        grocery_detail_wtd_cols_med_temp = [
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_MED_TEMP_DEFROST_ENDUSE
+            if self.col_name_to_weighted(c, 'tbtu') in df.columns
+        ]
+        grocery_detail_wtd_cols_low_temp = [
+            self.col_name_to_weighted(c, 'tbtu') for c in self.COLS_GROCERY_REFRIG_LOW_TEMP_DEFROST_ENDUSE
+            if self.col_name_to_weighted(c, 'tbtu') in df.columns
+        ]
+
         # Disaggregate to these levels (now supports None)
         group_bys = [
             None,
@@ -1317,13 +1327,20 @@ class PlottingMixin():
         hue_order = list(color_map.keys())
         palette = [color_map[name] for name in hue_order]
         row_name = 'Fuel and End Use'
-        row_label_map = {
-            col: self.col_name_to_nice_name(col).replace(' Energy Consumption', '')
-            for col in wtd_end_use_cols
-        }
-        row_order = [row_label_map[col] for col in wtd_end_use_cols]
 
         for bldg_type, bldg_type_df in df.groupby(self.BLDG_TYPE, observed=True):
+            # Include refrigeration defrost detail columns for Grocery buildings
+            if bldg_type == 'Grocery' and (grocery_detail_wtd_cols_med_temp or grocery_detail_wtd_cols_low_temp):
+                wtd_end_use_cols_this = wtd_end_use_cols + grocery_detail_wtd_cols_med_temp + grocery_detail_wtd_cols_low_temp
+            else:
+                wtd_end_use_cols_this = wtd_end_use_cols
+
+            row_label_map = {
+                col: self.col_name_to_nice_name(col).replace(' Energy Consumption', '')
+                for col in wtd_end_use_cols_this
+            }
+            row_order = [row_label_map[col] for col in wtd_end_use_cols_this]
+
             for group_by in group_bys:
                 # --- Minimal additions to support None group_by ---
                 if group_by is None:
@@ -1351,7 +1368,7 @@ class PlottingMixin():
                         column_for_grouping,
                         x_col
                     ],
-                    value_vars=wtd_end_use_cols,
+                    value_vars=wtd_end_use_cols_this,
                     var_name=var_name,
                     value_name=val_name
                 )

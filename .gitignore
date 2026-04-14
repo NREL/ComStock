@@ -28,6 +28,7 @@ lib/
 *.pyc
 report.xml
 resources/Gemfile.lock
+/test/local_run
 
 # Non-template postprocessing scripts
 postprocessing/compare_comstock_to_ami.py

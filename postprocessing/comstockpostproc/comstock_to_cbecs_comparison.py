@@ -19,7 +19,7 @@ from comstockpostproc.lazyframeplotter import LazyFramePlotter
 logger = logging.getLogger(__name__)
 
 class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
-    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True, make_hvac_plots = False):
+    def __init__(self, comstock_list: List[ComStock], cbecs_list: List[CBECS], upgrade_id=0, image_type='jpg', name=None, make_comparison_plots=True, make_hvac_plots = False, building_type: str | None = None):
         """
         Creates the ComStock to CBECS comaprison plots.
 
@@ -30,6 +30,11 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             image_type (str, optional): Image file type to use. Defaults to 'jpg'.
             name (str, optional): Name of output directory. If None, a name will be generated. Defaults to None.
             make_comparison_plots (bool, optional): Flag to create compairison plots. Defaults to True.
+            building_type (str | None, optional): ComStock building type to filter plots to.
+                Valid values: 'FullServiceRestaurant', 'QuickServiceRestaurant', 'RetailStripmall',
+                'RetailStandalone', 'SmallOffice', 'MediumOffice', 'LargeOffice', 'PrimarySchool',
+                'SecondarySchool', 'Outpatient', 'Hospital', 'SmallHotel', 'LargeHotel', 'Warehouse',
+                'Grocery'. If None, all building types are plotted.
         """
         # Initialize members
         self.comstock_list = comstock_list
@@ -40,6 +45,9 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         self.name = name
         self.column_for_grouping = self.DATASET
         self.lazyframe_plotter: LazyFramePlotter = LazyFramePlotter()
+
+        # Optional building type filter for faster plotting.
+        requested_building_type = self._validate_building_type(building_type)
 
         # Concatenate the datasets and create a color map
         dfs_to_concat = []
@@ -108,12 +116,25 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         # Combine into a single dataframe for convenience
         # self.data = pd.concat(dfs_to_concat, join='inner', ignore_index=True)
 
-        #There is no such a join='inner' in polars.concat, implement it manually
+        # Preserve optional grocery refrigeration detail columns in mixed CBECS/ComStock comparisons
+        # by adding zero-filled placeholders where they are missing before schema intersection.
+        optional_enduse_cols = list(self.lazyframe_plotter.WTD_COLS_GROCERY_REFRIG_DETAIL)
+        dfs_with_optional_cols = []
+        for df in dfs_to_concat:
+            missing_optional_cols = [c for c in optional_enduse_cols if c not in df.collect_schema().names()]
+            if missing_optional_cols:
+                df = df.with_columns([pl.lit(0.0).alias(c) for c in missing_optional_cols])
+            dfs_with_optional_cols.append(df)
+        dfs_to_concat = dfs_with_optional_cols
+
+        # There is no such a join='inner' in polars.concat, implement it manually
         common_columns = set(dfs_to_concat[0].collect_schema().names())
         for df in dfs_to_concat:
             common_columns = common_columns.intersection(set(df.collect_schema().names()))
         dfs_to_concat = [df.select(common_columns) for df in dfs_to_concat]
         self.data: pl.LazyFrame = pl.concat(dfs_to_concat, how="vertical_relaxed")
+        if requested_building_type is not None:
+            self.data = self._filter_to_building_type(self.data, requested_building_type)
         # Add Replicate Weights (CBECS only) for RSE calculations
         cbecs_src = cbecs_list[0]
         rep_cols = [self.BLDG_ID] + self.list_replicate_weight_cols(cbecs_src.data)
@@ -143,9 +164,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         logger.info(f"Not including columns {all_columns - common_columns} in comstock only plots")
         comstock_dfs_to_concat = [df.select(common_columns) for df in comstock_dfs_to_concat]
         comstock_qoi_columns = [self.DATASET] + self.QOI_MAX_DAILY_TIMING_COLS + self.QOI_MAX_USE_COLS + self.QOI_MIN_USE_COLS + self.QOI_MAX_USE_COLS_NORMALIZED + self.QOI_MIN_USE_COLS_NORMALIZED
-        comstock_df: pl.LazyFrame = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed").select(comstock_qoi_columns)
+        comstock_all_df: pl.LazyFrame = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed")
+        if requested_building_type is not None:
+            comstock_all_df = self._filter_to_building_type(comstock_all_df, requested_building_type)
+        comstock_df: pl.LazyFrame = comstock_all_df.select(comstock_qoi_columns)
         comstock_enduse_columns = [self.DATASET] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + self.lazyframe_plotter.WTD_COLUMNS_ANN_PV + self.lazyframe_plotter.WTD_COLUMNS_SUMMARIZE
-        comstock_enduse_df: pl.LazyFrame = pl.concat(comstock_dfs_to_concat, how="vertical_relaxed").select(comstock_enduse_columns)
+        comstock_enduse_df: pl.LazyFrame = comstock_all_df.select(comstock_enduse_columns)
 
         # Make directories
         self.output_dir = os.path.join(current_dir, '..', 'output', self.name)
@@ -211,7 +235,12 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
         LazyFramePlotter.plot_with_lazy(
             plot_method=self.plot_end_use_totals_by_building_type,
             lazy_frame=lazy_frame.clone(),
-            columns=( [column_for_grouping] + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE + [self.BLDG_TYPE, self.CEN_DIV]))(**BASIC_PARAMS)
+            columns=(
+                [column_for_grouping]
+                + self.lazyframe_plotter.WTD_COLUMNS_ANN_ENDUSE
+                + self.lazyframe_plotter.WTD_COLS_GROCERY_REFRIG_DETAIL
+                + [self.BLDG_TYPE, self.CEN_DIV]
+            ))(**BASIC_PARAMS)
 
         logger.info('Making EUI histogram by building type plots')
         LazyFramePlotter.plot_with_lazy(
@@ -291,3 +320,47 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
             logger.info(f'Exported comparison data to {file_path}')
         except Exception as e:
             logger.error(f"CSV export failed: {e}")
+
+    def _validate_building_type(self, building_type: str | None) -> str | None:
+        """
+        Validates that the provided building type is a recognized ComStock building type.
+
+        Args:
+            building_type (str | None): The building type string to validate, or None to skip filtering.
+
+        Returns:
+            str | None: The stripped, validated building type string, or None if input was None.
+
+        Raises:
+            ValueError: If building_type is not in the list of valid building types.
+        """
+        if building_type is None:
+            return None
+
+        allowed_types = list(self.ORDERED_CATEGORIES[self.BLDG_TYPE])
+        requested = building_type.strip()
+        if requested not in allowed_types:
+            raise ValueError(
+                f"Invalid building_type '{building_type}'. Valid options are: {allowed_types}"
+            )
+        return requested
+
+    def _filter_to_building_type(self, lazy_frame: pl.LazyFrame, building_type: str) -> pl.LazyFrame:
+        """
+        Filters a LazyFrame to rows matching the specified building type.
+
+        Args:
+            lazy_frame (pl.LazyFrame): The input LazyFrame to filter.
+            building_type (str): The building type value to filter on.
+
+        Returns:
+            pl.LazyFrame: A LazyFrame containing only rows where the building type column
+                matches the specified building_type.
+
+        Raises:
+            ValueError: If the building type column is not present in the LazyFrame schema.
+        """
+        schema = lazy_frame.collect_schema().names()
+        if self.BLDG_TYPE not in schema:
+            raise ValueError(f"Cannot filter by building type; missing required column: {self.BLDG_TYPE}")
+        return lazy_frame.filter(pl.col(self.BLDG_TYPE) == building_type)

@@ -2241,6 +2241,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Universal
         pcs += [self.UPGRADE_APPL, self.UPGRADE_NAME, self.BLDG_ID, self.CZ_ASHRAE, self.DATASET, self.BLDG_WEIGHT]
         pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_ENDUSE_ANN_ENGY]
+        pcs += [self.col_name_to_weighted(c, new_units=UnitsMixin.UNIT.ENERGY.TBTU) for c in self.COLS_GROCERY_REFRIG_DEFROST_ENDUSE]
         pcs += [self.col_name_to_weighted(c, UnitsMixin.UNIT.MASS.CO2E_MMT) for c in self.GHG_FUEL_COLS]
 
         cols = self.COLS_UTIL_BILLS + ['out.utility_bills.electricity_bill_max..usd', 'out.utility_bills.electricity_bill_min..usd']
@@ -2326,7 +2327,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                                                                 column_downselection='detailed')
 
             # Select only columns needed for plotting
-            wtd_agg_outs = wtd_agg_outs.select(self.plotting_columns())
+            available_cols = set(wtd_agg_outs.collect_schema().names())
+            plot_cols = [c for c in self.plotting_columns() if c in available_cols]
+            wtd_agg_outs = wtd_agg_outs.select(plot_cols)
 
             # Write data to parquet file, hive partition on upgrade to make later processing faster
             file_name = f'cached_ComStock_plotting_upgrade{upgrade_id}.parquet'
@@ -3371,6 +3374,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_TOT_ANN_ENGY +
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
+                    self.COLS_GROCERY_REFRIG_DEFROST_ENDUSE +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY +
                     self.load_component_cols()):

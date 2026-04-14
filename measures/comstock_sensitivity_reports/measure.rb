@@ -112,6 +112,10 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # request service water heating use
     result << OpenStudio::IdfObject.load('Output:Variable,*,Water Use Connections Hot Water Volume,RunPeriod;').get
 
+    # request refrigeration defrost energy
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Refrigeration Case Defrost Electricity Energy,RunPeriod;').get # J
+    result << OpenStudio::IdfObject.load('Output:Variable,*,Refrigeration Walk In Defrost Electricity Energy,RunPeriod;').get # J
+
     # request coil and fan energy use for HVAC equipment
     result << OpenStudio::IdfObject.load('Output:Variable,*,Cooling Tower Make Up Water Volume,RunPeriod;').get # m3
     result << OpenStudio::IdfObject.load('Output:Variable,*,Chiller COP,RunPeriod;').get
@@ -192,7 +196,6 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
         next
       end
     end
-
 
     # result << OpenStudio::IdfObject.load("Output:Variable,*,Fan #{elec} Energy,RunPeriod;").get # J
     # result << OpenStudio::IdfObject.load("Output:Variable,*,Humidifier #{elec} Energy,RunPeriod;").get # J
@@ -645,7 +648,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       end
     end
 
-    if ann_env_pd == false
+    if (ann_env_pd.nil?) || (ann_env_pd == false)
       runner.registerError('Cannot find a weather runperiod. Make sure you ran an annual simulation, not just the design days.')
       return false
     end
@@ -1150,7 +1153,7 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       unless ts_ahu_ma_flow_rate_kg_s_list.nil?
         average_non_zero_loop_mass_flow_kg_s = ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).sum.to_f / ts_ahu_ma_flow_rate_kg_s_list.reject(&:zero?).count
       else
-        average_non_zero_loop_mass_flow_kg_s = -999
+        average_non_zero_loop_mass_flow_kg_s = 0.0
       end
 
       # Add to weighted
@@ -1159,8 +1162,8 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
       air_system_weighted_fan_power_minimum_flow_fraction += fan_minimum_flow_frac * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_static_pressure += fan_static_pressure * air_loop_mass_flow_rate_kg_s
       air_system_weighted_fan_efficiency += fan_efficiency * air_loop_mass_flow_rate_kg_s
-      if fan_var_vol
-        air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for SP reset measure
+      if fan_var_vol && average_non_zero_loop_mass_flow_kg_s > 0.0
+        air_system_total_vav_mass_flow_kg_s += average_non_zero_loop_mass_flow_kg_s # Track VAV airflow separately for Static Pressure Reset measure
         air_system_total_des_flow_rate_m3_s += des_flow_rate_m3_s
       end
     end
@@ -3799,6 +3802,46 @@ class ComStockSensitivityReports < OpenStudio::Measure::ReportingMeasure
     # report out weater heater unmet demand heat transfer
     runner.registerValue('com_report_shw_hp_water_heater_unmet_heat_transfer_demand_j', heat_pump_water_heater_unmet_heat_transfer_demand_j)
     runner.registerValue('com_report_shw_non_hp_water_heater_unmet_heat_transfer_demand_j', water_heater_unmet_heat_transfer_demand_j)
+
+    # Refrigeration cases and walk-ins
+    # Medium temperature: caseOperatingTemperature > -3C; Low temperature: <= -3C
+    refrigeration_med_temp_case_count = 0.0
+    refrigeration_med_temp_case_total_defrost_electric_j = 0.0
+    refrigeration_low_temp_case_count = 0.0
+    refrigeration_low_temp_case_total_defrost_electric_j = 0.0
+    model.getRefrigerationCases.sort.each do |ref_case|
+      defrost_electric_j = sql_get_report_variable_data_double(runner, sql, ref_case, 'Refrigeration Case Defrost Electricity Energy')
+      if ref_case.caseOperatingTemperature > -3.0
+        refrigeration_med_temp_case_count += 1.0
+        refrigeration_med_temp_case_total_defrost_electric_j += defrost_electric_j
+      else
+        refrigeration_low_temp_case_count += 1.0
+        refrigeration_low_temp_case_total_defrost_electric_j += defrost_electric_j
+      end
+    end
+    runner.registerValue('com_report_refrigeration_med_temp_case_count', refrigeration_med_temp_case_count)
+    runner.registerValue('com_report_refrigeration_med_temp_case_total_defrost_electric_j', refrigeration_med_temp_case_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_low_temp_case_count', refrigeration_low_temp_case_count)
+    runner.registerValue('com_report_refrigeration_low_temp_case_total_defrost_electric_j', refrigeration_low_temp_case_total_defrost_electric_j, 'J')
+
+    refrigeration_med_temp_walk_in_count = 0.0
+    refrigeration_med_temp_walk_in_total_defrost_electric_j = 0.0
+    refrigeration_low_temp_walk_in_count = 0.0
+    refrigeration_low_temp_walk_in_total_defrost_electric_j = 0.0
+    model.getRefrigerationWalkIns.sort.each do |walk_in|
+      defrost_electric_j = sql_get_report_variable_data_double(runner, sql, walk_in, 'Refrigeration Walk In Defrost Electricity Energy')
+      if walk_in.operatingTemperature > -3.0
+        refrigeration_med_temp_walk_in_count += 1.0
+        refrigeration_med_temp_walk_in_total_defrost_electric_j += defrost_electric_j
+      else
+        refrigeration_low_temp_walk_in_count += 1.0
+        refrigeration_low_temp_walk_in_total_defrost_electric_j += defrost_electric_j
+      end
+    end
+    runner.registerValue('com_report_refrigeration_med_temp_walk_in_count', refrigeration_med_temp_walk_in_count)
+    runner.registerValue('com_report_refrigeration_med_temp_walk_in_total_defrost_electric_j', refrigeration_med_temp_walk_in_total_defrost_electric_j, 'J')
+    runner.registerValue('com_report_refrigeration_low_temp_walk_in_count', refrigeration_low_temp_walk_in_count)
+    runner.registerValue('com_report_refrigeration_low_temp_walk_in_total_defrost_electric_j', refrigeration_low_temp_walk_in_total_defrost_electric_j, 'J')
 
     # Error and Warning count from eplusout.err file (sql does not have data)
     err_path = File.join(File.dirname(sql.path.to_s), 'eplusout.err')
