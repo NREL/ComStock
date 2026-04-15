@@ -1432,8 +1432,14 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine("SET #{g_dx_load_during_hybrid_heating.name} = 0.0")
     ems_program.addLine('SET mech_heat_enable = 0')
 
-    # Mechanical heating must be active
-    ems_program.addLine("IF #{s_dx_heat_runtime_frac.name} > 0.0")
+    # Activate backup when supply air entering the backup coil is below setpoint AND zone needs heating.
+    # Using coil inlet temperature (= DX outlet) avoids the oscillation caused by the DX runtime
+    # fraction feedback loop: when the backup coil fires it raises supply temperature, which reduces
+    # DX runtime fraction to 0, which previously disabled the backup, creating an on/off cycle.
+    # The 0.1 C deadband on T_set_eff prevents noise-driven false triggers; the +1.0 C tolerance
+    # on zone setpoint prevents the backup from firing in cooling mode when the zone is well above
+    # the heating setpoint.
+    ems_program.addLine("IF (#{s_coil_inlet_t.name} < (T_set_eff - 0.1)) && (#{s_zone_air_t.name} < (#{s_zone_htg_setpoint_t.name} + 1.0))")
     ems_program.addLine('  SET mech_heat_enable = 1')
     ems_program.addLine("ELSEIF (#{s_oat_t.name} < #{hp_min_comp_lockout_temp_f}) && (#{s_zone_air_t.name} < #{s_zone_htg_setpoint_t.name})")
     ems_program.addLine('  SET mech_heat_enable = 1')
