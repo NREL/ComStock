@@ -4619,6 +4619,16 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                         cols_aliased.append(col)
                 cols = cols_aliased
 
+                # Cast in.foo BIGINT and BOOLEAN columns to STRING for SightGlass JSON serialization
+                cols_cast = []
+                for col in cols:
+                    if col.name.startswith('in.') and (str(col.type) == 'BIGINT' or str(col.type) == 'BOOLEAN'):
+                        logger.debug(f'Casting {col.name} from {col.type} to VARCHAR for SightGlass compatibility')
+                        cols_cast.append(sa.cast(col, sa.String).label(col.name))
+                    else:
+                        cols_cast.append(col)
+                cols = cols_cast
+
                 # Check columns
                 col_type_errs = 0
                 for c in cols:
