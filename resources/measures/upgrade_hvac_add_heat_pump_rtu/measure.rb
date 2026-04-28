@@ -1275,6 +1275,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     end
 
     # -------------------------------------------------------------------------------
+    # Get outdoor air controller for economizer lockout (LockoutWithHeating)
+    # -------------------------------------------------------------------------------
+    oa_controller = nil
+    oa_system_opt = air_loop_hvac.airLoopHVACOutdoorAirSystem
+    if oa_system_opt.is_initialized
+      oa_controller = oa_system_opt.get.getControllerOutdoorAir
+    else
+      runner.registerWarning("No outdoor air system found for #{air_loop_hvac.name}; economizer lockout during backup heating will not be applied.")
+    end
+
+    # -------------------------------------------------------------------------------
     # Create user-defined backup heating coil and attach early
     # -------------------------------------------------------------------------------
 
@@ -1300,6 +1311,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       new_backup_heating_coil, 'Air Connection 1', 'Mass Flow Rate'
     )
     a_coil_outlet_mdot.setName("#{ems_name_airloop}_a_coil_outlet_mdot")
+
+    # OA economizer lockout actuator: SET to minimum when backup heating fires, released otherwise.
+    # EnergyPlus automatically releases the actuator override on any EMS program execution that
+    # does not write to it, so normal economizer logic resumes when heating is not active.
+    a_oa_mdot = nil
+    if oa_controller
+      a_oa_mdot = OpenStudio::Model::EnergyManagementSystemActuator.new(
+        oa_controller, 'Outdoor Air Controller', 'Air Mass Flow Rate'
+      )
+      a_oa_mdot.setName("#{ems_name_airloop}_a_oa_mdot")
+    end
 
     # -------------------------------------------------------------------------------
     # EMS sensors
@@ -1377,6 +1399,26 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     )
     s_zone_htg_setpoint_t.setName("#{ems_name_airloop}_s_zone_htg_setpoint_t")
     s_zone_htg_setpoint_t.setKeyName(zone.name.to_s)
+
+    # Minimum OA mass flow rate for LockoutWithHeating economizer lockout.
+    # Read directly from the Controller:OutdoorAir object via the OpenStudio SDK so that no
+    # additional EMS sensor is required. autosizedMinimumOutdoorAirFlowRate is tried first
+    # (populated after a sizing run); minimumOutdoorAirFlowRate is used as the fallback for
+    # hard-sized models.
+    min_oa_mdot_kg_per_s = nil
+    if oa_controller
+      autosized = oa_controller.autosizedMinimumOutdoorAirFlowRate
+      if autosized.is_initialized
+        min_oa_mdot_kg_per_s = autosized.get
+      else
+        hard_sized = oa_controller.minimumOutdoorAirFlowRate
+        if hard_sized.is_initialized
+          min_oa_mdot_kg_per_s = hard_sized.get
+        else
+          runner.registerWarning("Could not determine minimum outdoor air flow rate for #{air_loop_hvac.name}; economizer lockout during backup heating will not be applied.")
+        end
+      end
+    end
 
     # -------------------------------------------------------------------------------
     # EMS global variables
@@ -1499,6 +1541,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     ems_program.addLine('    ENDIF')   # mdot > 0
     ems_program.addLine('  ENDIF')     # inlet < setpoint
     ems_program.addLine('ENDIF')       # mech_heat_enable
+
+    # Economizer lockout: when gas backup heating is active, override OA damper to minimum
+    # (mimics Controller:OutdoorAir LockoutWithHeating). The actuator is only SET when heating
+    # is on; EnergyPlus releases the override automatically on any iteration where this program
+    # does not write to the actuator, so normal economizer logic resumes when heating stops.
+    if a_oa_mdot && min_oa_mdot_kg_per_s
+      ems_program.addLine("IF (#{g_stage_1.name} == 1) || (#{g_stage_2.name} == 1)")
+      ems_program.addLine("  SET #{a_oa_mdot.name} = #{min_oa_mdot_kg_per_s}")
+      ems_program.addLine('ENDIF')
+    end
 
     # Convert power (W) to energy (J) using actual system timestep duration.
     # @SystemTimeStep is a built-in ERL variable returning the current system timestep in hours,
