@@ -37,3 +37,12 @@ LaTeX files for the ComStock Reference Documentation
 
 Files that show the relationship between ComStock input
 building characteristics.
+
+### `/change_docs`:
+
+Working documents that the team creates to document changes to ComStock.
+They are neither complete nor comprehensive of all the work that goes into the development process.
+Not every change implemented by the team is documented here, based on time, budget, etc.
+They are provided simply to share some insight into the model development process.
+The ComStock Reference Documentation is modified to reflect the final state of the software,
+and should be considered the authoritative source.
