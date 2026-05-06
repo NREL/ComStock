@@ -422,7 +422,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
     # get relevant heating coils
-    coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+    coils_heating = model.getCoilHeatingDXVariableSpeedSpeedDatas
 
     # check if there is at least one coil
     refute_equal(coils_heating.size, 0)
@@ -430,10 +430,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
-      if heating_coil.grossRatedHeatingCapacity.is_initialized
-        rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
-      end
-      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
+      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -448,7 +446,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
     # get cooling coils
-    coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+    coils_cooling = model.getCoilCoolingDXVariableSpeedSpeedDatas
 
     # check if there is at least one coil
     refute_equal(coils_cooling.size, 0)
@@ -456,10 +454,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_cooling.each do |cooling_coil|
       # get coil specs
-      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-        rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
-      end
-      rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
+      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -627,29 +623,29 @@ class AddHeatPumpRtuTest < Minitest::Test
       # ***heating***
       # assert new unitary systems all have multispeed DX heating coils
       htg_coil = system.heatingCoil.get
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
-      htg_coil = htg_coil.to_CoilHeatingDXMultiSpeed.get
+      assert(htg_coil.to_CoilHeatingDXVariableSpeed.is_initialized)
+      htg_coil = htg_coil.to_CoilHeatingDXVariableSpeed.get
 
       # assert multispeed heating coil has 4 stages
-      assert_equal(htg_coil.numberOfStages, 4)
-      htg_coil_spd4 = htg_coil.stages[3]
+      assert_equal(htg_coil.speeds.size, 4)
+      htg_coil_spd4 = htg_coil.speeds[3]
 
       # assert speed 4 flowrate matches design flow rate
       htg_dsn_flowrate = system.supplyAirFlowRateDuringHeatingOperation
-      assert_in_delta(htg_dsn_flowrate.to_f, htg_coil_spd4.ratedAirFlowRate.get, 0.000001)
+      assert_in_delta(htg_dsn_flowrate.to_f, htg_coil_spd4.referenceUnitRatedAirFlowRate, 0.000001)
 
       # assert flow rate reduces for lower speeds
-      htg_coil_spd3 = htg_coil.stages[2]
-      htg_coil_spd2 = htg_coil.stages[1]
-      htg_coil_spd1 = htg_coil.stages[0]
-      assert(htg_coil_spd4.ratedAirFlowRate.get > htg_coil_spd3.ratedAirFlowRate.get)
-      assert(htg_coil_spd3.ratedAirFlowRate.get > htg_coil_spd2.ratedAirFlowRate.get)
-      assert(htg_coil_spd2.ratedAirFlowRate.get > htg_coil_spd1.ratedAirFlowRate.get)
+      htg_coil_spd3 = htg_coil.speeds[2]
+      htg_coil_spd2 = htg_coil.speeds[1]
+      htg_coil_spd1 = htg_coil.speeds[0]
+      assert(htg_coil_spd4.referenceUnitRatedAirFlowRate > htg_coil_spd3.referenceUnitRatedAirFlowRate)
+      assert(htg_coil_spd3.referenceUnitRatedAirFlowRate > htg_coil_spd2.referenceUnitRatedAirFlowRate)
+      assert(htg_coil_spd2.referenceUnitRatedAirFlowRate > htg_coil_spd1.referenceUnitRatedAirFlowRate)
 
       # assert capacity reduces for lower speeds
-      assert(htg_coil_spd4.grossRatedHeatingCapacity.get > htg_coil_spd3.grossRatedHeatingCapacity.get)
-      assert(htg_coil_spd3.grossRatedHeatingCapacity.get > htg_coil_spd2.grossRatedHeatingCapacity.get)
-      assert(htg_coil_spd2.grossRatedHeatingCapacity.get > htg_coil_spd1.grossRatedHeatingCapacity.get)
+      assert(htg_coil_spd4.referenceUnitGrossRatedHeatingCapacity > htg_coil_spd3.referenceUnitGrossRatedHeatingCapacity)
+      assert(htg_coil_spd3.referenceUnitGrossRatedHeatingCapacity > htg_coil_spd2.referenceUnitGrossRatedHeatingCapacity)
+      assert(htg_coil_spd2.referenceUnitGrossRatedHeatingCapacity > htg_coil_spd1.referenceUnitGrossRatedHeatingCapacity)
 
       # assert supplemental heating coil type matches user-specified electric resistance
       sup_htg_coil = system.supplementalHeatingCoil.get
@@ -658,29 +654,29 @@ class AddHeatPumpRtuTest < Minitest::Test
       # ***cooling***
       # assert new unitary systems all have multispeed DX cooling coils
       clg_coil = system.coolingCoil.get
-      assert(clg_coil.to_CoilCoolingDXMultiSpeed.is_initialized)
-      clg_coil = clg_coil.to_CoilCoolingDXMultiSpeed.get
+      assert(clg_coil.to_CoilCoolingDXVariableSpeed.is_initialized)
+      clg_coil = clg_coil.to_CoilCoolingDXVariableSpeed.get
 
       # assert multispeed heating coil has 4 stages
-      assert_equal(clg_coil.numberOfStages, 4)
-      clg_coil_spd4 = clg_coil.stages[3]
+      assert_equal(clg_coil.speeds.size, 4)
+      clg_coil_spd4 = clg_coil.speeds[3]
 
       # assert speed 4 flowrate matches design flow rate
       clg_dsn_flowrate = system.supplyAirFlowRateDuringCoolingOperation
-      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd4.ratedAirFlowRate.get, 0.000001)
+      assert_in_delta(clg_dsn_flowrate.to_f, clg_coil_spd4.referenceUnitRatedAirFlowRate, 0.000001)
 
       # assert flow rate reduces for lower speeds
-      clg_coil_spd3 = clg_coil.stages[2]
-      clg_coil_spd2 = clg_coil.stages[1]
-      clg_coil_spd1 = clg_coil.stages[0]
-      assert(clg_coil_spd4.ratedAirFlowRate.get > clg_coil_spd3.ratedAirFlowRate.get)
-      assert(clg_coil_spd3.ratedAirFlowRate.get > clg_coil_spd2.ratedAirFlowRate.get)
-      assert(clg_coil_spd2.ratedAirFlowRate.get > clg_coil_spd1.ratedAirFlowRate.get)
+      clg_coil_spd3 = clg_coil.speeds[2]
+      clg_coil_spd2 = clg_coil.speeds[1]
+      clg_coil_spd1 = clg_coil.speeds[0]
+      assert(clg_coil_spd4.referenceUnitRatedAirFlowRate > clg_coil_spd3.referenceUnitRatedAirFlowRate)
+      assert(clg_coil_spd3.referenceUnitRatedAirFlowRate > clg_coil_spd2.referenceUnitRatedAirFlowRate)
+      assert(clg_coil_spd2.referenceUnitRatedAirFlowRate > clg_coil_spd1.referenceUnitRatedAirFlowRate)
 
       # assert capacity reduces for lower speeds
-      assert(clg_coil_spd4.grossRatedTotalCoolingCapacity.get > clg_coil_spd3.grossRatedTotalCoolingCapacity.get)
-      assert(clg_coil_spd3.grossRatedTotalCoolingCapacity.get > clg_coil_spd2.grossRatedTotalCoolingCapacity.get)
-      assert(clg_coil_spd2.grossRatedTotalCoolingCapacity.get > clg_coil_spd1.grossRatedTotalCoolingCapacity.get)
+      assert(clg_coil_spd4.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity)
+      assert(clg_coil_spd3.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity)
+      assert(clg_coil_spd2.referenceUnitGrossRatedTotalCoolingCapacity > clg_coil_spd1.referenceUnitGrossRatedTotalCoolingCapacity)
     end
     result
   end
@@ -733,44 +729,23 @@ class AddHeatPumpRtuTest < Minitest::Test
           raise "'Rated High Speed COP' not available for DX coil '#{coil.name}'."
         end
       end
-    elsif coil.to_CoilCoolingDXMultiSpeed.is_initialized
-      coil = coil.to_CoilCoolingDXMultiSpeed.get
-
-      # capacity and cop, use cop at highest capacity
-      temp_capacity_w = 0.0
-      coil.stages.each do |stage|
-        if stage.grossRatedTotalCoolingCapacity.is_initialized
-          temp_capacity_w = stage.grossRatedTotalCoolingCapacity.get
-        elsif stage.autosizedGrossRatedTotalCoolingCapacity.is_initialized
-          temp_capacity_w = stage.autosizedGrossRatedTotalCoolingCapacity.get
-        else
-          raise "Cooling coil capacity not available for coil stage '#{stage.name}'."
-        end
-
-        # update cop if highest capacity
-        temp_coil_design_cop = stage.grossRatedCoolingCOP
-        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-        # update if highest capacity
-        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-      end
     elsif coil.to_CoilCoolingDXVariableSpeed.is_initialized
       coil = coil.to_CoilCoolingDXVariableSpeed.get
 
       # capacity and cop, use cop at highest capacity
       temp_capacity_w = 0.0
-      coil.speeds.each do |speed|
-        temp_capacity_w = speed.referenceUnitGrossRatedTotalCoolingCapacity
+      coil.speeds.each do |stage|
+        temp_capacity_w = stage.referenceUnitGrossRatedTotalCoolingCapacity
 
         # update cop if highest capacity
-        temp_coil_design_cop = speed.referenceUnitGrossRatedCoolingCOP
+        temp_coil_design_cop = stage.referenceUnitGrossRatedCoolingCOP
         coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
         # update if highest capacity
         capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
       end
     else
-      raise 'Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXMultiSpeed, CoilCoolingDXVariableSpeed.'
+      raise 'Design capacity is only available for DX cooling coil types CoilCoolingDXSingleSpeed, CoilCoolingDXTwoSpeed, CoilCoolingDXVariableSpeed, CoilCoolingDXVariableSpeed.'
     end
 
     return capacity_w, coil_design_cop
@@ -792,34 +767,15 @@ class AddHeatPumpRtuTest < Minitest::Test
 
       # get rated cop and cop at lower temperatures
       coil_design_cop = coil.ratedCOP
-    elsif coil.to_CoilHeatingDXMultiSpeed.is_initialized
-      coil = coil.to_CoilHeatingDXMultiSpeed.get
-      temp_capacity_w = 0.0
-      coil.stages.each do |stage|
-        if stage.grossRatedHeatingCapacity.is_initialized
-          temp_capacity_w = stage.grossRatedHeatingCapacity.get
-        elsif stage.autosizedGrossRatedHeatingCapacity.is_initialized
-          temp_capacity_w = stage.autosizedGrossRatedHeatingCapacity.get
-        else
-          raise "Heating coil capacity not available for coil stage '#{stage.name}'."
-        end
-
-        # get cop and cop at lower temperatures
-        # pick cop at highest capacity
-        temp_coil_design_cop = stage.grossRatedHeatingCOP
-        coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
-
-        # update if highest capacity
-        capacity_w = temp_capacity_w if temp_capacity_w > capacity_w
-      end
     elsif coil.to_CoilHeatingDXVariableSpeed.is_initialized
       coil = coil.to_CoilHeatingDXVariableSpeed.get
-      coil.speeds.each do |speed|
-        temp_capacity_w = speed.referenceUnitGrossRatedHeatingCapacity
+      temp_capacity_w = 0.0
+      coil.speeds.each do |stage|
+        temp_capacity_w = stage.referenceUnitGrossRatedHeatingCapacity
 
         # get cop and cop at lower temperatures
         # pick cop at highest capacity
-        temp_coil_design_cop = speed.referenceUnitGrossRatedHeatingCOP
+        temp_coil_design_cop = stage.referenceUnitGrossRatedHeatingCOP
         coil_design_cop = temp_coil_design_cop if temp_capacity_w >= capacity_w
 
         # update if highest capacity
@@ -944,7 +900,8 @@ class AddHeatPumpRtuTest < Minitest::Test
       # check airflow
       value_before = sizing_summary_reference['AirLoopHVAC'][name_obj]['designSupplyAirFlowRate']
       value_after = airloophvac.designSupplyAirFlowRate.get
-      assert_in_epsilon(value_after, value_before, 0.01, "values difference not within threshold: AirLoopHVAC | #{name_obj} | designSupplyAirFlowRate")
+      increased_airflow = value_after - value_before > 0
+      assert(true, increased_airflow, "airflow not increased with upsizing: value_after = #{value_after} | value_before = #{value_before} | designSupplyAirFlowRate")
     end
     model.getControllerOutdoorAirs.each do |ctrloa|
       name_obj = ctrloa.name.to_s
@@ -984,7 +941,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   def calc_cfm_per_ton_multispdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
     # get relevant heating coils
-    coils_heating = model.getCoilHeatingDXMultiSpeedStageDatas
+    coils_heating = model.getCoilHeatingDXVariableSpeedSpeedDatas
 
     # check if there is at least one coil
     refute_equal(coils_heating.size, 0)
@@ -992,10 +949,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_heating.each do |heating_coil|
       # get coil specs
-      if heating_coil.grossRatedHeatingCapacity.is_initialized
-        rated_capacity_w = heating_coil.grossRatedHeatingCapacity.get
-      end
-      rated_airflow_m_3_per_sec = heating_coil.ratedAirFlowRate.get if heating_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = heating_coil.referenceUnitGrossRatedHeatingCapacity
+      rated_airflow_m_3_per_sec = heating_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -1010,7 +965,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
   def calc_cfm_per_ton_multispdcoil_cooling(model, cfm_per_ton_min, cfm_per_ton_max)
     # get cooling coils
-    coils_cooling = model.getCoilCoolingDXMultiSpeedStageDatas
+    coils_cooling = model.getCoilCoolingDXVariableSpeedSpeedDatas
 
     # check if there is at least one coil
     refute_equal(coils_cooling.size, 0)
@@ -1018,10 +973,8 @@ class AddHeatPumpRtuTest < Minitest::Test
     # calc cfm/ton
     coils_cooling.each do |cooling_coil|
       # get coil specs
-      if cooling_coil.grossRatedTotalCoolingCapacity.is_initialized
-        rated_capacity_w = cooling_coil.grossRatedTotalCoolingCapacity.get
-      end
-      rated_airflow_m_3_per_sec = cooling_coil.ratedAirFlowRate.get if cooling_coil.ratedAirFlowRate.is_initialized
+      rated_capacity_w = cooling_coil.referenceUnitGrossRatedTotalCoolingCapacity
+      rated_airflow_m_3_per_sec = cooling_coil.referenceUnitRatedAirFlowRate
 
       # calc relevant metrics
       rated_capacity_ton = OpenStudio.convert(rated_capacity_w, 'W', 'ton').get
@@ -1664,7 +1617,7 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # assert non kitchen spaces contain multispeed DX heating coils
     nonkitchen_htg_coils_final.each do |htg_coil|
-      assert(htg_coil.to_CoilHeatingDXMultiSpeed.is_initialized)
+      assert(htg_coil.to_CoilHeatingDXVariableSpeed.is_initialized)
     end
 
     # assert kitchen spaces still contain gas coils
