@@ -58,7 +58,6 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    # Only allow forward-looking refrigeration technology levels for this upgrade.
     refrigeration_template_choices = OpenStudio::StringVector.new
     refrigeration_template_choices << 'new'
     refrigeration_template_choices << 'advanced'
