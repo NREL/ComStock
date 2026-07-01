@@ -19,12 +19,14 @@ ModelMeasure
 ## Arguments
 
 
-### Refrigeration template
-
+### Refrigeration Technology Level
+Technology level for refrigerated cases, walkins, compressors, and systems.
 **Name:** refrigeration_template,
 **Type:** Choice,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
+
+
 
 
