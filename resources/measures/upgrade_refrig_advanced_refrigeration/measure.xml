@@ -3,9 +3,9 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_refrigeration</name>
   <uid>1086dc38-c5a3-4194-974a-5a5c0a6893e8</uid>
-  <version_id>e35c77ad-cf3e-4c18-807c-8c021d0e717c</version_id>
-  <version_modified>2026-06-24T21:26:26Z</version_modified>
-  <xml_checksum>883E1F75</xml_checksum>
+  <version_id>8f51bf38-961f-4073-b48a-121b2ecede5c</version_id>
+  <version_modified>2026-07-01T16:48:44Z</version_modified>
+  <xml_checksum>9E85AEA5</xml_checksum>
   <class_name>UpgradeRefrigeration</class_name>
   <display_name>upgrade_refrigeration</display_name>
   <description>This measure upgrades the refrigeration template in the model to a user selected template.</description>
@@ -58,7 +58,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>9C6FCB21</checksum>
+      <checksum>387FA6DF</checksum>
     </file>
   </files>
 </measure>
