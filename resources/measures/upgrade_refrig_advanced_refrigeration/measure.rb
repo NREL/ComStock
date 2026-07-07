@@ -90,12 +90,6 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
       removed_count += 1
     end
 
-    if removed_count == 0
-      runner.registerAsNotApplicable('No existing refrigeration objects were found to remove.')
-      return true
-    else
-      runner.registerInfo("Removed #{removed_count} existing refrigeration objects.")
-    end
     return removed_count
   end
 
@@ -127,6 +121,11 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
     # report baseline refrigeration object count
     initial_count = refrigeration_object_count(model)
     runner.registerInitialCondition("Model starts with #{initial_count} refrigeration objects.")
+
+    if initial_count == 0
+      runner.registerAsNotApplicable('Model does not have refrigeration system. Masure not applicable.')
+      return true
+    end
 
     # preserve the existing refrigerated loads
     removed_count = 0
