@@ -122,6 +122,7 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
     initial_count = refrigeration_object_count(model)
     runner.registerInitialCondition("Model starts with #{initial_count} refrigeration objects.")
 
+    # register measure not applicable if no refrigeration objects are present
     if initial_count == 0
       runner.registerAsNotApplicable('Model does not have refrigeration system. Masure not applicable.')
       return true
