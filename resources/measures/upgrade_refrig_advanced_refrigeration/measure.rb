@@ -90,6 +90,12 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
       removed_count += 1
     end
 
+    if removed_count == 0
+      runner.registerAsNotApplicable('No existing refrigeration objects were found to remove.')
+      return true
+    else
+      runner.registerInfo("Removed #{removed_count} existing refrigeration objects.")
+    end
     return removed_count
   end
 
