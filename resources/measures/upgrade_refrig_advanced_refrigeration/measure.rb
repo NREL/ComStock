@@ -73,12 +73,30 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
 
   # count all refrigeration objects currently in the model
   def refrigeration_object_count(model)
-    return model.getRefrigerationCases.size + model.getRefrigerationWalkIns.size
+    count = model.getRefrigerationCases.size + model.getRefrigerationWalkIns.size
+    count += model.getRefrigerationSystems.size if model.respond_to?(:getRefrigerationSystems)
+    count += model.getRefrigerationCompressorRacks.size if model.respond_to?(:getRefrigerationCompressorRacks)
+    return count
   end
 
   # remove existing refrigeration objects
   def remove_existing_refrigeration(model)
     removed_count = 0
+
+    # Remove parent objects first to avoid dangling references.
+    if model.respond_to?(:getRefrigerationSystems)
+      model.getRefrigerationSystems.each do |ref_system|
+        ref_system.remove
+        removed_count += 1
+      end
+    end
+
+    if model.respond_to?(:getRefrigerationCompressorRacks)
+      model.getRefrigerationCompressorRacks.each do |compressor_rack|
+        compressor_rack.remove
+        removed_count += 1
+      end
+    end
 
     model.getRefrigerationCases.each do |ref_case|
       ref_case.remove
@@ -124,13 +142,29 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
 
     # register measure not applicable if no refrigeration objects are present
     if initial_count == 0
-      runner.registerAsNotApplicable('Model does not have refrigeration system. Masure not applicable.')
+      runner.registerAsNotApplicable('Model does not have refrigeration system. Measure not applicable.')
       return true
     end
 
-    # preserve the existing refrigerated loads
-    removed_count = 0
-    runner.registerInfo('Leaving existing refrigeration loads in place and updating the refrigeration template in situ.')
+    # check existing refrigeration template and skip when it already meets the requested level
+    existing_refrigeration_template = model.getBuilding.additionalProperties.getFeatureAsString('refrigeration_technology_level').get
+
+    if existing_refrigeration_template == 'advanced'
+      runner.registerAsNotApplicable("Model already has 'advanced' refrigeration system, which is equal to or more efficient than the user-requested refrigeration template '#{refrigeration_template}'. Measure not applicable.")
+      return true
+    end
+
+    if existing_refrigeration_template == 'new' && refrigeration_template == 'new'
+      runner.registerAsNotApplicable("Model already has 'new' refrigeration system, which is equal to or more efficient than the user-requested refrigeration template '#{refrigeration_template}'. Measure not applicable.")
+      return true
+    end
+
+    # remove existing refrigeration loads and systems
+    runner.registerInfo('Removing existing refrigeration objects before applying replacement template.')
+    remove_call_count = remove_existing_refrigeration(model)
+    post_removal_count = refrigeration_object_count(model)
+    removed_count = initial_count - post_removal_count
+    runner.registerInfo("Removal step issued #{remove_call_count} remove calls; refrigeration object count changed from #{initial_count} to #{post_removal_count} (#{removed_count} removed).")
 
     # build replacement refrigeration system from selected template
     runner.registerInfo('Adding replacement refrigeration objects.')
@@ -141,13 +175,14 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
 
     # confirm refrigeration object count after replacement
     final_count = refrigeration_object_count(model)
+    created_count = final_count - post_removal_count
     runner.registerInfo("Post-upgrade refrigeration object count: #{final_count}")
     if final_count <= 0
       runner.registerError("No refrigeration objects were found after attempting to apply template '#{refrigeration_template}'.")
       return false
     end
 
-    runner.registerFinalCondition("Refrigeration replacement complete: removed #{removed_count} refrigeration objects and created #{final_count} refrigeration objects using '#{refrigeration_template}' template.")
+    runner.registerFinalCondition("Refrigeration replacement complete: removed #{removed_count} refrigeration objects and created #{created_count} refrigeration objects using '#{refrigeration_template}' template. Initial: #{initial_count}, final: #{final_count}.")
     return true
   end
 end

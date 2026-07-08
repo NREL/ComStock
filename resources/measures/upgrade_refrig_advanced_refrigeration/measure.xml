@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>upgrade_refrigeration</name>
   <uid>1086dc38-c5a3-4194-974a-5a5c0a6893e8</uid>
-  <version_id>e7125bf8-50fd-435b-91a4-c2ad2fccd8be</version_id>
-  <version_modified>2026-07-01T17:14:16Z</version_modified>
+  <version_id>34086173-ee83-4b76-b2d4-1b603ed8dd54</version_id>
+  <version_modified>2026-07-08T19:50:25Z</version_modified>
   <xml_checksum>9E85AEA5</xml_checksum>
   <class_name>UpgradeRefrigeration</class_name>
   <display_name>upgrade_refrigeration</display_name>
@@ -76,7 +76,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>387FA6DF</checksum>
+      <checksum>4D3ECEB9</checksum>
     </file>
   </files>
 </measure>
