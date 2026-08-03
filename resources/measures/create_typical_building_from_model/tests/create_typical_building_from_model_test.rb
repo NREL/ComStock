@@ -181,6 +181,13 @@ class CreateTypicalBuildingFromModelTest < Minitest::Test
     apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'SmallOffice.osm', nil, nil)
   end
 
+  def test_school_vav
+    args = {}
+    args['climate_zone'] = 'ASHRAE 169-2013-4A'
+    args['system_type'] = 'VAV chiller with gas boiler reheat'
+    apply_measure_to_model(__method__.to_s.gsub('test_', ''), args, 'ASHRAESecondarySchool.osm', nil, nil)
+  end
+
   # DEER Prototypes
   def test_asm
     args = {}

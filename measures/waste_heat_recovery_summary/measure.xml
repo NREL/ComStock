@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>waste_heat_recovery_summary</name>
+  <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
+  <version_id>3ff79a55-3368-4447-bcac-dc572b8a339c</version_id>
+  <version_modified>2026-08-03T21:15:44Z</version_modified>
+  <xml_checksum>A0069B90</xml_checksum>
+  <class_name>WasteHeatRecoverySummary</class_name>
+  <display_name>Waste Heat Recovery Summary</display_name>
+  <description>This measure reports the amount of simultaneous heating and cooling that occurs in the building, as well as heat flows for potential heat recovery.</description>
+  <modeler_description>This measure depends on HVAC timeseries data, and can take a while to run.</modeler_description>
+  <arguments>
+    <argument>
+      <name>timeseries_output</name>
+      <display_name>Output Timeseries</display_name>
+      <description>If true, the measure will output timeseries data. If false, only run period totals.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+  </arguments>
+  <outputs />
+  <provenances />
+  <tags>
+    <tag>Reporting.QAQC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ReportingMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Calibration</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Sensitivity Analysis</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>B72B43C4</checksum>
+    </file>
+    <file>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>19E915FD</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.0</identifier>
+        <min_compatible>2.9.0</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>6DCC9273</checksum>
+    </file>
+    <file>
+      <filename>python_plugin.py.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>58526436</checksum>
+    </file>
+    <file>
+      <filename>LargeOffice04.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>52431088</checksum>
+    </file>
+    <file>
+      <filename>USA_CO_Golden-NREL.724666_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>BDF687C1</checksum>
+    </file>
+    <file>
+      <filename>USA_KY_Bowman.Fld.724235_2012.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>63B193A5</checksum>
+    </file>
+    <file>
+      <filename>USA_NY_New.York-John.F.Kennedy.Intl.AP.744860_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>29D48BBA</checksum>
+    </file>
+    <file>
+      <filename>parse_eplusout_timeseries.py</filename>
+      <filetype>py</filetype>
+      <usage_type>test</usage_type>
+      <checksum>CCCA1DA5</checksum>
+    </file>
+    <file>
+      <filename>school_vav.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>CDDAB27A</checksum>
+    </file>
+    <file>
+      <filename>waste_heat_recovery_summary_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B06C3841</checksum>
+    </file>
+  </files>
+</measure>

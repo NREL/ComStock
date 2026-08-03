@@ -1,0 +1,195 @@
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+
+from pyenergyplus.plugin import EnergyPlusPlugin
+import json
+
+class WasteHeatRecoverySummary(EnergyPlusPlugin):
+
+    def __init__(self):
+        super().__init__()
+        self.need_to_get_handles = True
+        
+        # Equipment names passed from the measure
+        self.equipment_info = <%= equipment_json.to_s %>
+        self.heating_coil_names = self.equipment_info.get('heating_coils', [])
+        self.cooling_coil_names = self.equipment_info.get('cooling_coils', [])
+        self.water_equipment_names = self.equipment_info.get('water_equipment', [])
+        
+        # storage for handles
+        self.heating_coil_handles = {}
+        self.cooling_coil_handles = {}
+        self.drain_temp_handles = {}
+        self.hot_water_vol_handles = {}
+        
+        # output variable handles
+        self.total_heating_coil_energy_handle = None
+        self.total_cooling_coil_energy_handle = None
+        self.total_hot_water_volume_handle = None
+        self.avg_drain_temperature_handle = None
+        self.simultaneous_energy_handle = None
+
+        # System timestep accumulators reset every zone timestep.
+        self.zone_heating_energy_accum = 0.0
+        self.zone_cooling_energy_accum = 0.0
+
+    def _resolve_global_handles(self, state):
+        # Global handles are not state-specific.
+        if self.total_heating_coil_energy_handle is None or self.total_heating_coil_energy_handle < 0:
+            self.total_heating_coil_energy_handle = self.api.exchange.get_global_handle(
+                state,
+                'total_heating_coil_energy_glob'
+            )
+        if self.total_cooling_coil_energy_handle is None or self.total_cooling_coil_energy_handle < 0:
+            self.total_cooling_coil_energy_handle = self.api.exchange.get_global_handle(
+                state,
+                'total_cooling_coil_energy_glob'
+            )
+        if self.total_hot_water_volume_handle is None or self.total_hot_water_volume_handle < 0:
+            self.total_hot_water_volume_handle = self.api.exchange.get_global_handle(
+                state,
+                'total_hot_water_volume_glob'
+            )
+        if self.avg_drain_temperature_handle is None or self.avg_drain_temperature_handle < 0:
+            self.avg_drain_temperature_handle = self.api.exchange.get_global_handle(
+                state,
+                'avg_drain_temperature_glob'
+            )
+        if self.simultaneous_energy_handle is None or self.simultaneous_energy_handle < 0:
+            self.simultaneous_energy_handle = self.api.exchange.get_global_handle(
+                state,
+                'simultaneous_energy_glob'
+            )
+
+    def _resolve_variable_handles(self, state):
+        # Variable handles are state-specific and can be unavailable early;
+        # retry unresolved handles until E+ API data is ready.
+        if not self.api.exchange.api_data_fully_ready(state):
+            return
+
+        for coil_name in self.heating_coil_names:
+            if self.heating_coil_handles.get(coil_name, -1) < 0:
+                self.heating_coil_handles[coil_name] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Heating Coil Heating Energy',
+                    coil_name
+                )
+
+        for coil_name in self.cooling_coil_names:
+            if self.cooling_coil_handles.get(coil_name, -1) < 0:
+                self.cooling_coil_handles[coil_name] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Cooling Coil Total Cooling Energy',
+                    coil_name
+                )
+
+        for equip_name in self.water_equipment_names:
+            if self.drain_temp_handles.get(equip_name, -1) < 0:
+                self.drain_temp_handles[equip_name] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Water Use Equipment Drain Water Temperature',
+                    equip_name
+                )
+
+            if self.hot_water_vol_handles.get(equip_name, -1) < 0:
+                self.hot_water_vol_handles[equip_name] = self.api.exchange.get_variable_handle(
+                    state,
+                    'Water Use Equipment Total Volume',
+                    equip_name
+                )
+
+    def on_begin_environment_before_warmup(self, state) -> int:
+        self.need_to_get_handles = False
+        return 0
+
+    def on_begin_zone_timestep_before_init_heat_balance(self, state) -> int:
+        # Attempt handle resolution early; on_end callback retries if not yet ready.
+        self._resolve_global_handles(state)
+        self._resolve_variable_handles(state)
+        self.zone_heating_energy_accum = 0.0
+        self.zone_cooling_energy_accum = 0.0
+        return 0
+
+    def on_end_of_system_timestep_after_hvac_reporting(self, state) -> int:
+        # Capture each HVAC system timestep contribution and roll it up to the zone timestep.
+        self._resolve_variable_handles(state)
+
+        system_heating_energy = 0.0
+        for handle in self.heating_coil_handles.values():
+            if handle >= 0:
+                try:
+                    value = self.api.exchange.get_variable_value(state, handle)
+                    if value is not None:
+                        system_heating_energy += value
+                except Exception:
+                    pass
+
+        system_cooling_energy = 0.0
+        for handle in self.cooling_coil_handles.values():
+            if handle >= 0:
+                try:
+                    value = self.api.exchange.get_variable_value(state, handle)
+                    if value is not None:
+                        system_cooling_energy += value
+                except Exception:
+                    pass
+
+        self.zone_heating_energy_accum += system_heating_energy
+        self.zone_cooling_energy_accum += system_cooling_energy
+
+        return 0
+
+    def on_end_of_zone_timestep_before_zone_reporting(self, state) -> int:
+        # Resolve handles here in case api_data_fully_ready was False at begin_zone_timestep.
+        self._resolve_global_handles(state)
+        self._resolve_variable_handles(state)
+
+        total_heating_energy = self.zone_heating_energy_accum
+        total_cooling_energy = self.zone_cooling_energy_accum
+        
+        # Sum all hot water volumes and calculate weighted average drain temperature
+        total_hot_water_volume = 0.0
+        weighted_temp_sum = 0.0
+        
+        for equip_name in self.water_equipment_names:
+            vol_handle = self.hot_water_vol_handles.get(equip_name, -1)
+            if vol_handle >= 0:
+                try:
+                    volume = self.api.exchange.get_variable_value(state, vol_handle)
+                    if volume is not None and volume > 0:
+                        total_hot_water_volume += volume
+                        
+                        # Get the corresponding drain temperature
+                        temp_handle = self.drain_temp_handles.get(equip_name, -1)
+                        if temp_handle >= 0:
+                            try:
+                                temp = self.api.exchange.get_variable_value(state, temp_handle)
+                                if temp is not None:
+                                    weighted_temp_sum += temp * volume
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+        
+        # Calculate weighted average drain temperature
+        avg_drain_temperature = 0.0
+        if total_hot_water_volume > 0:
+            avg_drain_temperature = weighted_temp_sum / total_hot_water_volume
+        
+        # Calculate simultaneous energy (minimum of heating and cooling at this timestep)
+        simultaneous_energy = min(total_heating_energy, total_cooling_energy)
+        
+        # Set the output values only when handles are valid.
+        if self.total_heating_coil_energy_handle is not None and self.total_heating_coil_energy_handle >= 0:
+            self.api.exchange.set_global_value(state, self.total_heating_coil_energy_handle, total_heating_energy)
+        if self.total_cooling_coil_energy_handle is not None and self.total_cooling_coil_energy_handle >= 0:
+            self.api.exchange.set_global_value(state, self.total_cooling_coil_energy_handle, total_cooling_energy)
+        if self.total_hot_water_volume_handle is not None and self.total_hot_water_volume_handle >= 0:
+            self.api.exchange.set_global_value(state, self.total_hot_water_volume_handle, total_hot_water_volume)
+        if self.avg_drain_temperature_handle is not None and self.avg_drain_temperature_handle >= 0:
+            self.api.exchange.set_global_value(state, self.avg_drain_temperature_handle, avg_drain_temperature)
+        if self.simultaneous_energy_handle is not None and self.simultaneous_energy_handle >= 0:
+            self.api.exchange.set_global_value(state, self.simultaneous_energy_handle, simultaneous_energy)
+
+        return 0
+
