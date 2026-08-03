@@ -1,0 +1,7 @@
+# The Docker build context is the repo root (build/Dockerfile is built with
+# `docker build -f build/Dockerfile .` or via buildstockbatch's aws.base_dockerfile).
+# The Dockerfile only COPYs resources/Gemfile from the context, so exclude
+# everything else to keep the context small (the repo contains many GB of
+# git history, bundled gems, and container images).
+*
+!resources/Gemfile

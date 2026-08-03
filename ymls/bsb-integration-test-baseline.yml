@@ -1,4 +1,4 @@
-schema_version: '0.3'
+schema_version: '0.6'
 buildstock_directory: ../
 project_directory: national
 output_directory: ../baseline_test_output
@@ -17,13 +17,12 @@ os_version: 3.10.0
 os_sha: 86d7e215a1
 workflow_generator:
   type: commercial_default
+  version: '2024.07.18'
   args:
     reporting_measures:
     - measure_dir_name: SimulationOutputReport
     - measure_dir_name: comstock_sensitivity_reports
     - measure_dir_name: qoi_report
-      arguments:
-        run_qaqc: false
     - measure_dir_name: simulation_settings_check
       arguments:
         run_sim_settings_checks: true
