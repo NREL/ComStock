@@ -63,6 +63,8 @@ class ComStockToCBECSComparison(NamingMixin, UnitsMixin, PlottingMixin):
                     logger.info(f'Instantiating plotting lazyframe for comstock dataset {dataset.dataset_name}.')
                     dataset.create_plotting_lazyframe()
                 assert isinstance(dataset.plotting_data, pl.LazyFrame)
+                if make_comparison_plots:
+                    dataset.export_grocery_refrig_defrost_to_csv()
 
                 up_id_name: list = dataset.plotting_data.select(dataset.UPGRADE_ID, dataset.UPGRADE_NAME).collect().unique().to_numpy().tolist()
                 up_name_map = {k: v for k, v in up_id_name}

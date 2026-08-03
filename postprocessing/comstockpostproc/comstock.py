@@ -4036,6 +4036,45 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.data_long.write_csv(file_path)
 
 
+    def export_grocery_refrig_defrost_to_csv(self):
+        """Export weighted refrigeration and defrost energy columns for Grocery buildings to CSV."""
+        # Export from plotting_data to guarantee weighted columns exist.
+        source_lf = self.plotting_data
+        if not isinstance(source_lf, pl.LazyFrame):
+            logger.info('plotting_data not found; creating plotting lazyframe for grocery defrost export')
+            source_lf = self.create_plotting_lazyframe()
+
+        unweighted_cols = [
+            self.ANN_ELEC_REFRIG_KBTU,
+            self.ANN_ELEC_REFRIG_MED_TEMP_CASE_DEFROST_KWH,
+            self.ANN_ELEC_REFRIG_LOW_TEMP_CASE_DEFROST_KWH,
+            self.ANN_ELEC_REFRIG_MED_TEMP_WALKIN_DEFROST_KWH,
+            self.ANN_ELEC_REFRIG_LOW_TEMP_WALKIN_DEFROST_KWH,
+        ]
+        weighted_cols = [self.col_name_to_weighted(c, self.weighted_energy_units) for c in unweighted_cols]
+
+        id_cols = [self.BLDG_ID, self.UPGRADE_ID, self.UPGRADE_NAME, self.BLDG_WEIGHT, self.BLDG_TYPE,
+                   self.CZ_ASHRAE, self.STATE_ABBRV, self.VINTAGE]
+
+        source_cols = source_lf.collect_schema().names()
+        cols_to_export = [c for c in id_cols + weighted_cols if c in source_cols]
+
+        grocery_data = (
+            source_lf
+            .filter(pl.col(self.BLDG_TYPE) == 'Grocery')
+            .select(cols_to_export)
+            .collect()
+        )
+
+        missing_weighted_cols = [c for c in weighted_cols if c not in source_cols]
+        if missing_weighted_cols:
+            logger.warning(f'Missing weighted refrigeration columns in export source: {missing_weighted_cols}')
+
+        file_name = 'grocery_refrig_defrost_weighted.csv'
+        file_path = os.path.abspath(os.path.join(self.output_dir['fs_path'], file_name))
+        logger.info(f'Exporting grocery refrigeration defrost data to: {file_path}')
+        grocery_data.write_csv(file_path)
+
     def combine_emissions_cols(self):
         # Create combined emissions columns
 

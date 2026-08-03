@@ -57,6 +57,9 @@ class ComStockMeasureComparison(NamingMixin, UnitsMixin, PlottingMixin):
             return
 
         start_time = pd.Timestamp.now()
+        logger.info('Exporting weighted grocery refrigeration defrost CSV before individual-building-type plots')
+        comstock_object.export_grocery_refrig_defrost_to_csv()
+
         # make output directories; create dictionary to store upgrade ID as key and upgrade name as value
         for upgrade, upgrade_name in self.dict_upid_to_upname.items():
 
