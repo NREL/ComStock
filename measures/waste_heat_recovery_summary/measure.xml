@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>waste_heat_recovery_summary</name>
   <uid>aeb81242-de7e-4613-af47-c1faf19d286a</uid>
-  <version_id>3ff79a55-3368-4447-bcac-dc572b8a339c</version_id>
-  <version_modified>2026-08-03T21:15:44Z</version_modified>
+  <version_id>4342b99f-e8d7-4f2a-90ff-9bc99266e9f5</version_id>
+  <version_modified>2026-08-04T20:29:44Z</version_modified>
   <xml_checksum>A0069B90</xml_checksum>
   <class_name>WasteHeatRecoverySummary</class_name>
   <display_name>Waste Heat Recovery Summary</display_name>
@@ -91,7 +91,7 @@
       <filename>python_plugin.py.erb</filename>
       <filetype>erb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>58526436</checksum>
+      <checksum>79C71EE5</checksum>
     </file>
     <file>
       <filename>LargeOffice04.osm</filename>
@@ -118,6 +118,12 @@
       <checksum>29D48BBA</checksum>
     </file>
     <file>
+      <filename>large_office_vav_pfp.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>2580E457</checksum>
+    </file>
+    <file>
       <filename>parse_eplusout_timeseries.py</filename>
       <filetype>py</filetype>
       <usage_type>test</usage_type>
@@ -130,10 +136,16 @@
       <checksum>CDDAB27A</checksum>
     </file>
     <file>
+      <filename>school_vav_pfp.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>E2FD8681</checksum>
+    </file>
+    <file>
       <filename>waste_heat_recovery_summary_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>B06C3841</checksum>
+      <checksum>8521250D</checksum>
     </file>
   </files>
 </measure>

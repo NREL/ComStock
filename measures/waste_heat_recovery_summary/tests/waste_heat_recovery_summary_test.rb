@@ -130,4 +130,32 @@ class WasteHeatRecoverySummaryTest < Minitest::Test
 
     return true
   end
+
+  def test_school_vav_pfp
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/school_vav_pfp.osm"
+    epw_path = "#{__dir__}/USA_NY_New.York-John.F.Kennedy.Intl.AP.744860_TMY3.epw"
+
+    # set the arguments to test
+    args_hash = {}
+
+    # run the measure
+    run_in_workflow(__method__, osm_path, args_hash, epw_path)
+
+    return true
+  end
+
+  def test_large_office_vav_pfp
+    puts "\n######\nTEST:#{__method__}\n######\n"
+    osm_path = "#{__dir__}/large_office_vav_pfp.osm"
+    epw_path = "#{__dir__}/USA_CO_Golden-NREL.724666_TMY3.epw"
+
+    # set the arguments to test
+    args_hash = {}
+
+    # run the measure
+    run_in_workflow(__method__, osm_path, args_hash, epw_path)
+
+    return true
+  end
 end

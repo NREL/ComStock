@@ -129,7 +129,7 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
             if handle >= 0:
                 try:
                     value = self.api.exchange.get_variable_value(state, handle)
-                    if value is not None:
+                    if value is not None and value > 0.0:
                         system_cooling_energy += value
                 except Exception:
                     pass
@@ -176,7 +176,7 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
         if total_hot_water_volume > 0:
             avg_drain_temperature = weighted_temp_sum / total_hot_water_volume
         
-        # Calculate simultaneous energy (minimum of heating and cooling at this timestep)
+        # Calculate simultaneous energy from heating and positive-only cooling at this timestep.
         simultaneous_energy = min(total_heating_energy, total_cooling_energy)
         
         # Set the output values only when handles are valid.
