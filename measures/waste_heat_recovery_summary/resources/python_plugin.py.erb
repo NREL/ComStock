@@ -28,6 +28,9 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
         self.total_hot_water_volume_handle = None
         self.avg_drain_temperature_handle = None
         self.simultaneous_energy_handle = None
+        self.simultaneous_load_threshold_tons = [10, 20, 40, 60, 80]
+        self.hours_above_threshold_handles = {}
+        self.hours_above_threshold = {threshold: 0.0 for threshold in self.simultaneous_load_threshold_tons}
 
         # System timestep accumulators reset every zone timestep.
         self.zone_heating_energy_accum = 0.0
@@ -60,6 +63,12 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
                 state,
                 'simultaneous_energy_glob'
             )
+        for threshold in self.simultaneous_load_threshold_tons:
+            if self.hours_above_threshold_handles.get(threshold, -1) < 0:
+                self.hours_above_threshold_handles[threshold] = self.api.exchange.get_global_handle(
+                    state,
+                    f'hours_simultaneous_load_above_{threshold}_tons_glob'
+                )
 
     def _resolve_variable_handles(self, state):
         # Variable handles are state-specific and can be unavailable early;
@@ -100,6 +109,16 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
 
     def on_begin_environment_before_warmup(self, state) -> int:
         self.need_to_get_handles = False
+        return 0
+
+    def on_after_new_environment_warmup_is_complete(self, state) -> int:
+        self._resolve_global_handles(state)
+        self.hours_above_threshold = {threshold: 0.0 for threshold in self.simultaneous_load_threshold_tons}
+
+        for threshold, handle in self.hours_above_threshold_handles.items():
+            if handle >= 0:
+                self.api.exchange.set_global_value(state, handle, self.hours_above_threshold[threshold])
+
         return 0
 
     def on_begin_zone_timestep_before_init_heat_balance(self, state) -> int:
@@ -178,6 +197,15 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
         
         # Calculate simultaneous energy from heating and positive-only cooling at this timestep.
         simultaneous_energy = min(total_heating_energy, total_cooling_energy)
+        zone_timestep_hours = self.api.exchange.zone_time_step(state)
+        simultaneous_capacity_w = 0.0
+        if zone_timestep_hours > 0.0:
+            simultaneous_capacity_w = simultaneous_energy / (zone_timestep_hours * 3600.0)
+
+        tons_to_w = 3516.85284
+        for threshold in self.simultaneous_load_threshold_tons:
+            if simultaneous_capacity_w > threshold * tons_to_w:
+                self.hours_above_threshold[threshold] += zone_timestep_hours
         
         # Set the output values only when handles are valid.
         if self.total_heating_coil_energy_handle is not None and self.total_heating_coil_energy_handle >= 0:
@@ -190,6 +218,9 @@ class WasteHeatRecoverySummary(EnergyPlusPlugin):
             self.api.exchange.set_global_value(state, self.avg_drain_temperature_handle, avg_drain_temperature)
         if self.simultaneous_energy_handle is not None and self.simultaneous_energy_handle >= 0:
             self.api.exchange.set_global_value(state, self.simultaneous_energy_handle, simultaneous_energy)
+        for threshold, handle in self.hours_above_threshold_handles.items():
+            if handle >= 0:
+                self.api.exchange.set_global_value(state, handle, self.hours_above_threshold[threshold])
 
         return 0
 

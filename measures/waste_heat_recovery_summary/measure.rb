@@ -108,6 +108,14 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
     drain_temp_var = OpenStudio::Model::PythonPluginVariable.new(model)
     drain_temp_var.setName('avg_drain_temperature_glob')
 
+    simultaneous_load_threshold_tons = [10, 20, 40, 60, 80]
+    simultaneous_load_hours_vars = {}
+    simultaneous_load_threshold_tons.each do |threshold|
+      hours_var = OpenStudio::Model::PythonPluginVariable.new(model)
+      hours_var.setName("hours_simultaneous_load_above_#{threshold}_tons_glob")
+      simultaneous_load_hours_vars[threshold] = hours_var
+    end
+
     # python plugin output variables
     heating_out_var = OpenStudio::Model::PythonPluginOutputVariable.new(heating_coil_var)
     heating_out_var.setName('total_heating_coil_energy')
@@ -139,6 +147,14 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
     simultaneous_out_var.setUpdateFrequency('ZoneTimestep')
     simultaneous_out_var.setUnits('J')
 
+    simultaneous_load_hours_vars.each do |threshold, hours_var|
+      hours_out_var = OpenStudio::Model::PythonPluginOutputVariable.new(hours_var)
+      hours_out_var.setName("hours_simultaneous_load_above_#{threshold}_tons")
+      hours_out_var.setTypeofDatainVariable('Summed')
+      hours_out_var.setUpdateFrequency('ZoneTimestep')
+      hours_out_var.setUnits('hr')
+    end
+
     # add regular output variables that reference the python plugin outputs
     # Note: Python plugin outputs are always requested at Timestep frequency for aggregation in run method
     out_vars = [
@@ -148,6 +164,9 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
       'avg_drain_temperature',
       'simultaneous_energy'
     ]
+    simultaneous_load_threshold_tons.each do |threshold|
+      out_vars << "hours_simultaneous_load_above_#{threshold}_tons"
+    end
 
     out_vars.each do |var_name|
       out_var = OpenStudio::Model::OutputVariable.new('PythonPlugin:OutputVariable', model)
@@ -308,6 +327,11 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
     simultaneous_ts = get_timeseries_array(runner, sql, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', 'simultaneous_energy', num_ts, 'J', 'GJ')
     waste_water_vol_ts = get_timeseries_array(runner, sql, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', 'total_hot_water_volume', num_ts, 'm3')
     drain_temp_ts = get_timeseries_array(runner, sql, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', 'avg_drain_temperature', num_ts, 'C')
+    simultaneous_load_hours = {}
+    [10, 20, 40, 60, 80].each do |threshold|
+      threshold_ts = get_timeseries_array(runner, sql, ann_env_pd, 'Zone Timestep', 'PythonPlugin:OutputVariable', "hours_simultaneous_load_above_#{threshold}_tons", num_ts, 'hr')
+      simultaneous_load_hours[threshold] = threshold_ts.empty? ? 0.0 : threshold_ts.last.to_f
+    end
 
     # Debug: log non-zero values
     runner.registerInfo("Heating timeseries non-zero values: #{heating_ts.count { |v| v != 0 }}")
@@ -354,6 +378,11 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
     runner.registerValue('peak_heating_capacity_w', peak_heating_capacity_w, 'W')
     runner.registerValue('peak_cooling_capacity_w', peak_cooling_capacity_w, 'W')
     runner.registerValue('peak_simultaneous_capacity_w', peak_simultaneous_capacity_w, 'W')
+    runner.registerValue('hours_simultaneous_load_above_10_tons', simultaneous_load_hours[10], 'hr')
+    runner.registerValue('hours_simultaneous_load_above_20_tons', simultaneous_load_hours[20], 'hr')
+    runner.registerValue('hours_simultaneous_load_above_40_tons', simultaneous_load_hours[40], 'hr')
+    runner.registerValue('hours_simultaneous_load_above_60_tons', simultaneous_load_hours[60], 'hr')
+    runner.registerValue('hours_simultaneous_load_above_80_tons', simultaneous_load_hours[80], 'hr')
     runner.registerValue('annual_waste_water_volume_m3', annual_waste_water_volume, 'm3')
     runner.registerValue('annual_avg_drain_temperature_c', avg_drain_temp_weighted, 'C')
     runner.registerValue('annual_recoverable_drain_heat_gj', recoverable_heat_gj, 'GJ')
@@ -369,6 +398,12 @@ class WasteHeatRecoverySummary < OpenStudio::Measure::ReportingMeasure
     Peak Heating Capacity: #{peak_heating_capacity_w.round(0)} W
     Peak Cooling Capacity: #{peak_cooling_capacity_w.round(0)} W
     Peak Simultaneous Capacity: #{peak_simultaneous_capacity_w.round(0)} W
+
+    Hours Simultaneous Load >10 tons: #{simultaneous_load_hours[10].round(2)} hr
+    Hours Simultaneous Load >20 tons: #{simultaneous_load_hours[20].round(2)} hr
+    Hours Simultaneous Load >40 tons: #{simultaneous_load_hours[40].round(2)} hr
+    Hours Simultaneous Load >60 tons: #{simultaneous_load_hours[60].round(2)} hr
+    Hours Simultaneous Load >80 tons: #{simultaneous_load_hours[80].round(2)} hr
     
     Simultaneous as % of Heating: #{heating_simultaneous_pct.round(2)}%
     Simultaneous as % of Cooling: #{cooling_simultaneous_pct.round(2)}%
