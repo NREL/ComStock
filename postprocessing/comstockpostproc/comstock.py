@@ -1622,6 +1622,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 out_utility.append(c)
             elif c.startswith('out.params.'):
                 out_params.append(c)
+            elif c.startswith('waste_heat_recovery_summary.'):
+                out_params.append(c)
             elif c.startswith('calc.'):
                 calc.append(c)
             elif (c.endswith('.energy_consumption')
@@ -2287,6 +2289,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # plot_unmet_hours
         pcs += list(set(self.UNMET_HOURS_COLS))
 
+        # waste heat recovery summary outputs
+        pcs += self.COLS_WASTE_HEAT_RECOVERY_SUMMARY
+        pcs += [self.col_name_to_weighted(c) for c in self.COLS_WASTE_HEAT_RECOVERY_SUMMARY]
+
         # Reduce down to the unique set
         pcs = list(set(pcs))
         pcs.sort()
@@ -2758,16 +2764,18 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate the weighted columns
         wtd_agg_outs = self.add_weighted_area_energy_savings_columns(wtd_agg_outs)
 
-        # Cast geography column from Categorical to String for joining
-        wtd_agg_outs = wtd_agg_outs.with_columns(
-            pl.col(geographic_aggregation_levels[0]).cast(pl.String)
-        )
+        # National aggregates do not have a geography key column to cast or join on.
+        if geographic_aggregation_levels != ['national']:
+            # Cast geography column from Categorical to String for joining
+            wtd_agg_outs = wtd_agg_outs.with_columns(
+                pl.col(geographic_aggregation_levels[0]).cast(pl.String)
+            )
 
-        # Add geospatial data columns based on most informative geography column
-        wtd_agg_outs = self.add_geospatial_columns(wtd_agg_outs, geographic_aggregation_levels[0])
-        if geographic_aggregation_levels == [self.TRACT_ID]:
-            wtd_agg_outs = self.add_cejst_columns(wtd_agg_outs)
-            wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
+            # Add geospatial data columns based on most informative geography column
+            wtd_agg_outs = self.add_geospatial_columns(wtd_agg_outs, geographic_aggregation_levels[0])
+            if geographic_aggregation_levels == [self.TRACT_ID]:
+                wtd_agg_outs = self.add_cejst_columns(wtd_agg_outs)
+                wtd_agg_outs = self.add_ejscreen_columns(wtd_agg_outs)
 
         # Downselect and order columns
         logger.info(f"Downselecting columns using option: {column_downselection}")
@@ -3363,7 +3371,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             'usd': self.weighted_utility_units, #Utility, default : usd -> billion_usd
             'kwh': self.weighted_energy_units, #Energy and Enduse Groups, default : kwh -> tbtu
             'kw': self.weighted_demand_units, #(Peak) Demand, default : kw -> gw (gigawatt)
-            'gj': 'kbtu' # Thermal Loads, default : gj -> kbtu
+            'gj': 'kbtu', # Thermal Loads, default : gj -> kbtu
+            'w': 'w',
+            'c': 'c',
+            'hr': 'hr',
+            'm3': 'm3',
+            '': None,
         }
 
         # Get the list of existing column names
@@ -3375,6 +3388,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_GROCERY_REFRIG_DEFROST_ENDUSE +
+                    self.COLS_WASTE_HEAT_RECOVERY_SUMMARY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY +
                     self.load_component_cols()):
@@ -3390,8 +3404,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             if old_unit not in old_unit_to_new_unit.keys():
                 raise Exception(f"The unit {old_unit} is not in the old_unit_to_new_unit mapping for column: {col}")
 
-            new_col = self.col_name_to_weighted(col, old_unit_to_new_unit[old_unit])
-            conv_fact = self.conv_fact(old_unit, old_unit_to_new_unit[old_unit])
+            new_unit = old_unit_to_new_unit[old_unit]
+            # Preserve waste heat recovery energy in GJ while keeping loads_summary in kBtu.
+            if old_unit == 'gj' and col.startswith('waste_heat_recovery_summary.'):
+                new_unit = 'gj'
+
+            new_col = self.col_name_to_weighted(col, new_unit)
+            conv_fact = 1.0 if (new_unit is None or old_unit == new_unit) else self.conv_fact(old_unit, new_unit)
             input_lf = input_lf.with_columns(
                 (pl.col(col) * pl.col(self.BLDG_WEIGHT) * conv_fact).alias(new_col))
             logger.debug(f'{col} * {self.BLDG_WEIGHT} * {conv_fact} -> {new_col}')

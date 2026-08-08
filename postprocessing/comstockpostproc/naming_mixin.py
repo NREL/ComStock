@@ -843,6 +843,25 @@ class NamingMixin():
         HEATING_HOURS_UNMET,
     ]
 
+    COLS_WASTE_HEAT_RECOVERY_SUMMARY = [
+        'waste_heat_recovery_summary.annual_avg_drain_temperature_c..c',
+        'waste_heat_recovery_summary.annual_cooling_coil_energy_gj..gj',
+        'waste_heat_recovery_summary.annual_heating_coil_energy_gj..gj',
+        'waste_heat_recovery_summary.annual_recoverable_drain_heat_gj..gj',
+        'waste_heat_recovery_summary.annual_simultaneous_energy_gj..gj',
+        'waste_heat_recovery_summary.annual_waste_water_volume_m_3..m3',
+        'waste_heat_recovery_summary.hours_simultaneous_load_above_10_tons..hr',
+        'waste_heat_recovery_summary.hours_simultaneous_load_above_20_tons..hr',
+        'waste_heat_recovery_summary.hours_simultaneous_load_above_40_tons..hr',
+        'waste_heat_recovery_summary.hours_simultaneous_load_above_60_tons..hr',
+        'waste_heat_recovery_summary.hours_simultaneous_load_above_80_tons..hr',
+        'waste_heat_recovery_summary.peak_cooling_capacity_w..w',
+        'waste_heat_recovery_summary.peak_heating_capacity_w..w',
+        'waste_heat_recovery_summary.peak_simultaneous_capacity_w..w',
+        'waste_heat_recovery_summary.simultaneous_percent_of_total_cooling',
+        'waste_heat_recovery_summary.simultaneous_percent_of_total_heating'
+    ]
+
     UNWTD_COL_GROUPS = [
         # Energy
         {
