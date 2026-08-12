@@ -1302,22 +1302,22 @@ results.csv,simulation_output_report.total_site_propane_mbtu,out.propane.total.e
 results.csv,simulation_output_report.upgrade_cost_usd,,FALSE,FALSE,float,usd,usd,The cost to implement an upgrade for upgrade runs
 results.csv,simulation_settings_check.applicable,,FALSE,FALSE,boolean,,,Specifies if similation setting check was applicable to model
 results.csv,simulation_settings_check.run_sim_settings_checks,,FALSE,FALSE,boolean,,,Specifies ifsimulation setting check measure was run for model
-results.csv,waste_heat_recovery_summary.annual_avg_drain_temperature_c,waste_heat_recovery_summary.annual_avg_drain_temperature_c,TRUE,FALSE,float,c,c,Volume-weighted average of the drain water temperature
-results.csv,waste_heat_recovery_summary.annual_cooling_coil_energy_gj,waste_heat_recovery_summary.annual_cooling_coil_energy_gj,TRUE,FALSE,float,gj,gj,Total annual energy used by water-based cooling coils
-results.csv,waste_heat_recovery_summary.annual_heating_coil_energy_gj,waste_heat_recovery_summary.annual_heating_coil_energy_gj,TRUE,FALSE,float,gj,gj,Total annual energy used by water-based heating coils
-results.csv,waste_heat_recovery_summary.annual_recoverable_drain_heat_gj,waste_heat_recovery_summary.annual_recoverable_drain_heat_gj,TRUE,FALSE,float,gj,gj,"Total recoverable drain heat, assuming a 5C temperature delta"
-results.csv,waste_heat_recovery_summary.annual_simultaneous_energy_gj,waste_heat_recovery_summary.annual_simultaneous_energy_gj,TRUE,FALSE,float,gj,gj,Total annual energy summing the minimum of water-based heating or cooling coils at each timestep
-results.csv,waste_heat_recovery_summary.annual_waste_water_volume_m_3,waste_heat_recovery_summary.annual_waste_water_volume_m_3,TRUE,FALSE,float,m3,m3,Total annual volume of drain water
-results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_10_tons,waste_heat_recovery_summary.hours_simultaneous_load_above_10_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 10 tons
-results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_20_tons,waste_heat_recovery_summary.hours_simultaneous_load_above_20_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 20 tons
-results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_40_tons,waste_heat_recovery_summary.hours_simultaneous_load_above_40_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 40 tons
-results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_60_tons,waste_heat_recovery_summary.hours_simultaneous_load_above_60_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 60 tons
-results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_80_tons,waste_heat_recovery_summary.hours_simultaneous_load_above_80_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 80 tons
-results.csv,waste_heat_recovery_summary.peak_cooling_capacity_w,waste_heat_recovery_summary.peak_cooling_capacity_w,TRUE,FALSE,float,w,w,The peak cooling capacity used by water-based cooling coils
-results.csv,waste_heat_recovery_summary.peak_heating_capacity_w,waste_heat_recovery_summary.peak_heating_capacity_w,TRUE,FALSE,float,w,w,The peak cooling capacity used by water-based heating coils
-results.csv,waste_heat_recovery_summary.peak_simultaneous_capacity_w,waste_heat_recovery_summary.peak_simultaneous_capacity_w,TRUE,FALSE,float,w,w,The peak simultaneous energy used by water-based heating and cooling coils
-results.csv,waste_heat_recovery_summary.simultaneous_percent_of_total_cooling,waste_heat_recovery_summary.simultaneous_percent_of_total_cooling,TRUE,FALSE,float,,,Total annual simultaneous energy divided by total cooling energy in water-based coils
-results.csv,waste_heat_recovery_summary.simultaneous_percent_of_total_heating,waste_heat_recovery_summary.simultaneous_percent_of_total_heating,TRUE,FALSE,float,,,Total annual simultaneous energy divided by total heating energy in water-based coils
+results.csv,waste_heat_recovery_summary.annual_avg_drain_temperature_c,out.heat_recovery.annual_avg_drain_temperature,TRUE,FALSE,float,c,c,Volume-weighted average of the drain water temperature
+results.csv,waste_heat_recovery_summary.annual_cooling_coil_energy_gj,out.heat_recovery.annual_cooling_coil_energy,TRUE,FALSE,float,gj,gj,Total annual energy used by water-based cooling coils
+results.csv,waste_heat_recovery_summary.annual_heating_coil_energy_gj,out.heat_recovery.annual_heating_coil_energy,TRUE,FALSE,float,gj,gj,Total annual energy used by water-based heating coils
+results.csv,waste_heat_recovery_summary.annual_recoverable_drain_heat_gj,out.heat_recovery.annual_recoverable_drain_heat,TRUE,FALSE,float,gj,gj,"Total recoverable drain heat, assuming a 5C temperature delta"
+results.csv,waste_heat_recovery_summary.annual_simultaneous_energy_gj,out.heat_recovery.annual_simultaneous_energy,TRUE,FALSE,float,gj,gj,Total annual energy summing the minimum of water-based heating or cooling coils at each timestep
+results.csv,waste_heat_recovery_summary.annual_waste_water_volume_m_3,out.heat_recovery.annual_waste_water_volume_m_3,TRUE,FALSE,float,m3,m3,Total annual volume of drain water
+results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_10_tons,out.heat_recovery.hours_simultaneous_load_above_10_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 10 tons
+results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_20_tons,out.heat_recovery.hours_simultaneous_load_above_20_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 20 tons
+results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_40_tons,out.heat_recovery.hours_simultaneous_load_above_40_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 40 tons
+results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_60_tons,out.heat_recovery.hours_simultaneous_load_above_60_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 60 tons
+results.csv,waste_heat_recovery_summary.hours_simultaneous_load_above_80_tons,out.heat_recovery.hours_simultaneous_load_above_80_tons,TRUE,FALSE,float,hr,hr,Total hours where simultaneous load is over 80 tons
+results.csv,waste_heat_recovery_summary.peak_cooling_capacity_w,out.heat_recovery.peak_cooling_capacity_w,TRUE,FALSE,float,w,w,The peak cooling capacity used by water-based cooling coils
+results.csv,waste_heat_recovery_summary.peak_heating_capacity_w,out.heat_recovery.peak_heating_capacity_w,TRUE,FALSE,float,w,w,The peak cooling capacity used by water-based heating coils
+results.csv,waste_heat_recovery_summary.peak_simultaneous_capacity_w,out.heat_recovery.peak_simultaneous_capacity_w,TRUE,FALSE,float,w,w,The peak simultaneous energy used by water-based heating and cooling coils
+results.csv,waste_heat_recovery_summary.simultaneous_percent_of_total_cooling,out.heat_recovery.simultaneous_percent_of_total_cooling,TRUE,FALSE,float,,,Total annual simultaneous energy divided by total cooling energy in water-based coils
+results.csv,waste_heat_recovery_summary.simultaneous_percent_of_total_heating,out.heat_recovery.simultaneous_percent_of_total_heating,TRUE,FALSE,float,,,Total annual simultaneous energy divided by total heating energy in water-based coils
 results.csv,started_at,,FALSE,FALSE,float,,,Simulation start time for model
 results.csv,upgrade,upgrade,TRUE,TRUE,string,,,ID of upgrade including 00 for Baseline
 results.csv,utility_bills.applicable,,FALSE,FALSE,boolean,,,Specifies if the utility bill calculation was applied to model

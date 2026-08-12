@@ -1622,7 +1622,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 out_utility.append(c)
             elif c.startswith('out.params.'):
                 out_params.append(c)
-            elif c.startswith('waste_heat_recovery_summary.'):
+            elif c.startswith('out.heat_recovery.'):
                 out_params.append(c)
             elif c.startswith('calc.'):
                 calc.append(c)
@@ -2384,14 +2384,13 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Join on the missing PUMA ID
         # TODO this should be done in the initial fkt creation; remove once fixed
-        geo_cols = {
-            'nhgis_tract_gisjoin': self.TRACT_ID,
-            'nhgis_puma_gisjoin': self.PUMA_ID,
-        }
         geospatial_data_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
         geospatial_data = pl.scan_csv(geospatial_data_path, infer_schema_length=None)
-        geospatial_data = geospatial_data.select(list(geo_cols.keys()))
-        geospatial_data = geospatial_data.rename(geo_cols)
+        # Explicitly select and alias geospatial columns, casting to String for reliable join
+        geospatial_data = geospatial_data.select([
+            pl.col('nhgis_tract_gisjoin').cast(pl.String).alias(self.TRACT_ID),
+            pl.col('nhgis_puma_gisjoin').cast(pl.String).alias(self.PUMA_ID)
+        ])
         # Cast tract column from Categorical to String for joining
         alloc_wts = alloc_wts.with_columns(
             pl.col(self.TRACT_ID).cast(pl.String)
@@ -2614,6 +2613,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # update name dict
         self.unweighted_weighted_map.update({self.UTIL_ELEC_BILL_NUM_BILLS: self.col_name_to_weighted(self.UTIL_ELEC_BILL_NUM_BILLS)})
 
+        # Step 1: pre-compute floor-area-weighted numerators (col × area × weight) per tract before caching
+        heat_cols_in_sim = [c for c in self.COLS_WASTE_HEAT_RECOVERY_SUMMARY
+                            if c in sim_outs.collect_schema().names()]
+        if heat_cols_in_sim:
+            heat_data = sim_outs.select([pl.col(self.BLDG_ID)] + [pl.col(c) for c in heat_cols_in_sim])
+            alloc_wts = alloc_wts.join(heat_data, on=self.BLDG_ID, how='left')
+            alloc_wts = alloc_wts.with_columns([
+                (pl.col(col) * pl.col(self.FLR_AREA) * pl.col(self.BLDG_WEIGHT))
+                  .alias(self.col_name_to_weighted(col))
+                for col in heat_cols_in_sim
+            ])
+            alloc_wts = alloc_wts.drop(heat_cols_in_sim)
+
         # get upgrade ID
         up_id_list = alloc_wts.select([pl.col(self.UPGRADE_ID)]).collect().get_column(self.UPGRADE_ID).unique().to_list()
         # should be a single value
@@ -2669,6 +2681,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         cost_cols = (self.UTIL_ELEC_BILL_COSTS + self.COST_STATE_UTIL_COSTS + [self.UTIL_BILL_TOTAL_MEAN])
         weighted_util_cols = [self.col_name_to_weighted(col, self.weighted_utility_units) for col in (cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS])]
 
+        # Step 2: collect pre-computed heat recovery numerator cols (present only when cache includes heat recovery data)
+        available_alloc_cols = set(alloc_wts.collect_schema().names())
+        weighted_heat_cols = [self.col_name_to_weighted(col) for col in self.COLS_WASTE_HEAT_RECOVERY_SUMMARY
+                              if self.col_name_to_weighted(col) in available_alloc_cols]
+
         # Get the bill labels, only applicable at the tract level of aggregation
         bill_label_cols = []
         eia_id_cols = []
@@ -2686,6 +2703,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             ]
             + geo_agg_cols
             + weighted_util_cols
+            + weighted_heat_cols
             + cost_cols
             + [self.UTIL_ELEC_BILL_NUM_BILLS]
             + bill_label_cols
@@ -2698,7 +2716,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             + geo_agg_cols
         ).agg(
             [
-                pl.col([self.BLDG_WEIGHT] + weighted_util_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
+                pl.col([self.BLDG_WEIGHT] + weighted_util_cols + weighted_heat_cols + cost_cols + [self.UTIL_ELEC_BILL_NUM_BILLS]).sum(),
                 pl.col([self.FLR_AREA] + bill_label_cols + eia_id_cols).first()
             ]
         )
@@ -2714,6 +2732,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                .alias(self.col_name_to_area_intensity(col))
             for col in cost_cols]
         )
+
+        # Step 3: divide summed numerators by area × weight → floor-area-weighted avg in original units
+        if weighted_heat_cols:
+            wtd_agg_outs = wtd_agg_outs.with_columns([
+                pl.col(weighted_col)
+                  .truediv(pl.col(self.FLR_AREA).mul(pl.col(self.BLDG_WEIGHT)))
+                  .alias(weighted_col)
+                for weighted_col in weighted_heat_cols
+            ])
 
         return wtd_agg_outs
 
@@ -3134,15 +3161,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 self.fkt = pl.scan_parquet(fkt_file_path, storage_options=self.output_dir['storage_options'])
 
                 # Join on the missing PUMA ID
-                # TODO this should be done in the initial fkt creation; remove once fixed (in 3 places)
-                geo_cols = {
-                    'nhgis_tract_gisjoin': self.TRACT_ID,
-                    'nhgis_puma_gisjoin': self.PUMA_ID,
-                }
+                # TODO this should be done in the initial fkt creation; remove once fixed
                 file_path = os.path.join(self.truth_data_dir, self.geospatial_lookup_file_name)
-                geospatial_data = pl.read_csv(file_path, columns=list(geo_cols.keys()), infer_schema_length=None)
-                geospatial_data = geospatial_data.rename(geo_cols)
+                geospatial_data = pl.read_csv(file_path, columns=['nhgis_tract_gisjoin', 'nhgis_puma_gisjoin'], infer_schema_length=None)
+                # Explicitly select and alias geospatial columns, casting to String for reliable join
+                geospatial_data = geospatial_data.select([
+                    pl.col('nhgis_tract_gisjoin').cast(pl.String).alias(self.TRACT_ID),
+                    pl.col('nhgis_puma_gisjoin').cast(pl.String).alias(self.PUMA_ID)
+                ])
                 geospatial_data = geospatial_data.lazy()
+                # Cast tract column to String for joining
+                self.fkt = self.fkt.with_columns(pl.col(self.TRACT_ID).cast(pl.String))
                 self.fkt = self.fkt.join(geospatial_data, on=self.TRACT_ID)
             else:
                 raise FileNotFoundError(
@@ -3388,7 +3417,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_GEN_ANN_ENGY +
                     self.COLS_ENDUSE_ANN_ENGY +
                     self.COLS_GROCERY_REFRIG_DEFROST_ENDUSE +
-                    self.COLS_WASTE_HEAT_RECOVERY_SUMMARY +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY +
                     self.load_component_cols()):
@@ -3405,9 +3433,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                 raise Exception(f"The unit {old_unit} is not in the old_unit_to_new_unit mapping for column: {col}")
 
             new_unit = old_unit_to_new_unit[old_unit]
-            # Preserve waste heat recovery energy in GJ while keeping loads_summary in kBtu.
-            if old_unit == 'gj' and col.startswith('waste_heat_recovery_summary.'):
-                new_unit = 'gj'
 
             new_col = self.col_name_to_weighted(col, new_unit)
             conv_fact = 1.0 if (new_unit is None or old_unit == new_unit) else self.conv_fact(old_unit, new_unit)
