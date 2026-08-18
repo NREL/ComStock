@@ -236,23 +236,29 @@ class AddHeatPumpRtuTest < Minitest::Test
 
     # Get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(16, arguments.size)
+    assert_equal(17, arguments.size)
     assert_equal('backup_ht_fuel_scheme', arguments[0].name)
     assert_equal('performance_oversizing_factor', arguments[1].name)
     assert_equal('htg_sizing_option', arguments[2].name)
     assert_equal('clg_oversizing_estimate', arguments[3].name)
     assert_equal('htg_to_clg_hp_ratio', arguments[4].name)
-    assert_equal('hp_min_comp_lockout_temp_f', arguments[5].name)
-    assert_equal('hprtu_scenario', arguments[6].name)
-    assert_equal('hr', arguments[7].name)
-    assert_equal('dcv', arguments[8].name)
-    assert_equal('econ', arguments[9].name)
-    assert_equal('roof', arguments[10].name)
-    assert_equal('window', arguments[11].name)
-    assert_equal('sizing_run', arguments[12].name)
-    assert_equal('debug_verbose', arguments[13].name)
-    assert_equal('modify_setbacks', arguments[14].name)
-    assert_equal('setback_value', arguments[15].name)
+    assert_equal('hp_min_comp_lockout_temp_elec_backup_f', arguments[5].name)
+    assert_equal('hp_min_comp_lockout_temp_gas_backup_f', arguments[6].name)
+    assert_equal('hprtu_scenario', arguments[7].name)
+    assert_equal('hr', arguments[8].name)
+    assert_equal('dcv', arguments[9].name)
+    assert_equal('econ', arguments[10].name)
+    assert_equal('roof', arguments[11].name)
+    assert_equal('window', arguments[12].name)
+    assert_equal('sizing_run', arguments[13].name)
+    assert_equal('debug_verbose', arguments[14].name)
+    assert_equal('modify_setbacks', arguments[15].name)
+    assert_equal('setback_value', arguments[16].name)
+
+    # assert default lockout temperatures; electric backup allows the compressor to run much colder
+    # than gas backup, where the furnace is intended to take over at a milder outdoor temperature
+    assert_equal(0.0, arguments[5].defaultValueAsDouble)
+    assert_equal(25.0, arguments[6].defaultValueAsDouble)
   end
 
   def data_point_ordering_check(lookup_table_in_hash)
@@ -392,6 +398,7 @@ class AddHeatPumpRtuTest < Minitest::Test
       rescue JSON::ParserError => e
         flunk "JSON parsing failed for #{file_path}: #{e.message}"
       end
+    end
   end
 
   def calc_cfm_per_ton_singlespdcoil_heating(model, cfm_per_ton_min, cfm_per_ton_max)
@@ -538,7 +545,10 @@ class AddHeatPumpRtuTest < Minitest::Test
     return model
   end
 
-  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path)
+  # expect_gas_backup: set true when the measure is expected to create gas (dual fuel) backup coils
+  # expected_lockout_temp_f: when given, asserts the compressor lockout temperature on each new DX heating coil
+  def verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, expect_gas_backup: false,
+                    expected_lockout_temp_f: nil)
     # set weather file but not apply measure
     result = set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path, run_model: false, apply: false)
     model = load_model(model_output_path(test_name))
@@ -582,8 +592,13 @@ class AddHeatPumpRtuTest < Minitest::Test
     # get final gas heating coils
     li_gas_htg_coils_final = model.getCoilHeatingGass
 
-    # assert gas heating coils have been removed
-    assert_equal(li_gas_htg_coils_final.size, 0)
+    # assert gas heating coils have been removed, unless gas backup heat was requested
+    if expect_gas_backup
+      assert(li_gas_htg_coils_final.size > 0,
+             'expected gas backup heating coils to be present when backup heat matches an original gas heating fuel')
+    else
+      assert_equal(li_gas_htg_coils_final.size, 0)
+    end
 
     # get list of final unitary systems
     li_unitary_sys_final = model.getAirLoopHVACUnitarySystems
@@ -651,9 +666,23 @@ class AddHeatPumpRtuTest < Minitest::Test
       assert(htg_coil_spd3.grossRatedHeatingCapacity.get > htg_coil_spd2.grossRatedHeatingCapacity.get)
       assert(htg_coil_spd2.grossRatedHeatingCapacity.get > htg_coil_spd1.grossRatedHeatingCapacity.get)
 
-      # assert supplemental heating coil type matches user-specified electric resistance
+      # assert compressor lockout temperature matches the value expected for the backup heat type
+      unless expected_lockout_temp_f.nil?
+        expected_lockout_temp_c = OpenStudio.convert(expected_lockout_temp_f, 'F', 'C').get
+        assert_in_delta(expected_lockout_temp_c,
+                        htg_coil.minimumOutdoorDryBulbTemperatureforCompressorOperation, 0.01,
+                        "compressor lockout temperature for #{system.name} does not match the expected #{expected_lockout_temp_f}F")
+      end
+
+      # assert supplemental heating coil type matches the user-specified backup heat type
       sup_htg_coil = system.supplementalHeatingCoil.get
-      assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized)
+      if expect_gas_backup
+        assert(sup_htg_coil.to_CoilHeatingGas.is_initialized,
+               "expected a gas backup heating coil for #{system.name}")
+      else
+        assert(sup_htg_coil.to_CoilHeatingElectric.is_initialized,
+               "expected an electric resistance backup heating coil for #{system.name}")
+      end
 
       # ***cooling***
       # assert new unitary systems all have multispeed DX cooling coils
@@ -1450,6 +1479,127 @@ class AddHeatPumpRtuTest < Minitest::Test
     end
     assert_equal(roof_measure_implemented, false, "cannot find variable that was saved in roof upgrade measure via registerValue: env_roof_insul_roof_area_ft_2")
     assert_equal(window_measure_implemented, false, "cannot find variable that was saved in window upgrade measure via registerValue: env_secondary_window_fen_area_ft_2")
+  end
+
+  # Verifies the dual fuel compressor lockout temperature is applied when the backup heating coil
+  # ends up being a gas furnace. The electric backup lockout is deliberately set to a different
+  # value so this test fails if the wrong argument is used.
+  def test_gas_backup_lockout_7A
+    osm_name = '380_small_office_psz_gas_coil_7A.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    test_name = 'test_gas_backup_lockout_7A'
+
+    puts "
+######
+TEST:#{osm_name}
+######
+"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # a non-default gas backup lockout is used to confirm the argument is actually read
+    elec_backup_lockout_temp_f = 0.0
+    gas_backup_lockout_temp_f = 30.0
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'backup_ht_fuel_scheme'
+        backup_ht_fuel_scheme = arguments[idx].clone
+        backup_ht_fuel_scheme.setValue('match_original_primary_heating_fuel')
+        argument_map[arg.name] = backup_ht_fuel_scheme
+      elsif arg.name == 'hp_min_comp_lockout_temp_elec_backup_f'
+        hp_min_comp_lockout_temp_elec_backup_f = arguments[idx].clone
+        hp_min_comp_lockout_temp_elec_backup_f.setValue(elec_backup_lockout_temp_f)
+        argument_map[arg.name] = hp_min_comp_lockout_temp_elec_backup_f
+      elsif arg.name == 'hp_min_comp_lockout_temp_gas_backup_f'
+        hp_min_comp_lockout_temp_gas_backup_f = arguments[idx].clone
+        hp_min_comp_lockout_temp_gas_backup_f.setValue(gas_backup_lockout_temp_f)
+        argument_map[arg.name] = hp_min_comp_lockout_temp_gas_backup_f
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # the original model heats with gas, so matching the original fuel gives gas backup coils
+    # and the compressor should lock out at the gas backup temperature
+    verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, expect_gas_backup: true,
+                                                                               expected_lockout_temp_f: gas_backup_lockout_temp_f)
+  end
+
+  # Verifies the gas backup lockout temperature is ignored when the backup heating coil is electric
+  # resistance, even though the original model heats with gas.
+  def test_elec_backup_lockout_7A
+    osm_name = '380_small_office_psz_gas_coil_7A.osm'
+    epw_name = 'NE_Kearney_Muni_725526_16.epw'
+
+    test_name = 'test_elec_backup_lockout_7A'
+
+    puts "
+######
+TEST:#{osm_name}
+######
+"
+
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+
+    # Create an instance of the measure
+    measure = AddHeatPumpRtu.new
+
+    # Load the model; only used here for populating arguments
+    model = load_model(osm_path)
+
+    # get arguments
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    elec_backup_lockout_temp_f = 0.0
+    gas_backup_lockout_temp_f = 30.0
+
+    # populate argument with specified hash value if specified
+    arguments.each_with_index do |arg, idx|
+      temp_arg_var = arg.clone
+      if arg.name == 'hprtu_scenario'
+        hprtu_scenario = arguments[idx].clone
+        hprtu_scenario.setValue('variable_speed_high_eff') # override std_perf arg
+        argument_map[arg.name] = hprtu_scenario
+      elsif arg.name == 'backup_ht_fuel_scheme'
+        backup_ht_fuel_scheme = arguments[idx].clone
+        backup_ht_fuel_scheme.setValue('electric_resistance_backup')
+        argument_map[arg.name] = backup_ht_fuel_scheme
+      elsif arg.name == 'hp_min_comp_lockout_temp_elec_backup_f'
+        hp_min_comp_lockout_temp_elec_backup_f = arguments[idx].clone
+        hp_min_comp_lockout_temp_elec_backup_f.setValue(elec_backup_lockout_temp_f)
+        argument_map[arg.name] = hp_min_comp_lockout_temp_elec_backup_f
+      elsif arg.name == 'hp_min_comp_lockout_temp_gas_backup_f'
+        hp_min_comp_lockout_temp_gas_backup_f = arguments[idx].clone
+        hp_min_comp_lockout_temp_gas_backup_f.setValue(gas_backup_lockout_temp_f)
+        argument_map[arg.name] = hp_min_comp_lockout_temp_gas_backup_f
+      else
+        argument_map[arg.name] = temp_arg_var
+      end
+    end
+
+    # electric resistance backup was requested, so the electric lockout temperature applies
+    verify_hp_rtu(test_name, model, measure, argument_map, osm_path, epw_path, expect_gas_backup: false,
+                                                                               expected_lockout_temp_f: elec_backup_lockout_temp_f)
   end
 
   def test_small_office_psz_not_hard_sized

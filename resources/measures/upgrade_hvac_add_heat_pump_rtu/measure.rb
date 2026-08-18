@@ -89,12 +89,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_to_clg_hp_ratio.setDescription('At rated conditions, a compressor will generally have slightly more cooling capacity than heating capacity. This factor integrates this ratio into the unit sizing.')
     args << htg_to_clg_hp_ratio
 
-    # add heat pump minimum compressor lockout outdoor air temperature
-    hp_min_comp_lockout_temp_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hp_min_comp_lockout_temp_f', true)
-    hp_min_comp_lockout_temp_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor, F')
-    hp_min_comp_lockout_temp_f.setDefaultValue(0.0)
-    hp_min_comp_lockout_temp_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
-    args << hp_min_comp_lockout_temp_f
+    # add heat pump minimum compressor lockout outdoor air temperature for electric backup heat
+    hp_min_comp_lockout_temp_elec_backup_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hp_min_comp_lockout_temp_elec_backup_f', true)
+    hp_min_comp_lockout_temp_elec_backup_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor with electric backup heat, F')
+    hp_min_comp_lockout_temp_elec_backup_f.setDefaultValue(0.0)
+    hp_min_comp_lockout_temp_elec_backup_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor when the backup heating coil is electric resistance. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
+    args << hp_min_comp_lockout_temp_elec_backup_f
+
+    # add heat pump minimum compressor lockout outdoor air temperature for gas backup heat (dual fuel)
+    hp_min_comp_lockout_temp_gas_backup_f = OpenStudio::Measure::OSArgument.makeDoubleArgument('hp_min_comp_lockout_temp_gas_backup_f', true)
+    hp_min_comp_lockout_temp_gas_backup_f.setDisplayName('Minimum outdoor air temperature that locks out heat pump compressor with gas backup heat, F')
+    hp_min_comp_lockout_temp_gas_backup_f.setDefaultValue(25.0)
+    hp_min_comp_lockout_temp_gas_backup_f.setDescription('Specifies minimum outdoor air temperature for locking out heat pump compressor when the backup heating coil is a gas furnace (dual fuel). This only applies when the backup heat type is set to match the original primary heating fuel and that fuel is gas; otherwise the electric backup lockout temperature is used. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.')
+    args << hp_min_comp_lockout_temp_gas_backup_f
 
     # make list of cchpc scenarios
     li_hprtu_scenarios = %w[two_speed_standard_eff two_speed_lab_data variable_speed_high_eff cchpc_2027_spec]
@@ -947,7 +954,8 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     htg_sizing_option = runner.getStringArgumentValue('htg_sizing_option', user_arguments)
     clg_oversizing_estimate = runner.getDoubleArgumentValue('clg_oversizing_estimate', user_arguments)
     htg_to_clg_hp_ratio = runner.getDoubleArgumentValue('htg_to_clg_hp_ratio', user_arguments)
-    hp_min_comp_lockout_temp_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_f', user_arguments)
+    hp_min_comp_lockout_temp_elec_backup_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_elec_backup_f', user_arguments)
+    hp_min_comp_lockout_temp_gas_backup_f = runner.getDoubleArgumentValue('hp_min_comp_lockout_temp_gas_backup_f', user_arguments)
     hprtu_scenario = runner.getStringArgumentValue('hprtu_scenario', user_arguments)
     hr = runner.getBoolArgumentValue('hr', user_arguments)
     dcv = runner.getBoolArgumentValue('dcv', user_arguments)
@@ -1119,6 +1127,19 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
     if selected_air_loops.empty?
       runner.registerAsNotApplicable('No applicable air loops in model. No changes will be made.')
       return true
+    end
+
+    # ---------------------------------------------------------
+    # determine which compressor lockout temperature applies
+    # ---------------------------------------------------------
+    # backup heat is only gas when the original primary heating fuel is gas and the user asked to match it;
+    # this mirrors the backup heating coil selection made for each air loop below.
+    if (prim_ht_fuel_type == 'electric') || (backup_ht_fuel_scheme == 'electric_resistance_backup')
+      hp_min_comp_lockout_temp_f = hp_min_comp_lockout_temp_elec_backup_f
+      runner.registerInfo("Backup heat will be electric resistance; using electric backup compressor lockout temperature of #{hp_min_comp_lockout_temp_f}F.")
+    else
+      hp_min_comp_lockout_temp_f = hp_min_comp_lockout_temp_gas_backup_f
+      runner.registerInfo("Backup heat will be a gas furnace (dual fuel); using gas backup compressor lockout temperature of #{hp_min_comp_lockout_temp_f}F.")
     end
 
     # call roof and/or window upgrades based on user input

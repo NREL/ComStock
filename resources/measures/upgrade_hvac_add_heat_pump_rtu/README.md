@@ -68,9 +68,18 @@ At rated conditions, a compressor will generally have slightly more cooling capa
 **Model Dependent:** false
 
 
-### Minimum outdoor air temperature that locks out heat pump compressor, F
-Specifies minimum outdoor air temperature for locking out heat pump compressor. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.
-**Name:** hp_min_comp_lockout_temp_f,
+### Minimum outdoor air temperature that locks out heat pump compressor with electric backup heat, F
+Specifies minimum outdoor air temperature for locking out heat pump compressor when the backup heating coil is electric resistance. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.
+**Name:** hp_min_comp_lockout_temp_elec_backup_f,
+**Type:** Double,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+
+### Minimum outdoor air temperature that locks out heat pump compressor with gas backup heat, F
+Specifies minimum outdoor air temperature for locking out heat pump compressor when the backup heating coil is a gas furnace (dual fuel). This only applies when the backup heat type is set to match the original primary heating fuel and that fuel is gas; otherwise the electric backup lockout temperature is used. Heat pump heating does not operated below this temperature and backup heating will operate if heating is still needed.
+**Name:** hp_min_comp_lockout_temp_gas_backup_f,
 **Type:** Double,
 **Units:** ,
 **Required:** true,
