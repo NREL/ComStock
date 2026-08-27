@@ -442,6 +442,31 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
      enable_cycling_losses_above_lowest_speed, reference_cooling_cfm_per_ton, reference_heating_cfm_per_ton]
   end
 
+  # Assign supply fan data from the scenario's performance json
+  #
+  # The fan belongs with the rest of a scenario's performance data. Keeping its
+  # coefficients as literals in this file is what allowed one variable-speed curve
+  # to be applied to every scenario: the compressor performance branches on
+  # hprtu_scenario in a dozen places driven by these json files, so adding a
+  # scenario meant adding a json, while the fan silently kept whatever was
+  # hardcoded. Reading it from the same file makes defining a scenario and
+  # defining its fan the same action.
+  #
+  # fan_type selects behaviour rather than a number, so it stays a discriminator
+  # here and the small amount of logic it implies stays in Ruby.
+  #
+  # @param fan_data_json [Hash] parsed scenario performance json
+  # @param std [Standard] openstudio-standards object
+  # @return [Array] fan type, power coefficients, impeller efficiency; nils if absent
+  def assign_fan_data(fan_data_json, std)
+    fan_data = std.model_find_object(fan_data_json['tables']['curves'], 'name' => 'fan_data')
+    return [nil, nil, nil] if fan_data.nil?
+
+    [fan_data['fan_type'],
+     fan_data['fan_power_coefficients'],
+     fan_data['impeller_efficiency']]
+  end
+
   # Get rated cooling COP from fitted regression
   # based on actual product performances (Carrier/Lennox) which meet 2023 federal minimum efficiency requirements
   # reflecting rated COP without blower power and blower heat gain
@@ -1588,6 +1613,31 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       orig_clg_coil_gross_cap = nil
       orig_htg_coil_gross_cap = nil
 
+      # Capture the original combustion fuel before the existing equipment is
+      # removed, so a dual-fuel backup coil can reuse it.
+      #
+      # OpenStudio represents fuel oil and propane heating coils as
+      # CoilHeatingGas objects that differ only in their fuelType field, so the
+      # object class alone does not identify the fuel. Without this, every
+      # fossil backup was created as natural gas, which silently switched fuel
+      # oil and propane buildings onto gas and made their reported fuel savings
+      # read as efficiency rather than fuel switching.
+      #
+      # The value read here is written back unchanged, so it is by construction
+      # a valid fuel string for this model's OpenStudio version.
+      orig_htg_coil_fuel_type = nil
+      air_loop_hvac.supplyComponents.each do |component|
+        if component.to_CoilHeatingGas.is_initialized
+          orig_htg_coil_fuel_type = component.to_CoilHeatingGas.get.fuelType
+        elsif component.to_AirLoopHVACUnitarySystem.is_initialized
+          unitary = component.to_AirLoopHVACUnitarySystem.get
+          next unless unitary.heatingCoil.is_initialized
+
+          htg = unitary.heatingCoil.get
+          orig_htg_coil_fuel_type = htg.to_CoilHeatingGas.get.fuelType if htg.to_CoilHeatingGas.is_initialized
+        end
+      end
+
       equip_to_delete = []
 
       space_types_no_setback = [
@@ -2255,6 +2305,16 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
         runner.registerInfo("sizing summary: min_airflow_m3_per_s = #{min_airflow_m3_per_s}")
       end
 
+      # The turndown this scenario's json actually specifies, captured here because
+      # adjust_cfm_per_ton_per_limits mutates the fraction hashes in place. Those
+      # cfm/ton limits are a numerical guard that keeps stages inside EnergyPlus's
+      # operating range - they are not a statement about how far the equipment can
+      # turn down, so they must not be allowed to lower the fan's claimed turndown.
+      # Used as a floor on the fan power minimum flow fraction below.
+      specified_min_flow_fraction = (stage_flow_fractions_heating.values +
+                                     stage_flow_fractions_cooling.values)
+                                    .select { |v| v.is_a?(Numeric) && v > 0 }.min
+
       # determine airflows for each stage of heating
       # airflow for each stage will be the higher of the user-input stage ratio or the minimum OA
       # lower stages may be removed later if cfm/ton bounds cannot be maintained due to minimum OA limits
@@ -2414,7 +2474,17 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       else
         new_backup_heating_coil = OpenStudio::Model::CoilHeatingGas.new(model)
         new_backup_heating_coil.setGasBurnerEfficiency(0.80)
-        new_backup_heating_coil.setName("#{air_loop_hvac.name} gas backup coil")
+        # Match the building's original combustion fuel rather than defaulting to
+        # natural gas, so a fuel oil or propane building keeps burning its own
+        # fuel as backup instead of being silently switched to gas.
+        if orig_htg_coil_fuel_type.nil? || orig_htg_coil_fuel_type.to_s.empty?
+          runner.registerWarning("Could not determine the original combustion fuel for #{air_loop_hvac.name}; backup coil defaults to #{new_backup_heating_coil.fuelType}.")
+        else
+          new_backup_heating_coil.setFuelType(orig_htg_coil_fuel_type)
+        end
+        backup_fuel_label = new_backup_heating_coil.fuelType.to_s
+        new_backup_heating_coil.setName("#{air_loop_hvac.name} #{backup_fuel_label} backup coil")
+        runner.registerInfo("Backup heat for #{air_loop_hvac.name} set to #{backup_fuel_label}, matching the original heating fuel.")
       end
       # set availability schedule
       new_backup_heating_coil.setAvailabilitySchedule(always_on)
@@ -2424,30 +2494,103 @@ class AddHeatPumpRtu < OpenStudio::Measure::ModelMeasure
       # add new fan
       new_fan = OpenStudio::Model::FanVariableVolume.new(model, always_on)
       new_fan.setAvailabilitySchedule(supply_fan_avail_sched)
-      new_fan.setName("#{air_loop_hvac.name} VFD Fan")
-      new_fan.setMotorEfficiency(fan_mot_eff) # from Daikin Rebel E+ file
+      new_fan.setName("#{air_loop_hvac.name} Supply Fan")
       new_fan.setFanPowerMinimumFlowRateInputMethod('Fraction')
+      new_fan.setPressureRise(fan_static_pressure) # from the original fan; 0.5in added later if adding HR
 
-      # set fan total efficiency, which determines fan power
-      if hprtu_scenario == 'variable_speed_high_eff'
-        # new_fan.setFanTotalEfficiency(0.57) # from PNNL
-        std.fan_change_motor_efficiency(new_fan, fan_mot_eff)
-      else
-        new_fan.setFanTotalEfficiency(0.63) # from PNNL
-      end
-      new_fan.setFanPowerCoefficient1(0.259905264) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient2(-1.569867715) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient3(4.819732387) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient4(-3.904544154) # from Daikin Rebel E+ file
-      new_fan.setFanPowerCoefficient5(1.394774218) # from Daikin Rebel E+ file
+      # ---------------------------------------------------------
+      # supply fan part-load curve, efficiency and minimum flow
+      # ---------------------------------------------------------
+      # The curve and impeller efficiency come from this scenario's performance
+      # json, alongside the compressor data, so that defining a scenario and
+      # defining its fan are the same action. Previously one variable-speed curve
+      # (Daikin Rebel) and one flat total efficiency (0.63) were literals here and
+      # were applied to every scenario, which credited the two-speed units with
+      # continuous modulation and impeller efficiency their hardware does not have.
+      fan_type, fan_power_coefficients, fan_impeller_efficiency = assign_fan_data(custom_data_json, std)
 
-      # set minimum fan power flow fraction to the higher of 0.40 or the min flow fraction
-      if min_airflow_ratio > min_flow
-        new_fan.setFanPowerMinimumFlowFraction(min_airflow_ratio)
-      else
-        new_fan.setFanPowerMinimumFlowFraction(min_flow)
+      if fan_power_coefficients.nil? || fan_power_coefficients.size < 5 || fan_impeller_efficiency.nil?
+        # Fall back to the more conservative two-speed representation rather than
+        # silently crediting a variable-speed curve, and say so loudly.
+        runner.registerWarning("No usable fan_data record in the performance json for scenario " \
+                               "#{hprtu_scenario}; falling back to the two-speed fan representation. " \
+                               'Add a fan_data record to that json.')
+        fan_type = 'two_speed'
+        fan_power_coefficients = [0.005131596, -0.061344439, 0.870911024, 0.221907644, -0.036605825]
+        fan_impeller_efficiency = std.fan_baseline_impeller_efficiency(new_fan)
       end
-      new_fan.setPressureRise(fan_static_pressure) # set from origial fan power; 0.5in will be added later if adding HR
+      new_fan.setFanPowerCoefficient1(fan_power_coefficients[0])
+      new_fan.setFanPowerCoefficient2(fan_power_coefficients[1])
+      new_fan.setFanPowerCoefficient3(fan_power_coefficients[2])
+      new_fan.setFanPowerCoefficient4(fan_power_coefficients[3])
+      new_fan.setFanPowerCoefficient5(fan_power_coefficients[4])
+
+      # Total efficiency is impeller x motor, and the motor is looked up from the
+      # 90.1 table by size rather than assumed. ComStock PSZ supply fans are small
+      # - median 0.5 bhp, two-thirds at or below 1 hp - so a single literal
+      # misrepresents most of the stock. Brake horsepower is air power divided by
+      # impeller efficiency.
+      fan_brake_hp = (fan_static_pressure * design_airflow_for_sizing_m_3_per_s) /
+                     (fan_impeller_efficiency * 745.7)
+      # Size the motor the way openstudio-standards sizes BASELINE fan motors, or the
+      # upgraded fan can come out less efficient than the fan it replaces. The 90.1
+      # motor table is indexed by nominal nameplate size, and brake horsepower is about
+      # 90% of it (Thornton et al. 2011), so prototype_fan_apply_prototype_fan_efficiency
+      # looks up at brake_hp * 1.1. Looking up at brake horsepower instead lands one
+      # motor size low near a bin boundary: at 2 bhp that is motor 0.865 against the
+      # baseline's 0.895, and at 5 bhp 0.895 against 0.917. The rounding nudge is copied
+      # from that method so ties break the same way.
+      fan_nominal_motor_hp = fan_brake_hp * 1.1
+      if fan_nominal_motor_hp > 0.1
+        fan_nominal_motor_hp = fan_nominal_motor_hp.round(2) + 0.0001
+      elsif fan_nominal_motor_hp < 0.01
+        fan_nominal_motor_hp = 0.01
+      end
+      fan_motor_efficiency, fan_nominal_hp =
+        std.fan_standard_minimum_motor_efficiency_and_size(new_fan, fan_nominal_motor_hp)
+      new_fan.setMotorEfficiency(fan_motor_efficiency)
+      new_fan.setFanTotalEfficiency(fan_impeller_efficiency * fan_motor_efficiency)
+
+      # The fan cannot be asked for less flow than the equipment's lowest stage can
+      # deliver, so the floor comes from this scenario's own staging rather than a
+      # literal. Nominally that is 0.59 for the two-speed units (which also have a
+      # single heating stage at full flow) and 0.40 for the four-stage units.
+      #
+      # Start from the *adjusted* stage airflows, not the staging-data fractions.
+      # They are absolute m3/s, so divide by the loop design airflow to get the
+      # fan's flow fraction - the staging hashes were renormalised against the
+      # original terminal airflow by that same method, are on a different basis,
+      # and can hold false where a stage was removed.
+      stage_flows_all = (stage_flows_heating.values + stage_flows_cooling.values)
+                        .select { |v| v.is_a?(Numeric) && v > 0 }
+      lowest_stage_flow_ratio = if stage_flows_all.empty? || design_airflow_for_sizing_m_3_per_s.to_f <= 0
+                                  min_flow
+                                else
+                                  stage_flows_all.min / design_airflow_for_sizing_m_3_per_s
+                                end
+
+      # Then clamp at the turndown the json specifies. The cfm/ton guard can push a
+      # lowest stage below the specified fraction - on a one-zone small office it
+      # moved variable-speed heating stage 1 from 0.40 to 0.28, and fan power at
+      # 0.28 flow is roughly half that at 0.40 - which would quietly credit fan
+      # savings the equipment was never specified to deliver. EnergyPlus still moves
+      # the lower airflow; only the power curve is floored at the specified point,
+      # which is the conservative direction. The minimum OA ratio is a physical
+      # floor and still wins over both when it is higher.
+      fan_min_flow_ratio = [lowest_stage_flow_ratio,
+                            specified_min_flow_fraction.to_f,
+                            current_min_oa_flow_ratio].max
+      fan_min_flow_ratio = [fan_min_flow_ratio, 1.0].min
+      new_fan.setFanPowerMinimumFlowFraction(fan_min_flow_ratio)
+
+      if debug_verbose
+        runner.registerInfo("fan summary: scenario=#{hprtu_scenario} | fan_type=#{fan_type} | impeller_eff=#{fan_impeller_efficiency.round(3)} | " \
+                            "bhp=#{fan_brake_hp.round(2)} | nominal_hp=#{fan_nominal_hp} | motor_eff=#{fan_motor_efficiency.round(3)} | " \
+                            "total_eff=#{(fan_impeller_efficiency * fan_motor_efficiency).round(3)} | " \
+                            "lowest_stage_flow=#{lowest_stage_flow_ratio} | specified_min_flow=#{specified_min_flow_fraction} | " \
+                            "min_oa_ratio=#{current_min_oa_flow_ratio.round(3)} | " \
+                            "fan_min_flow=#{fan_min_flow_ratio.round(3)}")
+      end
 
       # add new unitary system object
       new_air_to_air_heatpump = OpenStudio::Model::AirLoopHVACUnitarySystem.new(model)

@@ -2488,4 +2488,326 @@ TEST:#{osm_name}
 	
     true
   end
+
+  # ===========================================================================
+  # Supply fan representation and backup fuel type
+  #
+  # These cover behaviour that used to be shared across every hprtu_scenario:
+  # one variable-speed part-load curve and one flat fan efficiency, and a backup
+  # coil that was always natural gas. Each assertion below pins a value to the
+  # source it comes from, so a future edit that collapses the scenarios back
+  # together, or that reintroduces a literal, fails here.
+  # ===========================================================================
+
+  # Scenario performance json holding each scenario's fan_data record. The fan
+  # curve and impeller efficiency live there, next to the compressor data, so
+  # these tests assert the measure applies what the json says rather than
+  # restating the coefficients - restating them here would just duplicate the
+  # literals the json exists to replace.
+  SCENARIO_PERFORMANCE_JSON = {
+    'two_speed_standard_eff' => 'performance_maps_hprtu_std.json',
+    'two_speed_lab_data' => 'performance_maps_hprtu_lab_data.json',
+    'variable_speed_high_eff' => 'performance_maps_hprtu_variable_speed.json',
+    'cchpc_2027_spec' => 'performance_map_CCHP_spec_2027.json'
+  }.freeze
+
+  def fan_data_for(scenario)
+    path = File.join(File.dirname(__FILE__), '../resources', SCENARIO_PERFORMANCE_JSON.fetch(scenario))
+    json = JSON.parse(File.read(path))
+    json['tables']['curves']['table'].find { |e| e['name'] == 'fan_data' }
+  end
+
+  # The turndown the scenario json specifies, read before any cfm/ton adjustment.
+  # The measure clamps the fan power minimum flow fraction at this value, so the
+  # tests read it from the same place rather than restating a literal that could
+  # drift from the json.
+  def specified_min_flow_fraction_for(scenario)
+    path = File.join(File.dirname(__FILE__), '../resources', SCENARIO_PERFORMANCE_JSON.fetch(scenario))
+    json = JSON.parse(File.read(path))
+    rec = json['tables']['curves']['table'].find { |e| e.key?('stage_flow_fractions_heating') }
+    return nil if rec.nil?
+
+    fracs = eval(rec['stage_flow_fractions_heating']).values +
+            eval(rec['stage_flow_fractions_cooling']).values
+    fracs.select { |v| v.is_a?(Numeric) && v > 0 }.min
+  end
+
+  # 90.1-2019 enclosed 4-pole nominal full-load motor efficiencies. Total fan
+  # efficiency must be an impeller efficiency times one of these.
+  ASHRAE_MOTOR_EFFICIENCIES = [0.855, 0.865, 0.895, 0.917, 0.924, 0.93, 0.936, 0.941, 0.95, 0.954, 0.958].freeze
+
+  # Applies the measure for one scenario and returns the supply fans it created.
+  def apply_and_get_supply_fans(test_name, osm_name, epw_name, scenario, extra_args: {})
+    osm_path = model_input_path(osm_name)
+    epw_path = epw_input_path(epw_name)
+    measure = AddHeatPumpRtu.new
+    model = load_model(osm_path)
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    args = { 'hprtu_scenario' => scenario }.merge(extra_args)
+    arguments.each_with_index do |arg, idx|
+      if args.key?(arg.name)
+        cloned = arguments[idx].clone
+        cloned.setValue(args[arg.name])
+        argument_map[arg.name] = cloned
+      else
+        argument_map[arg.name] = arg.clone
+      end
+    end
+
+    set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
+                                          run_model: false, apply: true)
+    applied = load_model(model_output_path(test_name))
+    fans = applied.getAirLoopHVACUnitarySystems.map do |us|
+      next nil unless us.supplyFan.is_initialized
+
+      f = us.supplyFan.get
+      f.to_FanVariableVolume.is_initialized ? f.to_FanVariableVolume.get : nil
+    end.compact
+    [applied, fans]
+  end
+
+  # OpenStudio returns some fan getters as plain Floats and some as Optionals
+  # depending on version; unwrap either.
+  def _optval(v)
+    return nil if v.nil?
+    return v if v.is_a?(Numeric)
+
+    v.respond_to?(:is_initialized) ? (v.is_initialized ? v.get : nil) : v
+  end
+
+  def assert_fan_coefficients(fan, expected, label)
+    actual = [fan.fanPowerCoefficient1, fan.fanPowerCoefficient2, fan.fanPowerCoefficient3,
+              fan.fanPowerCoefficient4, fan.fanPowerCoefficient5].map { |c| _optval(c) || 0.0 }
+    expected.each_with_index do |exp, i|
+      assert_in_delta(exp, actual[i], 1e-6,
+                      "#{label}: fan power coefficient #{i + 1} is #{actual[i]}, expected #{exp}")
+    end
+    # The curve must return design power at design flow, or the fan is mis-scaled.
+    full_flow_power = actual.each_with_index.sum { |c, i| c * (1.0**i) }
+    assert_in_delta(1.0, full_flow_power, 0.01,
+                    "#{label}: part-load curve returns #{full_flow_power.round(4)} at full flow, expected 1.0")
+  end
+
+  # Total efficiency must be an impeller efficiency times a real 90.1 motor
+  # efficiency, not a literal.
+  def assert_efficiency_from_standards(fan, expected_impeller, label)
+    total = fan.fanEfficiency
+    motor = fan.motorEfficiency
+    assert(ASHRAE_MOTOR_EFFICIENCIES.any? { |m| (m - motor).abs < 1e-6 },
+           "#{label}: motor efficiency #{motor} is not a 90.1 table value")
+    assert_in_delta(expected_impeller * motor, total, 1e-6,
+                    "#{label}: total efficiency #{total} is not impeller #{expected_impeller} x motor #{motor}")
+  end
+
+  # Data-only check of the fan_data records themselves. Runs in milliseconds - no
+  # model, no sizing run - so a bad curve in a json is caught immediately rather
+  # than after a fifteen minute measure application.
+  def test_fan_data_records_are_present_and_sane
+    puts "
+######
+TEST:test_fan_data_records_are_present_and_sane
+######
+"
+    SCENARIO_PERFORMANCE_JSON.each_key do |scenario|
+      fd = fan_data_for(scenario)
+      refute_nil(fd, "#{scenario}: no fan_data record in its performance json")
+
+      assert(%w[two_speed variable_speed].include?(fd['fan_type']),
+             "#{scenario}: fan_type #{fd['fan_type'].inspect} is not a recognised type")
+
+      coeffs = fd['fan_power_coefficients']
+      assert_equal(5, coeffs.size, "#{scenario}: expected 5 fan power coefficients")
+      coeffs.each { |c| assert_kind_of(Numeric, c, "#{scenario}: non-numeric fan power coefficient") }
+
+      # The curve must return design power at design flow or the fan is mis-scaled.
+      full = coeffs.each_with_index.sum { |c, i| c * (1.0**i) }
+      assert_in_delta(1.0, full, 0.01,
+                      "#{scenario}: part-load curve gives #{full.round(4)} at full flow, expected 1.0")
+
+      # Power must not exceed design anywhere in the operating range, and must
+      # increase with flow - a curve that dips is a fitting error.
+      prev = nil
+      (20..100).step(5) do |pct|
+        x = pct / 100.0
+        pwr = coeffs.each_with_index.sum { |c, i| c * (x**i) }
+        assert(pwr <= 1.02, "#{scenario}: power #{pwr.round(3)} exceeds design at flow #{x}")
+        assert(pwr >= -0.01, "#{scenario}: negative power #{pwr.round(3)} at flow #{x}")
+        assert(prev.nil? || pwr >= prev - 1e-6,
+               "#{scenario}: power decreases between flow #{(x - 0.05).round(2)} and #{x}")
+        prev = pwr
+      end
+
+      imp = fd['impeller_efficiency']
+      assert(imp.is_a?(Numeric) && imp > 0.4 && imp < 0.85,
+             "#{scenario}: impeller efficiency #{imp.inspect} is outside a plausible range")
+
+      # Each value should carry its provenance, so a reviewer can trace it.
+      refute_empty(fd['fan_power_coefficients_notes'].to_s,
+                   "#{scenario}: fan_power_coefficients has no source note")
+      refute_empty(fd['impeller_efficiency_notes'].to_s,
+                   "#{scenario}: impeller_efficiency has no source note")
+    end
+
+    # A two-speed unit must not be given the variable-speed curve. Compare at the
+    # 90.1 low-speed point, where the two representations differ most.
+    two = fan_data_for('two_speed_standard_eff')['fan_power_coefficients']
+    var = fan_data_for('variable_speed_high_eff')['fan_power_coefficients']
+    at = ->(c, x) { c.each_with_index.sum { |k, i| k * (x**i) } }
+    assert(at.call(two, 0.66) > at.call(var, 0.66) + 0.05,
+           'two-speed and variable-speed fan curves are too close; they may have been collapsed')
+
+    # 90.1 6.5.3.2.1 caps two-speed low-speed power at 40% of full-speed power.
+    assert_in_delta(0.401, at.call(two, 0.66), 0.01,
+                    'two-speed curve does not land on the 90.1 low-speed power point at 0.66 flow')
+  end
+
+  # Two-speed units cannot modulate continuously. The fan floor must come from the
+  # lowest stage flow fraction in the scenario's staging data (0.59 in cooling),
+  # or the outdoor air ratio when that is higher.
+  def test_fan_two_speed_standard_eff
+    test_name = 'test_fan_two_speed_standard_eff'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    _model, fans = apply_and_get_supply_fans(test_name, '380_small_office_psz_gas_coil_7A.osm',
+                                             'NE_Kearney_Muni_725526_16.epw', 'two_speed_standard_eff')
+    refute_empty(fans, 'no variable volume supply fans were created')
+
+    fans.each do |fan|
+      label = "two_speed_standard_eff #{fan.name}"
+      assert_fan_coefficients(fan, fan_data_for('two_speed_standard_eff')['fan_power_coefficients'], label)
+      assert_efficiency_from_standards(fan, fan_data_for('two_speed_standard_eff')['impeller_efficiency'], label)
+
+      min_flow = _optval(fan.fanPowerMinimumFlowFraction)
+      # The floor must be at least the turndown the json specifies (0.59 here).
+      # adjust_cfm_per_ton_per_limits can push the realised lowest stage below that
+      # to keep cfm/ton inside EnergyPlus's operating range - it moved this one to
+      # 0.50 - but that guard is not a statement about how far the equipment turns
+      # down, so the measure clamps the fan power curve back to the specified point.
+      specified = specified_min_flow_fraction_for('two_speed_standard_eff')
+      assert_in_delta(0.59, specified, 1e-6,
+                      "the two-speed staging json should specify a 0.59 lowest stage, got #{specified}")
+      assert(min_flow >= specified - 1e-6,
+             "#{label}: minimum flow fraction #{min_flow.round(4)} is below the specified "              "turndown #{specified}; the cfm/ton guard must not lower the fan's claimed turndown")
+      assert(min_flow <= 1.0 + 1e-6, "#{label}: minimum flow fraction #{min_flow.round(4)} exceeds 1.0")
+
+      # power at the low stage should land on the 90.1 code point, not below it
+      coeffs = fan_data_for('two_speed_standard_eff')['fan_power_coefficients']
+      power_at_low = coeffs.each_with_index.sum { |c, i| c * (0.66**i) }
+      assert_in_delta(0.401, power_at_low, 0.005,
+                      "#{label}: power at 0.66 flow is #{power_at_low.round(4)}, expected the 90.1 point 0.401")
+    end
+  end
+
+  # Variable-speed units get the 90.1 Single Zone VAV curve and can turn down to
+  # the 0.40 lowest stage flow in their staging data.
+  def test_fan_variable_speed_high_eff
+    test_name = 'test_fan_variable_speed_high_eff'
+    puts "\n######\nTEST:#{test_name}\n######\n"
+    _model, fans = apply_and_get_supply_fans(test_name, '380_small_office_psz_gas_coil_7A.osm',
+                                             'NE_Kearney_Muni_725526_16.epw', 'variable_speed_high_eff')
+    refute_empty(fans, 'no variable volume supply fans were created')
+
+    fans.each do |fan|
+      label = "variable_speed_high_eff #{fan.name}"
+      assert_fan_coefficients(fan, fan_data_for('variable_speed_high_eff')['fan_power_coefficients'], label)
+      assert_efficiency_from_standards(fan, fan_data_for('variable_speed_high_eff')['impeller_efficiency'], label)
+
+      min_flow = _optval(fan.fanPowerMinimumFlowFraction)
+      # Same clamp as the two-speed case. On a one-zone small office the cfm/ton
+      # guard moved heating stage 1 from 0.40 to 0.28, and fan power at 0.28 flow is
+      # roughly half that at 0.40, so without the clamp this scenario would be
+      # credited turndown it was never specified to have.
+      specified = specified_min_flow_fraction_for('variable_speed_high_eff')
+      assert_in_delta(0.40, specified, 1e-6,
+                      "the variable-speed staging json should specify a 0.40 lowest stage, got #{specified}")
+      assert(min_flow >= specified - 1e-6,
+             "#{label}: minimum flow fraction #{min_flow.round(4)} is below the specified "              "turndown #{specified}; the cfm/ton guard must not lower the fan's claimed turndown")
+      assert(min_flow <= 1.0 + 1e-6, "#{label}: minimum flow fraction #{min_flow.round(4)} exceeds 1.0")
+
+      # The variable-speed advantage must come from the part-load curve, not from an
+      # efficiency uplift: the impeller is deliberately held at the openstudio-standards
+      # value for every scenario, so at design flow all these fans draw the same power.
+      vs_coeffs = fan_data_for('variable_speed_high_eff')['fan_power_coefficients']
+      ts_coeffs = fan_data_for('two_speed_standard_eff')['fan_power_coefficients']
+      at = ->(c, x) { c.each_with_index.sum { |k, i| k * (x**i) } }
+      assert(at.call(vs_coeffs, 0.5) < at.call(ts_coeffs, 0.5) - 0.02,
+             "#{label}: variable-speed power at half flow #{at.call(vs_coeffs, 0.5).round(4)} is not "              "meaningfully below two-speed #{at.call(ts_coeffs, 0.5).round(4)}")
+    end
+  end
+
+  # Regression guard: the two scenarios must not share a fan representation. This
+  # is what was wrong before - one curve and one efficiency for every scenario.
+  def test_fan_scenarios_are_differentiated
+    puts "\n######\nTEST:test_fan_scenarios_are_differentiated\n######\n"
+    _m1, two_speed = apply_and_get_supply_fans('test_fan_diff_two_speed',
+                                               '380_small_office_psz_gas_coil_7A.osm',
+                                               'NE_Kearney_Muni_725526_16.epw', 'two_speed_standard_eff')
+    _m2, var_speed = apply_and_get_supply_fans('test_fan_diff_var_speed',
+                                               '380_small_office_psz_gas_coil_7A.osm',
+                                               'NE_Kearney_Muni_725526_16.epw', 'variable_speed_high_eff')
+    refute_empty(two_speed)
+    refute_empty(var_speed)
+
+    ts = two_speed.first
+    vs = var_speed.first
+    refute_in_delta(_optval(ts.fanPowerCoefficient4), _optval(vs.fanPowerCoefficient4), 1e-6,
+                    'two-speed and variable-speed scenarios share a part-load curve')
+    # Deliberately EQUAL, not better. openstudio-standards does not distinguish fan
+    # types, and no source was found for a higher impeller on a variable-speed wheel,
+    # so the scenarios share one impeller and the advantage rests on the curve and the
+    # turndown floor. If someone reintroduces an unsourced efficiency uplift, this fails.
+    assert_in_delta(ts.fanEfficiency, vs.fanEfficiency, 1e-6,
+                    "the scenarios should share an impeller efficiency; two-speed "                     "#{ts.fanEfficiency} vs variable-speed #{vs.fanEfficiency}")
+    assert(_optval(vs.fanPowerMinimumFlowFraction) <= _optval(ts.fanPowerMinimumFlowFraction) + 1e-6,
+           'variable speed should turn down at least as far as two-speed')
+
+    # static pressure is a property of the duct system, not the equipment, and
+    # must be identical between scenarios and unchanged from the original fan
+    assert_in_delta(ts.pressureRise, vs.pressureRise, 1e-6,
+                    'static pressure should not differ between scenarios')
+  end
+
+  # A dual-fuel backup coil must burn the building's original fuel. Fuel oil and
+  # propane coils are CoilHeatingGas objects distinguished only by a fuelType
+  # field, so they were previously all rebuilt as natural gas.
+  def test_backup_coil_matches_original_fuel
+    puts "\n######\nTEST:test_backup_coil_matches_original_fuel\n######\n"
+    %w[FuelOilNo2 Propane NaturalGas].each do |fuel|
+      test_name = "test_backup_fuel_#{fuel}"
+      osm_path = model_input_path('380_small_office_psz_gas_coil_7A.osm')
+      epw_path = epw_input_path('NE_Kearney_Muni_725526_16.epw')
+
+      # restate the original model as burning this fuel
+      model = load_model(osm_path)
+      coils = model.getCoilHeatingGass
+      refute_empty(coils, 'test model has no gas heating coils to relabel')
+      coils.each { |c| c.setFuelType(fuel) }
+
+      measure = AddHeatPumpRtu.new
+      arguments = measure.arguments(model)
+      argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+      args = { 'hprtu_scenario' => 'two_speed_standard_eff',
+               'backup_ht_fuel_scheme' => 'match_original_primary_heating_fuel' }
+      arguments.each_with_index do |arg, idx|
+        if args.key?(arg.name)
+          cloned = arguments[idx].clone
+          cloned.setValue(args[arg.name])
+          argument_map[arg.name] = cloned
+        else
+          argument_map[arg.name] = arg.clone
+        end
+      end
+
+      set_weather_and_apply_measure_and_run(test_name, measure, argument_map, osm_path, epw_path,
+                                            run_model: false, apply: true, model: model)
+      applied = load_model(model_output_path(test_name))
+      backup_coils = applied.getCoilHeatingGass
+      refute_empty(backup_coils, "no backup gas-type coil was created for original fuel #{fuel}")
+      backup_coils.each do |c|
+        assert_equal(fuel, c.fuelType,
+                     "backup coil #{c.name} burns #{c.fuelType} but the original equipment burned #{fuel}")
+      end
+    end
+  end
 end
