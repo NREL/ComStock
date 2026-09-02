@@ -65,7 +65,7 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
     refrigeration_template = OpenStudio::Measure::OSArgument.makeChoiceArgument('refrigeration_template', refrigeration_template_choices, true)
     refrigeration_template.setDisplayName('Refrigeration Technology Level')
     refrigeration_template.setDescription('Technology level for refrigerated cases, walkins, compressors, and systems.')
-    refrigeration_template.setDefaultValue('advanced')
+    refrigeration_template.setDefaultValue('new')
     args << refrigeration_template
 
     return args
@@ -156,6 +156,11 @@ class UpgradeRefrigeration < OpenStudio::Measure::ModelMeasure
 
     if existing_refrigeration_template == 'new' && refrigeration_template == 'new'
       runner.registerAsNotApplicable("Model already has 'new' refrigeration system, which is equal to or more efficient than the user-requested refrigeration template '#{refrigeration_template}'. Measure not applicable.")
+      return true
+    end
+
+    if existing_refrigeration_template == 'advanced' && refrigeration_template == 'new'
+      runner.registerAsNotApplicable("Model already has 'advanced' refrigeration system, which is equal to or more efficient than the user-requested refrigeration template '#{refrigeration_template}'. Measure not applicable.")
       return true
     end
 
