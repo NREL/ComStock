@@ -1,0 +1,118 @@
+# ComStock™, Copyright (c) 2025 Alliance for Sustainable Energy, LLC. All rights reserved.
+# See top level LICENSE.txt file for license terms.
+"""Unit tests for comstockpostproc.probability_merge.merge_probability_table (added 2026-09, stock-estimation
+plan WS1), the validated join used by Apportion.upsample_hvac_system_fuel_types.
+
+Synthetic frames only; no S3, no truth data. The behaviours pinned here are the ones the previous inner merge
+got wrong: a duplicated TSV key must be an error rather than a silent double count, an unmatched key must be
+reported and either filled from a documented fallback or raised, and the row count must never change.
+The module is loaded by path so the test runs without the AWS dependencies the package __init__ pulls in.
+"""
+import importlib.util
+import logging
+import os
+
+import numpy as np
+import pandas as pd
+import pytest
+
+_PATH = os.path.join(os.path.dirname(__file__), '..', 'comstockpostproc', 'probability_merge.py')
+_spec = importlib.util.spec_from_file_location('probability_merge', _PATH)
+probability_merge = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(probability_merge)
+
+
+class Apportion:  # thin alias so the tests read like the call site
+    merge_probability_table = staticmethod(probability_merge.merge_probability_table)
+
+
+OPTS = ['PSZ', 'VAV', 'PTAC']
+
+
+def _truth():
+    return pd.DataFrame({
+        'building_type': ['retail', 'retail', 'retail', 'hospital', 'hospital'],
+        'size_bin': [0, 0, 1, 1, 1],
+        'heating_fuel': ['Propane', 'NaturalGas', 'NaturalGas', 'Electricity', 'DistrictHeating'],
+        'cen_div': ['West North Central'] * 5,
+        'sqft': [10.0, 20.0, 30.0, 400.0, 500.0],
+    })
+
+
+def _prob(rows):
+    return pd.DataFrame(rows, columns=['building_type', 'size_bin', 'heating_fuel', 'census_region'] + OPTS)
+
+
+KEYS_L = ['building_type', 'size_bin', 'heating_fuel', 'cen_div']
+KEYS_R = ['building_type', 'size_bin', 'heating_fuel', 'census_region']
+
+
+def test_duplicated_key_is_an_error():
+    prob = _prob([
+        ['retail', 0, 'Propane', 'West North Central', 1.0, 0.0, 0.0],
+        ['retail', 0, 'Propane', 'West North Central', 0.0, 0.0, 1.0],   # the WS1 defect: a second Propane row
+        ['retail', 0, 'NaturalGas', 'West North Central', 0.5, 0.5, 0.0],
+    ])
+    with pytest.raises(ValueError, match='duplicated dependency keys'):
+        Apportion.merge_probability_table(_truth(), prob, KEYS_L, KEYS_R, OPTS, 'test')
+
+
+def test_matched_rows_keep_count_and_values():
+    prob = _prob([
+        ['retail', 0, 'Propane', 'West North Central', 1.0, 0.0, 0.0],
+        ['retail', 0, 'NaturalGas', 'West North Central', 0.5, 0.5, 0.0],
+        ['retail', 1, 'NaturalGas', 'West North Central', 0.2, 0.8, 0.0],
+        ['hospital', 1, 'Electricity', 'West North Central', 0.0, 1.0, 0.0],
+        ['hospital', 1, 'DistrictHeating', 'West North Central', 0.0, 0.9, 0.1],
+    ])
+    merged, diag = Apportion.merge_probability_table(_truth(), prob, KEYS_L, KEYS_R, OPTS, 'test', area_col='sqft')
+    assert len(merged) == 5
+    assert diag['unmatched_rows'] == 0 and diag['fallback'] == []
+    assert merged.loc[merged.heating_fuel == 'DistrictHeating', 'PTAC'].item() == pytest.approx(0.1)
+
+
+def test_unmatched_key_falls_back_to_documented_mean(caplog):
+    caplog.set_level(logging.WARNING)
+    prob = _prob([
+        ['retail', 0, 'Propane', 'West North Central', 1.0, 0.0, 0.0],
+        ['retail', 0, 'NaturalGas', 'West North Central', 0.5, 0.5, 0.0],
+        ['retail', 1, 'NaturalGas', 'West North Central', 0.2, 0.8, 0.0],
+        ['hospital', 1, 'Electricity', 'West North Central', 0.0, 1.0, 0.0],
+        # no DistrictHeating row in West North Central; two other divisions have one
+        ['hospital', 1, 'DistrictHeating', 'New England', 0.0, 0.8, 0.2],
+        ['hospital', 1, 'DistrictHeating', 'Pacific', 0.0, 0.6, 0.4],
+    ])
+    merged, diag = Apportion.merge_probability_table(
+        _truth(), prob, KEYS_L, KEYS_R, OPTS, 'test',
+        fallback_on=[['building_type', 'size_bin', 'heating_fuel'], ['building_type', 'heating_fuel']], area_col='sqft')
+    assert len(merged) == 5, 'a left join never drops a building'
+    assert diag['unmatched_rows'] == 1
+    assert diag['unmatched_area_share'] == pytest.approx(500.0 / 960.0)
+    assert diag['fallback'][0]['keys'] == ['building_type', 'size_bin', 'heating_fuel'] and diag['fallback'][0]['rows'] == 1
+    row = merged.loc[merged.heating_fuel == 'DistrictHeating', OPTS].iloc[0]
+    assert row.to_numpy() == pytest.approx([0.0, 0.7, 0.3])
+    assert 'no probability row' in caplog.text and 'filled from the mean' in caplog.text
+
+
+def test_unmatched_key_without_fallback_is_an_error():
+    prob = _prob([
+        ['retail', 0, 'Propane', 'West North Central', 1.0, 0.0, 0.0],
+        ['retail', 0, 'NaturalGas', 'West North Central', 0.5, 0.5, 0.0],
+        ['retail', 1, 'NaturalGas', 'West North Central', 0.2, 0.8, 0.0],
+        ['hospital', 1, 'Electricity', 'West North Central', 0.0, 1.0, 0.0],
+    ])
+    with pytest.raises(ValueError, match='no fallback matched'):
+        Apportion.merge_probability_table(_truth(), prob, KEYS_L, KEYS_R, OPTS, 'test', fallback_on=None)
+
+
+def test_left_join_preserves_bootstrap_duplicates():
+    """Bootstrapped truth rows (index repeated) must all survive and stay in order."""
+    truth = _truth().loc[[0, 0, 0, 1, 1, 1]].reset_index(drop=True)
+    prob = _prob([
+        ['retail', 0, 'Propane', 'West North Central', 1.0, 0.0, 0.0],
+        ['retail', 0, 'NaturalGas', 'West North Central', 0.5, 0.5, 0.0],
+    ])
+    merged, _ = Apportion.merge_probability_table(truth, prob, KEYS_L, KEYS_R, OPTS, 'test')
+    assert len(merged) == 6
+    assert (merged.heating_fuel.to_numpy() == truth.heating_fuel.to_numpy()).all()
+    assert np.allclose(merged.loc[merged.heating_fuel == 'Propane', 'PSZ'], 1.0)

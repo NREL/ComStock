@@ -265,6 +265,7 @@ class ComStockBaseSampler:
                 tsv_df = pd.read_csv(os.path.join(tsv_dir, attr + '.tsv'), sep='\t', keep_default_na=False)
                 dependency_columns = [item for item in list(tsv_df) if 'Dependency=' in item]
                 tsv_df[dependency_columns] = tsv_df[dependency_columns].astype('str')
+                validate_tsv(attr, tsv_df)
                 tsv_hash[attr] = tsv_df
             dependency_hash, attr_order = self._com_order_tsvs(tsv_hash, previously_sampled_attrs)
 
@@ -593,6 +594,33 @@ class ComStockBaseSampler:
             results_dict['county_id'] = results_dict['tract'][:8]
             res.append(results_dict)
         return res
+
+
+def validate_tsv(attr, tsv_df, row_sum_tol=1e-5):
+    """Structural checks on a loaded TSV (added 2026-09, stock-estimation plan WS1).
+
+    Duplicated dependency keys are an error: the lookup in ``_com_execute_samples`` cannot reduce such a TSV to one
+    row, and upstream (apportionment) they double-count buildings; the shipped hvac_system_type.tsv up to v33 had
+    52 of them. Rows whose option probabilities do not sum to one are reported as a warning with the count.
+    """
+    dependency_columns = [item for item in list(tsv_df) if 'Dependency=' in item]
+    option_columns = [item for item in list(tsv_df) if 'Option=' in item]
+    if dependency_columns:
+        dup = tsv_df.duplicated(dependency_columns, keep=False)
+        if dup.any():
+            examples = tsv_df.loc[dup, dependency_columns].drop_duplicates().head(5).to_dict(orient='records')
+            raise ValueError(
+                f'{attr}.tsv has {int(tsv_df.duplicated(dependency_columns).sum())} duplicated dependency keys, '
+                f'e.g. {examples}; each such key would be sampled or apportioned twice. Regenerate the TSV.')
+    if option_columns:
+        sums = tsv_df[option_columns].apply(pd.to_numeric, errors='coerce').sum(axis=1)
+        # All-zero rows are dependency combinations that never occur (weekday/weekend_duration carry them);
+        # they are not sampled, so only rows that are non-zero and off by more than the tolerance are reported.
+        off = ((sums - 1.0).abs() > row_sum_tol) & (sums != 0)
+        if off.any():
+            warn(f'{attr}.tsv: {int(off.sum())} of {len(tsv_df)} rows have option probabilities that do not sum to 1 '
+                 f'(worst |sum-1| = {float((sums[off] - 1.0).abs().max()):.3g}).')
+
 
 def parse_arguments():
     """Implement a CLI for executing the ComStock sampling routine.

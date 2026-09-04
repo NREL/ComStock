@@ -15,6 +15,7 @@ from fsspec import register_implementation
 from fsspec.core import url_to_fs
 
 from comstockpostproc.naming_mixin import NamingMixin
+from comstockpostproc.probability_merge import merge_probability_table
 from comstockpostproc.units_mixin import UnitsMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin
 
@@ -588,7 +589,12 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         fcols = [col.replace('Option=', '') for col in hfdf.columns if 'Option=' in col]
         hfdf.columns = [col.replace('Dependency=', '').replace('Option=', '') for col in hfdf.columns]
         hfdf.loc[:, 'building_type'] = hfdf.loc[:, 'building_type'].map(self.BUILDING_TYPE_NAME_MAPPER)
-        df = df.merge(hfdf, left_on=['building_type', 'county'], right_on=['building_type', 'county_id'])
+        # 2026-09 (stock-estimation WS1): validated left join that can neither duplicate nor drop a building.
+        # Every county x building type must have a fuel row, so there is no fallback here.
+        area_col = 'sqft' if 'sqft' in df.columns else None
+        df, fuel_diag = merge_probability_table(
+            df, hfdf, left_on=['building_type', 'county'], right_on=['building_type', 'county_id'],
+            option_cols=fcols, label='heating_fuel TSV', fallback_on=None, area_col=area_col)
 
         # Use the merged probabilities to sample in fuel type
         # Note this can be made fuel type enumeration agnostic by looping over fcols but it is very not readable
@@ -609,7 +615,17 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         hsdf.columns = [col.replace('Dependency=', '').replace('Option=', '') for col in hsdf.columns]
         hsdf.loc[:, 'building_type'] = hsdf.loc[:, 'building_type'].map(self.BUILDING_TYPE_NAME_MAPPER)
         hsdf.loc[:, 'census_region'] = hsdf.loc[:, 'census_region'].replace('Mid-Atlantic', 'Middle Atlantic')
-        df = df.merge(hsdf, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'], right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'])
+        # 2026-09 (stock-estimation WS1): validated left join. The previous inner merge double-counted buildings
+        # in the 52 duplicated Propane keys of hvac_system_type_v4.tsv and dropped ~1.2% of floor area whose key
+        # had no TSV row. A key with no row now falls back to the mean of the rows for the same building type,
+        # size bin and fuel across divisions, then across size bins; self.apportionment_diagnostics records it.
+        df, hvac_diag = merge_probability_table(
+            df, hsdf, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'],
+            right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'],
+            option_cols=hcols, label='hvac_system_type TSV',
+            fallback_on=[['building_type', 'size_bin', 'heating_fuel'], ['building_type', 'heating_fuel']],
+            area_col=area_col)
+        self.apportionment_diagnostics = {'heating_fuel': fuel_diag, 'hvac_system_type': hvac_diag}
 
         # Use the merged probabilities to sample in fuel type
         # Note this is system type agnostic due to the enumeration county and not readable - refer above for the idea
