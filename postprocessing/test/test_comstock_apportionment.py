@@ -116,3 +116,27 @@ def test_left_join_preserves_bootstrap_duplicates():
     assert len(merged) == 6
     assert (merged.heating_fuel.to_numpy() == truth.heating_fuel.to_numpy()).all()
     assert np.allclose(merged.loc[merged.heating_fuel == 'Propane', 'PSZ'], 1.0)
+
+
+def test_fallback_backfills_the_right_key_column():
+    """A fallback-filled row must not be left with a NaN ``census_region``.
+
+    The right key that has its own name survives the merge as a redundant copy of the left key and is NaN
+    wherever the join missed. Filling only the option columns left that NaN behind, and
+    ``upsample_hvac_system_fuel_types`` asserts no column is NaN, so the first fallback raised there instead.
+    """
+    df = pd.DataFrame({'building_type': ['office', 'office'],
+                       'size_bin': [1, 2],
+                       'heating_fuel': ['NaturalGas', 'NaturalGas'],
+                       'cen_div': ['Pacific', 'Mountain']})
+    prob = pd.DataFrame({'building_type': ['office'], 'size_bin': [1], 'heating_fuel': ['NaturalGas'],
+                         'census_region': ['Pacific'], 'PSZ': [1.0]})
+    merged, diag = Apportion.merge_probability_table(
+        df, prob, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'],
+        right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'],
+        option_cols=['PSZ'], label='hvac', fallback_on=[['building_type', 'heating_fuel']])
+
+    assert diag['fallback'][0]['rows'] == 1
+    assert merged['PSZ'].notna().all()
+    assert merged['census_region'].notna().all(), 'fallback row left census_region NaN'
+    assert merged.loc[1, 'census_region'] == 'Mountain', 'the mirrored key must follow the building'

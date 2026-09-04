@@ -51,6 +51,11 @@ def merge_probability_table(df, prob, left_on, right_on, option_cols, label, fal
     if len(merged) != n_in:
         raise RuntimeError(f'{label}: merge changed the row count {n_in} -> {len(merged)}')
 
+    # Keys named the same on both sides collapse into one column; a right key with its own name (``census_region``
+    # against ``cen_div``) survives as a redundant copy of the left key and is NaN wherever the join missed. Mirror
+    # the left key into it so a fallback-filled row is not left with a NaN that trips the caller's no-NaN check.
+    mirrored = [(r, left_on[i]) for i, r in enumerate(right_on) if r != left_on[i] and r in merged.columns]
+
     unmatched = merged[option_cols].isna().all(axis=1).to_numpy()
     diag = {'label': label, 'rows': int(n_in), 'unmatched_rows': int(unmatched.sum()),
             'unmatched_area_share': _share(unmatched), 'fallback': []}
@@ -84,4 +89,9 @@ def merge_probability_table(df, prob, left_on, right_on, option_cols, label, fal
         raise ValueError(
             f'{label}: {int(unmatched.sum())} rows have no probability row and no fallback matched; '
             f'keys: {missing_keys.head(10).to_dict(orient="records")}. Extend the TSV or pass fallback_on.')
+
+    for right_col, left_col in mirrored:
+        gap = merged[right_col].isna()
+        if gap.any():
+            merged.loc[gap, right_col] = merged.loc[gap, left_col]
     return merged, diag
