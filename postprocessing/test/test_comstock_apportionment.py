@@ -140,3 +140,42 @@ def test_fallback_backfills_the_right_key_column():
     assert merged['PSZ'].notna().all()
     assert merged['census_region'].notna().all(), 'fallback row left census_region NaN'
     assert merged.loc[1, 'census_region'] == 'Mountain', 'the mirrored key must follow the building'
+
+
+def test_fuel_only_fallback_covers_a_building_type_with_no_row_for_that_fuel():
+    """The district-heating case: heating_fuel.tsv has no size_bin dependency, so it can assign DistrictHeating
+    to any size bin of a building type, while hvac_system_type.tsv only carries a district row where CBECS has
+    enough district-heated records to justify the sampling bucket.
+
+    Both of the first two fallback levels are keyed on building_type, so neither can match a type with no
+    district row in any bin -- and some cells have zero district-heated CBECS records, so no TSV row could ever
+    cover them. The fuel-only level keeps those buildings district-heated with the national district system mix.
+    """
+    prob = pd.DataFrame({
+        'building_type': ['large_office', 'large_office', 'retail'],
+        'size_bin': [0, 1, 0],
+        'heating_fuel': ['DistrictHeating', 'DistrictHeating', 'NaturalGas'],
+        'census_region': ['Pacific', 'Pacific', 'Pacific'],
+        'VAV district': [1.0, 0.5, 0.0],
+        'PSZ gas': [0.0, 0.5, 1.0],
+    })
+    # a district-heated retail building: retail has no DistrictHeating row in any bin
+    df = pd.DataFrame({'building_type': ['retail'], 'size_bin': [0], 'heating_fuel': ['DistrictHeating'],
+                       'cen_div': ['Mountain'], 'sqft': [1000.0]})
+    keys = dict(left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'],
+                right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'],
+                option_cols=['VAV district', 'PSZ gas'], label='hvac', area_col='sqft')
+
+    with pytest.raises(ValueError, match='no fallback matched'):
+        Apportion.merge_probability_table(df, prob, fallback_on=[["building_type", "size_bin", "heating_fuel"],
+                                                       ['building_type', 'heating_fuel']], **keys)
+
+    merged, diag = Apportion.merge_probability_table(
+        df, prob, fallback_on=[['building_type', 'size_bin', 'heating_fuel'],
+                               ['building_type', 'heating_fuel'], ['heating_fuel']], **keys)
+
+    assert diag['fallback'][-1] == {'keys': ['heating_fuel'], 'rows': 1, 'area_share': 1.0}
+    # it took the mean of the two district rows, renormalised - never the gas row
+    assert merged.loc[0, 'VAV district'] == pytest.approx(0.75)
+    assert merged.loc[0, 'PSZ gas'] == pytest.approx(0.25)
+    assert merged['census_region'].notna().all()

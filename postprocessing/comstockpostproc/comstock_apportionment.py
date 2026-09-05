@@ -619,11 +619,22 @@ class Apportion(NamingMixin, UnitsMixin, S3UtilitiesMixin):
         # in the 52 duplicated Propane keys of hvac_system_type_v4.tsv and dropped ~1.2% of floor area whose key
         # had no TSV row. A key with no row now falls back to the mean of the rows for the same building type,
         # size bin and fuel across divisions, then across size bins; self.apportionment_diagnostics records it.
+        #
+        # The last level is keyed on the fuel alone, and it is what makes district heating work. heating_fuel.tsv
+        # has no size_bin dependency, so it can assign DistrictHeating to any size bin of a building type, while
+        # hvac_system_type.tsv only carries a district row where CBECS has enough district-heated records to
+        # justify the sampling bucket. Both earlier levels are keyed on building_type, so neither can match a type
+        # with no district row in any bin -- and four such cells (hospital/outpatient/small_office/warehouse in
+        # their smallest bin) have zero district-heated CBECS records, so no TSV row could ever cover them. Falling
+        # back on the fuel keeps those buildings district-heated with the national district system mix, which is a
+        # better error than the alternatives: dropping them (the old silent behaviour, part of the -55% district
+        # heating gap) or borrowing a same-building-type row that burns the wrong fuel.
         df, hvac_diag = merge_probability_table(
             df, hsdf, left_on=['building_type', 'size_bin', 'heating_fuel', 'cen_div'],
             right_on=['building_type', 'size_bin', 'heating_fuel', 'census_region'],
             option_cols=hcols, label='hvac_system_type TSV',
-            fallback_on=[['building_type', 'size_bin', 'heating_fuel'], ['building_type', 'heating_fuel']],
+            fallback_on=[['building_type', 'size_bin', 'heating_fuel'], ['building_type', 'heating_fuel'],
+                         ['heating_fuel']],
             area_col=area_col)
         self.apportionment_diagnostics = {'heating_fuel': fuel_diag, 'hvac_system_type': hvac_diag}
 
