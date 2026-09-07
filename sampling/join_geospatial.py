@@ -151,11 +151,18 @@ def main():
     print(f'Resampling {to_resample.shape[0]} tracts that are not contained in the geospatial lookup file')
 
     # Resample required enteries
+    # Draw the replacement only from same-county tracts that ARE in the lookup. The previous version drew from
+    # every same-county gisjoin in the buildstock and then removed one copy of the bad tract; with 12 samples per
+    # bucket a tract appears many times, so the bad tract (or another bad one) was drawn again and the assert
+    # below failed. Seen on a 114,360-row buildstock with 13 such tracts; at one sample per bucket it happened
+    # not to bite. (2026-09)
     resample_lkup = dict()
-    for tr in to_resample.gisjoin.tolist():
-        samplefrom = df_buildstock.loc[df_buildstock.county_id == tr[:8], 'gisjoin'].tolist()
-        if tr in samplefrom:
-            samplefrom.remove(tr)
+    in_lookup = set(df_geospatial_lkup.nhgis_tract_gisjoin)
+    for tr in to_resample.gisjoin.unique().tolist():
+        samplefrom = df_buildstock.loc[df_buildstock.county_id == tr[:8], 'gisjoin']
+        samplefrom = sorted(set(samplefrom[samplefrom.isin(in_lookup)].tolist()))
+        if not samplefrom:
+            raise ValueError(f'tract {tr}: no tract in county {tr[:8]} is present in the geospatial lookup')
         resample_lkup[tr] = random.sample(samplefrom, 1)[0]
     df_buildstock.loc[
         ~df_buildstock.gisjoin.isin(df_geospatial_lkup.nhgis_tract_gisjoin), 'gisjoin'
