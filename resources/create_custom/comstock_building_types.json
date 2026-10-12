@@ -428,6 +428,23 @@
           }
         }
       ],
+      "thermostat_overrides": [
+        {
+          "space_type": "*",
+          "thermostat": {
+            "heating_setback_delta_c": 0.0,
+            "cooling_setback_delta_c": 0.0
+          }
+        }
+      ],
+      "occupancy_overrides": [
+        {
+          "space_type": "dining - cafeteria/fast food",
+          "occupancy": {
+            "people_per_1000_ft2": 10.0
+          }
+        }
+      ],
       "service_water_heating_overrides": [
         {
           "space_type": "food preparation",
