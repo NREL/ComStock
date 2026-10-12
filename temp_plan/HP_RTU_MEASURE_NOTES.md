@@ -363,8 +363,9 @@ comments, and no duplicated code, before adding the scenario 3 and 4 work on top
   the ERV exclusion lists, and the rated COP regressions.
 - Removed duplicated setter calls (compressor lockout and fuel type set twice on the multispeed
   coils, one heating curve set twice per stage), duplicate entries in exclusion lists, the unused
-  `_adv` COP regressions, the unused fan efficiency locals, commented-out code, and unused method
-  parameters. The `%w[...]` arrays became bracket arrays because the repo's rubocop style asks for it.
+  `_adv` COP regressions (**wrong call — see 3.5**), the unused fan efficiency locals, commented-out
+  code, and unused method parameters. The `%w[...]` arrays became bracket arrays because the repo's
+  rubocop style asks for it.
 - Comments are lowercase sentences and the section banners use one style. Argument names,
   descriptions, defaults, and choice order are byte-identical (the regenerated `measure.xml` changed
   only its checksums).
@@ -408,6 +409,39 @@ run path (`test_sizing_model_in_alaska`, both runs); the setback path; and all t
 paths. All 31 tests were then run on the cleaned code in parallel (4.5) and pass.
 Rubocop offenses went from 196 to 36; the remaining 36 are test method names with capitals, `eval` of
 JSON strings, and size metrics on `run`.
+
+### 3.5 Restored the standard-vs-advanced rated COP regression split (2026-10-12)
+
+`get_rated_cop_cooling_adv`/`get_rated_cop_heating_adv` (Daikin Rebel-fitted regression, used when a
+scenario's JSON leaves `final_rated_cooling_cop`/`final_rated_heating_cop` as `false`, which all four
+scenario JSONs do) were genuinely unused on this branch's line of history when 3.4 removed them — but
+only because the code that was supposed to call them, based on `hprtu_scenario`, lived on a different,
+never-merged branch: closed PR #446 (`jk/duelfuelrtu`, see the terms list), which still exists locally
+as the `jk/duelfuelrtu` branch (254 commits not on `main`, remote deleted). That branch's call site
+chose the standard regression only for `two_speed_standard_eff` and the advanced one for every other
+scenario (plus a `carrier_48qe_dualfuel` case that doesn't exist on this branch). On `main`'s own
+lineage the `_adv` methods had been dead code since at least `eb697f3e` (Aug 2024) — the fallback
+always called the plain (standard) regression regardless of scenario — so 3.4's "no functional change"
+claim was accurate for `main`'s history but reintroduced a long-standing bug: every scenario, including
+`variable_speed_high_eff`, was defaulting to the Carrier/Lennox standard-unit regression instead of the
+higher-efficiency curve it's supposed to use.
+
+**What changed:** added `cooling_adv`/`heating_adv` entries to `RATED_COP_REGRESSIONS` (same
+coefficients as the pre-3.4 `_adv` methods) and `get_rated_cop_cooling_adv`/`get_rated_cop_heating_adv`
+wrappers, built on the `rated_cop_from_regression` helper from 3.4 rather than reverting to the old
+duplicated-literal style. Both fallback call sites now pick the regression by `hprtu_scenario`:
+`two_speed_standard_eff` gets the standard regression, everything else (`two_speed_lab_data`,
+`variable_speed_high_eff`, `cchpc_2027_spec`) gets the advanced one. Did not bring over the
+`carrier_48qe_dualfuel` branch from `jk/duelfuelrtu` — out of scope here.
+
+**Open question:** `two_speed_lab_data` is meant to represent lab-informed performance for the
+*standard* two-speed unit (per its own argument description), but by falling into the `else` branch it
+now gets the advanced regression, same as on `jk/duelfuelrtu`. Not changed since that matches the
+closed PR's behavior, but worth confirming that's actually what's intended — see section 6.
+
+**How it was verified:** the file loads cleanly under the OpenStudio 3.10.0 CLI; rubocop offense count
+is unchanged (18 before and after, on just this file) compared with the committed baseline. The
+measure's test suite was not re-run for this change.
 
 ---
 
@@ -649,16 +683,17 @@ reads the two workbooks and the JSONs directly, so it reruns as is. The plots ar
   - Lab and model are each divided by their own value at the same reference point, at that point's
     measured temperatures. The lab ratios are recomputed from the W values and match the workbook's
     ratio columns.
-  - **View A**: ratio to the rated point (A for cooling, H47H for heating), so stage fractions and
-    curves together. This is what the simulation sees.
-  - **View B** (heating only): each level divided by its own anchor (H47M, H47L, H17B), which
-    isolates the curve shape. Cooling has no View B: the lab cooling points change stage and
-    outdoor temperature together (A/B/C/D), with one point per level.
+  - Every ratio is to the rated point (A for cooling, H47H for heating), so it covers stage
+    fractions and curves together. This is what the simulation sees.
+  - For heating, a table splits each point's error into a stage fraction part (model/lab at the
+    level's own anchor: H47M, H47L, or H17B for boost) and a curve shape part (the rest). Cooling
+    can't be split: the lab cooling points change stage and outdoor temperature together
+    (A/B/C/D), with one point per level, so each stage has one equation for two unknowns.
   - Each lab level is compared with one model stage (`STAGE_MAP` in the notebook). Cooling keys are
     test points: A (full) to stage 4, B to 3, C to 2, D to 1. The two-speed JSONs are compared only
     at H (heating) and A, C (cooling). The variable-speed JSON has no boost stage, so lab B is
     compared with its stage 4.
-- **Results, View A.** RMSE of model ratio − lab ratio, both units pooled (0.05 = 5 points of the
+- **Results.** RMSE of model ratio − lab ratio, both units pooled (0.05 = 5 points of the
   rated value). The two-speed rows rest on few points: heating H only, and point C only for cooling
   EIR.
 
@@ -677,7 +712,7 @@ reads the two workbooks and the JSONs directly, so it reruns as is. The plots ar
     the 29.4 C value there, so the model doesn't credit the better efficiency in mild weather. The
     variable-speed/CCHP cooling EIR curves go down to 15.6 C, which is why they do better.
   - Heating EIR: `variable_speed_high_eff` is clearly the closest. The CCHP spec misses twice:
-    - Its high stage EIR rises about 30% more than the lab's from 47 F to 17 F (View B).
+    - Its high stage EIR rises about 30% more than the lab's from 47 F to 17 F (shape part).
     - Its low stage EIR at 47 F is 17 to 45% higher than the lab's (the stage COP fraction).
     The two-speed `h_eir_T` curves are 14 to 17% too steep at 17 F and 23 to 46% too steep at 5 F.
   - Heating capacity: the variable-speed JSON has no boost, so it is about 22% low at the B points.
@@ -1097,6 +1132,10 @@ their own sections (the checkboxes in 3.2, 4.3, and 4.5).
       decided whether we want it (3.1). The precursor deck (4.4) found the Carrier 48QE catalog, the
       standard performance curves, and lab data agree for a two-speed unit, which argues for staying
       with `two_speed_standard_eff`.
+- [ ] `two_speed_lab_data`'s fallback rated COP (3.5): it falls into the advanced/variable-speed
+      regression rather than the standard one, matching #446's behavior but not obviously matching
+      the scenario's own description (lab-informed performance for the standard two-speed unit).
+      Confirm which regression it should use.
 
 **Questions about the inherited code** (section 2):
 - [x] Do all four scenario JSONs (`two_speed_standard_eff`, `two_speed_lab_data`,
@@ -1234,3 +1273,12 @@ Section numbers in older entries are the numbers at the time.
   in `performance_maps_hprtu_variable_speed.json` (labels only, no model change) and regenerated
   `measure.xml`. Logged the negative `h_cap_low` values in the CCHP JSON in section 6. Updated the
   4.3 checklist, the scenario 3 row and status in 4.1, and the scenario 3 item in section 6.
+- 2026-10-12: Restored the standard-vs-advanced rated COP regression split that 3.4 removed as
+  apparently-dead code (new 3.5). Traced it with `git log`/`git branch --contains`: the split was
+  live only on closed PR #446 (`jk/duelfuelrtu`, never merged), while on this branch's own lineage
+  the `_adv` methods really were unused, so every scenario's fallback COP was silently using the
+  standard (Carrier/Lennox) regression, including `variable_speed_high_eff`. Added
+  `cooling_adv`/`heating_adv` to `RATED_COP_REGRESSIONS` and branched both fallback call sites on
+  `hprtu_scenario`. Corrected the "unused `_adv` COP regressions" line in 3.4 to point here. Added an
+  open item (section 6) on whether `two_speed_lab_data` should use the standard or advanced
+  regression.
