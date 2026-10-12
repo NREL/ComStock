@@ -429,14 +429,14 @@ ready to combine when it has:
 |---|---|---|---|---|---|
 | 1 | Dual fuel RTU, standard performance | None (the dual fuel backup choice is done, 3.1) | `dual_fuel_std_perf_lockout_30F` | `test_dual_fuel_std_perf_lockout_30F_option` (apply-only, reads the options lookup row; 3.3), plus `test_dual_fuel_backup_is_natural_gas` | Options reviewed (3.3): `dual_fuel_std_perf_lockout_30F` is an exact match; keep it for the rerun. Still to confirm which option the earlier 10K used (4.2). Simulation on hold until the space type refactor is stable |
 | 2 | CCHPC challenge spec dual fuel RTU | None expected | `dual_fuel_cchpc_spec_lockout_neg10F` (`dual_fuel_gas_furnace_backup`, gas lockout -10 F, `cchpc_2027_spec`), added 2026-10-08 | `test_dual_fuel_cchpc_spec_lockout_neg10F_option` (apply-only, reads the options lookup row; 3.3), plus the existing fan/JSON tests | Done: no existing row matched, so `dual_fuel_cchpc_spec_lockout_neg10F` was added (3.3). No measure changes needed (confirmed). Apply-only test added and passing (3.3). 10K run on hold until the space type refactor is stable |
-| 3 | CCHPC typical dual fuel RTU | **A new performance category:** a performance map JSON (with `fan_data`), a new `hprtu_scenario` choice, and matching branches wherever the code switches on scenario | A new row once the category exists. Gas backup | The JSON format and `fan_data` tests should cover the new JSON (check that they loop over every scenario). One apply-only test for the new choice | Blocked: waiting on the latest data from Parveen. Once received, compare it with the existing curves (4.3), then add the options row |
+| 3 | CCHPC typical dual fuel RTU | **A new performance category:** a performance map JSON (with `fan_data`), a new `hprtu_scenario` choice, and matching branches wherever the code switches on scenario | A new row once the category exists. Gas backup | The JSON format and `fan_data` tests should cover the new JSON (check that they loop over every scenario). One apply-only test for the new choice | Data received and compared with the existing curves (2026-10-12, 4.3): no existing JSON matches both heating capacity and heating EIR well. Next: decide validate vs rebuild and LG vs Trane, then build the JSON and add the options row |
 | 4 | IMPACT dual fuel | **None if sequential is post-processed** as in the precursor study (4.4, option a). Otherwise sequential control (4.4) and the TBC items in section 6 | **Proposed (from the precursor study, 4.4):** the four existing `dual_fuel_std_perf_lockout_{30F,17F,0F,neg10F}` rows (3.1), simultaneous control. Sequential rows only if we simulate it (4.4, option b) | One apply-only test per strategy if sequential gets an argument. One simulation check of the new output (3.2) | Confirm the proposed scope with the team (4.4): a lockout sweep (30, 17, 0, -10 F) with standard performance and simultaneous control; sequential derived from the new output (3.2); utility rate sensitivity and building filters in post-processing. Then confirm IMPACT's parameters and choose how to do sequential |
 
 **All simulations are on hold** until the space type refactor (happening in parallel) reaches a
 working, stable version, possibly next week. In the meantime, prep work can go ahead for scenarios 1
 and 2. The options review and the scenario 2 row are done (3.3); confirming which option the earlier
-scenario 1 10K used is still open. Scenario 3 is waiting on
-Parveen's latest data. Scenario 4 has a proposed scope taken from the precursor study (4.4); it
+scenario 1 10K used is still open. Scenario 3 has Parveen's data and a first comparison with the
+existing curves (4.3); the validate vs rebuild decision is next. Scenario 4 has a proposed scope taken from the precursor study (4.4); it
 still needs a team meeting to confirm it.
 
 ### 4.2 Steps
@@ -462,7 +462,8 @@ still needs a team meeting to confirm it.
 Scenario 3 uses the "typical" unit from that set (see below). We compare it against the existing
 curves in
 `resources/measures/upgrade_hvac_add_heat_pump_rtu/resources/performance_maps_hprtu_lab_data.json`.
-(That file is the `two_speed_lab_data` category.)
+(That file is the `two_speed_lab_data` category.) The comparison I ran on 2026-10-12 covers all
+four scenario JSONs (see "Comparison with the existing curves" below).
 
 | Case | What we do |
 |---|---|
@@ -631,6 +632,72 @@ the short version.
   - Dashed tails on the operating-level plots are visual extensions, not data.
   - Measurement uncertainty is not quantified.
 
+**Comparison with the existing curves (2026-10-12).** Parveen suggested the Trane 20T (`RTU-I
+(19T)`) or the LG (`RTU-F (10T)`) as the most relevant units to model. I compared both against all
+four scenario JSONs, not only `performance_maps_hprtu_lab_data.json`. Notebook:
+`ComStock - Measures\HVAC - Dual Fuel RTU\notebooks\compare_lab_rtu_vs_existing_curves.ipynb`. It
+reads the two workbooks and the JSONs directly, so it reruns as is. The plots are interactive
+(plotly); click a legend entry to hide or show a scenario or a unit.
+
+- **Method.**
+  - Gross values throughout: capacity with the indoor fan heat removed, and power = compressor +
+    outdoor fan + controls (`PC + PCD + PCT`, no indoor fan or crankcase). EIR = gross power /
+    gross capacity. This matches the DX coil curves and the rated COP regressions.
+  - The model side is evaluated the way the measure builds the coil: stage capacity fraction ×
+    capFT, and EIRFT / stage COP fraction. Curves behave as in EnergyPlus (inputs clamped to the
+    curve limits, lookup tables interpolated linearly and held flat past the grid).
+  - Lab and model are each divided by their own value at the same reference point, at that point's
+    measured temperatures. The lab ratios are recomputed from the W values and match the workbook's
+    ratio columns.
+  - **View A**: ratio to the rated point (A for cooling, H47H for heating), so stage fractions and
+    curves together. This is what the simulation sees.
+  - **View B** (heating only): each level divided by its own anchor (H47M, H47L, H17B), which
+    isolates the curve shape. Cooling has no View B: the lab cooling points change stage and
+    outdoor temperature together (A/B/C/D), with one point per level.
+  - Each lab level is compared with one model stage (`STAGE_MAP` in the notebook). Cooling keys are
+    test points: A (full) to stage 4, B to 3, C to 2, D to 1. The two-speed JSONs are compared only
+    at H (heating) and A, C (cooling). The variable-speed JSON has no boost stage, so lab B is
+    compared with its stage 4.
+- **Results, View A.** RMSE of model ratio − lab ratio, both units pooled (0.05 = 5 points of the
+  rated value). The two-speed rows rest on few points: heating H only, and point C only for cooling
+  EIR.
+
+  | Scenario JSON | Cooling cap | Cooling EIR | Heating cap | Heating EIR |
+  |---|---|---|---|---|
+  | `cchpc_2027_spec` | 0.052 | 0.130 | 0.077 | 0.402 |
+  | `variable_speed_high_eff` | 0.052 | 0.130 | 0.149 | **0.121** |
+  | `two_speed_standard_eff` | 0.052 | 0.316 | **0.045** | 0.458 |
+  | `two_speed_lab_data` | 0.052 | 0.316 | 0.070 | 0.402 |
+
+- **What it says.**
+  - Cooling capacity is close in all four. The exception is LG point D: it turns down to 0.21 of
+    rated, against the model's lowest stage at 0.32.
+  - Cooling EIR misses mostly because of clamping. Points C and D (24 C and 18 C) are below the
+    29.4 C minimum of every cooling capacity curve and of the two-speed EIR curves. EnergyPlus holds
+    the 29.4 C value there, so the model doesn't credit the better efficiency in mild weather. The
+    variable-speed/CCHP cooling EIR curves go down to 15.6 C, which is why they do better.
+  - Heating EIR: `variable_speed_high_eff` is clearly the closest. The CCHP spec misses twice:
+    - Its high stage EIR rises about 30% more than the lab's from 47 F to 17 F (View B).
+    - Its low stage EIR at 47 F is 17 to 45% higher than the lab's (the stage COP fraction).
+    The two-speed `h_eir_T` curves are 14 to 17% too steep at 17 F and 23 to 46% too steep at 5 F.
+  - Heating capacity: the variable-speed JSON has no boost, so it is about 22% low at the B points.
+    Its stage 3 (0.85 of rated) also sits above the lab's mid level (about 0.70).
+  - Fan: the variable-speed/CCHP fan curve (single zone VAV coefficients) matches both lab fits
+    (RMSE 0.015 to 0.03 in power fraction). The two-speed fan curve overstates part-flow power.
+  - Rated COP (rougher check, using the measure's regression and cfm/ton adjustment): cooling COP is
+    2 to 11% below the lab units. Heating is 13 to 15% low for the two-speed JSONs and about 12%
+    high for CCHP (its rated stage is medium, and high gets a 1.098 COP fraction).
+- **Leaning (not decided).** No existing JSON matches well on both heating capacity and heating EIR,
+  so the "build new curves" case looks more likely. Variable speed is the best starting point for
+  heating EIR and for the fan; CCHP for the boost stage.
+- **Found along the way.**
+  - The `heat_cap_ft1-4` / `heat_eir_ft1-4` curves in `performance_maps_hprtu_variable_speed.json`
+    labelled `independent_variable_1`/`_2` the wrong way round (outdoor first). Their limits and
+    EnergyPlus's argument order make variable 1 the indoor dry bulb. I swapped the labels. The
+    measure doesn't read them, so no model change. Regenerated `measure.xml`.
+  - `h_cap_low` in `performance_map_CCHP_spec_2027.json` goes negative at -23.33 C (-0.056 at
+    21.1 C indoor, -0.079 at 26.7 C). Left as is; added to section 6.
+
 **References we can use:**
 
 | Reference | Location | Use |
@@ -643,13 +710,16 @@ the short version.
 | Lab tested data on many actual dual fuel RTU units | Anonymized data for the selected unit received (workbook, report, plots). Still asking whether a published version exists; if so I need its URL or citation | Reference to cite for scenario 3 |
 
 - [x] Parveen: pick the "typical" unit and say which metric(s) put it in the middle. Done: heating
-      capacity, heating EIR, IVHE and IVHEc (see above). Still need to note which unit it is.
+      capacity, heating EIR, IVHE and IVHEc (see above). Parveen suggested the Trane 20T
+      (`RTU-I (19T)`) or the LG (`RTU-F (10T)`).
 - [ ] Parveen: confirm whether scenario 3 uses four stages or a fifth (boost) stage.
-- [ ] Compare the typical unit's points with the existing curves and decide which case applies.
-- [ ] Look at Parveen's fan data: the fan fit is described above, now check the coefficients and
-      the QA sheet against the `fan_data` format in 2.3.
-- [ ] Check which of the 4 candidate units is delivered, and whether the delivered data has a boost
-      (B/B2) level to settle four vs five stages.
+- [x] Compare the typical units' points with the existing curves (2026-10-12, see "Comparison with
+      the existing curves" above).
+- [ ] Decide which case applies (validate or rebuild) and which of the two units to model.
+- [ ] Look at Parveen's fan data: compared with the JSON fan curves (above). Still to check the QA
+      sheet and how the lab coefficients would map onto the 5-coefficient `fan_data` format in 2.3.
+- [ ] Check whether the boost (B/B2) level in the delivered data settles four vs five stages. Both
+      workbooks map every Max point to B (H-10Max, H5Max), so they show one boost level.
 - [ ] Get the two documents we haven't received, and a URL or citation for the lab data if one is published.
 
 ### 4.4 Scenario 4: scope and sequential control (open)
@@ -1012,8 +1082,9 @@ their own sections (the checkboxes in 3.2, 4.3, and 4.5).
 
 **Decisions about the scenarios** (the TBC items in 1.1):
 - [ ] Scenario 3: the performance curve for the Challenge "typical" unit (a new curve is needed).
-      Which unit is "typical" and whether it has a fifth (boost) stage are with Parveen. Plan and
-      data sources are in 4.3.
+      Parveen suggested the Trane 20T or the LG; which one, and whether it has a fifth (boost)
+      stage, are still open. The comparison with the existing curves is in 4.3. Plan and data
+      sources are in 4.3.
 - [x] Is `boost_stage_num_and_max_temp_tuple` used anywhere after it's read from the JSON? No; the
       boost temperature limit isn't applied. Decided not to enforce it for now (4.3).
 - [ ] Scenario 4: performance category, compressor lockout, oversizing, and heating sizing temp.
@@ -1043,6 +1114,13 @@ its own reviewable change:
 - [ ] The night cycling check `include?([0, 0.0])` is never true, so the high OA fraction exclusion
       never fires. Decide whether that exclusion is still wanted (its comment calls it temporary,
       pending an EnergyPlus fix) before fixing or deleting it.
+
+**Data issues found in the scenario JSONs** (4.3, comparison with the lab data):
+- [ ] `h_cap_low` in `performance_map_CCHP_spec_2027.json` is negative at -23.33 C outdoor (-0.056
+      at 21.1 C indoor, -0.079 at 26.7 C indoor), and inputs below that are clamped to it. Scenario
+      2 locks the compressor out at -10 F (-23.3 C), right at that edge, so the low stage only sees
+      these values in the coldest hours it still runs. Check with whoever made the CCHP tables
+      before changing it.
 
 ## 7. Thoughts and brainstorming
 
@@ -1149,3 +1227,10 @@ Section numbers in older entries are the numbers at the time.
 - 2026-10-09: Third full parallel run on `13e26c1e`: 31 tests, 3651 assertions, 0 failures, 31
   minutes wall (4.5).
 - 2026-10-12: Removed the TBC label from the scenario 3 performance category in 1.1. Added the lab data received from Parveen to 4.3 (summary of the companion guide: source, preparation, selection settings, deliverables, fan fit, gaps, caveats), updated the references and checklist.
+- 2026-10-12: Compared the LG `RTU-F (10T)` and Trane `RTU-I (19T)` lab data against all four
+  scenario JSONs (new "Comparison with the existing curves" in 4.3; notebook in the shared
+  `notebooks` folder): gross ratios to the rated point, per stage, per curve type, plus the fan curve
+  and the rated COP. Fixed the swapped `independent_variable_1`/`_2` labels on the 8 heating curves
+  in `performance_maps_hprtu_variable_speed.json` (labels only, no model change) and regenerated
+  `measure.xml`. Logged the negative `h_cap_low` values in the CCHP JSON in section 6. Updated the
+  4.3 checklist, the scenario 3 row and status in 4.1, and the scenario 3 item in section 6.
