@@ -66,7 +66,7 @@ them.
 |---|---|---|---|---|---|---|---|
 | 1. Dual fuel RTU, standard performance | `dual_fuel_std_perf_lockout_30F` | Standard (`two_speed_standard_eff`) | 30 F | Gas | Oversizing not considered | N/A if no oversizing | Simultaneous |
 | 2. Cold Climate Heat Pump Challenge (CCHPC): challenge spec dual fuel RTU | `dual_fuel_cchpc_spec_lockout_neg10F` (added 2026-10-08, see 3.3; the existing `cchpc_2027_spec` option uses electric backup) | Challenge spec (`cchpc_2027_spec`) | -10 F | Gas | Oversizing not considered | N/A if no oversizing | Simultaneous |
-| 3. CCHPC: typical dual fuel RTU | **None yet.** Needs a new performance category first | **TBC:** Challenge "typical" unit (new curve from one middle-performing lab-tested unit; Parveen is choosing it, see 4.3) | -10 F | Gas | Oversizing not considered | N/A if no oversizing | Simultaneous |
+| 3. CCHPC: typical dual fuel RTU | **None yet.** Needs a new performance category first | Challenge "typical" unit (new curve from one middle-performing lab-tested unit; Parveen is choosing it, see 4.3) | -10 F | Gas | Oversizing not considered | N/A if no oversizing | Simultaneous |
 | 4. IMPACT: dual fuel | **TBC.** Proposed (from the precursor study, 4.4): `dual_fuel_std_perf_lockout_{30F,17F,0F,neg10F}`, the existing rows from 3.1. Sequential rows only if sequential is simulated | **TBC.** Proposed: Standard (`two_speed_standard_eff`), as in the precursor study | **TBC.** Proposed: sweep of 30, 17, 0, -10 F | Gas | **TBC.** Proposed: Oversizing not considered (the precursor and #446 default) | **TBC.** N/A if no oversizing | Simultaneous (simulated) and sequential (**TBC:** proposed as post-processed from the 3.2 output, as in the precursor study; see 4.4) |
 
 ### 1.2 Status
