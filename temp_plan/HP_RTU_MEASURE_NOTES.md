@@ -582,6 +582,55 @@ What this means for the four-stage spec model:
 - The compressor lockout (the 0 F / 25 F arguments, 2.1) is the only outdoor-temperature gate. It
   switches the whole DX coil off, after which only the supplemental coil heats.
 
+**Lab data received (2026-10-12).** Parveen sent the performance data for the "typical" unit. Full
+background is in the companion guide, `temp_plan/Representative_RTU_Companion_Guide.md`; this is
+the short version.
+
+- **Source.** Steady-state lab tests of 10 commercial RTUs (about 4 to 20 tons) at the standard
+  cooling and heating test points. Cooling points: D, DHC, C, B, A (rated = A). Heating points:
+  H-10Max, H5Max/B2/B/H, H17B/H/M/L, H47H/M/L (rated = H47H). Heating names are outdoor temperature
+  in F plus speed level (H/M/L = high/mid/low, B/B2 = boost, Max = maximum capacity). Unit names are
+  anonymized (`RTU-A (10T)`, ...).
+- **How the data was prepared.**
+  1. Converted each unit from as-tested (Net) to coil-only (Gross) values by removing indoor fan
+     power and heat. That is what a DX coil model describes.
+  2. Took ratios to each unit's rated point (capacity, COP, airflow), so units of different size
+     compare on shape.
+  3. Built a synthetic fleet-median "Composite" RTU from the median ratios.
+  4. Scored each real unit against the Composite and picked the closest one, the "Archetype". It is
+     a real unit that best represents the fleet, not the most efficient one. This matches the
+     "one unit in the middle" decision above.
+- **Selection settings.** Gross ratios, efficiency fitted as EIR. Scored on heating capacity and
+  heating EIR (equal weights, cooling cells weight 0), plus the seasonal ratings IVHE and IVHEc
+  (0.5 each, IVEC 0). Cooling DHC and heating H5B2 excluded from scoring only. Top 4 candidates
+  reported. So **the typical unit was chosen on heating behavior, not cooling.**
+- **What we receive per selected unit.** A 7-sheet workbook (heating data, cooling data, rated
+  references, fan parameters, fan coefficients, QA, assumptions and units), an HTML report, and PNG
+  plots. Units are SI (W, W/W, C, m3/s, Pa), with Gross and Net values and ratios to the rated
+  point.
+- **Fan data (answers the open "look at the fan data" item).** Indoor fan power vs airflow is fitted
+  per unit as a quadratic or cubic, normalized so fan power fraction = f(airflow / reference
+  airflow) and f(1) = 1. The reference airflow is the unit's highest-airflow test point. The
+  Composite curve is fitted to the median of the unit curves. Valid only over the measured flow
+  range, with no static pressure correction. This is the data for the `fan_data` section of the
+  scenario 3 JSON (2.3).
+- **What is not included.** Fitted capacity and EIR vs temperature and flow modifier curves, and
+  any EnergyPlus validation. Speed, indoor conditions, airflow and outdoor temperature change
+  together across the test points, so the modifier curves can't be separated from these data
+  alone. That is the work for 4.3's validate-or-rebuild step.
+- **Caveats to carry forward.**
+  - Lab steady-state points only, not seasonal or field performance, and only valid within the
+    tested range.
+  - The Composite is synthetic, not a tested unit. The delivered absolute values are the selected
+    unit's own measurements.
+  - Manufacturer Net totals sometimes don't equal the sum of components. Deviations are reported in
+    the QA sheet, not corrected.
+  - The H5Max point duplicates the larger of H5B and H5B2. Labeling Max points at other
+    temperatures as a boost level is an assumption, not a measurement. This bears on the max vs
+    boost stage question above.
+  - Dashed tails on the operating-level plots are visual extensions, not data.
+  - Measurement uncertainty is not quantified.
+
 **References we can use:**
 
 | Reference | Location | Use |
@@ -590,12 +639,17 @@ What this means for the four-stage spec model:
 | Commercial Building Heat Pump Technology Challenge Specification, V1 | `ComStock - Measures\HVAC - Dual Fuel RTU\references\Commercial Building Heat Pump Technology Challenge Specification_V1.pdf` | Background on the Challenge itself (what the spec requires). **Not up to date on naming:** it uses the older terms; the Challenge is now called the "Commercial Building HVAC Technology Challenge" (see Terms). Use it for context, but check current naming before citing |
 | Standard performance dual fuel RTU measure doc (`dual_fuel_hp_rtu_measure_doc_v5.docx`) | `ComStock - Measures\HVAC - Dual Fuel RTU\references\` | The measure doc for scenario 1 |
 | Lab tested data HPRTU measure doc | **Not received yet** | Explains how `performance_maps_hprtu_lab_data.json` was created |
-| Lab tested data on many actual dual fuel RTU units | **Not received yet.** Asked whether a published version (manufacturer names removed) exists; if so I need its URL or citation | Reference to cite for scenario 3 |
+| Representative RTU Companion Guide (how the lab data was converted, composited and selected) | `temp_plan/Representative_RTU_Companion_Guide.md` | **Received 2026-10-12.** Details behind the summary above: test points, Net to Gross conversion, Composite, fan curves, archetype scoring, data and plot guide, limits |
+| Lab tested data on many actual dual fuel RTU units | Anonymized data for the selected unit received (workbook, report, plots). Still asking whether a published version exists; if so I need its URL or citation | Reference to cite for scenario 3 |
 
-- [ ] Parveen: pick the "typical" unit and say which metric(s) put it in the middle.
+- [x] Parveen: pick the "typical" unit and say which metric(s) put it in the middle. Done: heating
+      capacity, heating EIR, IVHE and IVHEc (see above). Still need to note which unit it is.
 - [ ] Parveen: confirm whether scenario 3 uses four stages or a fifth (boost) stage.
 - [ ] Compare the typical unit's points with the existing curves and decide which case applies.
-- [ ] Look at Parveen's fan data.
+- [ ] Look at Parveen's fan data: the fan fit is described above, now check the coefficients and
+      the QA sheet against the `fan_data` format in 2.3.
+- [ ] Check which of the 4 candidate units is delivered, and whether the delivered data has a boost
+      (B/B2) level to settle four vs five stages.
 - [ ] Get the two documents we haven't received, and a URL or citation for the lab data if one is published.
 
 ### 4.4 Scenario 4: scope and sequential control (open)
@@ -1094,3 +1148,4 @@ Section numbers in older entries are the numbers at the time.
   consolidated table of the day's test changes and the parallel grouping to 4.5.
 - 2026-10-09: Third full parallel run on `13e26c1e`: 31 tests, 3651 assertions, 0 failures, 31
   minutes wall (4.5).
+- 2026-10-12: Removed the TBC label from the scenario 3 performance category in 1.1. Added the lab data received from Parveen to 4.3 (summary of the companion guide: source, preparation, selection settings, deliverables, fan fit, gaps, caveats), updated the references and checklist.
