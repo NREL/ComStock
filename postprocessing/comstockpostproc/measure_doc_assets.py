@@ -55,7 +55,9 @@ savings_distributions.csv
 
     One row per box in a savings-distribution figure: unweighted, upgrade rows only, with the
     filters the figure applies (stated in `filter`). Quartiles are linearly interpolated;
-    fences are 1.5 x IQR beyond the quartiles. `n` is the figure's n.
+    fences are 1.5 x IQR beyond the quartiles. `n` is the figure's n. Site EUI savings are in
+    kBtu/ft2 (`units` kbtu_per_ft2), as the figures plot them; the plotting data carries them
+    in kWh/ft2, and `column` names that source column.
 
 manifest.json
     schema, generated, generator {package, version, module, git {commit, branch, dirty}},
@@ -424,8 +426,16 @@ def savings_distributions(prepared, namer):
     rows = []
     for figure, col, group, cap in sets:
         is_pct = 'percent_savings' in col
-        units = 'percent' if is_pct else namer.units_from_col_name(col)
         values = df[col].cast(pl.Float64)
+        if is_pct:
+            units = 'percent'
+        else:
+            # EUI savings columns are energy per ft2 in their source units (..kwh_per_ft2); the
+            # figures plot them in kBtu/ft2 (PlottingMixin.convert_eui_cols_to_kbtu_per_ft2), so the
+            # table converts the same way to report what the figures show
+            energy_units = namer.units_from_col_name(col).replace('_per_ft2', '')
+            values = namer.convert(values, energy_units, 'kbtu')
+            units = 'kbtu_per_ft2'
         keep = values.is_not_nan() & values.is_not_null() & (values != 0)
         if is_pct:
             keep = keep & (values >= -cap) & (values <= min(cap, 100))
@@ -629,6 +639,24 @@ def _rebuilt_note(specs):
             'the exported totals.']
 
 
+def _eui_figures_note(files):
+    """Say so when the site EUI figures were drawn by plotting code that predates their kBtu/ft2 fix.
+
+    That code plots the kWh/ft2 values on axes labeled kBtu/ft2, so those figures disagree with
+    savings_distributions.csv, which reports kBtu/ft2.
+    """
+    if hasattr(PlottingMixin, 'convert_eui_cols_to_kbtu_per_ft2'):
+        return []
+    eui = sorted(Path(f['path']).stem for f in files
+                 if f.get('kind') == 'figure' and Path(f['path']).stem.startswith('site_eui_savings'))
+    if not eui:
+        return []
+    return [f'site EUI savings figures ({", ".join(eui)}): this comstockpostproc plots their kWh/ft2 values on axes '
+            'labeled kBtu/ft2, so they read 3.412 times too low and disagree with savings_distributions.csv, which '
+            'is in kBtu/ft2. Export again with a comstockpostproc whose PlottingMixin has '
+            'convert_eui_cols_to_kbtu_per_ft2.']
+
+
 def _jsonable(v):
     if isinstance(v, (str, int, float, bool)) or v is None:
         return v
@@ -744,7 +772,8 @@ def export(lf, upgrade_id, baseline_id, upgrade_name, measure_dir, plotter=None,
                      **{r['metric']: r['value'] for r in appl if r['metric'] in ('models', 'models_applicable')}},
             'checks': _checks(totals),
             'files': files,
-            'notes': NOTES + _rebuilt_note(specs) + [f'figure not made: {p}' for p in problems],
+            'notes': (NOTES + _rebuilt_note(specs) + _eui_figures_note(files)
+                      + [f'figure not made: {p}' for p in problems]),
         }
         (partial / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     except BaseException:

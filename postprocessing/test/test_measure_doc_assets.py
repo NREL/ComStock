@@ -171,7 +171,38 @@ def test_savings_distributions_apply_the_figures_filters():
     q1, q3 = np.percentile([-50.0, -50.0, -120.0], [25, 75])
     assert heat['q1'] == pytest.approx(q1) and heat['upper_fence'] == pytest.approx(q3 + 1.5 * (q3 - q1))
     eui = _find(rows, figure='site_eui_savings_by_building_type', category='SmallOffice')
-    assert eui['units'] == 'kwh_per_ft2' and eui['n'] == 2
+    assert eui['units'] == 'kbtu_per_ft2' and eui['n'] == 2 and eui['column'] == EUI_SITE
+    # the plotting data's 2.0 kWh/ft2, reported in the kBtu/ft2 the figures plot
+    assert eui['median'] == pytest.approx(2.0 * 3.412141633127942)
+    assert eui['min'] == eui['max'] == pytest.approx(2.0 * 3.412141633127942)
+    warehouse_eui = _find(rows, figure='site_eui_savings_by_building_type', category='Warehouse')
+    assert warehouse_eui['n'] == 1 and warehouse_eui['median'] == pytest.approx(3.412141633127942)
+
+
+def test_eui_tables_match_the_figures_conversion():
+    """The table's EUI values are what PlottingMixin's kBtu/ft2 conversion makes of the same column."""
+    plotter = mda.DocAssetsPlotter()
+    kwh = pl.Series([2.0, -1.5, 0.25])
+    via_units = plotter.convert(kwh, plotter.units_from_col_name(EUI_SITE).replace('_per_ft2', ''), 'kbtu')
+    assert plotter.units_from_col_name(EUI_SITE) == 'kwh_per_ft2'
+    assert via_units.to_list() == pytest.approx([2.0 * 3.412141633127942, -1.5 * 3.412141633127942,
+                                                 0.25 * 3.412141633127942])
+    if hasattr(mda.PlottingMixin, 'convert_eui_cols_to_kbtu_per_ft2'):  # the figures' own conversion
+        import pandas as pd
+        drawn = plotter.convert_eui_cols_to_kbtu_per_ft2(pd.DataFrame({EUI_SITE: kwh.to_list()}), [EUI_SITE])
+        assert drawn[EUI_SITE].tolist() == pytest.approx(via_units.to_list())
+
+
+def test_eui_figures_note_flags_plotting_code_without_the_kbtu_fix(monkeypatch):
+    files = [{'path': 'tables/savings_distributions.csv', 'kind': 'table'},
+             {'path': 'figures/site_eui_savings_by_fuel.png', 'kind': 'figure'},
+             {'path': 'figures/percent_site_energy_savings_by_fuel.png', 'kind': 'figure'}]
+    monkeypatch.delattr(mda.PlottingMixin, 'convert_eui_cols_to_kbtu_per_ft2', raising=False)
+    (note,) = mda._eui_figures_note(files)
+    assert 'site_eui_savings_by_fuel' in note and 'percent_site' not in note and 'kBtu/ft2' in note
+    assert mda._eui_figures_note(files[:1] + files[2:]) == []  # no EUI figure, nothing to say
+    monkeypatch.setattr(mda.PlottingMixin, 'convert_eui_cols_to_kbtu_per_ft2', lambda self, df, cols: df, raising=False)
+    assert mda._eui_figures_note(files) == []
 
 
 def _read_csv(path):
