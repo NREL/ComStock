@@ -37,7 +37,8 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
     Repeated EIA ids in the old key format are collapsed to their first block (the building's
     first state, in the measure's order). The returned frame carries ``BILL_STATE`` (null for
     the old key format) and the measure's value columns, with empty strings as nulls and the
-    EIA id and ``..usd`` columns cast to Int64.
+    EIA id and ``..usd`` columns cast to Int64. ``results_col`` keeps each row's block string,
+    as the join always has, so the joined output has the same columns as before.
     """
     tsc = 'tsc'
     key = '_bill_key'
@@ -52,7 +53,6 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
         # NOTE: Column name order must match the order in utility_bills/measure.rb!
         .with_columns(pl.col(tsc).list.to_struct('max_width', [key] + list(value_cols)))
         .unnest(tsc)
-        .drop(results_col)
     )
 
     # Split '<eia_id>@<state>' keys; the old '<eia_id>' key has no state

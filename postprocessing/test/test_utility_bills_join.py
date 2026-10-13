@@ -9,6 +9,7 @@ import os
 import fsspec
 import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 from comstockpostproc import utility_bills_join as ubj
 from comstockpostproc.comstock import ComStock
@@ -78,6 +79,37 @@ def test_repeated_eia_id_collapses_to_first_block():
     assert bills[ubj.BILL_STATE].null_count() == bills.height
     assert bills.schema[N.UTIL_BILL_ELEC] == pl.Int64
     assert bills.schema[N.UTIL_BILL_EIA_ID] == pl.Int64
+
+
+def old_join(sim_outs, draw):
+    """The bills-by-utility join as it was on main 3c103063 (comstock.py:2450-2500)."""
+    res, eia = N.UTIL_BILL_ELEC_RESULTS, N.UTIL_BILL_EIA_ID
+    bills = sim_outs.select([N.BLDG_ID, res, N.FLR_AREA]).with_columns(pl.col(res).cast(pl.String))
+    bills = bills.with_columns(pl.col(res).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')).explode(res)
+    bills = bills.with_columns(pl.col(res).str.split(':').alias('tsc'))
+    new_cols = [eia] + VALS
+    bills = bills.with_columns(pl.col('tsc').list.to_struct('max_width', new_cols)).unnest('tsc')
+    bills = bills.with_columns([pl.when(pl.col(c) == '').then(None).otherwise(pl.col(c)).alias(c) for c in new_cols])
+    bills = bills.with_columns([pl.col(c).cast(pl.Int64) for c in [c for c in VALS if '..usd' in c] + [eia]])
+    return draw.join(bills, on=[N.BLDG_ID, eia], how='left')
+
+
+def test_matches_old_join_without_the_duplicate_copies():
+    draw = DRAW.with_row_index('row').join(TRACT_TO_UTIL, on=N.TRACT_ID, how='left')
+    old = old_join(SIM_OUTS, draw)
+    bills = ubj.electricity_bills_by_utility(SIM_OUTS.lazy(), N.BLDG_ID, N.UTIL_BILL_ELEC_RESULTS,
+                                             N.UTIL_BILL_EIA_ID, VALS, keep_cols=[N.FLR_AREA])
+    bills, keys = ubj.bills_join_keys(bills, N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
+    new = draw.join(bills.collect(), on=keys, how='left')
+
+    # Same columns, in the same order, with the same dtypes
+    assert new.schema == old.schema
+    # The old join copied building 1's four utility-100 rows (utility 100 is in its string twice)
+    assert old.height == DRAW.height + 4
+    assert new.height == DRAW.height
+    # Every new row is the old row built from the utility's first block (mean 1000, not 1100)
+    old_first = old.filter(pl.col(N.UTIL_BILL_ELEC) != 1100)
+    assert_frame_equal(new.sort('row'), old_first.sort('row'))
 
 
 def test_empty_results_string_is_dropped():
