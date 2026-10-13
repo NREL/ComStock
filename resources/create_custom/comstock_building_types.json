@@ -437,6 +437,50 @@
           }
         }
       ],
+      "schedule_overrides": [
+        {
+          "space_type": "nurses station",
+          "occupancy": {
+            "schedule": "extended occupancy",
+            "follows_building_hours": false
+          },
+          "lighting": {
+            "base": 0.45
+          }
+        },
+        {
+          "space_type": "exam/treatment",
+          "occupancy": {
+            "schedule": "extended occupancy",
+            "follows_building_hours": false
+          }
+        },
+        {
+          "space_type": "patient room",
+          "occupancy": {
+            "follows_building_hours": false
+          },
+          "lighting": {
+            "base": 0.2
+          }
+        },
+        {
+          "space_type": "emergency room",
+          "occupancy": {
+            "follows_building_hours": false
+          }
+        },
+        {
+          "space_type": "food preparation",
+          "occupancy": {
+            "schedule": "extended occupancy",
+            "follows_building_hours": false
+          },
+          "lighting": {
+            "base": 0.1
+          }
+        }
+      ],
       "occupancy_overrides": [
         {
           "space_type": "dining - cafeteria/fast food",
