@@ -693,7 +693,7 @@ reads the two workbooks and the JSONs directly, so it reruns as is. The plots ar
     test points: A (full) to stage 4, B to 3, C to 2, D to 1. The two-speed JSONs are compared only
     at H (heating) and A, C (cooling). The variable-speed JSON has no boost stage, so lab B is
     compared with its stage 4.
-- **Results.** RMSE of model ratio − lab ratio, both units pooled (0.05 = 5 points of the
+- **Results (superseded on 2026-10-13, see "Normalization revised" below).** RMSE of model ratio − lab ratio, both units pooled (0.05 = 5 points of the
   rated value). The two-speed rows rest on few points: heating H only, and point C only for cooling
   EIR.
 
@@ -748,14 +748,16 @@ what still needs to change:
   variable-speed curves deserve an update, after proper reasoning and not just because the new
   points differ.
 - **Still to change, in order:**
-  - [ ] **Apples to apples in the plots.** The plot cell (`plot_view`, cell 21 in the notebook's
+  - [x] **Apples to apples in the plots.** Done 2026-10-13 for the normalization (see
+        "Normalization revised" below). Still open: the CCHP heating `STAGE_MAP`. The plot cell (`plot_view`, cell 21 in the notebook's
         numbering) puts the four scenarios and the two lab units side by side. Before reading
         anything off those panels, make sure each scenario line and each lab point are on the same
         basis: same reference point, same indoor condition, same stage definition, and the same
         treatment of the stage fractions. Where a scenario can't be put on the same basis (for
         example the variable-speed JSON has no boost stage), say so on the figure rather than
         drawing it as if it were comparable.
-  - [ ] **Stage fractions above 1 in the CCHP JSON.** In `staging_data` of
+  - [x] **Stage fractions above 1 in the CCHP JSON.** Done 2026-10-13: the model side now
+        applies them as they are. In `staging_data` of
         `performance_map_CCHP_spec_2027.json` (lines 653 to 658), several fractions exceed the
         rated value of 1: `stage_cap_fractions_heating` has high at 1.350 and boost at 1.389
         (expected, see the stage table above), but `stage_rated_cop_frac_heating` also has low at
@@ -772,7 +774,7 @@ what still needs to change:
         cell 8). Still to confirm: that each stage's EIRFT curve is normalized to 1 at that stage's
         own rating point (the check table at the end of cell 8 is the place to look), so the fraction
         isn't counted twice, and where the fraction values came from in the first place.
-  - [ ] **No extrapolation past the JSON limits in the figures.** The plot cell currently draws the
+  - [x] **No extrapolation past the JSON limits in the figures.** Done 2026-10-13. The plot cell currently draws the
         whole sweep (-26 to 18 C heating, 15 to 50 C cooling), solid inside each curve's limits and
         dashed outside, with `CLAMP_INPUTS = True` so the dashed part is a flat clamped tail. I
         don't want any line past the limits, dashed or not; cut the sweep at the curve's
@@ -782,6 +784,51 @@ what still needs to change:
         flow fraction, PLF and fan curves) whose unused second variable is `null`, which is as
         expected. If a future JSON (the scenario 3 one) leaves a limit out, flag it and add the
         limit rather than letting the plot extrapolate.
+
+**Normalization revised (2026-10-13).** The 2026-10-12 notebook divided the model by the stage
+mapped to the lab's rated point, evaluated at that point. For `cchpc_2027_spec` heating that is
+stage 3 (high), so its 1.350 capacity fraction cancelled out and every ratio was relative to high,
+not to the JSON's rated medium stage. The notebook now puts each side on its own rated basis:
+
+- **Lab.** Each point divided by the unit's rated gross capacity (or gross EIR) from the workbook's
+  `Rated References` sheet (A for cooling, H47H for heating). These match the workbook's ratio
+  columns to machine precision.
+- **Model.** `stage_cap_frac × capFT × capFF` for capacity and `EIRFT × EIRFF / stage_cop_frac` for
+  EIR, with no further division. That is each stage relative to the JSON's rated stage, as
+  `staging_data` hands it to EnergyPlus. The flow fraction is the lab airflow ratio divided by the
+  stage's flow fraction.
+- **Rated points kept in the statistics.** The lab is 1 there by definition, but the model isn't.
+- **Plots and coverage contours stop at the curve limits.** Nothing is drawn outside a curve's
+  min/max. Lab points outside the limits stay, with the clamped model value.
+
+At the rating conditions, `cchpc_2027_spec` heating stage 4 comes out at 1.385, not 1.389. Its
+temperature curve is exactly 1 there, but `h_cap_allstages_ff` is 0.997 at a flow fraction of 1.
+The two two-speed JSONs have the same 0.996 to 0.997 offset. EnergyPlus applies the flow curve too,
+so 1.385 is what the simulation sees. The notebook prints this per stage under the comparison
+engine.
+
+New RMSE of model ratio − lab ratio, both units pooled, rated points included:
+
+| Scenario JSON | Cooling cap | Cooling EIR | Heating cap | Heating EIR |
+|---|---|---|---|---|
+| `cchpc_2027_spec` | 0.045 | 0.111 | **0.271** | 0.253 |
+| `variable_speed_high_eff` | 0.045 | 0.111 | 0.141 | **0.120** |
+| `two_speed_standard_eff` | 0.031 | 0.229 | **0.038** | 0.419 |
+| `two_speed_lab_data` | 0.031 | 0.229 | 0.058 | 0.366 |
+
+What changed:
+- **CCHP heating capacity is now far off (0.077 to 0.271).** The lab's H level maps to CCHP stage
+  3, which is 1.35 of the rated medium stage. At H47H the model reads about 1.35 against the lab's
+  1.0, and the high stage stays 0.29 to 0.36 above the lab at every temperature. The lab's rated
+  point is its high speed, while the CCHP spec rates medium. Either the `STAGE_MAP` for CCHP
+  heating should pair lab H with stage 2, or the CCHP stage fractions really put more capacity
+  above rated than the lab units have. To decide.
+- **CCHP heating EIR improved (0.402 to 0.253).** The stage COP fractions no longer cancel, and
+  stage 3's 1.098 COP fraction now counts.
+- **Variable speed is still the closest on heating EIR.** Its rated stage is its top stage, like
+  the lab's, so its numbers barely moved. Its capacity at the boost (B) points is still 0.17 to 0.27 low.
+- **Cooling moved a little.** Ratios now include the A point and the lab airflow ratio, so cooling
+  EIR dropped for all four.
 
 **References we can use:**
 
@@ -1333,3 +1380,4 @@ Section numbers in older entries are the numbers at the time.
   open item (section 6) on whether `two_speed_lab_data` should use the standard or advanced
   regression.
 - 2026-10-13: Added "About the comparison notebook" to 4.3: the notebook is a first version (check that the lab units beat the spec and two-speed curves, and may or may not match variable speed; the points could also justify updating the variable-speed curves), plus the changes still needed (apples-to-apples plots, the stage fractions above 1 in the CCHP `staging_data`, how `stage_rated_cop_frac_*` reaches the simulation, and no extrapolation past the curve limits in the figures). Checked that every temperature curve in the four JSONs has both input limits set.
+- 2026-10-13: Revised the lab vs existing curves notebook (new "Normalization revised" in 4.3). Lab ratios are now to the workbook's rated gross values, and the model applies `stage_cap_fractions_*` and `stage_rated_cop_frac_*` as they are, relative to the JSON's rated stage, instead of re-normalizing at the stage mapped to the lab's rated point. Rated points now count in the statistics. Plot lines and coverage contours stop at the curve limits. New RMSE table; CCHP heating capacity is now 0.271 because its high stage is 1.35 of rated. Found that `h_cap_allstages_ff` is 0.997 at full flow. Ticked three items in the notebook checklist.
