@@ -733,6 +733,56 @@ reads the two workbooks and the JSONs directly, so it reruns as is. The plots ar
   - `h_cap_low` in `performance_map_CCHP_spec_2027.json` goes negative at -23.33 C (-0.056 at
     21.1 C indoor, -0.079 at 26.7 C). Left as is; added to section 6.
 
+**About the comparison notebook (2026-10-13).** The notebook above
+(`compare_lab_rtu_vs_existing_curves.ipynb`) is a first version, not a final one. What it is for and
+what still needs to change:
+
+- **Purpose.** A first look at how the experimental points line up with the curves we already have,
+  and a check that the lab units behave the way we expect them to. The expectation: the data come
+  from Challenge units, which should perform better than the Challenge specification
+  (`cchpc_2027_spec`, the Challenge's minimum requirement) and better than the two-speed units
+  (`two_speed_standard_eff`, `two_speed_lab_data`). They may or may not match the variable-speed
+  unit (`variable_speed_high_eff`); that is the open comparison.
+- **A second use.** The variable-speed curves were built from far fewer experimental points than
+  this data set has. So besides deciding scenario 3, these points can tell us whether the
+  variable-speed curves deserve an update, after proper reasoning and not just because the new
+  points differ.
+- **Still to change, in order:**
+  - [ ] **Apples to apples in the plots.** The plot cell (`plot_view`, cell 21 in the notebook's
+        numbering) puts the four scenarios and the two lab units side by side. Before reading
+        anything off those panels, make sure each scenario line and each lab point are on the same
+        basis: same reference point, same indoor condition, same stage definition, and the same
+        treatment of the stage fractions. Where a scenario can't be put on the same basis (for
+        example the variable-speed JSON has no boost stage), say so on the figure rather than
+        drawing it as if it were comparable.
+  - [ ] **Stage fractions above 1 in the CCHP JSON.** In `staging_data` of
+        `performance_map_CCHP_spec_2027.json` (lines 653 to 658), several fractions exceed the
+        rated value of 1: `stage_cap_fractions_heating` has high at 1.350 and boost at 1.389
+        (expected, see the stage table above), but `stage_rated_cop_frac_heating` also has low at
+        1.019 and high at 1.098, and `stage_rated_cop_frac_cooling` has 1.08, 1.11 and 1.07 for
+        stages 3, 2 and 1. The variable-speed JSON does the same (heating 1.45, 1.24, 1.05; cooling
+        identical to CCHP). Work out whether the notebook treats these the same way the model does
+        before comparing EIR across scenarios.
+  - [ ] **How `stage_rated_cop_frac_heating` and `stage_rated_cop_frac_cooling` reach the
+        simulation.** I'm not yet sure how these fractions end up in the modeled performance. What
+        the code shows so far: the measure sets each stage's gross rated COP to
+        `final_rated_cooling_cop × stage_rated_cop_frac_cooling[stage]` (`measure.rb:677`, and
+        `:637` for a single-speed coil) and `final_rated_heating_cop × stage_rated_cop_frac_heating[stage]`
+        (`measure.rb:759`). The notebook mirrors that as `EIR = EIRFT / cop_frac` (`Scenario.perf`,
+        cell 8). Still to confirm: that each stage's EIRFT curve is normalized to 1 at that stage's
+        own rating point (the check table at the end of cell 8 is the place to look), so the fraction
+        isn't counted twice, and where the fraction values came from in the first place.
+  - [ ] **No extrapolation past the JSON limits in the figures.** The plot cell currently draws the
+        whole sweep (-26 to 18 C heating, 15 to 50 C cooling), solid inside each curve's limits and
+        dashed outside, with `CLAMP_INPUTS = True` so the dashed part is a flat clamped tail. I
+        don't want any line past the limits, dashed or not; cut the sweep at the curve's
+        `minimum/maximum_independent_variable` values. Checked on 2026-10-13: every capacity and EIR
+        vs. temperature curve in all four JSONs has both indoor and outdoor limits set, so there is
+        nothing to revise there. The only curves with missing limits are one-variable curves (the
+        flow fraction, PLF and fan curves) whose unused second variable is `null`, which is as
+        expected. If a future JSON (the scenario 3 one) leaves a limit out, flag it and add the
+        limit rather than letting the plot extrapolate.
+
 **References we can use:**
 
 | Reference | Location | Use |
@@ -1282,3 +1332,4 @@ Section numbers in older entries are the numbers at the time.
   `hprtu_scenario`. Corrected the "unused `_adv` COP regressions" line in 3.4 to point here. Added an
   open item (section 6) on whether `two_speed_lab_data` should use the standard or advanced
   regression.
+- 2026-10-13: Added "About the comparison notebook" to 4.3: the notebook is a first version (check that the lab units beat the spec and two-speed curves, and may or may not match variable speed; the points could also justify updating the variable-speed curves), plus the changes still needed (apples-to-apples plots, the stage fractions above 1 in the CCHP `staging_data`, how `stage_rated_cop_frac_*` reaches the simulation, and no extrapolation past the curve limits in the figures). Checked that every temperature curve in the four JSONs has both input limits set.
