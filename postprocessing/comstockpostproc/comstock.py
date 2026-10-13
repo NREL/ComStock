@@ -104,7 +104,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         self.weighted_utility_units = weighted_utility_units
         self.skip_missing_columns = skip_missing_columns
         self.include_upgrades = include_upgrades
-        self.upgrade_ids_to_skip = upgrade_ids_to_skip
+        # Accept ints, numpy ints or zero-padded strings ('01'); every comparison below uses ints
+        self.upgrade_ids_to_skip = [int(u) for u in (upgrade_ids_to_skip or [])]
         self.upgrade_ids_for_comparison = upgrade_ids_for_comparison
         self.upgrade_ids_to_process = []
         self.timeseries_locations_to_plot = timeseries_locations_to_plot
@@ -350,7 +351,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     m = re.search('results_up(.*).parquet', obj_name)
                     if not m:
                         continue
-                    upgrade_id = m.group(1)
+                    upgrade_id = int(m.group(1))  # file names are zero-padded ('results_up01.parquet')
                     if upgrade_id in self.upgrade_ids_to_skip:
                         logger.info(f'Skipping data download for upgrade {upgrade_id}')
                         continue
@@ -1458,13 +1459,14 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def alias_custom_building_spec_columns(self, df):
         """Read create_custom_building_from_spec_* under the legacy measure names.
 
-        The custom-building-spec measure replaced two older measures and carries their
+        The custom-building-spec measure replaced three older measures and carries their
         arguments under its own prefix:
 
             create_bar_from_building_type_ratios_*   (geometry)
             create_typical_building_from_model_*     (systems, loads, schedules)
+            add_thermostat_setpoint_variability_*    (thermostat setpoints and setbacks)
 
-        comstock_column_definitions.csv names only the two legacy spellings, so without
+        comstock_column_definitions.csv names only the legacy spellings, so without
         this every one of those arguments goes missing on a custom-spec run -- including
         in.sqft, which the whole weighting and EUI chain divides by, and
         in.hvac_system_type, which the HVAC breakdowns and the results dashboard group by.
@@ -1476,14 +1478,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         custom-spec twin, none without. Ten carry named outputs -- in.sqft,
         in.comstock_building_type, in.number_of_stories, in.rotation,
         in.hvac_system_type, in.wall_construction_type and the four operating-hours
-        columns.
+        columns. The four thermostat arguments (clg_sp_f, htg_sp_f, clg_delta_f,
+        htg_delta_f, behind the in.tstat_* columns) equal the sampled hvac_tst_* values
+        for every building of sdr_2026r1_all_measure_10k.
 
         Only columns named in the definitions are aliased, and only where the legacy
         spelling is ABSENT, so this is a no-op for runs built with the older measures.
         """
         CUSTOM = 'create_custom_building_from_spec'
         LEGACY = ('create_bar_from_building_type_ratios',
-                  'create_typical_building_from_model')
+                  'create_typical_building_from_model',
+                  'add_thermostat_setpoint_variability')
 
         col_defs_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         defined = (pl.scan_csv(col_defs_path)
@@ -1595,6 +1600,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         expected_missing = (
             self.COLS_GEOG
             + self.COLS_UTIL_BILL_RESULTS
+            + self.UTIL_ELEC_BILL_LABEL + [self.UTIL_BILL_EIA_ID]  # kept at tract level only
         )
         for export_col_name, export_col_units in export_cols.iter_rows():
             expected_unitless_cols = [self.FLR_AREA, self.col_name_to_weighted(self.FLR_AREA)]
@@ -1949,7 +1955,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             self.data = self.data.with_columns(
                 (pl.col(engy_col) / pl.col(self.FLR_AREA)).alias(eui_col))
 
+    @staticmethod
+    def run_has_load_components(column_names):
+        """True when the run reports load components (loads_summary measure, special runs only).
+
+        Normal runs do not include that measure, and the load-component rows in the column
+        definitions default to FALSE (a special run sets them to TRUE), so the columns are
+        absent by design; callers use this to skip them quietly instead of logging each one
+        as missing.
+        """
+        return any(c.startswith(('loads_summary.', 'out.loads.')) for c in column_names)
+
     def add_load_intensity_columns(self):
+        # Load components are reported only by special runs
+        if not self.run_has_load_components(self.data.columns):
+            logger.info('Run has no load component results (special runs only); skipping load intensity columns.')
+            return
         # Create load intensity column for each load column
         for load_col in self.load_component_cols():
             if load_col not in self.data.columns:
@@ -2547,12 +2568,17 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         tract_to_util_map = pl.scan_csv(tract_to_util_file_path)
         alloc_wts = alloc_wts.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
+        # Building floor area for the utility cost intensity calcs, joined by building ID so that
+        # every allocated row has it. (It used to ride along with the per-utility bills below, so
+        # rows whose tract utility has no rate block, about 18% of rows, got a null floor area and
+        # therefore null bill intensities, which their percent savings then reported as 0.)
+        alloc_wts = alloc_wts.join(sim_outs.select([self.BLDG_ID, self.FLR_AREA]).unique(), on=self.BLDG_ID, how='left')
+
         # Get the utility bills by EIA ID from the simulation outputs.
         # This column includes the utility bills calculated for all possible
         # locations each simulation output could be allocated to.
-        # Include building floor area for utility cost intenstity calcs.
         util_bills_by_eia_id = sim_outs.select(
-            [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
+            [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS]
         )
 
         # Cast utility data column from Categorical back to String
@@ -2664,14 +2690,26 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             # Join the utility bills onto each building based on state
             alloc_wts = alloc_wts.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
 
+        # The measure writes no natural gas, propane or fuel oil bill for a building that uses none
+        # of that fuel, so the join leaves it null; that bill is $0.
+        alloc_wts = alloc_wts.with_columns(
+            [pl.col(c).fill_null(0) for c in [self.UTIL_STATE_AVG_GAS_COST, self.UTIL_STATE_AVG_PROP_COST, self.UTIL_STATE_AVG_FUEL_COST]]
+        )
+
         # fill missing utility bill costs with state average.
+        # The measure writes nothing for a utility when no URDB rate applies, so every statistic
+        # is null on those rows. The state-average bill is annual kWh times the state price, with
+        # no demand or fixed charge, so it fills the total and energy-charge statistics and the
+        # demand and fixed charges are zero.
         # These are Python conditions on the column name, not polars expressions. Columns that
         # are neither a cost nor a label (num_bills) are left as parsed; the previous when/when
         # chain had no otherwise and replaced them with null.
+        state_avg_bill_cols = ('out.utility_bills.electricity_bill_', 'out.utility_bills.electricity_energycharge_bill_')
         fill_exprs = []
         for column in self.UTIL_ELEC_BILL_VALS:
             if 'usd' in column:
-                fill_exprs.append(pl.col(column).fill_null(pl.col(self.UTIL_STATE_AVG_ELEC_COST)).alias(column))
+                fill_value = pl.col(self.UTIL_STATE_AVG_ELEC_COST) if column.startswith(state_avg_bill_cols) else pl.lit(0)
+                fill_exprs.append(pl.col(column).fill_null(fill_value).alias(column))
             elif 'label' in column:
                 fill_exprs.append(pl.col(column).fill_null('state_average_rate').alias(column))
         alloc_wts = alloc_wts.with_columns(fill_exprs)
@@ -2858,6 +2896,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Calculate utility bill savings columns on the aggregate data
         up_agg_alloc_wts = self.add_weighted_utility_cost_savings_columns(up_agg_alloc_wts, base_agg_alloc_wts, geo_agg_cols)
 
+        # Per-building dollar savings for the headline bills (the total bill, the mean-rate and state-average electricity
+        # bills, and the natural gas, propane and fuel oil bills). Each plain bill is its intensity times the building's
+        # floor area, so the dollar savings are the savings intensity times the floor area.
+        up_agg_alloc_wts = up_agg_alloc_wts.with_columns([
+            (pl.col(self.col_name_to_savings(self.col_name_to_area_intensity(col), None)) * pl.col(self.FLR_AREA))
+            .alias(self.col_name_to_savings(col, None))
+            for col in [self.UTIL_BILL_TOTAL_MEAN] + self.COLS_UTIL_BILLS + [self.UTIL_STATE_AVG_ELEC_COST]
+        ])
+
         # Drop the raw string utility bill results columns from the simulation outputs
         sim_outs = sim_outs.drop(self.COLS_UTIL_BILL_RESULTS)
 
@@ -2922,20 +2969,32 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if output_dir is None:
             output_dir = self.output_dir
 
-        # # Define the geographic partitions to export
+        # # Define the geographic partitions to export (the published release set, as run by
+        # # SightGlassDataProcessing telescope/comstock.py)
         # geo_exports = [
-        # {'geo_top_dir': 'national',
-        #     'partition_cols': {},
-        #     'aggregation_levels': ['national'],
-        #    'data_types': ['detailed', 'full', 'basic'],
-        #    'file_types': ['csv', 'parquet'],
+        # {'geo_top_dir': 'by_state_and_county',
+        #     'partition_cols': {
+        #         comstock.STATE_ABBRV: 'state',
+        #         comstock.COUNTY_ID: 'county',
+        #     },
+        #     'aggregation_levels': [comstock.TRACT_ID],  # Full tract resolution: the per-building files
+        #     'data_types': ['full', 'basic'],
+        #     'file_types': ['csv', 'parquet'],
         # },
         # {'geo_top_dir': 'by_state_and_county',
         #     'partition_cols': {
         #         comstock.STATE_ABBRV: 'state',
         #         comstock.COUNTY_ID: 'county',
         #     },
-        #     'aggregation_levels': [None, comstock.COUNTY_ID],  # The only one by at full resolution (no agg)
+        #     'aggregation_levels': [comstock.COUNTY_ID],  # Aggregated to county
+        #     'data_types': ['full', 'basic'],
+        #     'file_types': ['csv', 'parquet'],
+        # },
+        # {'geo_top_dir': 'national',
+        #     'partition_cols': {},
+        #     # One file for the country at building x state grain. The plain 'national' level
+        #     # (one row per building) is not used and is not supported.
+        #     'aggregation_levels': [comstock.STATE_ABBRV],
         #     'data_types': ['full', 'basic'],
         #     'file_types': ['csv', 'parquet'],
         # },
@@ -3488,6 +3547,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         # Get the list of existing column names
         existing_col_names = input_lf.collect_schema().names()  # Requires collecting LazyFrame
+        # Load components are reported only by special runs; skip them quietly otherwise
+        load_cols = self.load_component_cols() if self.run_has_load_components(existing_col_names) else []
         logger.debug('Converting units in the weighted columns')
         for col in (self.GHG_FUEL_COLS +
                     [self.ANN_GHG_EGRID, self.ANN_GHG_CAMBIUM] +
@@ -3498,7 +3559,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
                     self.COLS_GROCERY_REFRIG_DEFROST_ENDUSE +
                     self.COLS_ENDUSE_GROUP_TOT_ANN_ENGY +
                     self.COLS_ENDUSE_GROUP_ANN_ENGY +
-                    self.load_component_cols()):
+                    load_cols):
 
             if not col in existing_col_names:
                 logger.warning(f'Missing column needed for adding weighted columns: {col}')
@@ -3605,6 +3666,9 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def add_weighted_utility_cost_savings_columns(self, input_lf, baseline_lf, geo_agg_cols):
         # the data contains the weighted extracted utility bills for the apportioned tract
         # This method will calculate the weighted utility cost savings by each metric - min, median_low, median_high, mean, max, and state average
+        # Each scenario's electricity bills use the rates that apply to that scenario's own peak demand and annual use, so an
+        # upgrade can change the applicable rates, or move a building to or from the state-average bill; savings compare the
+        # two bills as computed.
 
         logger.debug('Adding weighted utility cost savings')
 

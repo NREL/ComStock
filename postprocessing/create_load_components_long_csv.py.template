@@ -8,6 +8,9 @@ import comstockpostproc as cspp
 logging.basicConfig(level='INFO')  # Use DEBUG, INFO, or WARNING
 logger = logging.getLogger(__name__)
 
+# Load-component columns are off by default: before running, set full_metadata to TRUE for the
+# out.loads.*, calc.weighted.loads.* and calc.loads_intensity.* rows in comstock_column_definitions.csv
+
 # First ComStock run
 comstock_a = cspp.ComStock(
     s3_base_dir='eulp/euss_com',  # If run not on S3, download results_up**.parquet manually
