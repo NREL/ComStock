@@ -670,10 +670,12 @@ the short version.
 (19T)`) or the LG (`RTU-F (10T)`) as the most relevant units to model. I compared both against all
 four scenario JSONs, not only `performance_maps_hprtu_lab_data.json`. Notebook:
 `ComStock - Measures\HVAC - Dual Fuel RTU\notebooks\compare_lab_rtu_vs_existing_curves.ipynb`. It
-reads the two workbooks and the JSONs directly, so it reruns as is. The plots are interactive
-(plotly); click a legend entry to hide or show a scenario or a unit.
+reads the two workbooks and the JSONs directly, so it reruns as is. (The rated COP section also reads
+two more workbooks, York `RTU-J (15T)` and Carrier `RTU-B (10T)`, for their rated points only.) The
+plots are interactive (plotly); click a legend entry to hide or show a scenario or a unit.
 
-- **Method.**
+- **Method (as of 2026-10-12; the normalization and the two-speed heating mapping changed on
+  2026-10-13, see "Normalization revised" below).**
   - Gross values throughout: capacity with the indoor fan heat removed, and power = compressor +
     outdoor fan + controls (`PC + PCD + PCT`, no indoor fan or crankcase). EIR = gross power /
     gross capacity. This matches the DX coil curves and the rated COP regressions.
@@ -719,7 +721,8 @@ reads the two workbooks and the JSONs directly, so it reruns as is. The plots ar
     Its stage 3 (0.85 of rated) also sits above the lab's mid level (about 0.70).
   - Fan: the variable-speed/CCHP fan curve (single zone VAV coefficients) matches both lab fits
     (RMSE 0.015 to 0.03 in power fraction). The two-speed fan curve overstates part-flow power.
-  - Rated COP (rougher check, using the measure's regression and cfm/ton adjustment): cooling COP is
+  - Rated COP (rougher check, using the measure's regression and cfm/ton adjustment; the notebook
+    now does this differently, see "Normalization revised" below): cooling COP is
     2 to 11% below the lab units. Heating is 13 to 15% low for the two-speed JSONs and about 12%
     high for CCHP (its rated stage is medium, and high gets a 1.098 COP fraction).
 - **Leaning (not decided).** No existing JSON matches well on both heating capacity and heating EIR,
@@ -774,11 +777,11 @@ what still needs to change:
         cell 8). Still to confirm: that each stage's EIRFT curve is normalized to 1 at that stage's
         own rating point (the check table at the end of cell 8 is the place to look), so the fraction
         isn't counted twice, and where the fraction values came from in the first place.
-  - [x] **No extrapolation past the JSON limits in the figures.** Done 2026-10-13. The plot cell currently draws the
+  - [x] **No extrapolation past the JSON limits in the figures.** Done 2026-10-13. The plot cell used to draw the
         whole sweep (-26 to 18 C heating, 15 to 50 C cooling), solid inside each curve's limits and
-        dashed outside, with `CLAMP_INPUTS = True` so the dashed part is a flat clamped tail. I
-        don't want any line past the limits, dashed or not; cut the sweep at the curve's
-        `minimum/maximum_independent_variable` values. Checked on 2026-10-13: every capacity and EIR
+        dashed outside, with `CLAMP_INPUTS = True` so the dashed part was a flat clamped tail. Now
+        the lines and the coverage contours are cut at the curve's
+        `minimum/maximum_independent_variable` values, with nothing drawn past them. Checked on 2026-10-13: every capacity and EIR
         vs. temperature curve in all four JSONs has both indoor and outdoor limits set, so there is
         nothing to revise there. The only curves with missing limits are one-variable curves (the
         flow fraction, PLF and fan curves) whose unused second variable is `null`, which is as
@@ -798,8 +801,17 @@ not to the JSON's rated medium stage. The notebook now puts each side on its own
   `staging_data` hands it to EnergyPlus. The flow fraction is the lab airflow ratio divided by the
   stage's flow fraction.
 - **Rated points kept in the statistics.** The lab is 1 there by definition, but the model isn't.
+- **Two-speed heating compared at the lab's M level, not H.** The single heating stage of the two
+  two-speed JSONs is now paired with `H47M` and `H17M`, still as ratios to `H47H`. So two-speed
+  heating rests on 4 points (2 per unit) and has no `H47H` row. Its heating decomposition anchor is
+  `H47M`. The `H` level's anchor is `H47H`, so for the four-stage JSONs that row shows the mapped
+  stage's fractions against the lab's rated point.
 - **Plots and coverage contours stop at the curve limits.** Nothing is drawn outside a curve's
   min/max. Lab points outside the limits stay, with the clamped model value.
+- **Rated COP check reworked.** It now puts the lab's measured gross COP at each rated point (A,
+  H47H) next to both of the measure's regressions, standard and advanced, as functions of gross
+  capacity. No scenario curves, stage fractions or cfm/ton adjustment are applied. It covers four
+  units: LG and Trane plus York `RTU-J (15T)` and Carrier `RTU-B (10T)`, about 36 to 86 kW.
 
 At the rating conditions, `cchpc_2027_spec` heating stage 4 comes out at 1.385, not 1.389. Its
 temperature curve is exactly 1 there, but `h_cap_allstages_ff` is 0.997 at a flow fraction of 1.
@@ -807,14 +819,17 @@ The two two-speed JSONs have the same 0.996 to 0.997 offset. EnergyPlus applies 
 so 1.385 is what the simulation sees. The notebook prints this per stage under the comparison
 engine.
 
-New RMSE of model ratio − lab ratio, both units pooled, rated points included:
+New RMSE of model ratio − lab ratio, both units pooled, rated points included (rerun of the
+current notebook, 2026-10-13). The point counts differ: 20 heating points for the four-stage JSONs
+and 4 (M level only) for the two-speed JSONs; 8 cooling points for the four-stage JSONs and 4 (A
+and C) for the two-speed JSONs.
 
 | Scenario JSON | Cooling cap | Cooling EIR | Heating cap | Heating EIR |
 |---|---|---|---|---|
 | `cchpc_2027_spec` | 0.045 | 0.111 | **0.271** | 0.253 |
-| `variable_speed_high_eff` | 0.045 | 0.111 | 0.141 | **0.120** |
-| `two_speed_standard_eff` | 0.031 | 0.229 | **0.038** | 0.419 |
-| `two_speed_lab_data` | 0.031 | 0.229 | 0.058 | 0.366 |
+| `variable_speed_high_eff` | 0.045 | 0.111 | 0.170 | 0.173 |
+| `two_speed_standard_eff` | 0.031 | 0.229 | 0.242 | 0.123 |
+| `two_speed_lab_data` | 0.031 | 0.229 | 0.234 | 0.138 |
 
 What changed:
 - **CCHP heating capacity is now far off (0.077 to 0.271).** The lab's H level maps to CCHP stage
@@ -825,10 +840,26 @@ What changed:
   above rated than the lab units have. To decide.
 - **CCHP heating EIR improved (0.402 to 0.253).** The stage COP fractions no longer cancel, and
   stage 3's 1.098 COP fraction now counts.
-- **Variable speed is still the closest on heating EIR.** Its rated stage is its top stage, like
-  the lab's, so its numbers barely moved. Its capacity at the boost (B) points is still 0.17 to 0.27 low.
+- **Two-speed heating capacity is now high (0.24).** Its single stage is the JSON's rated stage
+  (capacity fraction 1.0), but it is now compared with the lab's M level, which is 0.66 to 0.74 of
+  rated at 47 F. The model is 0.26 to 0.33 above the lab at `H47M` and 0.14 to 0.17 above at
+  `H17M`. That gap is mostly the M mapping, not the curve. Two-speed heating EIR is now the lowest
+  RMSE in the table (0.12 to 0.14), but on 4 points only.
+- **Variable speed on heating EIR.** Pooled over all four levels it is 0.173. By level it is the
+  closest of the four-stage JSONs at H (0.085, vs 0.260 for CCHP) and at B (0.159 vs 0.288), but
+  not at L (0.249 vs 0.226) or M (0.198 vs 0.207). Its rated stage is its top stage, like the
+  lab's. Its heating capacity is low at every level (bias −0.15 to −0.16 per unit), and 0.17 to
+  0.27 low at the boost (B) points.
 - **Cooling moved a little.** Ratios now include the A point and the lab airflow ratio, so cooling
   EIR dropped for all four.
+- **Fan curve unchanged.** The variable-speed/CCHP fan curve still matches both lab fits (RMSE
+  0.015 Trane, 0.030 LG). The two-speed curve overstates part-flow power (bias +0.02 LG, +0.06
+  Trane).
+- **Rated COP (new check).** Cooling: the standard regression is 3 to 10% below the four lab units
+  and the advanced regression 1 to 7% above. Heating: the standard regression is 9% below to 6%
+  above (it is clamped for the Trane unit) and the advanced one 5% below to 9.5% above. The lab gross
+  COPs are 3.52 to 3.70 for cooling and 3.39 to 3.86 for heating. Four units over 36 to 86 kW test
+  the level of the regressions more than their slopes.
 
 **References we can use:**
 
@@ -1381,3 +1412,4 @@ Section numbers in older entries are the numbers at the time.
   regression.
 - 2026-10-13: Added "About the comparison notebook" to 4.3: the notebook is a first version (check that the lab units beat the spec and two-speed curves, and may or may not match variable speed; the points could also justify updating the variable-speed curves), plus the changes still needed (apples-to-apples plots, the stage fractions above 1 in the CCHP `staging_data`, how `stage_rated_cop_frac_*` reaches the simulation, and no extrapolation past the curve limits in the figures). Checked that every temperature curve in the four JSONs has both input limits set.
 - 2026-10-13: Revised the lab vs existing curves notebook (new "Normalization revised" in 4.3). Lab ratios are now to the workbook's rated gross values, and the model applies `stage_cap_fractions_*` and `stage_rated_cop_frac_*` as they are, relative to the JSON's rated stage, instead of re-normalizing at the stage mapped to the lab's rated point. Rated points now count in the statistics. Plot lines and coverage contours stop at the curve limits. New RMSE table; CCHP heating capacity is now 0.271 because its high stage is 1.35 of rated. Found that `h_cap_allstages_ff` is 0.997 at full flow. Ticked three items in the notebook checklist.
+- 2026-10-13: Brought 4.3 in line with the current notebook. Two-speed heating is now compared at the lab's M level (`H47M`, `H17M`), not H; the rated COP check now compares lab gross COP with both measure regressions, without curves or cfm/ton adjustment, and adds York `RTU-J (15T)` and Carrier `RTU-B (10T)`. Reran the notebook and replaced the RMSE table (variable speed heating 0.170 / 0.173; two-speed heating 0.24 / 0.12 to 0.14) and its findings. Labeled the 2026-10-12 method as such and fixed the "plot cell currently draws..." wording on the done item.
