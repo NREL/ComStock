@@ -39,6 +39,7 @@ from comstockpostproc.gas_correction_model import GasCorrectionModelMixin
 from comstockpostproc.naming_mixin import NamingMixin
 from comstockpostproc.s3_utilities_mixin import S3UtilitiesMixin, write_geo_data
 from comstockpostproc.units_mixin import UnitsMixin
+from comstockpostproc import utility_bills_join
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -2354,11 +2355,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
     def get_allocated_weights_plus_util_bills_for_upgrade(self, upgrade_id):
 
         # Read from cache
-        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills/upgrade={upgrade_id}'
+        alloc_wts_bills_root = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills'
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
-            alloc_wts_bills_dir = f's3://{alloc_wts_bills_dir}'
+            alloc_wts_bills_root = f's3://{alloc_wts_bills_root}'
+        alloc_wts_bills_dir = f'{alloc_wts_bills_root}/upgrade={upgrade_id}'
         if not self.output_dir['fs'].exists(alloc_wts_bills_dir):
             raise Exception(f"{alloc_wts_bills_dir} does not exist. Ensure create_allocated_weights_plus_util_bills_for_upgrade has been called previously.")
+        if utility_bills_join.bills_cache_version(alloc_wts_bills_root, self.output_dir['fs']) < utility_bills_join.BILLS_JOIN_VERSION:
+            raise Exception(f"{alloc_wts_bills_root} was built by an older utility bills join that duplicated rows. "
+                            f"Call create_allocated_weights_plus_util_bills_for_upgrade to rebuild it.")
         state_pqts = []
         pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
         for p in self.output_dir['fs'].glob(pqt_glob):
@@ -2409,9 +2414,12 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         alloc_wts = self.get_allocated_weights_scaled_to_cbecs_for_upgrade(upgrade_id)
 
         # If the cached file already exists, scan and return
-        alloc_wts_bills_dir = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills/upgrade={upgrade_id}'
+        alloc_wts_bills_root = f'{self.output_dir["fs_path"]}/cached_allocated_weights_plus_bills'
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
-            alloc_wts_bills_dir = f's3://{alloc_wts_bills_dir}'
+            alloc_wts_bills_root = f's3://{alloc_wts_bills_root}'
+        alloc_wts_bills_dir = f'{alloc_wts_bills_root}/upgrade={upgrade_id}'
+        # A cache built by an older bills join is renamed .stale_* and rebuilt
+        utility_bills_join.retire_stale_bills_cache(alloc_wts_bills_root, self.output_dir['fs'])
         if self.output_dir['fs'].exists(alloc_wts_bills_dir):
             state_pqts = []
             pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
@@ -2441,63 +2449,24 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Assign the EIA Utility ID for each building based on this tract
         tract_to_util_file_path = os.path.join(self.truth_data_dir, self.tract_to_util_map_file_name)
         tract_to_util_map = pl.scan_csv(tract_to_util_file_path)
+        utility_bills_join.assert_unique_on(tract_to_util_map, [self.TRACT_ID], tract_to_util_file_path)
+        n_alloc_rows = alloc_wts.select(pl.len()).collect().item()
         alloc_wts = alloc_wts.join(tract_to_util_map, on=self.TRACT_ID, how='left')
 
         # Get the utility bills by EIA ID from the simulation outputs.
         # This column includes the utility bills calculated for all possible
-        # locations each simulation output could be allocated to.
+        # locations each simulation output could be allocated to, one row per
+        # join key (a utility repeated across states is collapsed to one row).
         # Include building floor area for utility cost intenstity calcs.
-        util_bills_by_eia_id = sim_outs.select(
-            [self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.FLR_AREA]
-        )
-
-        # Cast utility data column from Categorical back to String
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            pl.col(self.UTIL_BILL_ELEC_RESULTS).cast(pl.String)
-        )
-
-        # Create a new row for each Building ID x EIA ID combination
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.strip_chars_start('|').str.strip_chars_end('|').str.split('|')
-        ).explode(self.UTIL_BILL_ELEC_RESULTS)
-
-        # Split the values into a temporary list column
-        tsc = 'tsc'
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            pl.col(self.UTIL_BILL_ELEC_RESULTS).str.split(":").alias(tsc)
-        )
-
-        # Define column names based on  measure output
-        # NOTE: Column name order must match the order in utility_bills/measure.rb!
-        new_util_columns = [self.UTIL_BILL_EIA_ID] + self.UTIL_ELEC_BILL_VALS
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            pl.col(tsc).list.to_struct("max_width", new_util_columns)
-        ).unnest(tsc)
-        # NOTE: need to do this otherwise the lazyframe query optimization breaks down
-        collect_tstart = datetime.datetime.now()
-        util_bills_by_eia_id = util_bills_by_eia_id.collect().lazy()
-        collect_tend = datetime.datetime.now()
-        elapsed_time = (collect_tend - collect_tstart).total_seconds()
-        logger.info(f"Collect time for util_bills_by_eia_id: {elapsed_time} seconds")
-
-        # Replace empty strings with nulls in the new columns
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            [pl.when(pl.col(new_col) == "")
-            .then(None)
-            .otherwise(pl.col(new_col))
-            .alias(new_col)
-            for new_col in new_util_columns]
-        )
-
-        # Convert the EIA ID and bill column dtypes to integers
-        cols_to_int = [c for c in self.UTIL_ELEC_BILL_VALS if '..usd' in c]
-        cols_to_int.append(self.UTIL_BILL_EIA_ID)
-        util_bills_by_eia_id = util_bills_by_eia_id.with_columns(
-            [pl.col(column).cast(pl.Int64) for column in cols_to_int]
-        )
+        util_bills_by_eia_id = utility_bills_join.electricity_bills_by_utility(
+            sim_outs, self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.UTIL_BILL_EIA_ID,
+            self.UTIL_ELEC_BILL_VALS, keep_cols=[self.FLR_AREA])
+        util_bills_by_eia_id, bills_join_keys = utility_bills_join.bills_join_keys(
+            util_bills_by_eia_id, self.BLDG_ID, self.UTIL_BILL_EIA_ID, self.STATE_ABBRV)
+        utility_bills_join.assert_unique_on(util_bills_by_eia_id, bills_join_keys, 'Electricity bills by utility')
 
         # Join the utility bills onto each building based on utility ID
-        alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=[self.BLDG_ID, self.UTIL_BILL_EIA_ID], how='left')
+        alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=bills_join_keys, how='left')
 
         # Loop through each fuel and assign state-level bills to each building
         for col_state_util_result, col_state_util_bill in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
@@ -2558,6 +2527,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             )
 
             # Join the utility bills onto each building based on state
+            utility_bills_join.assert_unique_on(util_bills_by_state, [self.BLDG_ID, self.STATE_ABBRV], col_state_util_result)
             alloc_wts = alloc_wts.join(util_bills_by_state, on=[self.BLDG_ID, self.STATE_ABBRV], how='left')
 
         # fill missing utility bill costs with state average
@@ -2622,6 +2592,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         collect_tend = datetime.datetime.now()
         elapsed_time = (collect_tend - collect_tstart).total_seconds()
         logger.info(f"Collect time for upgrade {upgrade_id}: {elapsed_time} seconds")
+        utility_bills_join.assert_row_count_preserved(n_alloc_rows, alloc_wts.height, f'The utility bills joins for upgrade {upgrade_id}')
         alloc_wts = alloc_wts.drop('upgrade')  # upgrade column will be read from hive partition dir name
         logger.info(f'Caching allocated weights plus bills for upgrade {upgrade_id} to: {alloc_wts_bills_dir}')
         # Cache by state to enable faster reading
@@ -2639,6 +2610,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             with self.output_dir['fs'].open(cached_file_path, "wb") as f:
                 state_alloc_wts.write_parquet(f)
         alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
+        utility_bills_join.write_bills_marker(alloc_wts_bills_root, self.output_dir['fs'])
 
         return alloc_wts_bills_dir
 
