@@ -16,10 +16,11 @@ from comstockpostproc.comstock import ComStock
 from comstockpostproc.naming_mixin import NamingMixin as N
 
 VALS = N.UTIL_ELEC_BILL_VALS
+MEASURE_RESOURCES = os.path.join(os.path.dirname(__file__), '..', '..', 'measures', 'utility_bills', 'resources')
 
 
-def block(key, mean):
-    """One '<key>:<values>' block in the measure's field order, every ..usd field = mean."""
+def block(key, mean, state=None):
+    """One '<key>:<values>[:<state>]' block in the measure's field order, every ..usd field = mean."""
     vals = []
     for c in VALS:
         if c == N.UTIL_ELEC_BILL_NUM_BILLS:
@@ -28,7 +29,7 @@ def block(key, mean):
             vals.append(f'rate_{key}')
         else:
             vals.append(str(mean))
-    return f'{key}:' + ':'.join(vals)
+    return f'{key}:' + ':'.join(vals) + (f':{state}' if state else '')
 
 
 def bills_string(*blocks):
@@ -39,11 +40,18 @@ def state_string(**by_state):
     return '|' + '|'.join(f'{st}:{v}' for st, v in by_state.items()) + '|'
 
 
-# Building 1 is in a region spanning ID and WA; utility 100 serves tracts in both states,
-# so the measure writes it twice (with each state's escalation). Building 2 is single-state.
+# The measure's lists for two regions: R1 spans ID then WA, and utility 100 serves tracts in both;
+# R2 is WY only
+BILL_STATES = pl.DataFrame(
+    [('R1', 'ID', 0, 100), ('R1', 'ID', 0, 200), ('R1', 'WA', 1, 100), ('R2', 'WY', 0, 300)],
+    schema=ubj.BILL_STATES_SCHEMA, orient='row')
+
+# Building 1 is in R1, so the measure writes utility 100 twice, ID's bill (with ID's escalation)
+# before WA's. Building 2 is in R2.
 SIM_OUTS = pl.DataFrame({
     N.BLDG_ID: [1, 2],
     N.FLR_AREA: [1000.0, 2000.0],
+    N.SAMPLING_REGION: ['R1', 'R2'],
     N.UTIL_BILL_ELEC_RESULTS: [
         bills_string(block('100', 1000), block('200', 1500), block('100', 1100)),
         bills_string(block('300', 2000)),
@@ -54,31 +62,44 @@ SIM_OUTS = pl.DataFrame({
     N.UTIL_BILL_STATE_FUEL_OIL_RESULTS: [state_string(ID=0, WA=0), state_string(WY=0)],
 }).with_columns(pl.col(N.UTIL_BILL_ELEC_RESULTS).cast(pl.Categorical))
 
-# 10 allocated rows; tracts T1/T3 (ID) and T2 (WA) are served by utility 100
+# The same results from a measure version that records each block's state
+SIM_OUTS_WITH_STATES = SIM_OUTS.with_columns(pl.Series(N.UTIL_BILL_ELEC_RESULTS, [
+    bills_string(block('100', 1000, 'ID'), block('200', 1500, 'ID'), block('100', 1100, 'WA')),
+    bills_string(block('300', 2000, 'WY')),
+]).cast(pl.Categorical))
+
+# 10 allocated rows; tracts T1/T3 (ID) and T2 (WA) are served by utility 100, T6 (WA) by none
 TRACT_TO_UTIL = pl.DataFrame({
-    N.TRACT_ID: ['T1', 'T2', 'T3', 'T4', 'T5'],
-    N.UTIL_BILL_EIA_ID: [100, 100, 100, 200, 300],
+    N.TRACT_ID: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
+    N.UTIL_BILL_EIA_ID: [100, 100, 100, 200, 300, None],
 })
 DRAW = pl.DataFrame({
     N.BLDG_ID: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
-    N.TRACT_ID: ['T1', 'T2', 'T3', 'T1', 'T4', 'T4', 'T5', 'T5', 'T5', 'T5'],
+    N.TRACT_ID: ['T1', 'T2', 'T3', 'T1', 'T4', 'T6', 'T5', 'T5', 'T5', 'T5'],
     N.STATE_ABBRV: ['ID', 'WA', 'ID', 'ID', 'ID', 'WA', 'WY', 'WY', 'WY', 'WY'],
     N.BLDG_WEIGHT: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
 })
 
 
-def parse(sim_outs=SIM_OUTS):
+def parse(sim_outs=SIM_OUTS, bill_states=BILL_STATES, keep_cols=()):
     return ubj.electricity_bills_by_utility(
-        sim_outs.lazy(), N.BLDG_ID, N.UTIL_BILL_ELEC_RESULTS, N.UTIL_BILL_EIA_ID, VALS).collect()
+        sim_outs.lazy(), N.BLDG_ID, N.UTIL_BILL_ELEC_RESULTS, N.UTIL_BILL_EIA_ID, VALS,
+        N.SAMPLING_REGION, N.UTIL_BILL_STATE_ELEC_RESULTS, keep_cols=keep_cols, bill_states=bill_states).collect()
 
 
-def test_repeated_eia_id_collapses_to_first_block():
-    bills = parse()
-    assert bills.select(N.BLDG_ID, N.UTIL_BILL_EIA_ID).rows() == [(1, 100), (1, 200), (2, 300)]
-    assert bills.filter(pl.col(N.UTIL_BILL_EIA_ID) == 100)[N.UTIL_BILL_ELEC].item() == 1000
-    assert bills[ubj.BILL_STATE].null_count() == bills.height
+def test_each_block_gets_its_state_from_the_measure_order():
+    bills = parse().sort(N.BLDG_ID, N.UTIL_BILL_EIA_ID, ubj.BILL_STATE)
+    assert bills.select(N.BLDG_ID, N.UTIL_BILL_EIA_ID, ubj.BILL_STATE, N.UTIL_BILL_ELEC).rows() == [
+        (1, 100, 'ID', 1000), (1, 100, 'WA', 1100), (1, 200, 'ID', 1500), (2, 300, 'WY', 2000)]
     assert bills.schema[N.UTIL_BILL_ELEC] == pl.Int64
     assert bills.schema[N.UTIL_BILL_EIA_ID] == pl.Int64
+
+
+def test_state_field_gives_the_same_bills_as_the_measure_order():
+    from_order = parse().drop(N.UTIL_BILL_ELEC_RESULTS)
+    from_field = parse(SIM_OUTS_WITH_STATES, bill_states=BILL_STATES.head(0)).drop(N.UTIL_BILL_ELEC_RESULTS)
+    keys = [N.BLDG_ID, N.UTIL_BILL_EIA_ID, ubj.BILL_STATE]
+    assert_frame_equal(from_order.sort(keys), from_field.sort(keys))
 
 
 def old_join(sim_outs, draw):
@@ -94,11 +115,10 @@ def old_join(sim_outs, draw):
     return draw.join(bills, on=[N.BLDG_ID, eia], how='left')
 
 
-def test_matches_old_join_without_the_duplicate_copies():
+def test_matches_old_join_keeping_each_rows_own_state():
     draw = DRAW.with_row_index('row').join(TRACT_TO_UTIL, on=N.TRACT_ID, how='left')
     old = old_join(SIM_OUTS, draw)
-    bills = ubj.electricity_bills_by_utility(SIM_OUTS.lazy(), N.BLDG_ID, N.UTIL_BILL_ELEC_RESULTS,
-                                             N.UTIL_BILL_EIA_ID, VALS, keep_cols=[N.FLR_AREA])
+    bills = parse(keep_cols=[N.FLR_AREA]).lazy()
     bills, keys = ubj.bills_join_keys(bills, N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
     new = draw.join(bills.collect(), on=keys, how='left')
 
@@ -107,9 +127,12 @@ def test_matches_old_join_without_the_duplicate_copies():
     # The old join copied building 1's four utility-100 rows (utility 100 is in its string twice)
     assert old.height == DRAW.height + 4
     assert new.height == DRAW.height
-    # Every new row is the old row built from the utility's first block (mean 1000, not 1100)
-    old_first = old.filter(pl.col(N.UTIL_BILL_ELEC) != 1100)
-    assert_frame_equal(new.sort('row'), old_first.sort('row'))
+    # Every new row is the old copy built from its own state's block: ID's 1000 in ID, WA's 1100 in WA
+    other_state = (pl.col(N.UTIL_BILL_EIA_ID) == 100) & (
+        ((pl.col(N.STATE_ABBRV) == 'ID') & (pl.col(N.UTIL_BILL_ELEC) == 1100))
+        | ((pl.col(N.STATE_ABBRV) == 'WA') & (pl.col(N.UTIL_BILL_ELEC) == 1000))).fill_null(False)
+    assert_frame_equal(new.sort('row'), old.filter(~other_state).sort('row'))
+    assert new.filter(pl.col('row') == 1)[N.UTIL_BILL_ELEC].item() == 1100
 
 
 def test_empty_results_string_is_dropped():
@@ -120,28 +143,54 @@ def test_empty_results_string_is_dropped():
     assert 3 not in parse(sim_outs)[N.BLDG_ID].to_list()
 
 
-def test_state_keyed_blocks_parse_and_join_on_state():
-    sim_outs = SIM_OUTS.with_columns(pl.Series(N.UTIL_BILL_ELEC_RESULTS, [
-        bills_string(block('100@ID', 1000), block('200@ID', 1500), block('100@WA', 1100), block('200@WA', 1600)),
-        bills_string(block('300@WY', 2000)),
-    ]))
-    bills = parse(sim_outs)
-    assert bills.height == 5
-    assert sorted(bills.filter(pl.col(N.UTIL_BILL_EIA_ID) == 100)[ubj.BILL_STATE].to_list()) == ['ID', 'WA']
-
-    bills, keys = ubj.bills_join_keys(bills.lazy(), N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
-    assert keys == [N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV]
-    joined = DRAW.join(TRACT_TO_UTIL, on=N.TRACT_ID).join(bills.collect(), on=keys, how='left')
-    assert joined.height == DRAW.height
-    # Row 2 (WA, utility 100) gets WA's bill, rows 1/3/4 (ID) get ID's
-    assert joined[N.UTIL_BILL_ELEC].to_list()[:6] == [1000, 1100, 1000, 1000, 1500, 1600]
+def with_results(*results, sim_outs=SIM_OUTS):
+    return sim_outs.with_columns(pl.Series(N.UTIL_BILL_ELEC_RESULTS, list(results)).cast(pl.Categorical))
 
 
-def test_mixed_key_formats_raise():
-    sim_outs = SIM_OUTS.with_columns(pl.Series(N.UTIL_BILL_ELEC_RESULTS, [
-        bills_string(block('100@ID', 1000)), bills_string(block('300', 2000))]))
-    with pytest.raises(ValueError, match='mix state-keyed'):
-        ubj.bills_join_keys(parse(sim_outs).lazy(), N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
+def test_mixed_formats_raise():
+    sim_outs = with_results(bills_string(block('100', 1000, 'ID')), bills_string(block('300', 2000)))
+    with pytest.raises(ValueError, match='mix blocks with and without their state'):
+        parse(sim_outs)
+
+
+def test_a_state_field_that_is_not_a_state_raises():
+    sim_outs = with_results(bills_string(block('100', 1000, 'Idaho')), bills_string(block('300', 2000, 'WY')))
+    with pytest.raises(ValueError, match='other than a state abbreviation'):
+        parse(sim_outs)
+
+
+def test_states_in_another_order_raise():
+    sim_outs = SIM_OUTS.with_columns(pl.Series(N.UTIL_BILL_STATE_ELEC_RESULTS,
+                                               [state_string(WA=950, ID=900), state_string(WY=1900)]))
+    with pytest.raises(ValueError, match='list their states in another order'):
+        parse(sim_outs)
+
+
+def test_unknown_region_raises():
+    with pytest.raises(ValueError, match='list their states in another order'):
+        parse(SIM_OUTS.with_columns(pl.Series(N.SAMPLING_REGION, ['R9', 'R2'])))
+
+
+def test_blocks_that_do_not_match_the_utilitys_states_raise():
+    # Utility 100 serves ID and WA tracts in R1, so it must have two blocks
+    sim_outs = with_results(bills_string(block('100', 1000), block('200', 1500)), bills_string(block('300', 2000)))
+    with pytest.raises(ValueError, match='do not match the states their utility serves'):
+        parse(sim_outs)
+
+
+def test_row_without_its_states_bill_raises():
+    bills, keys = ubj.bills_join_keys(parse().lazy(), N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
+    alloc = DRAW.join(TRACT_TO_UTIL, on=N.TRACT_ID, how='left').lazy()
+    ubj.assert_rows_find_their_state(alloc, bills, keys)
+    # A WA row of utility 200, which the measure billed for ID only
+    stray = pl.LazyFrame({N.BLDG_ID: [1], N.STATE_ABBRV: ['WA'], N.UTIL_BILL_EIA_ID: [200]})
+    with pytest.raises(ValueError, match='have no electricity bill'):
+        ubj.assert_rows_find_their_state(pl.concat([alloc.select(keys), stray.select(keys)]), bills, keys)
+
+
+@pytest.mark.skipif(not os.path.isdir(MEASURE_RESOURCES), reason='needs the utility_bills measure resources')
+def test_bill_state_table_matches_measure():
+    assert_frame_equal(ubj.build_bill_state_table(MEASURE_RESOURCES), ubj.read_bill_state_table())
 
 
 def test_assert_unique_on_names_offending_key():
@@ -172,7 +221,17 @@ def test_stale_cache_is_renamed_and_marker_written(tmp_path):
     assert os.path.exists(f'{root}/upgrade=0')
 
 
-def make_comstock(tmp_path):
+def test_first_block_cache_is_renamed(tmp_path):
+    fs = fsspec.filesystem('file')
+    root = (tmp_path / 'cached_allocated_weights_plus_bills').as_posix()
+    os.makedirs(f'{root}/upgrade=0')
+    with open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}', 'w') as f:
+        json.dump({'bills_join_version': 2}, f)
+    stale = ubj.retire_stale_bills_cache(root, fs)
+    assert stale is not None and '.stale_bills_join_v2_' in stale
+
+
+def make_comstock(tmp_path, monkeypatch, sim_outs=SIM_OUTS):
     """A ComStock with only what create_allocated_weights_plus_util_bills_for_upgrade reads."""
     cs = ComStock.__new__(ComStock)
     out_dir = tmp_path / 'output'
@@ -180,44 +239,62 @@ def make_comstock(tmp_path):
     out_dir.mkdir()
     truth_dir.mkdir()
     TRACT_TO_UTIL.write_csv(truth_dir / 'tract_to_util.csv')
+    BILL_STATES.write_csv(truth_dir / 'bill_states.csv')
+    monkeypatch.setattr(ubj, 'BILL_STATES_FILE', (truth_dir / 'bill_states.csv').as_posix())
     cs.output_dir = {'fs': fsspec.filesystem('file'), 'fs_path': out_dir.as_posix(), 'storage_options': None}
     cs.truth_data_dir = truth_dir.as_posix()
     cs.tract_to_util_map_file_name = 'tract_to_util.csv'
     cs.weighted_utility_units = 'billion_usd'
     cs.unweighted_weighted_map = {}
-    cs.data = SIM_OUTS.with_columns(pl.lit(0).alias(N.UPGRADE_ID)).lazy()
+    cs.data = sim_outs.with_columns(pl.lit(0).alias(N.UPGRADE_ID)).lazy()
     cs.get_sim_outs_for_upgrade = lambda upgrade_id: cs.data
     cs.get_allocated_weights_scaled_to_cbecs_for_upgrade = lambda upgrade_id: DRAW.lazy().with_columns(
         pl.lit(upgrade_id).cast(pl.Int64).alias(N.UPGRADE_ID))
     return cs, out_dir.as_posix() + '/cached_allocated_weights_plus_bills'
 
 
-def test_bills_stage_preserves_rows_and_weights(tmp_path):
-    cs, root = make_comstock(tmp_path)
+def read_stage(bills_dir):
+    return pl.scan_parquet(f'{bills_dir}/**/*.parquet', hive_partitioning=True).collect()
+
+
+def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
+    cs, root = make_comstock(tmp_path, monkeypatch)
     # An inflated cache from the old join is moved aside, not reused
     os.makedirs(f'{root}/upgrade=0/in.state=ID')
     pl.DataFrame({'x': [1]}).write_parquet(f'{root}/upgrade=0/in.state=ID/cached_allocated_weights_plus_bills_upgrade0_ID.parquet')
 
-    bills_dir = cs.create_allocated_weights_plus_util_bills_for_upgrade(0)
-    out = pl.scan_parquet(f'{bills_dir}/**/*.parquet', hive_partitioning=True).collect()
+    out = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
 
     assert out.height == DRAW.height
     assert out[N.BLDG_WEIGHT].sum() == DRAW[N.BLDG_WEIGHT].sum()
-    by_tract = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
-    assert by_tract[N.UTIL_BILL_ELEC].to_list() == [1000, 1000, 1000, 1000, 1500, 1500]
+    # Each row gets its own state's bill: WA's 1100 in tract T2, the WA state average in T6
+    by_weight = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
+    assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 1100, 1000, 1000, 1500, 950]
     assert json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))['bills_join_version'] == ubj.BILLS_JOIN_VERSION
     assert any('.stale_bills_join_v1_' in p for p in os.listdir(tmp_path / 'output'))
 
 
-def test_reading_a_stale_cache_raises(tmp_path):
-    cs, root = make_comstock(tmp_path)
+def test_bills_stage_is_the_same_with_and_without_the_state_field(tmp_path, monkeypatch):
+    stages = {}
+    for name, sim_outs in [('order', SIM_OUTS), ('field', SIM_OUTS_WITH_STATES)]:
+        (tmp_path / name).mkdir()
+        cs, _ = make_comstock(tmp_path / name, monkeypatch, sim_outs)
+        stages[name] = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
+    # Only the block strings differ, by the state at their end
+    cols = [c for c in stages['order'].columns if c != N.UTIL_BILL_ELEC_RESULTS]
+    order = [N.BLDG_ID, N.BLDG_WEIGHT]
+    assert_frame_equal(stages['order'].select(cols).sort(order), stages['field'].select(cols).sort(order))
+
+
+def test_reading_a_stale_cache_raises(tmp_path, monkeypatch):
+    cs, root = make_comstock(tmp_path, monkeypatch)
     os.makedirs(f'{root}/upgrade=0')
     with pytest.raises(Exception, match='older utility bills join'):
         cs.get_allocated_weights_plus_util_bills_for_upgrade(0)
 
 
-def test_bills_stage_fails_on_fan_out(tmp_path):
-    cs, _ = make_comstock(tmp_path)
+def test_bills_stage_fails_on_fan_out(tmp_path, monkeypatch):
+    cs, _ = make_comstock(tmp_path, monkeypatch)
     # A tract mapped to two utilities would duplicate rows: refuse it
     pl.concat([TRACT_TO_UTIL, TRACT_TO_UTIL.head(1)]).write_csv(f'{cs.truth_data_dir}/tract_to_util.csv')
     with pytest.raises(ValueError, match='duplicated join keys'):

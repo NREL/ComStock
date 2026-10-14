@@ -2361,8 +2361,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         alloc_wts_bills_dir = f'{alloc_wts_bills_root}/upgrade={upgrade_id}'
         if not self.output_dir['fs'].exists(alloc_wts_bills_dir):
             raise Exception(f"{alloc_wts_bills_dir} does not exist. Ensure create_allocated_weights_plus_util_bills_for_upgrade has been called previously.")
-        if utility_bills_join.bills_cache_version(alloc_wts_bills_root, self.output_dir['fs']) < utility_bills_join.BILLS_JOIN_VERSION:
-            raise Exception(f"{alloc_wts_bills_root} was built by an older utility bills join that duplicated rows. "
+        cache_version = utility_bills_join.bills_cache_version(alloc_wts_bills_root, self.output_dir['fs'])
+        if cache_version < utility_bills_join.BILLS_JOIN_VERSION:
+            raise Exception(f"{alloc_wts_bills_root} was built by an older utility bills join (version {cache_version}, "
+                            f"current {utility_bills_join.BILLS_JOIN_VERSION}): "
+                            f"{utility_bills_join.STALE_REASONS.get(cache_version, 'its bills are out of date')}. "
                             f"Call create_allocated_weights_plus_util_bills_for_upgrade to rebuild it.")
         state_pqts = []
         pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
@@ -2456,16 +2459,19 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Get the utility bills by EIA ID from the simulation outputs.
         # This column includes the utility bills calculated for all possible
         # locations each simulation output could be allocated to, one row per
-        # join key (a utility repeated across states is collapsed to one row).
+        # building, utility and state (a utility serving several states of the
+        # sampling region has a bill for each).
         # Include building floor area for utility cost intenstity calcs.
         util_bills_by_eia_id = utility_bills_join.electricity_bills_by_utility(
             sim_outs, self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.UTIL_BILL_EIA_ID,
-            self.UTIL_ELEC_BILL_VALS, keep_cols=[self.FLR_AREA])
+            self.UTIL_ELEC_BILL_VALS, self.SAMPLING_REGION, self.UTIL_BILL_STATE_ELEC_RESULTS,
+            keep_cols=[self.FLR_AREA])
         util_bills_by_eia_id, bills_join_keys = utility_bills_join.bills_join_keys(
             util_bills_by_eia_id, self.BLDG_ID, self.UTIL_BILL_EIA_ID, self.STATE_ABBRV)
         utility_bills_join.assert_unique_on(util_bills_by_eia_id, bills_join_keys, 'Electricity bills by utility')
+        utility_bills_join.assert_rows_find_their_state(alloc_wts, util_bills_by_eia_id, bills_join_keys)
 
-        # Join the utility bills onto each building based on utility ID
+        # Join the utility bills onto each building based on utility ID and state
         alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=bills_join_keys, how='left')
 
         # Loop through each fuel and assign state-level bills to each building
