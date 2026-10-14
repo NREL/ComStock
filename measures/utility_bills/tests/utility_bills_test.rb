@@ -287,16 +287,23 @@ class UtilityBillsTest < Minitest::Test
       'ec_median_low_value', 'ec_median_low_key', 'ec_median_high_value', 'ec_median_high_key',
       'ec_mean_value', 'fixed_min_value', 'fixed_min_key', 'fixed_max_value', 'fixed_max_key',
       'fixed_median_low_value', 'fixed_median_low_key', 'fixed_median_high_value', 'fixed_median_high_key',
-      'fixed_mean_value', 'total_bill_counts'
+      'fixed_mean_value', 'total_bill_counts', 'state'
     ]
     bill_vals_stats = rvs['electricity_utility_bill_results'].split('|').reject(&:empty?).map do |stat_set|
       values = stat_set.split(':')
+      assert_equal(keys_stats.size, values.size)
       keys_stats.zip(values).to_h
     end
 
+    # Each block ends with the state it was billed for, one of the sampling region's states,
+    # and a utility has at most one block per state
+    region_states = rvs['state_avg_electricity_cost_results'].split('|').reject(&:empty?).map { |s| s.split(':').first }
+    bill_vals_stats.each { |bill_val| assert_includes(region_states, bill_val['state']) }
+    assert_equal(bill_vals_stats.size, bill_vals_stats.map { |b| [b['eia_id'], b['state']] }.uniq.size)
+
     # Check reasonableness of statistics
     bill_vals_stats.each do |bill_val|
-      assert_equal(47, bill_val.size)
+      assert_equal(48, bill_val.size)
 
       assert(bill_val['total_max_value'].to_i > bill_val['total_min_value'].to_i)
       assert(bill_val['total_min_value'].to_i <= bill_val['total_median_low_value'].to_i)

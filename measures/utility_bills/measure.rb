@@ -546,13 +546,14 @@ class UtilityBills < OpenStudio::Measure::ReportingMeasure
           stats_energycharge = get_utility_rates_statistics(runner, elec_bills_energycharge)
           stats_fixedcharge = get_utility_rates_statistics(runner, elec_bills_fixedcharge)
 
-          # Concatenate bill statistics in certain format
+          # Concatenate bill statistics in certain format. The state comes last: a utility serving
+          # tracts in several states of the sampling region has one block per state.
           electricity_bill_results += stats_total[0..8].join(":") + ":"
           electricity_bill_results += stats_demandcharge_flat[0..8].join(":") + ":"
           electricity_bill_results += stats_demandcharge_tou[0..8].join(":") + ":"
           electricity_bill_results += stats_energycharge[0..8].join(":") + ":"
           electricity_bill_results += stats_fixedcharge[0..8].join(":") + ":"
-          electricity_bill_results += "#{stats_total[9]}|"
+          electricity_bill_results += "#{stats_total[9]}:#{state_abbreviation}|"
         end
       end
 
