@@ -677,4 +677,88 @@ class UtilityBillsTest < Minitest::Test
       puts brp
     end
   end
+
+  # The state assignments cover exactly the rate files present (rebuild with resources/build_elec_rate_states.py)
+  def test_elec_rate_states_match_rate_files
+    resources = File.join(__dir__, '..', 'resources')
+    rate_labels = Dir.glob(File.join(resources, 'elec_rates', '*', '*.json')).map { |p| File.basename(p, '.json') }
+    rows = CSV.read(File.join(resources, 'elec_rate_states.csv'), headers: true)
+    assert_equal(rate_labels.sort, rows.map { |r| r['label'] }.sort)
+    with_state = ['openei_service_territory', 'state_in_page_name', 'single_state_utility']
+    without_state = ['unresolved', 'not_in_tract_map']
+    rows.each do |r|
+      state = r['state'].to_s
+      source = r['source'].to_s
+      assert_includes(with_state + without_state, source, "#{r['label']}: source #{source.inspect}")
+      if with_state.include?(source)
+        assert(state.match?(/\A[A-Z]{2}\z/), "#{r['label']}: source #{source} needs a state, got #{state.inspect}")
+      else
+        assert(state.empty?, "#{r['label']}: source #{source} must leave the state blank, got #{state.inspect}")
+      end
+    end
+    # the assignments do something: PacifiCorp's Oregon tariffs are Oregon's, its Utah tariffs Utah's
+    by_label = rows.map { |r| [r['label'], r['state'].to_s] }.to_h
+    pacificorp = Dir.glob(File.join(resources, 'elec_rates', '14354', '*.json')).map { |p| by_label[File.basename(p, '.json')] }
+    assert(pacificorp.count('OR') > pacificorp.count('UT'))
+    assert(pacificorp.count('UT') > 0)
+  end
+
+  # A utility serving several states: a Utah building is billed under PacifiCorp's Utah rates only
+  def test_sm_hotel_multistate_utility_rates_by_state
+    test_name = 'sm_hotel_multistate_utility'
+    model_in_path = "#{__dir__}/1004_SmallHotel_a.osm"
+    # Sampling region 28 spans UT and NV; this Utah County tract is served by PacifiCorp (EIA 14354),
+    # whose rate files cover UT, OR, WA, ID, WY and CA
+    sampling_region = '28'
+    census_tract = 'G4900490001300'
+    state_abbreviation = 'UT'
+    year = 1999
+    assert_equal('14354', get_utility_for_tract(census_tract))
+
+    measure = UtilityBills.new
+    runner = OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new)
+    arguments = measure.arguments
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+    idf_output_requests = measure.energyPlusOutputRequests(OpenStudio::Measure::OSRunner.new(OpenStudio::WorkflowJSON.new), argument_map)
+    assert(!idf_output_requests.empty?, 'Expected IDF output requests, but none were found')
+    setup_test(test_name, idf_output_requests, sampling_region, census_tract, state_abbreviation, year, model_in_path)
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)), "Could not find sql file at #{sql_path(test_name)}")
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEnergyPlusWorkspacePath(OpenStudio::Path.new(workspace_path(test_name)))
+    runner.setLastEpwFilePath('')
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+      measure.run(runner, argument_map)
+      result = runner.result
+      show_output(result)
+      assert_equal('Success', result.value.valueName)
+    ensure
+      Dir.chdir(start_dir)
+    end
+    rvs = {}
+    result.stepValues.each do |value|
+      name_val = JSON.parse(value.string)
+      rvs[name_val['name']] = name_val['value']
+    end
+    assert_equal('v1', rvs['electricity_rate_files_by_state'])
+
+    rate_states = {}
+    CSV.foreach(File.join(__dir__, '..', 'resources', 'elec_rate_states.csv'), headers: true) { |r| rate_states[r['label']] = r['state'].to_s }
+    blocks = rvs['electricity_utility_bill_results'].split('|').reject(&:empty?).map { |b| b.split(':') }
+    ut_blocks = blocks.select { |b| b[0] == '14354' && b[-1] == 'UT' }
+    assert_equal(1, ut_blocks.size)
+    block = ut_blocks.first
+    # the rates behind the min, max and median bills are Utah's (or assigned to no state), and the
+    # block counts fewer rates than PacifiCorp's whole folder
+    labels = [block[2], block[4], block[6], block[8]].reject { |l| l == 'NA' }
+    refute_empty(labels)
+    labels.each { |l| assert_includes(['UT', ''], rate_states[l], "rate #{l} is assigned to #{rate_states[l].inspect}") }
+    all_files = Dir.glob(File.join(__dir__, '..', 'resources', 'elec_rates', '14354', '*.json'))
+    n_ut_files = all_files.count { |p| ['UT', ''].include?(rate_states[File.basename(p, '.json')]) }
+    assert(block[-2].to_i <= n_ut_files)
+    assert(n_ut_files < all_files.size)
+  end
 end
