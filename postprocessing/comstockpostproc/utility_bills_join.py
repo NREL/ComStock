@@ -243,24 +243,40 @@ def bills_join_keys(bills, bldg_id_col, eia_id_col, state_col):
     return bills.rename({BILL_STATE: state_col}), [bldg_id_col, eia_id_col, state_col]
 
 
-def assert_rows_find_their_state(alloc_wts, bills, keys):
-    """Raise if an allocated row's utility has bills for its building but none for the row's state.
-
-    The measure bills a utility in every state of the region where it serves tracts, so such a row
-    means the allocation's tract-to-utility map and the measure's disagree. The join would quietly
-    give it the state-average bill instead.
-    """
+def rows_without_their_states_bill(alloc_wts, bills, keys):
+    """Allocated rows whose utility has bills for their building in other states but none for their state."""
     bldg_id_col, eia_id_col, _ = keys
-    missing = (
+    return (
         alloc_wts.select(keys).unique()
         .join(bills.select(bldg_id_col, eia_id_col).unique(), on=[bldg_id_col, eia_id_col], how='semi')
         .join(bills.select(keys), on=keys, how='anti')
         .collect()
     )
-    if missing.height:
+
+
+def check_rows_find_their_state(alloc_wts, bills, keys, bill_state_source):
+    """Rows whose utility has bills for their building in other states but none for their state.
+
+    When the states were recovered from the measure's order (runs simulated before the measure
+    recorded them), every utility was billed under the same tariffs in every state of the region it
+    serves tracts in, so such a row means the allocation's tract-to-utility map and the measure's
+    disagree: raise, because the join would quietly give it the state-average bill. When the bills
+    carry their state, the measure bills each state under its own tariffs, and a building can have an
+    applicable tariff in one state and none in another; those rows get the state-average bill, as
+    the measure intends, and are counted in the log. Returns that count (0 when every row found
+    its state's bill), for the cache marker.
+    """
+    missing = rows_without_their_states_bill(alloc_wts, bills, keys)
+    if not missing.height:
+        return 0
+    if bill_state_source == STATE_FROM_MEASURE_ORDER:
         raise ValueError(f'{missing.height:,} combinations of {keys} among the allocated rows have no electricity bill, '
                          f'although the building has bills for that utility in other states: the tract-to-utility '
                          f'map disagrees with the utility_bills measure\'s. First offending keys:\n{missing.head(5)}')
+    logger.info(f'{missing.height:,} combinations of {keys} among the allocated rows have no electricity bill in '
+                f'their state although the building has bills for that utility in other states; no tariff of that '
+                f'state applied to the building, so those rows take the state-average bill')
+    return missing.height
 
 
 def assert_unique_on(lf, keys, what):

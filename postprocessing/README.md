@@ -153,8 +153,11 @@ The stage stops, naming the offending keys, rather than silently changing the re
   files it used (`utility_bills_join.build_bill_state_table`);
 - a run mixes bills with and without their state (results from two measure versions): process its
   parts separately;
-- an allocated row's utility has bills for its building in other states but none for the row's state
-  (the allocation's tract-to-utility map disagrees with the measure's).
+- in a run whose states come from the measure's order, an allocated row's utility has bills for its
+  building in other states but none for the row's state (the allocation's tract-to-utility map
+  disagrees with the measure's). In a run whose bills carry their state, each state is billed under
+  its own tariffs, so such a row means none applied to the building; it takes the state-average bill,
+  and the log and the cache's `_bills.json` count these rows.
 
 A `cached_allocated_weights_plus_bills` folder built by an older join is renamed
 `cached_allocated_weights_plus_bills.stale_bills_join_v<N>_<timestamp>` and rebuilt on the next run,

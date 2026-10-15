@@ -178,14 +178,38 @@ def test_blocks_that_do_not_match_the_utilitys_states_raise():
         parse(sim_outs)
 
 
-def test_row_without_its_states_bill_raises():
+def test_row_without_its_states_bill_raises_only_for_order_based_states():
     bills, keys = ubj.bills_join_keys(parse().lazy(), N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
     alloc = DRAW.join(TRACT_TO_UTIL, on=N.TRACT_ID, how='left').lazy()
-    ubj.assert_rows_find_their_state(alloc, bills, keys)
+    ubj.check_rows_find_their_state(alloc, bills, keys, ubj.STATE_FROM_MEASURE_ORDER)
     # A WA row of utility 200, which the measure billed for ID only
     stray = pl.LazyFrame({N.BLDG_ID: [1], N.STATE_ABBRV: ['WA'], N.UTIL_BILL_EIA_ID: [200]})
+    with_stray = pl.concat([alloc.select(keys), stray.select(keys)])
+    # states from the measure's order: every utility was billed under the same tariffs in every state,
+    # so a missing state means the tract maps disagree
     with pytest.raises(ValueError, match='have no electricity bill'):
-        ubj.assert_rows_find_their_state(pl.concat([alloc.select(keys), stray.select(keys)]), bills, keys)
+        ubj.check_rows_find_their_state(with_stray, bills, keys, ubj.STATE_FROM_MEASURE_ORDER)
+    # states recorded by the measure: each state has its own tariffs, so the row simply had none that
+    # applied and takes the state average
+    ubj.check_rows_find_their_state(with_stray, bills, keys, ubj.STATE_FROM_BILL_RESULTS)
+
+
+def test_bills_stage_fills_state_average_where_no_in_state_tariff_applied(tmp_path, monkeypatch):
+    # Building 1 in R1 (ID, WA): the measure records states, and utility 100 has an applicable tariff
+    # in ID only (none of its WA tariffs covered the building), so there is no WA block
+    sim_outs = SIM_OUTS_WITH_STATES.with_columns(pl.Series(N.UTIL_BILL_ELEC_RESULTS, [
+        bills_string(block('100', 1000, 'ID'), block('200', 1500, 'ID')),
+        bills_string(block('300', 2000, 'WY')),
+    ]).cast(pl.Categorical))
+    cs, root = make_comstock(tmp_path, monkeypatch, sim_outs)
+    out = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
+    assert out.height == DRAW.height
+    # tract T2 (WA, utility 100) gets WA's state-average bill, 950; the ID rows keep utility 100's bill
+    by_weight = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
+    assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 950, 1000, 1000, 1500, 950]
+    # and the cache marker records the one (building, utility, state) that took the state average
+    marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
+    assert marker['upgrades']['0']['n_bldg_utility_states_without_in_state_tariff'] == 1
 
 
 @pytest.mark.skipif(not os.path.isdir(MEASURE_RESOURCES), reason='needs the utility_bills measure resources')
@@ -276,7 +300,7 @@ def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
     marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
     assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
     assert marker['upgrades']['0'] == {'bill_state_source': ubj.STATE_FROM_MEASURE_ORDER, 'n_electricity_bills': 4,
-                                       'n_buildings_with_bills': 2}
+                                       'n_buildings_with_bills': 2, 'n_bldg_utility_states_without_in_state_tariff': 0}
     assert any('.stale_bills_join_v1_' in p for p in os.listdir(tmp_path / 'output'))
 
 

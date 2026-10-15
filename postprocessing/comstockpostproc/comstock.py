@@ -2470,7 +2470,8 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         util_bills_by_eia_id, bills_join_keys = utility_bills_join.bills_join_keys(
             util_bills_by_eia_id, self.BLDG_ID, self.UTIL_BILL_EIA_ID, self.STATE_ABBRV)
         utility_bills_join.assert_unique_on(util_bills_by_eia_id, bills_join_keys, 'Electricity bills by utility')
-        utility_bills_join.assert_rows_find_their_state(alloc_wts, util_bills_by_eia_id, bills_join_keys)
+        bills_info['n_bldg_utility_states_without_in_state_tariff'] = utility_bills_join.check_rows_find_their_state(
+            alloc_wts, util_bills_by_eia_id, bills_join_keys, bills_info['bill_state_source'])
 
         # Join the utility bills onto each building based on utility ID and state
         alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=bills_join_keys, how='left')

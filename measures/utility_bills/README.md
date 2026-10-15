@@ -8,9 +8,11 @@ electricity prices; natural gas, propane and fuel oil use EIA state averages.
 
 ## Outputs
 
-- `electricity_utility_bill_results`: one block per (state, utility), `|<EIA id>:<47 statistics>:<state>|`.
-  The state is the last field; runs made before the measure recorded it end each block at the bill
-  count, and postprocessing works their states out from the order the blocks are written in.
+- `electricity_utility_bill_results`: one block per (state, utility),
+  `|<EIA id>:<45 statistics>:<bill count>:<state>|`, 48 fields. The state is the last field; runs made
+  before the measure recorded it end each block at the bill count, and postprocessing works their
+  states out from the order the blocks are written in. A state in which none of the utility's
+  tariffs applied to the building has no block, and its rows get the state-average bill.
 - `state_avg_*_cost_results`: one block per state, `|<state>:<dollars>|`, for each fuel.
 - `electricity_rate_files_by_state`: the version of `resources/elec_rate_states.csv` applied (see below).
 
