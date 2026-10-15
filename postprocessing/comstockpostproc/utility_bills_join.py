@@ -44,6 +44,13 @@ BILL_STATES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'res
                                 'utility_bill_states_by_sampling_region.csv')
 REGION, STATE, STATE_ORDER, EIA_ID = 'sampling_region_id', 'state', 'state_order', 'eia_id'
 BILL_STATES_SCHEMA = {REGION: pl.String, STATE: pl.String, STATE_ORDER: pl.Int32, EIA_ID: pl.Int64}
+REMEDY = ('Either re-simulate the run with the current utility_bills measure, which records each bill\'s state, or '
+          'rebuild the state table from the measure resources that run used '
+          '(utility_bills_join.build_bill_state_table) and pass it as bill_states.')
+
+# How the bills got their states, recorded in the cache marker
+STATE_FROM_BILL_RESULTS = 'bill_results'  # the measure wrote each bill's state (runs simulated from now on)
+STATE_FROM_MEASURE_ORDER = 'measure_order'  # recovered from the measure's loop order (older runs)
 
 
 def build_bill_state_table(measure_resources_dir):
@@ -125,7 +132,7 @@ def label_block_states(blocks, models, bldg_id_col, eia_id_col, region_col, stat
         raise ValueError(
             f'{bad.height:,} buildings list their states in another order than the utility_bills measure gives for '
             f'their sampling region, so their bills cannot be matched to states; the run was simulated with other '
-            f'measure resource files. First offending buildings:\n'
+            f'measure resource files. {REMEDY} First offending buildings:\n'
             f'{bad.select(bldg_id_col, region_col, model_order, region_order).head(5)}')
 
     # The k-th state, in the measure's order, where each utility serves tracts of each region
@@ -147,7 +154,7 @@ def label_block_states(blocks, models, bldg_id_col, eia_id_col, region_col, stat
         raise ValueError(
             f'{bad.height:,} electricity bill blocks do not match the states their utility serves in the building\'s '
             f'sampling region, so they cannot be matched to states; the run was simulated with other utility_bills '
-            f'measure resource files. First offending blocks:\n'
+            f'measure resource files. {REMEDY} First offending blocks:\n'
             f'{bad.select(bldg_id_col, region_col, eia_id_col, k, n, n_states).head(5)}')
 
     n_repeated = labeled.filter(pl.col(n) > 1)
@@ -158,7 +165,7 @@ def label_block_states(blocks, models, bldg_id_col, eia_id_col, region_col, stat
 
 
 def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col, value_cols,
-                                 region_col, state_average_col, keep_cols=(), bill_states=None):
+                                 region_col, state_average_col, keep_cols=(), bill_states=None, info=None):
     """One row per (building, EIA id, state): every block of the bill results, with its state.
 
     Blocks that end with their state keep it; older blocks get theirs from the measure's order
@@ -166,7 +173,8 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
     both formats raises. The returned frame carries ``BILL_STATE`` and the measure's value columns,
     with empty strings as nulls and the EIA id and ``..usd`` columns cast to Int64. ``results_col``
     keeps each row's block string, as the join always has, so the joined output has the same
-    columns as before.
+    columns as before. A dict passed as ``info`` receives how the states were found
+    (``bill_state_source``) and the bill count, for the cache marker.
     """
     tsc = 'tsc'
     fields = [eia_id_col] + list(value_cols) + [BILL_STATE]
@@ -211,6 +219,7 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
             bill_states = read_bill_state_table()
         blocks = label_block_states(blocks.drop(BILL_STATE), models, bldg_id_col, eia_id_col, region_col,
                                     state_average_col, bill_states)
+        source = STATE_FROM_MEASURE_ORDER
     elif n_with_state != blocks.height:
         raise ValueError(f'Electricity bill results mix blocks with and without their state ({n_with_state:,} of '
                          f'{blocks.height:,} with it); the runs need the same utility_bills measure version')
@@ -220,8 +229,12 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
             raise ValueError(f'{bad.height:,} electricity bill blocks end with something other than a state '
                              f'abbreviation, e.g. {bad[BILL_STATE].head(3).to_list()}')
         logger.info(f'Read the state of {blocks.height:,} electricity bill blocks from the bill results')
+        source = STATE_FROM_BILL_RESULTS
 
     assert_unique_on(blocks.lazy(), [bldg_id_col, eia_id_col, BILL_STATE], 'Electricity bills by utility and state')
+    if info is not None:
+        info.update({'bill_state_source': source, 'n_electricity_bills': blocks.height,
+                     'n_buildings_with_bills': blocks.select(pl.col(bldg_id_col).n_unique()).item()})
     return blocks.lazy()
 
 
@@ -277,14 +290,15 @@ def read_bills_marker(bills_root, fs):
         return json.load(f)
 
 
-def write_bills_marker(bills_root, fs):
+def write_bills_marker(bills_root, fs, upgrade_id=None, info=None):
+    """Write the cache's version marker, adding what the bills stage recorded for an upgrade."""
     path = f'{bills_root}/{BILLS_MARKER_FILE_NAME}'
-    if fs.exists(path):
-        return
-    marker = {
+    marker = read_bills_marker(bills_root, fs) or {
         'bills_join_version': BILLS_JOIN_VERSION,
         'written': datetime.datetime.now().isoformat(timespec='seconds'),
     }
+    if upgrade_id is not None and info:
+        marker.setdefault('upgrades', {})[str(upgrade_id)] = dict(info)
     with fs.open(path, 'w') as f:
         json.dump(marker, f, indent=2)
 

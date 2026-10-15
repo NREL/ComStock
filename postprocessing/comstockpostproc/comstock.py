@@ -2462,10 +2462,11 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # building, utility and state (a utility serving several states of the
         # sampling region has a bill for each).
         # Include building floor area for utility cost intenstity calcs.
+        bills_info = {}
         util_bills_by_eia_id = utility_bills_join.electricity_bills_by_utility(
             sim_outs, self.BLDG_ID, self.UTIL_BILL_ELEC_RESULTS, self.UTIL_BILL_EIA_ID,
             self.UTIL_ELEC_BILL_VALS, self.SAMPLING_REGION, self.UTIL_BILL_STATE_ELEC_RESULTS,
-            keep_cols=[self.FLR_AREA])
+            keep_cols=[self.FLR_AREA], info=bills_info)
         util_bills_by_eia_id, bills_join_keys = utility_bills_join.bills_join_keys(
             util_bills_by_eia_id, self.BLDG_ID, self.UTIL_BILL_EIA_ID, self.STATE_ABBRV)
         utility_bills_join.assert_unique_on(util_bills_by_eia_id, bills_join_keys, 'Electricity bills by utility')
@@ -2616,7 +2617,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             with self.output_dir['fs'].open(cached_file_path, "wb") as f:
                 state_alloc_wts.write_parquet(f)
         alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
-        utility_bills_join.write_bills_marker(alloc_wts_bills_root, self.output_dir['fs'])
+        utility_bills_join.write_bills_marker(alloc_wts_bills_root, self.output_dir['fs'], upgrade_id, bills_info)
 
         return alloc_wts_bills_dir
 

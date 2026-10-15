@@ -215,8 +215,11 @@ def test_stale_cache_is_renamed_and_marker_written(tmp_path):
     assert not os.path.exists(root) and os.path.exists(f'{stale}/upgrade=0')
 
     os.makedirs(f'{root}/upgrade=0')
-    ubj.write_bills_marker(root, fs)
-    assert ubj.read_bills_marker(root, fs)['bills_join_version'] == ubj.BILLS_JOIN_VERSION
+    ubj.write_bills_marker(root, fs, 0, {'bill_state_source': ubj.STATE_FROM_BILL_RESULTS})
+    ubj.write_bills_marker(root, fs, 1, {'bill_state_source': ubj.STATE_FROM_BILL_RESULTS})
+    marker = ubj.read_bills_marker(root, fs)
+    assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
+    assert sorted(marker['upgrades']) == ['0', '1']
     assert ubj.retire_stale_bills_cache(root, fs) is None
     assert os.path.exists(f'{root}/upgrade=0')
 
@@ -270,16 +273,21 @@ def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
     # Each row gets its own state's bill: WA's 1100 in tract T2, the WA state average in T6
     by_weight = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
     assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 1100, 1000, 1000, 1500, 950]
-    assert json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))['bills_join_version'] == ubj.BILLS_JOIN_VERSION
+    marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
+    assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
+    assert marker['upgrades']['0'] == {'bill_state_source': ubj.STATE_FROM_MEASURE_ORDER, 'n_electricity_bills': 4,
+                                       'n_buildings_with_bills': 2}
     assert any('.stale_bills_join_v1_' in p for p in os.listdir(tmp_path / 'output'))
 
 
 def test_bills_stage_is_the_same_with_and_without_the_state_field(tmp_path, monkeypatch):
-    stages = {}
+    stages, sources = {}, {}
     for name, sim_outs in [('order', SIM_OUTS), ('field', SIM_OUTS_WITH_STATES)]:
         (tmp_path / name).mkdir()
-        cs, _ = make_comstock(tmp_path / name, monkeypatch, sim_outs)
+        cs, root = make_comstock(tmp_path / name, monkeypatch, sim_outs)
         stages[name] = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
+        sources[name] = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))['upgrades']['0']['bill_state_source']
+    assert sources == {'order': ubj.STATE_FROM_MEASURE_ORDER, 'field': ubj.STATE_FROM_BILL_RESULTS}
     # Only the block strings differ, by the state at their end
     cols = [c for c in stages['order'].columns if c != N.UTIL_BILL_ELEC_RESULTS]
     order = [N.BLDG_ID, N.BLDG_WEIGHT]
