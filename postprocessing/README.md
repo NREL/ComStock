@@ -132,38 +132,6 @@ $ pip install -e .[dev,gap]
 4. Look in the `/output` directory for results
 
 
-### Utility bills in the exported results
-
-The `utility_bills` reporting measure bills each model for every state its sampling region can land in,
-and for every electric utility in that state. Postprocessing (`create_allocated_weights_plus_util_bills_for_upgrade`,
-helpers in `comstockpostproc/utility_bills_join.py`) gives each allocated row the bill for its own
-building, utility and state. Each bill's state comes from the bill itself when the run was simulated
-with a measure that records it (the last field of each block of `out.utility_bills.electricity_utility_bill_results`),
-and otherwise from the order the measure writes the bills in, using
-`comstockpostproc/resources/utility_bill_states_by_sampling_region.csv`, a table built from the
-measure's resource files. Both give the same result for a run; which one was used is recorded per
-upgrade in the cache's `_bills.json` (`bill_state_source`).
-
-The stage stops, naming the offending keys, rather than silently changing the results when:
-
-- a join frame has a repeated key or the joins change the number of allocated rows (every copy of a
-  row would carry its full weight);
-- a run simulated before the measure recorded states does not follow the measure's order (it used
-  other `utility_bills` resource files): re-simulate it, or rebuild the state table from the resource
-  files it used (`utility_bills_join.build_bill_state_table`);
-- a run mixes bills with and without their state (results from two measure versions): process its
-  parts separately;
-- in a run whose states come from the measure's order, an allocated row's utility has bills for its
-  building in other states but none for the row's state (the allocation's tract-to-utility map
-  disagrees with the measure's). In a run whose bills carry their state, each state is billed under
-  its own tariffs, so such a row means none applied to the building; it takes the state-average bill,
-  and the log and the cache's `_bills.json` count these rows.
-
-A `cached_allocated_weights_plus_bills` folder built by an older join is renamed
-`cached_allocated_weights_plus_bills.stale_bills_join_v<N>_<timestamp>` and rebuilt on the next run,
-and the export refuses to read one until it is rebuilt. Bills join version 1 duplicated allocated rows
-(weights up to +77% in a state); version 2 gave rows of a multi-state utility the first state's bill.
-
 ### NREL Staff - Extracting simulations and summarizing EnergyPlus warnings and errors on HPC
 
 1. First time only: install `comstockpostproc` to your `comstockpostproc_<myname>` environment on HPC (see installation instructions above)

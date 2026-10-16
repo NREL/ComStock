@@ -17,7 +17,6 @@ Older blocks, ``<eia_id>:<values>|``, get their state from the order the measure
 """
 
 import csv
-import datetime
 import json
 import logging
 import os
@@ -25,16 +24,6 @@ import os
 import polars as pl
 
 logger = logging.getLogger(__name__)
-
-# Bump when the bills join changes in a way that makes cached results wrong.
-# 1: original join, duplicated rows for repeated EIA ids. 2: one row per (bldg, eia), first block
-# kept. 3: one row per (bldg, eia, state), so each allocated row gets its own state's bill.
-BILLS_JOIN_VERSION = 3
-BILLS_MARKER_FILE_NAME = '_bills.json'
-STALE_REASONS = {
-    1: 'its weights are inflated by repeated EIA ids in the bill results',
-    2: "rows of a utility that serves several states of a sampling region carry the first state's bill",
-}
 
 BILL_STATE = 'utility_bill_state'
 
@@ -48,7 +37,7 @@ REMEDY = ('Either re-simulate the run with the current utility_bills measure, wh
           'rebuild the state table from the measure resources that run used '
           '(utility_bills_join.build_bill_state_table) and pass it as bill_states.')
 
-# How the bills got their states, recorded in the cache marker
+# How the bills got their states; logged, and it decides what check_rows_find_their_state does
 STATE_FROM_BILL_RESULTS = 'bill_results'  # the measure wrote each bill's state (runs simulated from now on)
 STATE_FROM_MEASURE_ORDER = 'measure_order'  # recovered from the measure's loop order (older runs)
 
@@ -171,10 +160,10 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
     Blocks that end with their state keep it; older blocks get theirs from the measure's order
     (``label_block_states``, with ``bill_states`` or the table in BILL_STATES_FILE). A run mixing
     both formats raises. The returned frame carries ``BILL_STATE`` and the measure's value columns,
-    with empty strings as nulls and the EIA id and ``..usd`` columns cast to Int64. ``results_col``
-    keeps each row's block string, as the join always has, so the joined output has the same
-    columns as before. A dict passed as ``info`` receives how the states were found
-    (``bill_state_source``) and the bill count, for the cache marker.
+    with empty strings as nulls and the EIA id and ``..usd`` columns cast to Int64. The block string
+    itself is not returned: parsed, it is only volume (7 GB of text across the 14 million allocated
+    rows of a 100k-building run), and the exports never carried it. A dict passed as ``info``
+    receives how the states were found (``bill_state_source``) and the bill counts, for the log.
     """
     tsc = 'tsc'
     fields = [eia_id_col] + list(value_cols) + [BILL_STATE]
@@ -190,6 +179,7 @@ def electricity_bills_by_utility(sim_outs, bldg_id_col, results_col, eia_id_col,
         # in results from measure versions that do not record it
         .with_columns(pl.col(tsc).list.to_struct('max_width', fields))
         .unnest(tsc)
+        .drop(results_col)
     )
 
     # Replace empty strings with nulls in the new columns
@@ -264,7 +254,7 @@ def check_rows_find_their_state(alloc_wts, bills, keys, bill_state_source):
     carry their state, the measure bills each state under its own tariffs, and a building can have an
     applicable tariff in one state and none in another; those rows get the state-average bill, as
     the measure intends, and are counted in the log. Returns that count (0 when every row found
-    its state's bill), for the cache marker.
+    its state's bill), for the log.
     """
     missing = rows_without_their_states_bill(alloc_wts, bills, keys)
     if not missing.height:
@@ -296,51 +286,3 @@ def assert_row_count_preserved(n_before, n_after, what):
     if n_before != n_after:
         raise ValueError(f'{what} changed the allocated weights row count from {n_before:,} to {n_after:,} '
                          f'({n_after - n_before:+,}); every copy of a row carries its full weight')
-
-
-def read_bills_marker(bills_root, fs):
-    path = f'{bills_root}/{BILLS_MARKER_FILE_NAME}'
-    if not fs.exists(path):
-        return None
-    with fs.open(path, 'r') as f:
-        return json.load(f)
-
-
-def write_bills_marker(bills_root, fs, upgrade_id=None, info=None):
-    """Write the cache's version marker, adding what the bills stage recorded for an upgrade."""
-    path = f'{bills_root}/{BILLS_MARKER_FILE_NAME}'
-    marker = read_bills_marker(bills_root, fs) or {
-        'bills_join_version': BILLS_JOIN_VERSION,
-        'written': datetime.datetime.now().isoformat(timespec='seconds'),
-    }
-    if upgrade_id is not None and info:
-        marker.setdefault('upgrades', {})[str(upgrade_id)] = dict(info)
-    with fs.open(path, 'w') as f:
-        json.dump(marker, f, indent=2)
-
-
-def bills_cache_version(bills_root, fs):
-    """Bills join version a cache was built with; unmarked caches predate the marker (version 1)."""
-    marker = read_bills_marker(bills_root, fs)
-    return (marker or {}).get('bills_join_version', 1)
-
-
-def retire_stale_bills_cache(bills_root, fs):
-    """Rename a bills cache built by an older join so it is rebuilt.
-
-    The folder becomes ``<bills_root>.stale_bills_join_v<N>_<timestamp>``, the convention used
-    for stale caches in the output folders. Returns the new path, or None if nothing was renamed.
-    """
-    if not fs.exists(bills_root):
-        return None
-    marker = read_bills_marker(bills_root, fs)
-    version = (marker or {}).get('bills_join_version', 1)
-    if version >= BILLS_JOIN_VERSION:
-        return None
-    stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-    stale_path = f'{bills_root}.stale_bills_join_v{version}_{stamp}'
-    reason = 'has no ' + BILLS_MARKER_FILE_NAME if marker is None else f'is bills join version {version}'
-    logger.warning(f'{bills_root} {reason}; {STALE_REASONS.get(version, "it was built by an older bills join")}. '
-                   f'Moving it to {stale_path} and rebuilding the bills (current version {BILLS_JOIN_VERSION}).')
-    fs.mv(bills_root, stale_path, recursive=True)
-    return stale_path

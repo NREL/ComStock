@@ -3,7 +3,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import json
 import os
 
 import fsspec
@@ -96,8 +95,8 @@ def test_each_block_gets_its_state_from_the_measure_order():
 
 
 def test_state_field_gives_the_same_bills_as_the_measure_order():
-    from_order = parse().drop(N.UTIL_BILL_ELEC_RESULTS)
-    from_field = parse(SIM_OUTS_WITH_STATES, bill_states=BILL_STATES.head(0)).drop(N.UTIL_BILL_ELEC_RESULTS)
+    from_order = parse()
+    from_field = parse(SIM_OUTS_WITH_STATES, bill_states=BILL_STATES.head(0))
     keys = [N.BLDG_ID, N.UTIL_BILL_EIA_ID, ubj.BILL_STATE]
     assert_frame_equal(from_order.sort(keys), from_field.sort(keys))
 
@@ -122,7 +121,11 @@ def test_matches_old_join_keeping_each_rows_own_state():
     bills, keys = ubj.bills_join_keys(bills, N.BLDG_ID, N.UTIL_BILL_EIA_ID, N.STATE_ABBRV)
     new = draw.join(bills.collect(), on=keys, how='left')
 
-    # Same columns, in the same order, with the same dtypes
+    # Same columns, in the same order, with the same dtypes, except the parsed block string, which
+    # the old join carried on every row and the new one drops
+    res = N.UTIL_BILL_ELEC_RESULTS
+    assert res in old.columns and res not in new.columns
+    old = old.drop(res)
     assert new.schema == old.schema
     # The old join copied building 1's four utility-100 rows (utility 100 is in its string twice)
     assert old.height == DRAW.height + 4
@@ -211,9 +214,6 @@ def test_bills_stage_fills_state_average_where_no_in_state_tariff_applied(tmp_pa
     # intensities computed downstream are defined for them
     assert by_weight[N.FLR_AREA].to_list() == [1000.0] * 6
     assert out[N.FLR_AREA].null_count() == 0
-    # and the cache marker records the one (building, utility, state) that took the state average
-    marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
-    assert marker['upgrades']['0']['n_bldg_utility_states_without_in_state_tariff'] == 1
 
 
 @pytest.mark.skipif(not os.path.isdir(MEASURE_RESOURCES), reason='needs the utility_bills measure resources')
@@ -234,34 +234,6 @@ def test_assert_row_count_preserved():
         ubj.assert_row_count_preserved(10, 12, 'join')
 
 
-def test_stale_cache_is_renamed_and_marker_written(tmp_path):
-    fs = fsspec.filesystem('file')
-    root = (tmp_path / 'cached_allocated_weights_plus_bills').as_posix()
-    os.makedirs(f'{root}/upgrade=0')
-    stale = ubj.retire_stale_bills_cache(root, fs)
-    assert stale is not None and '.stale_bills_join_v1_' in stale
-    assert not os.path.exists(root) and os.path.exists(f'{stale}/upgrade=0')
-
-    os.makedirs(f'{root}/upgrade=0')
-    ubj.write_bills_marker(root, fs, 0, {'bill_state_source': ubj.STATE_FROM_BILL_RESULTS})
-    ubj.write_bills_marker(root, fs, 1, {'bill_state_source': ubj.STATE_FROM_BILL_RESULTS})
-    marker = ubj.read_bills_marker(root, fs)
-    assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
-    assert sorted(marker['upgrades']) == ['0', '1']
-    assert ubj.retire_stale_bills_cache(root, fs) is None
-    assert os.path.exists(f'{root}/upgrade=0')
-
-
-def test_first_block_cache_is_renamed(tmp_path):
-    fs = fsspec.filesystem('file')
-    root = (tmp_path / 'cached_allocated_weights_plus_bills').as_posix()
-    os.makedirs(f'{root}/upgrade=0')
-    with open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}', 'w') as f:
-        json.dump({'bills_join_version': 2}, f)
-    stale = ubj.retire_stale_bills_cache(root, fs)
-    assert stale is not None and '.stale_bills_join_v2_' in stale
-
-
 def make_comstock(tmp_path, monkeypatch, sim_outs=SIM_OUTS):
     """A ComStock with only what create_allocated_weights_plus_util_bills_for_upgrade reads."""
     cs = ComStock.__new__(ComStock)
@@ -271,10 +243,13 @@ def make_comstock(tmp_path, monkeypatch, sim_outs=SIM_OUTS):
     truth_dir.mkdir()
     TRACT_TO_UTIL.write_csv(truth_dir / 'tract_to_util.csv')
     BILL_STATES.write_csv(truth_dir / 'bill_states.csv')
+    # the getter joins the PUMA of each tract from the geospatial lookup
+    pl.DataFrame({'nhgis_tract_gisjoin': TRACT_TO_UTIL[N.TRACT_ID], 'nhgis_puma_gisjoin': 'P1'}).write_csv(truth_dir / 'geo.csv')
     monkeypatch.setattr(ubj, 'BILL_STATES_FILE', (truth_dir / 'bill_states.csv').as_posix())
     cs.output_dir = {'fs': fsspec.filesystem('file'), 'fs_path': out_dir.as_posix(), 'storage_options': None}
     cs.truth_data_dir = truth_dir.as_posix()
     cs.tract_to_util_map_file_name = 'tract_to_util.csv'
+    cs.geospatial_lookup_file_name = 'geo.csv'
     cs.weighted_utility_units = 'billion_usd'
     cs.unweighted_weighted_map = {}
     cs.data = sim_outs.with_columns(pl.lit(0).alias(N.UPGRADE_ID)).lazy()
@@ -290,10 +265,6 @@ def read_stage(bills_dir):
 
 def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
     cs, root = make_comstock(tmp_path, monkeypatch)
-    # An inflated cache from the old join is moved aside, not reused
-    os.makedirs(f'{root}/upgrade=0/in.state=ID')
-    pl.DataFrame({'x': [1]}).write_parquet(f'{root}/upgrade=0/in.state=ID/cached_allocated_weights_plus_bills_upgrade0_ID.parquet')
-
     out = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
 
     assert out.height == DRAW.height
@@ -303,32 +274,44 @@ def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
     assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 1100, 1000, 1000, 1500, 950]
     # tract T6 has no utility and is billed at the state average; its row still carries the floor area
     assert out[N.FLR_AREA].null_count() == 0 and out.filter(pl.col(N.BLDG_ID) == 2)[N.FLR_AREA].to_list() == [2000.0] * 4
-    marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
-    assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
-    assert marker['upgrades']['0'] == {'bill_state_source': ubj.STATE_FROM_MEASURE_ORDER, 'n_electricity_bills': 4,
-                                       'n_buildings_with_bills': 2, 'n_bldg_utility_states_without_in_state_tariff': 0}
-    assert any('.stale_bills_join_v1_' in p for p in os.listdir(tmp_path / 'output'))
+    # the getter reads the same table back from the cache
+    cached = cs.get_allocated_weights_plus_util_bills_for_upgrade(0).collect()
+    assert cached.height == out.height and cached[N.BLDG_WEIGHT].sum() == out[N.BLDG_WEIGHT].sum()
+    assert sorted(cached[N.UTIL_BILL_ELEC].to_list()) == sorted(out[N.UTIL_BILL_ELEC].to_list())
 
 
 def test_bills_stage_is_the_same_with_and_without_the_state_field(tmp_path, monkeypatch):
-    stages, sources = {}, {}
+    stages, infos = {}, {}
+    parse = ubj.electricity_bills_by_utility
+
+    def parse_and_keep_info(*args, **kwargs):
+        bills = parse(*args, **kwargs)
+        infos[kwargs['info']['bill_state_source']] = dict(kwargs['info'])
+        return bills
+    monkeypatch.setattr(ubj, 'electricity_bills_by_utility', parse_and_keep_info)
     for name, sim_outs in [('order', SIM_OUTS), ('field', SIM_OUTS_WITH_STATES)]:
         (tmp_path / name).mkdir()
         cs, root = make_comstock(tmp_path / name, monkeypatch, sim_outs)
         stages[name] = read_stage(cs.create_allocated_weights_plus_util_bills_for_upgrade(0))
-        sources[name] = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))['upgrades']['0']['bill_state_source']
-    assert sources == {'order': ubj.STATE_FROM_MEASURE_ORDER, 'field': ubj.STATE_FROM_BILL_RESULTS}
-    # Only the block strings differ, by the state at their end
-    cols = [c for c in stages['order'].columns if c != N.UTIL_BILL_ELEC_RESULTS]
+    # the states came from the measure's order for the old format and from the bills for the new one
+    assert sorted(infos) == sorted([ubj.STATE_FROM_MEASURE_ORDER, ubj.STATE_FROM_BILL_RESULTS])
+    assert all(i['n_electricity_bills'] == 4 and i['n_buildings_with_bills'] == 2 for i in infos.values())
     order = [N.BLDG_ID, N.BLDG_WEIGHT]
-    assert_frame_equal(stages['order'].select(cols).sort(order), stages['field'].select(cols).sort(order))
+    assert_frame_equal(stages['order'].sort(order), stages['field'].sort(order))
+    assert N.UTIL_BILL_ELEC_RESULTS not in stages['field'].columns
 
 
-def test_reading_a_stale_cache_raises(tmp_path, monkeypatch):
-    cs, root = make_comstock(tmp_path, monkeypatch)
-    os.makedirs(f'{root}/upgrade=0')
-    with pytest.raises(Exception, match='older utility bills join'):
-        cs.get_allocated_weights_plus_util_bills_for_upgrade(0)
+def test_bill_result_strings_are_imported_but_the_electricity_string_is_not_exported():
+    col_defs = pl.read_csv(os.path.join(os.path.dirname(ubj.__file__), 'resources', 'comstock_column_definitions.csv'))
+    imported = ComStock.__new__(ComStock).imported_column_definitions(col_defs)
+    rows = imported.filter(pl.col('new_col_name').is_in(N.COLS_UTIL_BILL_RESULTS))
+    assert sorted(rows['new_col_name']) == sorted(N.COLS_UTIL_BILL_RESULTS)
+    elec = rows.filter(pl.col('new_col_name') == N.UTIL_BILL_ELEC_RESULTS)
+    assert elec['full_metadata'].to_list() == [False] and elec['basic_metadata'].to_list() == [False]
+    # the rest of the import list is unchanged: the exported columns of the raw results
+    exported = col_defs.filter((pl.col('full_metadata') == True) &
+                               (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen'])))
+    assert set(imported['original_col_name']) == set(exported['original_col_name']) | {'utility_bills.electricity_utility_bill_results'}
 
 
 def test_bills_stage_fails_on_fan_out(tmp_path, monkeypatch):

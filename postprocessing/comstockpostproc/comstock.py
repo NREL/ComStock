@@ -1445,16 +1445,22 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
 
         self.convert_units(col_names)
 
+    def imported_column_definitions(self, col_defs):
+        # The column definitions to import from the raw results: the columns of the full metadata
+        # export, plus the utility_bills result strings, which the bills stage parses into each
+        # allocated row's bill columns and which are imported whether or not they are exported
+        return col_defs.filter(
+            ((pl.col('full_metadata') == True) | pl.col('new_col_name').is_in(self.COLS_UTIL_BILL_RESULTS)) &
+            (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen']))
+        )
+
     def downselect_imported_columns(self, df):
-        # Downselect to the columns marked for export in column definitions
+        # Downselect to the imported columns: those marked for export in column definitions,
+        # plus the utility bill result strings postprocessing parses
         logger.debug(f'Memory before downselect_columns: {df.estimated_size()}')
         col_defs_path = os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)
         col_defs = pl.scan_csv(col_defs_path)
-        col_def_names = col_defs.filter(
-            (pl.col('full_metadata') == True) &
-            (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen']))
-        )
-        col_def_names = col_def_names.select('original_col_name').collect()
+        col_def_names = self.imported_column_definitions(col_defs).select('original_col_name').collect()
         col_def_names = col_def_names.to_series().to_list()
 
         # Handle missing columns
@@ -1654,9 +1660,7 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Rename columns per comstock_column_definitions.csv
 
         # Read the column definitions
-        col_defs = pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME))
-        col_defs = col_defs.filter((pl.col('full_metadata') == True) &
-                                   (~pl.col('location').is_in(['calculated', 'geospatial', 'cejst', 'ejscreen'])))
+        col_defs = self.imported_column_definitions(pl.read_csv(os.path.join(RESOURCE_DIR, COLUMN_DEFINITION_FILE_NAME)))
         for col_def in col_defs.iter_rows(named=True):
             orig_name = col_def['original_col_name']
             new_name = col_def['new_col_name']
@@ -2361,12 +2365,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         alloc_wts_bills_dir = f'{alloc_wts_bills_root}/upgrade={upgrade_id}'
         if not self.output_dir['fs'].exists(alloc_wts_bills_dir):
             raise Exception(f"{alloc_wts_bills_dir} does not exist. Ensure create_allocated_weights_plus_util_bills_for_upgrade has been called previously.")
-        cache_version = utility_bills_join.bills_cache_version(alloc_wts_bills_root, self.output_dir['fs'])
-        if cache_version < utility_bills_join.BILLS_JOIN_VERSION:
-            raise Exception(f"{alloc_wts_bills_root} was built by an older utility bills join (version {cache_version}, "
-                            f"current {utility_bills_join.BILLS_JOIN_VERSION}): "
-                            f"{utility_bills_join.STALE_REASONS.get(cache_version, 'its bills are out of date')}. "
-                            f"Call create_allocated_weights_plus_util_bills_for_upgrade to rebuild it.")
         state_pqts = []
         pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
         for p in self.output_dir['fs'].glob(pqt_glob):
@@ -2421,8 +2419,6 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         if isinstance(self.output_dir['fs'], s3fs.S3FileSystem):
             alloc_wts_bills_root = f's3://{alloc_wts_bills_root}'
         alloc_wts_bills_dir = f'{alloc_wts_bills_root}/upgrade={upgrade_id}'
-        # A cache built by an older bills join is renamed .stale_* and rebuilt
-        utility_bills_join.retire_stale_bills_cache(alloc_wts_bills_root, self.output_dir['fs'])
         if self.output_dir['fs'].exists(alloc_wts_bills_dir):
             state_pqts = []
             pqt_glob = f'{alloc_wts_bills_dir}/**/cached_allocated_weights_plus_bills_*.parquet'
@@ -2627,7 +2623,10 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
             with self.output_dir['fs'].open(cached_file_path, "wb") as f:
                 state_alloc_wts.write_parquet(f)
         alloc_wts = pl.scan_parquet(state_pqts, hive_partitioning=True, storage_options=self.output_dir['storage_options'])
-        utility_bills_join.write_bills_marker(alloc_wts_bills_root, self.output_dir['fs'], upgrade_id, bills_info)
+        logger.info(f"Utility bills for upgrade {upgrade_id}: states from {bills_info['bill_state_source']}, "
+                    f"{bills_info['n_electricity_bills']:,} bills for {bills_info['n_buildings_with_bills']:,} buildings, "
+                    f"{bills_info['n_bldg_utility_states_without_in_state_tariff']:,} building-utility-state "
+                    f"combinations billed at the state average")
 
         return alloc_wts_bills_dir
 
