@@ -15,6 +15,7 @@ electricity prices; natural gas, propane and fuel oil use EIA state averages.
   tariffs applied to the building has no block, and its rows get the state-average bill.
 - `state_avg_*_cost_results`: one block per state, `|<state>:<dollars>|`, for each fuel.
 - `electricity_rate_files_by_state`: the version of `resources/elec_rate_states.csv` applied (see below).
+  Kept in the raw results for provenance; postprocessing does not export it.
 
 ## Resources and how to maintain them
 
