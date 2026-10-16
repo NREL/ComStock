@@ -425,7 +425,7 @@ class CommercialGap(S3UtilitiesMixin, UnitsMixin, NamingMixin, GapPlottingMixin)
             'office': 'LargeOffice',
             'distribution': 'Warehouse',
             'hotel': 'LargeHotel',
-            'model': 'SmallHotel',
+            'motel': 'SmallHotel',
             'qsr': 'QuickServiceRestaurant',
             'small_office': 'SmallOffice',
             'warehouse': 'Warehouse',
