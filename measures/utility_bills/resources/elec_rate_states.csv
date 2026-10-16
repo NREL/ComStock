@@ -184,8 +184,8 @@ label,eia_id,utility,state,source
 594824e45457a3563175d08d,295,"City of Alexandria, Minnesota (Utility Company)",MN,single_state_utility
 594825cc5457a3af6f75d087,295,"City of Alexandria, Minnesota (Utility Company)",MN,single_state_utility
 539fb824ec4f024bc1dc1401,296,"Alfalfa Electric Coop, Inc (Kansas)",KS,state_in_page_name
-53bea65f5257a36a17b4b9fb,296,"Alfalfa Electric Coop, Inc",,unresolved
-53bea6fc5257a31716b4b9fe,296,"Alfalfa Electric Coop, Inc",,unresolved
+53bea65f5257a36a17b4b9fb,296,"Alfalfa Electric Coop, Inc",OK,web_research
+53bea6fc5257a31716b4b9fe,296,"Alfalfa Electric Coop, Inc",OK,web_research
 539fb4d0ec4f024bc1dbedb7,298,"City of Alexandria, Louisiana (Utility Company)",LA,single_state_utility
 539fc3b1ec4f024c27d8beb1,298,"City of Alexandria, Louisiana (Utility Company)",LA,single_state_utility
 53ac41835257a3b668c32a35,298,"City of Alexandria, Louisiana (Utility Company)",LA,single_state_utility
@@ -1065,19 +1065,19 @@ label,eia_id,utility,state,source
 539fb47aec4f024bc1dbea09,2210,"City of Bridgeport, Texas (Utility Company)",,not_in_tract_map
 539fb9b7ec4f024bc1dc25d1,2210,"City of Bridgeport, Texas (Utility Company)",,not_in_tract_map
 539fbf8eec4f024c27d89261,2210,"City of Bridgeport, Texas (Utility Company)",,not_in_tract_map
-539f6a7fec4f024411ec9035,2212,"Broad River Electric Coop, Inc",,unresolved
+539f6a7fec4f024411ec9035,2212,"Broad River Electric Coop, Inc",SC,web_research
 539f6f54ec4f024411eccccf,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539f70b2ec4f024411ecdd23,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539f760aec4f024411ed1ae1,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539f762dec4f024411ed1c39,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fb5c4ec4f024bc1dbf8e7,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
-539fb65eec4f024bc1dbff69,2212,"Broad River Electric Coop, Inc",,unresolved
-539fb8e4ec4f024bc1dc1c1b,2212,"Broad River Electric Coop, Inc",,unresolved
-539fbd24ec4f024c27d87823,2212,"Broad River Electric Coop, Inc",,unresolved
+539fb65eec4f024bc1dbff69,2212,"Broad River Electric Coop, Inc",SC,web_research
+539fb8e4ec4f024bc1dc1c1b,2212,"Broad River Electric Coop, Inc",SC,web_research
+539fbd24ec4f024c27d87823,2212,"Broad River Electric Coop, Inc",SC,web_research
 539fbd26ec4f024c27d87881,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fbdfdec4f024c27d88155,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fc951ec4f024d2f53efca,2212,"Broad River Electric Coop, Inc (North Carolina)",NC,state_in_page_name
-539fcbc2ec4f024d2f5408ec,2212,"Broad River Electric Coop, Inc",,unresolved
+539fcbc2ec4f024d2f5408ec,2212,"Broad River Electric Coop, Inc",SC,web_research
 539f701eec4f024411ecd66d,2215,"Bridger Valley Elec Assn, Inc",,not_in_tract_map
 539fbe90ec4f024c27d887eb,2215,"Bridger Valley Elec Assn, Inc",,not_in_tract_map
 55956f3a5457a3180fce8270,2215,"Bridger Valley Elec Assn, Inc (Utah)",UT,state_in_page_name
@@ -1371,7 +1371,7 @@ label,eia_id,utility,state,source
 539f70b3ec4f024411ecdd9f,3086,Carroll County REMC,,not_in_tract_map
 539fba21ec4f024bc1dc2ac7,3086,Carroll County REMC,,not_in_tract_map
 539fc3d8ec4f024c27d8c071,3086,Carroll County REMC,,not_in_tract_map
-539fc908ec4f024d2f53ecf8,3093,Carroll Electric Coop Corp,,unresolved
+539fc908ec4f024d2f53ecf8,3093,Carroll Electric Coop Corp,AR,web_research
 539f6b63ec4f024411ec9c67,3107,Carteret-Craven El Member Corp,NC,single_state_utility
 539f75b2ec4f024411ed1725,3107,Carteret-Craven El Member Corp,NC,single_state_utility
 539fb7a9ec4f024bc1dc0e37,3107,Carteret-Craven El Member Corp,NC,single_state_utility
@@ -1653,21 +1653,21 @@ label,eia_id,utility,state,source
 58b867ce5457a3d603fbf84a,3522,Chugach Electric Assn Inc,AK,single_state_utility
 5942c45b5457a35f3e16e5b9,3525,"Village of Churchville, New York (Utility Company)",,not_in_tract_map
 5942c48d5457a3063f16e5ba,3525,"Village of Churchville, New York (Utility Company)",,not_in_tract_map
-539f6b73ec4f024411ec9cdb,3527,Choctaw Electric Coop Inc,,unresolved
-539f6b9fec4f024411ec9ef5,3527,Choctaw Electric Coop Inc,,unresolved
-539f747cec4f024411ed0895,3527,Choctaw Electric Coop Inc,,unresolved
-539fb413ec4f024bc1dbe599,3527,Choctaw Electric Coop Inc,,unresolved
-539fb7a9ec4f024bc1dc0e2b,3527,Choctaw Electric Coop Inc,,unresolved
-539fb9ecec4f024bc1dc2871,3527,Choctaw Electric Coop Inc,,unresolved
-539fbf10ec4f024c27d88da7,3527,Choctaw Electric Coop Inc,,unresolved
-539fbf45ec4f024c27d88f71,3527,Choctaw Electric Coop Inc,,unresolved
-539fc0a3ec4f024c27d89e7b,3527,Choctaw Electric Coop Inc,,unresolved
-539fc2b0ec4f024c27d8b447,3527,Choctaw Electric Coop Inc,,unresolved
-539fc4ddec4f024c27d8cbc5,3527,Choctaw Electric Coop Inc,,unresolved
-539fc502ec4f024c27d8ccb9,3527,Choctaw Electric Coop Inc,,unresolved
-539fc850ec4f024d2f53e50a,3527,Choctaw Electric Coop Inc,,unresolved
-539fc9c5ec4f024d2f53f52e,3527,Choctaw Electric Coop Inc,,unresolved
-539fc9e9ec4f024d2f53f66c,3527,Choctaw Electric Coop Inc,,unresolved
+539f6b73ec4f024411ec9cdb,3527,Choctaw Electric Coop Inc,OK,web_research
+539f6b9fec4f024411ec9ef5,3527,Choctaw Electric Coop Inc,OK,web_research
+539f747cec4f024411ed0895,3527,Choctaw Electric Coop Inc,OK,web_research
+539fb413ec4f024bc1dbe599,3527,Choctaw Electric Coop Inc,OK,web_research
+539fb7a9ec4f024bc1dc0e2b,3527,Choctaw Electric Coop Inc,OK,web_research
+539fb9ecec4f024bc1dc2871,3527,Choctaw Electric Coop Inc,OK,web_research
+539fbf10ec4f024c27d88da7,3527,Choctaw Electric Coop Inc,OK,web_research
+539fbf45ec4f024c27d88f71,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc0a3ec4f024c27d89e7b,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc2b0ec4f024c27d8b447,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc4ddec4f024c27d8cbc5,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc502ec4f024c27d8ccb9,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc850ec4f024d2f53e50a,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc9c5ec4f024d2f53f52e,3527,Choctaw Electric Coop Inc,OK,web_research
+539fc9e9ec4f024d2f53f66c,3527,Choctaw Electric Coop Inc,OK,web_research
 53b16a245257a3cc52ce10da,3535,"City of Cimarron, Kansas (Utility Company)",,not_in_tract_map
 53b16c9c5257a3cd52ce10db,3535,"City of Cimarron, Kansas (Utility Company)",,not_in_tract_map
 5995cece5457a30365e27213,3542,Duke Energy Ohio Inc,OH,single_state_utility
@@ -2174,9 +2174,9 @@ label,eia_id,utility,state,source
 55808c4d5457a3e0216c88a7,4622,Cumberland Valley Rural E C C,KY,single_state_utility
 55808cc65457a3c7396c88ab,4622,Cumberland Valley Rural E C C,KY,single_state_utility
 55808d5a5457a3e4426c88a2,4622,Cumberland Valley Rural E C C,KY,single_state_utility
-5b34fa835457a3ee5b8367c0,4624,Cumberland Elec Member Corp,,unresolved
-5b34fb145457a34e5a8367be,4624,Cumberland Elec Member Corp,,unresolved
-5b34fbfb5457a355588367be,4624,Cumberland Elec Member Corp,,unresolved
+5b34fa835457a3ee5b8367c0,4624,Cumberland Elec Member Corp,TN,web_research
+5b34fb145457a34e5a8367be,4624,Cumberland Elec Member Corp,TN,web_research
+5b34fbfb5457a355588367be,4624,Cumberland Elec Member Corp,TN,web_research
 539fbcacec4f024c27d8728b,4627,"City of Cumberland, Wisconsin (Utility Company)",,not_in_tract_map
 539fcbaeec4f024d2f54085c,4627,"City of Cumberland, Wisconsin (Utility Company)",,not_in_tract_map
 539f6cb7ec4f024411ecad87,4632,Cuming County Public Pwr Dist,NE,single_state_utility
@@ -2295,15 +2295,15 @@ label,eia_id,utility,state,source
 5942c9085457a34e1716e5b7,5021,Delaware County Elec Coop Inc,NY,single_state_utility
 559c01975457a3a963271885,5027,Delmarva Power (Maryland),MD,state_in_page_name
 559c0d855457a3b563271883,5027,Delmarva Power (Maryland),MD,state_in_page_name
-5a8330175457a3ef3c914215,5027,Delmarva Power,,unresolved
+5a8330175457a3ef3c914215,5027,Delmarva Power,DE,web_research
 5d3f522a5457a3dc0edc8c3d,5027,Delmarva Power (Maryland),MD,state_in_page_name
 5d3f55225457a3d71ddc8c3e,5027,Delmarva Power (Maryland),MD,state_in_page_name
 5d3f583a5457a3f84fdc8c3e,5027,Delmarva Power (Maryland),MD,state_in_page_name
 5d3f5e785457a3dc0edc8c3e,5027,Delmarva Power (Maryland),MD,state_in_page_name
-5d4aedb75457a3af38ddb2db,5027,Delmarva Power,,unresolved
-5d4af10e5457a3a340ddb2db,5027,Delmarva Power,,unresolved
-5d4af9305457a3473eddb2dc,5027,Delmarva Power,,unresolved
-5d4afa645457a3043eddb2dc,5027,Delmarva Power,,unresolved
+5d4aedb75457a3af38ddb2db,5027,Delmarva Power,DE,web_research
+5d4af10e5457a3a340ddb2db,5027,Delmarva Power,DE,web_research
+5d4af9305457a3473eddb2dc,5027,Delmarva Power,DE,web_research
+5d4afa645457a3043eddb2dc,5027,Delmarva Power,DE,web_research
 539f7315ec4f024411ecf883,5036,"City of Delta, Colorado (Utility Company)",,not_in_tract_map
 539fc229ec4f024c27d8aecf,5036,"City of Delta, Colorado (Utility Company)",,not_in_tract_map
 539fb401ec4f024bc1dbe4bb,5056,"City of Denison, Iowa (Utility Company)",,not_in_tract_map
@@ -2436,10 +2436,10 @@ label,eia_id,utility,state,source
 539fb91bec4f024bc1dc1f1d,5397,"City of Dunnell, Minnesota (Utility Company)",MN,single_state_utility
 5b6c97b35457a3f47d571c6c,5399,Duck River Elec Member Corp,TN,single_state_utility
 5b6c99045457a3f47d571c6d,5399,Duck River Elec Member Corp,TN,single_state_utility
-539fc897ec4f024d2f53e80c,5416,"Duke Energy Carolinas, LLC",,unresolved
+539fc897ec4f024d2f53e80c,5416,"Duke Energy Carolinas, LLC",NC,web_research
 591201955457a3163680a116,5416,Progress Energy Carolinas Inc (South Carolina),SC,state_in_page_name
 591202035457a3163680a117,5416,Progress Energy Carolinas Inc (South Carolina),SC,state_in_page_name
-5aa8067d5457a3c97b2e6280,5416,Progress Energy Carolinas Inc,,unresolved
+5aa8067d5457a3c97b2e6280,5416,Progress Energy Carolinas Inc,NC,web_research
 5cb8eb2b5457a3f93e9b6ec4,5416,"Duke Energy Carolinas, LLC (South Carolina)",SC,state_in_page_name
 5cb8efdb5457a321319b6ec5,5416,"Duke Energy Carolinas, LLC (South Carolina)",SC,state_in_page_name
 5cbf1f825457a3016867107d,5416,"Duke Energy Carolinas, LLC (South Carolina)",SC,state_in_page_name
@@ -2452,18 +2452,18 @@ label,eia_id,utility,state,source
 5d9230bf5457a36a1961b9f5,5416,Progress Energy Carolinas Inc (South Carolina),SC,state_in_page_name
 5d9231fa5457a3191161b9f2,5416,Progress Energy Carolinas Inc (South Carolina),SC,state_in_page_name
 5d92340c5457a34f1161b9f1,5416,Progress Energy Carolinas Inc (South Carolina),SC,state_in_page_name
-5e84b4055457a38a0eba48d8,5416,Progress Energy Carolinas Inc,,unresolved
-5e84b4715457a3ac48ba48da,5416,Progress Energy Carolinas Inc,,unresolved
-5e84bea85457a3ac48ba48db,5416,Progress Energy Carolinas Inc,,unresolved
-5e84bf385457a3b248ba48d8,5416,Progress Energy Carolinas Inc,,unresolved
-5e84d1dc5457a34947ba48da,5416,Progress Energy Carolinas Inc,,unresolved
-5e84d2325457a3b248ba48d9,5416,Progress Energy Carolinas Inc,,unresolved
-5e84d5825457a3d037ba48d8,5416,Progress Energy Carolinas Inc,,unresolved
-5e84d65d5457a3b248ba48da,5416,Progress Energy Carolinas Inc,,unresolved
-5e84d6d15457a35f14ba48d9,5416,Progress Energy Carolinas Inc,,unresolved
-6112939e5457a3fb29f802c8,5416,"Duke Energy Carolinas, LLC",,unresolved
-6112a67b5457a3035af802c8,5416,"Duke Energy Carolinas, LLC",,unresolved
-6112a77f5457a3035af802c9,5416,"Duke Energy Carolinas, LLC",,unresolved
+5e84b4055457a38a0eba48d8,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84b4715457a3ac48ba48da,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84bea85457a3ac48ba48db,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84bf385457a3b248ba48d8,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84d1dc5457a34947ba48da,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84d2325457a3b248ba48d9,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84d5825457a3d037ba48d8,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84d65d5457a3b248ba48da,5416,Progress Energy Carolinas Inc,NC,web_research
+5e84d6d15457a35f14ba48d9,5416,Progress Energy Carolinas Inc,NC,web_research
+6112939e5457a3fb29f802c8,5416,"Duke Energy Carolinas, LLC",NC,web_research
+6112a67b5457a3035af802c8,5416,"Duke Energy Carolinas, LLC",NC,web_research
+6112a77f5457a3035af802c9,5416,"Duke Energy Carolinas, LLC",NC,web_research
 539f6a7fec4f024411ec9069,5429,"City of Duncan, Oklahoma (Utility Company)",,not_in_tract_map
 539f71c4ec4f024411ece9a7,5429,"City of Duncan, Oklahoma (Utility Company)",,not_in_tract_map
 539f6e4cec4f024411ecc0c1,5438,"Duncan Valley Elec Coop, Inc",,not_in_tract_map
@@ -2504,13 +2504,13 @@ label,eia_id,utility,state,source
 539fc102ec4f024c27d8a291,5551,"City of Eagle River, Wisconsin (Utility Company)",WI,single_state_utility
 539fc23cec4f024c27d8afaf,5551,"City of Eagle River, Wisconsin (Utility Company)",WI,single_state_utility
 539fc829ec4f024d2f53e392,5563,"City of Earlville, Iowa (Utility Company)",,not_in_tract_map
-539f6e2cec4f024411ecbf45,5574,East Central Energy,,unresolved
+539f6e2cec4f024411ecbf45,5574,East Central Energy,MN,web_research
 539fb773ec4f024bc1dc0bf3,5574,East Central Energy (Wisconsin),WI,state_in_page_name
 539fb908ec4f024bc1dc1e35,5574,East Central Energy (Wisconsin),WI,state_in_page_name
-539fc480ec4f024c27d8c7ef,5574,East Central Energy,,unresolved
+539fc480ec4f024c27d8c7ef,5574,East Central Energy,MN,web_research
 539fc7b8ec4f024d2f53dedc,5574,East Central Energy (Wisconsin),WI,state_in_page_name
 539fc816ec4f024d2f53e31c,5574,East Central Energy (Wisconsin),WI,state_in_page_name
-594bf94c5457a3f13f75d08a,5574,East Central Energy,,unresolved
+594bf94c5457a3f13f75d08a,5574,East Central Energy,MN,web_research
 539fb60aec4f024bc1dbfc01,5575,"City of East Grand Forks, Minnesota (Utility Company)",,not_in_tract_map
 539fb9fdec4f024bc1dc28db,5575,"City of East Grand Forks, Minnesota (Utility Company)",,not_in_tract_map
 594bfab75457a3442b75d08d,5575,"City of East Grand Forks, Minnesota (Utility Company)",,not_in_tract_map
@@ -2619,8 +2619,8 @@ label,eia_id,utility,state,source
 53d7b4495257a3ce392182e6,5692,"City of Eitzen, Minnesota (Utility Company)",,not_in_tract_map
 539f6cc8ec4f024411ecae3d,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
 539f70b4ec4f024411ecddbb,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
-539f7116ec4f024411ece1d9,5701,El Paso Electric Co,,unresolved
-539f73b1ec4f024411ecff73,5701,El Paso Electric Co,,unresolved
+539f7116ec4f024411ece1d9,5701,El Paso Electric Co,TX,web_research
+539f73b1ec4f024411ecff73,5701,El Paso Electric Co,TX,web_research
 539fb9c7ec4f024bc1dc266f,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
 539fc814ec4f024d2f53e2aa,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
 539fcafcec4f024d2f54012c,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
@@ -2641,13 +2641,13 @@ label,eia_id,utility,state,source
 5b75f21a5457a32247af0aeb,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
 5b75f2695457a32247af0aec,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
 5b75f2b05457a30179af0aed,5701,El Paso Electric Co (New Mexico),NM,state_in_page_name
-5d41ec5f5457a3d164dc8c43,5701,El Paso Electric Co,,unresolved
-5d41ee0b5457a31218dc8c3c,5701,El Paso Electric Co,,unresolved
-5d41f1b85457a31230dc8c3c,5701,El Paso Electric Co,,unresolved
-5d41f2c55457a3fc35dc8c3c,5701,El Paso Electric Co,,unresolved
-5d41f4205457a31218dc8c3d,5701,El Paso Electric Co,,unresolved
-5d41f5505457a31933dc8c3b,5701,El Paso Electric Co,,unresolved
-5e7bd6de5457a30e357d5620,5701,El Paso Electric Co,,unresolved
+5d41ec5f5457a3d164dc8c43,5701,El Paso Electric Co,TX,web_research
+5d41ee0b5457a31218dc8c3c,5701,El Paso Electric Co,TX,web_research
+5d41f1b85457a31230dc8c3c,5701,El Paso Electric Co,TX,web_research
+5d41f2c55457a3fc35dc8c3c,5701,El Paso Electric Co,TX,web_research
+5d41f4205457a31218dc8c3d,5701,El Paso Electric Co,TX,web_research
+5d41f5505457a31933dc8c3b,5701,El Paso Electric Co,TX,web_research
+5e7bd6de5457a30e357d5620,5701,El Paso Electric Co,TX,web_research
 539f6c2aec4f024411eca625,5728,"City of Elba, Alabama (Utility Company)",,not_in_tract_map
 539f74c2ec4f024411ed0be3,5728,"City of Elba, Alabama (Utility Company)",,not_in_tract_map
 539f6b73ec4f024411ec9cf9,5729,Electrical Dist No8 Maricopa,,not_in_tract_map
@@ -2726,7 +2726,7 @@ label,eia_id,utility,state,source
 539f6c49ec4f024411eca811,5860,Empire District Electric Co (Oklahoma),OK,state_in_page_name
 539f73c5ec4f024411ed00c3,5860,Empire District Electric Co (Kansas),KS,state_in_page_name
 539fba8bec4f024bc1dc2ef7,5860,Empire District Electric Co (Oklahoma),OK,state_in_page_name
-539fbe8fec4f024c27d887a3,5860,Empire District Electric Co,,unresolved
+539fbe8fec4f024c27d887a3,5860,Empire District Electric Co,AR,web_research
 5903766f5457a33207cd3b43,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
 590377825457a3ff07cd3b42,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
 59037aa45457a3cc10cd3b42,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
@@ -2738,10 +2738,10 @@ label,eia_id,utility,state,source
 59039ac35457a33518cd3b46,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
 5903a1d05457a3f318cd3b46,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
 539fb526ec4f024bc1dbf17d,5862,"Empire Electric Assn, Inc (Utah)",UT,state_in_page_name
-539fb907ec4f024bc1dc1dfb,5862,"Empire Electric Assn, Inc",,unresolved
+539fb907ec4f024bc1dc1dfb,5862,"Empire Electric Assn, Inc",CO,web_research
 539fc022ec4f024c27d898e1,5862,"Empire Electric Assn, Inc (Utah)",UT,state_in_page_name
-539fc4efec4f024c27d8cc23,5862,"Empire Electric Assn, Inc",,unresolved
-59482bfa5457a3953f75d08f,5862,"Empire Electric Assn, Inc",,unresolved
+539fc4efec4f024c27d8cc23,5862,"Empire Electric Assn, Inc",CO,web_research
+59482bfa5457a3953f75d08f,5862,"Empire Electric Assn, Inc",CO,web_research
 539f7181ec4f024411ece6b1,5875,"Village of Endicott, New York (Utility Company)",,not_in_tract_map
 539fcbc2ec4f024d2f5408d6,5875,"Village of Endicott, New York (Utility Company)",,not_in_tract_map
 539fb48cec4f024bc1dbeb07,5896,"Town of Enfield, North Carolina (Utility Company)",,not_in_tract_map
@@ -2870,8 +2870,8 @@ label,eia_id,utility,state,source
 539fc98cec4f024d2f53f29a,6168,Farmers Electric Coop,,not_in_tract_map
 539fb49cec4f024bc1dbeb5b,6169,Fall River Rural Elec Coop Inc (Wyoming),WY,state_in_page_name
 539fbcacec4f024c27d87287,6169,Fall River Rural Elec Coop Inc (Montana),MT,state_in_page_name
-539fc149ec4f024c27d8a519,6169,Fall River Rural Elec Coop Inc,,unresolved
-539fc31fec4f024c27d8b86f,6169,Fall River Rural Elec Coop Inc,,unresolved
+539fc149ec4f024c27d8a519,6169,Fall River Rural Elec Coop Inc,ID,web_research
+539fc31fec4f024c27d8b86f,6169,Fall River Rural Elec Coop Inc,ID,web_research
 539fb6a5ec4f024bc1dc02d7,6172,"City of Fallon, Nevada (Utility Company)",,not_in_tract_map
 53c6ad635257a32345f17bd2,6172,"City of Fallon, Nevada (Utility Company)",,not_in_tract_map
 53c6aebc5257a31f43f17bd3,6172,"City of Fallon, Nevada (Utility Company)",,not_in_tract_map
@@ -2933,21 +2933,21 @@ label,eia_id,utility,state,source
 5b71ed9d5457a35240af0aec,6235,"City of Public Works Comm- Fayetteville, North Carolina (Utility Company)",NC,single_state_utility
 5b71ee255457a3db79af0aeb,6235,"City of Public Works Comm- Fayetteville, North Carolina (Utility Company)",NC,single_state_utility
 539f6bbdec4f024411eca0d9,6258,Federated Rural Electric Assn (Iowa),IA,state_in_page_name
-539f6edfec4f024411ecc7af,6258,Federated Rural Electric Assn,,unresolved
-539f6fecec4f024411ecd461,6258,Federated Rural Electric Assn,,unresolved
-539f702eec4f024411ecd731,6258,Federated Rural Electric Assn,,unresolved
+539f6edfec4f024411ecc7af,6258,Federated Rural Electric Assn,MN,web_research
+539f6fecec4f024411ecd461,6258,Federated Rural Electric Assn,MN,web_research
+539f702eec4f024411ecd731,6258,Federated Rural Electric Assn,MN,web_research
 539fb57eec4f024bc1dbf5c9,6258,Federated Rural Electric Assn (Iowa),IA,state_in_page_name
-539fb823ec4f024bc1dc13c7,6258,Federated Rural Electric Assn,,unresolved
-539fb8c0ec4f024bc1dc1a91,6258,Federated Rural Electric Assn,,unresolved
+539fb823ec4f024bc1dc13c7,6258,Federated Rural Electric Assn,MN,web_research
+539fb8c0ec4f024bc1dc1a91,6258,Federated Rural Electric Assn,MN,web_research
 539fbdc7ec4f024c27d87f17,6258,Federated Rural Electric Assn (Iowa),IA,state_in_page_name
-539fbec6ec4f024c27d889f7,6258,Federated Rural Electric Assn,,unresolved
-539fbf45ec4f024c27d88f91,6258,Federated Rural Electric Assn,,unresolved
-539fbf8eec4f024c27d8925d,6258,Federated Rural Electric Assn,,unresolved
-539fc1a6ec4f024c27d8a905,6258,Federated Rural Electric Assn,,unresolved
+539fbec6ec4f024c27d889f7,6258,Federated Rural Electric Assn,MN,web_research
+539fbf45ec4f024c27d88f91,6258,Federated Rural Electric Assn,MN,web_research
+539fbf8eec4f024c27d8925d,6258,Federated Rural Electric Assn,MN,web_research
+539fc1a6ec4f024c27d8a905,6258,Federated Rural Electric Assn,MN,web_research
 539fc320ec4f024c27d8b8b5,6258,Federated Rural Electric Assn (Iowa),IA,state_in_page_name
-539fc412ec4f024c27d8c325,6258,Federated Rural Electric Assn,,unresolved
-539fc75dec4f024d2f53db84,6258,Federated Rural Electric Assn,,unresolved
-539fc898ec4f024d2f53e828,6258,Federated Rural Electric Assn,,unresolved
+539fc412ec4f024c27d8c325,6258,Federated Rural Electric Assn,MN,web_research
+539fc75dec4f024d2f53db84,6258,Federated Rural Electric Assn,MN,web_research
+539fc898ec4f024d2f53e828,6258,Federated Rural Electric Assn,MN,web_research
 539f748fec4f024411ed09a7,6272,"FEM Electric Assn, Inc",,not_in_tract_map
 539fbe66ec4f024c27d8861b,6272,"FEM Electric Assn, Inc",,not_in_tract_map
 539f7092ec4f024411ecdbf9,6274,"City of Fennimore, Wisconsin (Utility Company)",,not_in_tract_map
@@ -3237,7 +3237,7 @@ label,eia_id,utility,state,source
 539fb993ec4f024bc1dc2443,6780,"Town of Fremont, North Carolina (Utility Company)",,not_in_tract_map
 539f7118ec4f024411ece26b,6782,Freeborn-Mower Coop Services (Iowa),IA,state_in_page_name
 539fb4d1ec4f024bc1dbedf9,6782,Freeborn-Mower Coop Services (Iowa),IA,state_in_page_name
-594c294d5457a3225c75d08c,6782,Freeborn-Mower Coop Services,,unresolved
+594c294d5457a3225c75d08c,6782,Freeborn-Mower Coop Services,MN,web_research
 539f6eaeec4f024411ecc519,6784,French Broad Elec Member Corp,TN,single_state_utility
 539fb479ec4f024bc1dbe99b,6784,French Broad Elec Member Corp (Tennessee),TN,state_in_page_name
 539fb8c0ec4f024bc1dc1a8d,6784,French Broad Elec Member Corp (Tennessee),TN,state_in_page_name
@@ -3291,7 +3291,7 @@ label,eia_id,utility,state,source
 539fc99cec4f024d2f53f2ee,6949,"City of Gardner, Kansas (Utility Company)",,not_in_tract_map
 539fb59fec4f024bc1dbf701,6950,Garland Light & Power Company,,not_in_tract_map
 539fb730ec4f024bc1dc08e5,6950,Garland Light & Power Company,,not_in_tract_map
-539fcb47ec4f024d2f540484,6957,"Garkane Energy Coop, Inc",,unresolved
+539fcb47ec4f024d2f540484,6957,"Garkane Energy Coop, Inc",UT,web_research
 539f6f21ec4f024411eccab9,6958,"City of Garland, Texas (Utility Company)",TX,single_state_utility
 5b749cde5457a3e932af0aec,6958,"City of Garland, Texas (Utility Company)",TX,single_state_utility
 5b749d9e5457a3154daf0aef,6958,"City of Garland, Texas (Utility Company)",TX,single_state_utility
@@ -3370,10 +3370,10 @@ label,eia_id,utility,state,source
 60e70aa75457a3ff068b4567,7140,Georgia Power Co,GA,single_state_utility
 53a061665257a39e6f04ca0f,7149,"City of Gering, Nebraska (Utility Company)",,not_in_tract_map
 53a09bce5257a39b6d04ca1a,7149,"City of Gering, Nebraska (Utility Company)",,not_in_tract_map
-539f7528ec4f024411ed10ed,7174,Gibson Electric Members Corp,,unresolved
-539fb950ec4f024bc1dc2127,7174,Gibson Electric Members Corp,,unresolved
-53a09f8c5257a3727104ca10,7174,Gibson Electric Members Corp,,unresolved
-53a0a4eb5257a3186f04ca15,7174,Gibson Electric Members Corp,,unresolved
+539f7528ec4f024411ed10ed,7174,Gibson Electric Members Corp,TN,web_research
+539fb950ec4f024bc1dc2127,7174,Gibson Electric Members Corp,TN,web_research
+53a09f8c5257a3727104ca10,7174,Gibson Electric Members Corp,TN,web_research
+53a0a4eb5257a3186f04ca15,7174,Gibson Electric Members Corp,TN,web_research
 539f6afaec4f024411ec9709,7184,"City of Giddings, Texas (Utility Company)",,not_in_tract_map
 539fc369ec4f024c27d8bba7,7184,"City of Giddings, Texas (Utility Company)",,not_in_tract_map
 539f6c69ec4f024411eca98b,7194,"City of Gilbert, Minnesota (Utility Company)",,not_in_tract_map
@@ -3902,9 +3902,9 @@ label,eia_id,utility,state,source
 56129eb05457a3744635c495,8567,"City of Higginsville, Missouri (Utility Company)",,not_in_tract_map
 56129faa5457a33d4635c494,8567,"City of Higginsville, Missouri (Utility Company)",,not_in_tract_map
 5612a09c5457a3744635c496,8567,"City of Higginsville, Missouri (Utility Company)",,not_in_tract_map
-539f762dec4f024411ed1c3f,8570,Highline Electric Assn,,unresolved
-594972ab5457a3672975d08c,8570,Highline Electric Assn,,unresolved
-594973005457a3486f75d08c,8570,Highline Electric Assn,,unresolved
+539f762dec4f024411ed1c3f,8570,Highline Electric Assn,CO,web_research
+594972ab5457a3672975d08c,8570,Highline Electric Assn,CO,web_research
+594973005457a3486f75d08c,8570,Highline Electric Assn,CO,web_research
 539f6b64ec4f024411ec9c7d,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
 539f6b82ec4f024411ec9ded,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
 539f6f43ec4f024411eccc49,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
@@ -3942,9 +3942,9 @@ label,eia_id,utility,state,source
 539fb7ffec4f024bc1dc1213,8632,"Hill County Electric Coop, Inc",,not_in_tract_map
 539f75e7ec4f024411ed196f,8677,"Town of Hobgood, North Carolina (Utility Company)",,not_in_tract_map
 539fb848ec4f024bc1dc15b1,8698,"City of Hogansville, Georgia (Utility Company)",,not_in_tract_map
-539f756cec4f024411ed1389,8699,Inland Power & Light Company,,unresolved
-539fbdb4ec4f024c27d87e31,8699,Inland Power & Light Company,,unresolved
-539fbfa1ec4f024c27d89361,8699,Inland Power & Light Company,,unresolved
+539f756cec4f024411ed1389,8699,Inland Power & Light Company,WA,web_research
+539fbdb4ec4f024c27d87e31,8699,Inland Power & Light Company,WA,web_research
+539fbfa1ec4f024c27d89361,8699,Inland Power & Light Company,WA,web_research
 53f4bce25257a3381ce7a2a3,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53f4bf865257a3a81be7a2a3,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53f4c3545257a3111ce7a2a3,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
@@ -4138,19 +4138,19 @@ label,eia_id,utility,state,source
 539f7305ec4f024411ecf7c9,9188,"I-N-N Electric Coop, Inc",,not_in_tract_map
 539fb800ec4f024bc1dc123b,9188,"I-N-N Electric Coop, Inc",,not_in_tract_map
 539fb8afec4f024bc1dc1a6d,9188,"I-N-N Electric Coop, Inc",,not_in_tract_map
-539f6ffdec4f024411ecd4f7,9191,Idaho Power Co,,unresolved
+539f6ffdec4f024411ecd4f7,9191,Idaho Power Co,ID,web_research
 557f028a5457a373516c88a2,9191,Idaho Power Co (Oregon),OR,state_in_page_name
 557f03365457a3ea396c88a2,9191,Idaho Power Co (Oregon),OR,state_in_page_name
 557f051b5457a3d57b6c88a3,9191,Idaho Power Co (Oregon),OR,state_in_page_name
 557f05205457a3e8436c88a2,9191,Idaho Power Co (Oregon),OR,state_in_page_name
 557f22f45457a389496c88a3,9191,Idaho Power Co (Oregon),OR,state_in_page_name
 557f30645457a3ea396c88a3,9191,Idaho Power Co (Oregon),OR,state_in_page_name
-5cb4cbbd5457a325189b6ec2,9191,Idaho Power Co,,unresolved
-5cb4cdeb5457a321189b6ec2,9191,Idaho Power Co,,unresolved
-5f2828b25457a3e70fb5c37f,9191,Idaho Power Co,,unresolved
-5f2829965457a3ee0fb5c37f,9191,Idaho Power Co,,unresolved
-5f282a565457a3463db5c37f,9191,Idaho Power Co,,unresolved
-5f28885b5457a37411b5c380,9191,Idaho Power Co,,unresolved
+5cb4cbbd5457a325189b6ec2,9191,Idaho Power Co,ID,web_research
+5cb4cdeb5457a321189b6ec2,9191,Idaho Power Co,ID,web_research
+5f2828b25457a3e70fb5c37f,9191,Idaho Power Co,ID,web_research
+5f2829965457a3ee0fb5c37f,9191,Idaho Power Co,ID,web_research
+5f282a565457a3463db5c37f,9191,Idaho Power Co,ID,web_research
+5f28885b5457a37411b5c380,9191,Idaho Power Co,ID,web_research
 539f71a3ec4f024411ece7fb,9200,"Village of Ilion, New York (Utility Company)",,not_in_tract_map
 539f763eec4f024411ed1d49,9200,"Village of Ilion, New York (Utility Company)",,not_in_tract_map
 539fc7dfec4f024d2f53e102,9200,"Village of Ilion, New York (Utility Company)",,not_in_tract_map
@@ -4473,12 +4473,12 @@ label,eia_id,utility,state,source
 5d163ff65457a35716de8453,10000,Kansas City Power & Light Co (Missouri),MO,state_in_page_name
 5d1640805457a38c10de8453,10000,Kansas City Power & Light Co (Missouri),MO,state_in_page_name
 5d1641195457a35716de8454,10000,Kansas City Power & Light Co (Missouri),MO,state_in_page_name
-5d1a38135457a3f511a745b5,10000,Kansas City Power & Light Co,,unresolved
-5d1a388b5457a3f611a745b7,10000,Kansas City Power & Light Co,,unresolved
-5d1a399d5457a38c24a745b5,10000,Kansas City Power & Light Co,,unresolved
-5d1a3a265457a32212a745b6,10000,Kansas City Power & Light Co,,unresolved
-5d1a3f425457a3f411a745b6,10000,Kansas City Power & Light Co,,unresolved
-5d1a40185457a3f611a745b8,10000,Kansas City Power & Light Co,,unresolved
+5d1a38135457a3f511a745b5,10000,Kansas City Power & Light Co,KS,web_research
+5d1a388b5457a3f611a745b7,10000,Kansas City Power & Light Co,KS,web_research
+5d1a399d5457a38c24a745b5,10000,Kansas City Power & Light Co,KS,web_research
+5d1a3a265457a32212a745b6,10000,Kansas City Power & Light Co,KS,web_research
+5d1a3f425457a3f411a745b6,10000,Kansas City Power & Light Co,KS,web_research
+5d1a40185457a3f611a745b8,10000,Kansas City Power & Light Co,KS,web_research
 539f70b3ec4f024411ecdda7,10009,Karnes Electric Coop Inc,TX,single_state_utility
 539f70e6ec4f024411ece01d,10009,Karnes Electric Coop Inc,TX,single_state_utility
 539fc15dec4f024c27d8a617,10009,Karnes Electric Coop Inc,TX,single_state_utility
@@ -4541,16 +4541,16 @@ label,eia_id,utility,state,source
 539fc1cbec4f024c27d8aad5,10170,"Kiamichi Electric Coop, Inc",OK,single_state_utility
 539fc271ec4f024c27d8b1d5,10170,"Kiamichi Electric Coop, Inc",OK,single_state_utility
 539fc447ec4f024c27d8c571,10170,"Kiamichi Electric Coop, Inc",OK,single_state_utility
-5ab549095457a34a7fc1d590,10171,Kentucky Utilities Co,,unresolved
-5c3ce7195457a30c771482c5,10171,Old Dominion Power Co,,unresolved
-5c3ce8015457a3e8251482c5,10171,Old Dominion Power Co,,unresolved
-5c3ce8995457a3ea251482c4,10171,Old Dominion Power Co,,unresolved
-5e9618875457a3bf19a1e57f,10171,Kentucky Utilities Co,,unresolved
-5e9618df5457a35e22a1e581,10171,Kentucky Utilities Co,,unresolved
-5e96196a5457a3c54ba1e57d,10171,Kentucky Utilities Co,,unresolved
-5e9619cd5457a35922a1e57f,10171,Kentucky Utilities Co,,unresolved
-5e961b785457a3c54ba1e57e,10171,Kentucky Utilities Co,,unresolved
-5e961bd85457a35e22a1e582,10171,Kentucky Utilities Co,,unresolved
+5ab549095457a34a7fc1d590,10171,Kentucky Utilities Co,KY,web_research
+5c3ce7195457a30c771482c5,10171,Old Dominion Power Co,VA,web_research
+5c3ce8015457a3e8251482c5,10171,Old Dominion Power Co,VA,web_research
+5c3ce8995457a3ea251482c4,10171,Old Dominion Power Co,VA,web_research
+5e9618875457a3bf19a1e57f,10171,Kentucky Utilities Co,KY,web_research
+5e9618df5457a35e22a1e581,10171,Kentucky Utilities Co,KY,web_research
+5e96196a5457a3c54ba1e57d,10171,Kentucky Utilities Co,KY,web_research
+5e9619cd5457a35922a1e57f,10171,Kentucky Utilities Co,KY,web_research
+5e961b785457a3c54ba1e57e,10171,Kentucky Utilities Co,KY,web_research
+5e961bd85457a35e22a1e582,10171,Kentucky Utilities Co,KY,web_research
 53a9cc365257a357342c8964,10172,"City of Marathon, Iowa (Utility Company)",,not_in_tract_map
 53a9cca55257a357342c8965,10172,"City of Marathon, Iowa (Utility Company)",,not_in_tract_map
 539fb55aec4f024bc1dbf3a7,10179,Kenyon Municipal Utilities,MN,single_state_utility
@@ -4693,8 +4693,8 @@ label,eia_id,utility,state,source
 539f6f88ec4f024411eccfb9,10550,McCook Public Power District,,not_in_tract_map
 539fb9b8ec4f024bc1dc260f,10550,McCook Public Power District,,not_in_tract_map
 539fc98cec4f024d2f53f2ae,10550,McCook Public Power District,,not_in_tract_map
-539fb93dec4f024bc1dc2017,10558,"LaCreek Electric Assn, Inc",,unresolved
-539fcaeaec4f024d2f5400d4,10558,"LaCreek Electric Assn, Inc",,unresolved
+539fb93dec4f024bc1dc2017,10558,"LaCreek Electric Assn, Inc",SD,web_research
+539fcaeaec4f024d2f5400d4,10558,"LaCreek Electric Assn, Inc",SD,web_research
 539f6d9eec4f024411ecb86d,10559,"City of La Crosse, Kansas (Utility Company)",,not_in_tract_map
 55e9d9945457a3493e8e8006,10562,Lagrange County Rural E M C,,not_in_tract_map
 55facb745457a39819b0a96b,10562,Lagrange County Rural E M C,,not_in_tract_map
@@ -4894,10 +4894,10 @@ label,eia_id,utility,state,source
 539fc7f0ec4f024d2f53e152,10801,"Leavenworth-Jefferson E C, Inc",,not_in_tract_map
 595139b45457a31d20c274d3,10814,"City of Le Sueur, Minnesota (Utility Company)",,not_in_tract_map
 595139ed5457a35f5bc274d5,10814,"City of Le Sueur, Minnesota (Utility Company)",,not_in_tract_map
-539fc07eec4f024c27d89cb1,10817,"Lea County Electric Coop, Inc",,unresolved
-539fc24dec4f024c27d8b063,10817,"Lea County Electric Coop, Inc",,unresolved
-539fc423ec4f024c27d8c3b1,10817,"Lea County Electric Coop, Inc",,unresolved
-539fc861ec4f024d2f53e5cc,10817,"Lea County Electric Coop, Inc",,unresolved
+539fc07eec4f024c27d89cb1,10817,"Lea County Electric Coop, Inc",NM,web_research
+539fc24dec4f024c27d8b063,10817,"Lea County Electric Coop, Inc",NM,web_research
+539fc423ec4f024c27d8c3b1,10817,"Lea County Electric Coop, Inc",NM,web_research
+539fc861ec4f024d2f53e5cc,10817,"Lea County Electric Coop, Inc",NM,web_research
 53add8e85257a32f7edcddc6,10830,"City of Lebanon, Ohio (Utility Company)",,not_in_tract_map
 53add9ef5257a3a002dcddbe,10830,"City of Lebanon, Ohio (Utility Company)",,not_in_tract_map
 539f6a54ec4f024411ec8df3,10832,"City of Lebanon, Missouri (Utility Company)",,not_in_tract_map
@@ -5145,19 +5145,19 @@ label,eia_id,utility,state,source
 539fc459ec4f024c27d8c5cb,11268,"City of Lowell, Michigan (Utility Company)",,not_in_tract_map
 539fc8f7ec4f024d2f53eca4,11268,"City of Lowell, Michigan (Utility Company)",,not_in_tract_map
 539fca15ec4f024d2f53f844,11268,"City of Lowell, Michigan (Utility Company)",,not_in_tract_map
-539f6f32ec4f024411eccb3b,11272,"Lower Yellowstone R E A, Inc",,unresolved
+539f6f32ec4f024411eccb3b,11272,"Lower Yellowstone R E A, Inc",MT,web_research
 539fb411ec4f024bc1dbe503,11272,"Lower Yellowstone R E A, Inc (North Dakota)",ND,state_in_page_name
-539fb56dec4f024bc1dbf4df,11272,"Lower Yellowstone R E A, Inc",,unresolved
-539fb970ec4f024bc1dc225d,11272,"Lower Yellowstone R E A, Inc",,unresolved
-539fbe8fec4f024c27d88797,11272,"Lower Yellowstone R E A, Inc",,unresolved
+539fb56dec4f024bc1dbf4df,11272,"Lower Yellowstone R E A, Inc",MT,web_research
+539fb970ec4f024bc1dc225d,11272,"Lower Yellowstone R E A, Inc",MT,web_research
+539fbe8fec4f024c27d88797,11272,"Lower Yellowstone R E A, Inc",MT,web_research
 539fc044ec4f024c27d89a35,11272,"Lower Yellowstone R E A, Inc (North Dakota)",ND,state_in_page_name
 539fc07dec4f024c27d89c97,11272,"Lower Yellowstone R E A, Inc (North Dakota)",ND,state_in_page_name
-539fc217ec4f024c27d8ae09,11272,"Lower Yellowstone R E A, Inc",,unresolved
-539fc37dec4f024c27d8bce9,11272,"Lower Yellowstone R E A, Inc",,unresolved
+539fc217ec4f024c27d8ae09,11272,"Lower Yellowstone R E A, Inc",MT,web_research
+539fc37dec4f024c27d8bce9,11272,"Lower Yellowstone R E A, Inc",MT,web_research
 539fc4dcec4f024c27d8cb6b,11272,"Lower Yellowstone R E A, Inc (North Dakota)",ND,state_in_page_name
-539fc75bec4f024d2f53db28,11272,"Lower Yellowstone R E A, Inc",,unresolved
-539fc907ec4f024d2f53ecc8,11272,"Lower Yellowstone R E A, Inc",,unresolved
-539fc102ec4f024c27d8a27b,11273,Lower Valley Energy Inc,,unresolved
+539fc75bec4f024d2f53db28,11272,"Lower Yellowstone R E A, Inc",MT,web_research
+539fc907ec4f024d2f53ecc8,11272,"Lower Yellowstone R E A, Inc",MT,web_research
+539fc102ec4f024c27d8a27b,11273,Lower Valley Energy Inc,ID,web_research
 539fcbadec4f024d2f540820,11273,Lower Valley Energy Inc (Wyoming),WY,state_in_page_name
 539f6b43ec4f024411ec9a57,11291,Lumbee River Elec Member Corp,,not_in_tract_map
 539f75f8ec4f024411ed1a43,11291,Lumbee River Elec Member Corp,,not_in_tract_map
@@ -5415,13 +5415,13 @@ label,eia_id,utility,state,source
 592601f75457a3b126de90e1,12199,Montana-Dakota Utilities Co (Wyoming),WY,state_in_page_name
 5926032b5457a3ea28de90e2,12199,Montana-Dakota Utilities Co (Wyoming),WY,state_in_page_name
 592603c75457a3ea28de90e3,12199,Montana-Dakota Utilities Co (Wyoming),WY,state_in_page_name
-59b941035457a3150642da65,12199,Montana-Dakota Utilities Co,,unresolved
-59b942435457a3847b42da66,12199,Montana-Dakota Utilities Co,,unresolved
-59b948855457a3b92a42da65,12199,Montana-Dakota Utilities Co,,unresolved
-59b94aad5457a3150642da66,12199,Montana-Dakota Utilities Co,,unresolved
-59b94cc35457a3a67742da66,12199,Montana-Dakota Utilities Co,,unresolved
-59b94d9e5457a3b92a42da66,12199,Montana-Dakota Utilities Co,,unresolved
-59b951f65457a3b92a42da67,12199,Montana-Dakota Utilities Co,,unresolved
+59b941035457a3150642da65,12199,Montana-Dakota Utilities Co,MT,web_research
+59b942435457a3847b42da66,12199,Montana-Dakota Utilities Co,MT,web_research
+59b948855457a3b92a42da65,12199,Montana-Dakota Utilities Co,MT,web_research
+59b94aad5457a3150642da66,12199,Montana-Dakota Utilities Co,MT,web_research
+59b94cc35457a3a67742da66,12199,Montana-Dakota Utilities Co,MT,web_research
+59b94d9e5457a3b92a42da66,12199,Montana-Dakota Utilities Co,MT,web_research
+59b951f65457a3b92a42da67,12199,Montana-Dakota Utilities Co,MT,web_research
 56212b4b5457a3964ea988fe,12208,"City of McPherson, Kansas (Utility Company)",KS,single_state_utility
 56212daa5457a3626fa988fe,12208,"City of McPherson, Kansas (Utility Company)",KS,single_state_utility
 56212e665457a3cd7fa988fe,12208,"City of McPherson, Kansas (Utility Company)",KS,single_state_utility
@@ -5433,13 +5433,13 @@ label,eia_id,utility,state,source
 539f6c69ec4f024411eca981,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539f6cb7ec4f024411ecad5f,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539f6d3bec4f024411ecb337,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
-539f7437ec4f024411ed0585,12260,"Mecklenburg Electric Coop, Inc",,unresolved
-539fb57eec4f024bc1dbf5a1,12260,"Mecklenburg Electric Coop, Inc",,unresolved
-539fb58fec4f024bc1dbf677,12260,"Mecklenburg Electric Coop, Inc",,unresolved
+539f7437ec4f024411ed0585,12260,"Mecklenburg Electric Coop, Inc",VA,web_research
+539fb57eec4f024bc1dbf5a1,12260,"Mecklenburg Electric Coop, Inc",VA,web_research
+539fb58fec4f024bc1dbf677,12260,"Mecklenburg Electric Coop, Inc",VA,web_research
 539fb6a5ec4f024bc1dc02fd,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fb7ddec4f024bc1dc10b3,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fba43ec4f024bc1dc2bb9,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
-539fbaaeec4f024bc1dc30a7,12260,"Mecklenburg Electric Coop, Inc",,unresolved
+539fbaaeec4f024bc1dc30a7,12260,"Mecklenburg Electric Coop, Inc",VA,web_research
 539fc035ec4f024c27d89a15,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fc045ec4f024c27d89a71,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
 539fc205ec4f024c27d8ad65,12260,"Mecklenburg Electric Coop, Inc (North Carolina)",NC,state_in_page_name
@@ -5505,11 +5505,11 @@ label,eia_id,utility,state,source
 59c162795457a3034bbbb281,12341,MidAmerican Energy Co (Illinois),IL,state_in_page_name
 59c165775457a3045fbbb27b,12341,MidAmerican Energy Co (Illinois),IL,state_in_page_name
 59c166a05457a3f65ebbb27b,12341,MidAmerican Energy Co (Illinois),IL,state_in_page_name
-5d02b4695457a39462557795,12341,MidAmerican Energy Co,,unresolved
-5d02b53d5457a39767557795,12341,MidAmerican Energy Co,,unresolved
-5d03d7d25457a3ad2d557797,12341,MidAmerican Energy Co,,unresolved
-5d03d9415457a3d130557795,12341,MidAmerican Energy Co,,unresolved
-5d03ddd15457a32e2d557795,12341,MidAmerican Energy Co,,unresolved
+5d02b4695457a39462557795,12341,MidAmerican Energy Co,IA,web_research
+5d02b53d5457a39767557795,12341,MidAmerican Energy Co,IA,web_research
+5d03d7d25457a3ad2d557797,12341,MidAmerican Energy Co,IA,web_research
+5d03d9415457a3d130557795,12341,MidAmerican Energy Co,IA,web_research
+5d03ddd15457a32e2d557795,12341,MidAmerican Energy Co,IA,web_research
 539f7327ec4f024411ecf99b,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
 539fb447ec4f024bc1dbe795,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
 539fb57dec4f024bc1dbf57d,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
@@ -5518,11 +5518,11 @@ label,eia_id,utility,state,source
 539fc0b5ec4f024c27d89f51,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
 539fc0c8ec4f024c27d8a051,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
 539fc171ec4f024c27d8a72f,12351,"City of Mesa, Arizona (Utility Company)",AZ,single_state_utility
-539f72e4ec4f024411ecf6a1,12377,Midwest Energy Cooperative,,unresolved
-539fb435ec4f024bc1dbe6b9,12377,Midwest Energy Cooperative,,unresolved
-539fc07fec4f024c27d89d05,12377,Midwest Energy Cooperative,,unresolved
-539fc36bec4f024c27d8bc2f,12377,Midwest Energy Cooperative,,unresolved
-539fc83dec4f024d2f53e470,12377,Midwest Energy Cooperative,,unresolved
+539f72e4ec4f024411ecf6a1,12377,Midwest Energy Cooperative,MI,web_research
+539fb435ec4f024bc1dbe6b9,12377,Midwest Energy Cooperative,MI,web_research
+539fc07fec4f024c27d89d05,12377,Midwest Energy Cooperative,MI,web_research
+539fc36bec4f024c27d8bc2f,12377,Midwest Energy Cooperative,MI,web_research
+539fc83dec4f024d2f53e470,12377,Midwest Energy Cooperative,MI,web_research
 539f746aec4f024411ed07c5,12385,Metlakatla Power & Light,,not_in_tract_map
 539f7517ec4f024411ed1045,12385,Metlakatla Power & Light,,not_in_tract_map
 539fb3c9ec4f024bc1dbe1d7,12385,Metlakatla Power & Light,,not_in_tract_map
@@ -5710,10 +5710,10 @@ label,eia_id,utility,state,source
 539fcbc3ec4f024d2f54091a,12803,"Monroe County Elec Coop, Inc",,not_in_tract_map
 539fb4bfec4f024bc1dbed1d,12811,"Village of Monroeville, Ohio (Utility Company)",,not_in_tract_map
 539fb412ec4f024bc1dbe567,12817,Mont Alto Borough,,not_in_tract_map
-5d6027355457a37571f1ab36,12825,NorthWestern Corporation,,unresolved
-5d6029875457a3d86ef1ab35,12825,NorthWestern Corporation,,unresolved
-5d6039985457a30f74f1ab36,12825,NorthWestern Corporation,,unresolved
-5d603ed35457a35b75f1ab35,12825,NorthWestern Corporation,,unresolved
+5d6027355457a37571f1ab36,12825,NorthWestern Corporation,MT,web_research
+5d6029875457a3d86ef1ab35,12825,NorthWestern Corporation,MT,web_research
+5d6039985457a30f74f1ab36,12825,NorthWestern Corporation,MT,web_research
+5d603ed35457a35b75f1ab35,12825,NorthWestern Corporation,MT,web_research
 539fc010ec4f024c27d89837,12838,"City of Montezuma, Kansas (Utility Company)",,not_in_tract_map
 53bd4a905257a3694d05bb95,12839,"City of Montezuma, Iowa (Utility Company)",,not_in_tract_map
 53bd4c125257a3cd4d05bb95,12839,"City of Montezuma, Iowa (Utility Company)",,not_in_tract_map
@@ -5726,9 +5726,9 @@ label,eia_id,utility,state,source
 539f721aec4f024411eced6f,12860,Morgan County Rural Elec Assn,CO,single_state_utility
 539fc1a7ec4f024c27d8a94d,12860,Morgan County Rural Elec Assn,CO,single_state_utility
 59498de95457a3d52a75d088,12860,Morgan County Rural Elec Assn,CO,single_state_utility
-539f7408ec4f024411ed03b1,12866,Moon Lake Electric Assn Inc,,unresolved
+539f7408ec4f024411ed03b1,12866,Moon Lake Electric Assn Inc,CO,web_research
 539fca4cec4f024d2f53fa0c,12866,Moon Lake Electric Assn Inc (Utah),UT,state_in_page_name
-539fca60ec4f024d2f53fb3a,12866,Moon Lake Electric Assn Inc,,unresolved
+539fca60ec4f024d2f53fb3a,12866,Moon Lake Electric Assn Inc,CO,web_research
 539fb9d8ec4f024bc1dc2741,12876,"City of Moore Haven, Florida (Utility Company)",,not_in_tract_map
 539fc9d8ec4f024d2f53f5c2,12876,"City of Moore Haven, Florida (Utility Company)",,not_in_tract_map
 539f74a1ec4f024411ed0ab5,12892,"City of Mooreland, Oklahoma (Utility Company)",,not_in_tract_map
@@ -5867,10 +5867,10 @@ label,eia_id,utility,state,source
 594a7b995457a3845975d087,13058,"Mountain View Elec Assn, Inc",CO,single_state_utility
 594a7bfe5457a3857d75d087,13058,"Mountain View Elec Assn, Inc",CO,single_state_utility
 594a7c505457a3857d75d088,13058,"Mountain View Elec Assn, Inc",CO,single_state_utility
-539f6bceec4f024411eca191,13073,"Mt Wheeler Power, Inc",,unresolved
-539f6c68ec4f024411eca939,13073,"Mt Wheeler Power, Inc",,unresolved
-539fb3dcec4f024bc1dbe301,13073,"Mt Wheeler Power, Inc",,unresolved
-539fc3ecec4f024c27d8c15f,13073,"Mt Wheeler Power, Inc",,unresolved
+539f6bceec4f024411eca191,13073,"Mt Wheeler Power, Inc",NV,web_research
+539f6c68ec4f024411eca939,13073,"Mt Wheeler Power, Inc",NV,web_research
+539fb3dcec4f024bc1dbe301,13073,"Mt Wheeler Power, Inc",NV,web_research
+539fc3ecec4f024c27d8c15f,13073,"Mt Wheeler Power, Inc",NV,web_research
 539f7250ec4f024411ecf071,13090,"Village of Mullen, Nebraska (Utility Company)",NE,single_state_utility
 539f7050ec4f024411ecd903,13095,"City of Mulvane, Kansas (Utility Company)",,not_in_tract_map
 53b4226d5257a37e1183d4e7,13095,"City of Mulvane, Kansas (Utility Company)",,not_in_tract_map
@@ -5940,19 +5940,19 @@ label,eia_id,utility,state,source
 539fc9d6ec4f024d2f53f57e,13233,"City of Neligh, Nebraska (Utility Company)",,not_in_tract_map
 539fbd13ec4f024c27d8774d,13286,New Hampton Village Precinct (Utility Company),,not_in_tract_map
 539fbffbec4f024c27d89745,13292,Norris Electric Coop,IL,single_state_utility
-539f6e3cec4f024411ecc005,13314,Navajo Tribal Utility Authority,,unresolved
-539f6fecec4f024411ecd45d,13314,Navajo Tribal Utility Authority,,unresolved
-539f6dfcec4f024411ecbca1,13318,"Navopache Electric Coop, Inc",,unresolved
-539f71eaec4f024411eceba9,13318,"Navopache Electric Coop, Inc",,unresolved
-539f72c0ec4f024411ecf47d,13318,"Navopache Electric Coop, Inc",,unresolved
-539f747cec4f024411ed089f,13318,"Navopache Electric Coop, Inc",,unresolved
-539fbcbfec4f024c27d873dd,13318,"Navopache Electric Coop, Inc",,unresolved
-539fca12ec4f024d2f53f7b4,13318,"Navopache Electric Coop, Inc",,unresolved
+539f6e3cec4f024411ecc005,13314,Navajo Tribal Utility Authority,AZ,web_research
+539f6fecec4f024411ecd45d,13314,Navajo Tribal Utility Authority,AZ,web_research
+539f6dfcec4f024411ecbca1,13318,"Navopache Electric Coop, Inc",AZ,web_research
+539f71eaec4f024411eceba9,13318,"Navopache Electric Coop, Inc",AZ,web_research
+539f72c0ec4f024411ecf47d,13318,"Navopache Electric Coop, Inc",AZ,web_research
+539f747cec4f024411ed089f,13318,"Navopache Electric Coop, Inc",AZ,web_research
+539fbcbfec4f024c27d873dd,13318,"Navopache Electric Coop, Inc",AZ,web_research
+539fca12ec4f024d2f53f7b4,13318,"Navopache Electric Coop, Inc",AZ,web_research
 539f701dec4f024411ecd60f,13334,"City of Nebraska City, Nebraska (Utility Company)",,not_in_tract_map
 539fc00fec4f024c27d897ff,13334,"City of Nebraska City, Nebraska (Utility Company)",,not_in_tract_map
 539fc3b3ec4f024c27d8bf1f,13334,"City of Nebraska City, Nebraska (Utility Company)",,not_in_tract_map
-58d2a1785457a39e22d557ef,13337,Nebraska Public Power District,,unresolved
-58d2a2c55457a34941d557ef,13337,Nebraska Public Power District,,unresolved
+58d2a1785457a39e22d557ef,13337,Nebraska Public Power District,NE,web_research
+58d2a2c55457a34941d557ef,13337,Nebraska Public Power District,NE,web_research
 539fb692ec4f024bc1dc019d,13352,"City of Negaunee, Michigan (Utility Company)",,not_in_tract_map
 539fb950ec4f024bc1dc212b,13352,"City of Negaunee, Michigan (Utility Company)",,not_in_tract_map
 539f6b07ec4f024411ec9761,13375,"City of Nelson, Nebraska (Utility Company)",,not_in_tract_map
@@ -6288,16 +6288,16 @@ label,eia_id,utility,state,source
 539f7516ec4f024411ed0fef,13757,North Plains Electric Coop Inc,TX,single_state_utility
 5463a4f85257a32b3ef0a75a,13757,North Plains Electric Coop Inc,TX,single_state_utility
 539f6a23ec4f024411ec8be5,13758,"Northern Lights, Inc (Washington)",WA,state_in_page_name
-539fbe11ec4f024c27d88295,13758,"Northern Lights, Inc",,unresolved
-539fc15cec4f024c27d8a5c9,13758,"Northern Lights, Inc",,unresolved
-539fc1caec4f024c27d8aa8d,13758,"Northern Lights, Inc",,unresolved
-539fc4c9ec4f024c27d8cae1,13758,"Northern Lights, Inc",,unresolved
+539fbe11ec4f024c27d88295,13758,"Northern Lights, Inc",ID,web_research
+539fc15cec4f024c27d8a5c9,13758,"Northern Lights, Inc",ID,web_research
+539fc1caec4f024c27d8aa8d,13758,"Northern Lights, Inc",ID,web_research
+539fc4c9ec4f024c27d8cae1,13758,"Northern Lights, Inc",ID,web_research
 539fc7ccec4f024d2f53e026,13758,"Northern Lights, Inc (Washington)",WA,state_in_page_name
 539fcaadec4f024d2f53fe4e,13758,"Northern Lights, Inc (Washington)",WA,state_in_page_name
 56251b605457a3f52d418742,13758,"Northern Lights, Inc (Montana)",MT,state_in_page_name
 5625213a5457a3802d418740,13758,"Northern Lights, Inc (Montana)",MT,state_in_page_name
-562522fc5457a39834418741,13758,"Northern Lights, Inc",,unresolved
-562524355457a32e34418743,13758,"Northern Lights, Inc",,unresolved
+562522fc5457a39834418741,13758,"Northern Lights, Inc",ID,web_research
+562524355457a32e34418743,13758,"Northern Lights, Inc",ID,web_research
 539f6d0bec4f024411ecb171,13762,"Northern Neck Elec Coop, Inc",VA,single_state_utility
 539fcaaeec4f024d2f53fe56,13762,"Northern Neck Elec Coop, Inc",VA,single_state_utility
 539f6fa9ec4f024411ecd0dd,13777,Northern Rio Arriba E Coop Inc,,not_in_tract_map
@@ -6521,20 +6521,20 @@ label,eia_id,utility,state,source
 539f6e8eec4f024411ecc3f5,14063,Oklahoma Gas & Electric Co (Arkansas),AR,state_in_page_name
 539f760aec4f024411ed1ad1,14063,Oklahoma Gas & Electric Co (Arkansas),AR,state_in_page_name
 539fc8adec4f024d2f53e990,14063,Oklahoma Gas & Electric Co (Arkansas),AR,state_in_page_name
-58ffb7a45457a33739cd3b4a,14063,Oklahoma Gas & Electric Co,,unresolved
-58ffb81e5457a3e154cd3b48,14063,Oklahoma Gas & Electric Co,,unresolved
-59038d0e5457a3d617cd3b42,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac1fa45457a3f5222e6281,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac20645457a3570a2e6282,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac21395457a3652d2e6281,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac21ca5457a3570a2e6283,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac223d5457a3487e2e6283,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac22b05457a3570a2e6284,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac234b5457a3f5222e6282,14063,Oklahoma Gas & Electric Co,,unresolved
-5aac23c15457a324052e6282,14063,Oklahoma Gas & Electric Co,,unresolved
+58ffb7a45457a33739cd3b4a,14063,Oklahoma Gas & Electric Co,OK,web_research
+58ffb81e5457a3e154cd3b48,14063,Oklahoma Gas & Electric Co,OK,web_research
+59038d0e5457a3d617cd3b42,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac1fa45457a3f5222e6281,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac20645457a3570a2e6282,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac21395457a3652d2e6281,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac21ca5457a3570a2e6283,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac223d5457a3487e2e6283,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac22b05457a3570a2e6284,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac234b5457a3f5222e6282,14063,Oklahoma Gas & Electric Co,OK,web_research
+5aac23c15457a324052e6282,14063,Oklahoma Gas & Electric Co,OK,web_research
 5b7dd0e05457a364660a2ad1,14063,Oklahoma Gas & Electric Co (Arkansas),AR,state_in_page_name
-60d0894b5457a3fd4d33a104,14063,Oklahoma Gas & Electric Co,,unresolved
-60d0934e5457a3ff4d33a104,14063,Oklahoma Gas & Electric Co,,unresolved
+60d0894b5457a3fd4d33a104,14063,Oklahoma Gas & Electric Co,OK,web_research
+60d0934e5457a3ff4d33a104,14063,Oklahoma Gas & Electric Co,OK,web_research
 539f70d4ec4f024411ecdeb9,14074,"Okanogan County Elec Coop, Inc",,not_in_tract_map
 539fbd14ec4f024c27d87781,14074,"Okanogan County Elec Coop, Inc",,not_in_tract_map
 539fc056ec4f024c27d89af1,14074,"Okanogan County Elec Coop, Inc",,not_in_tract_map
@@ -6683,26 +6683,26 @@ label,eia_id,utility,state,source
 539fcae9ec4f024d2f540084,14232,Otter Tail Power Co (North Dakota),ND,state_in_page_name
 539fcb35ec4f024d2f5403ac,14232,Otter Tail Power Co (South Dakota),SD,state_in_page_name
 539fcb35ec4f024d2f5403b2,14232,Otter Tail Power Co (South Dakota),SD,state_in_page_name
-53baca505257a342130b9a71,14232,Otter Tail Power Co,,unresolved
-53bace4d5257a33f130b9a6e,14232,Otter Tail Power Co,,unresolved
-53bad6325257a382130b9a71,14232,Otter Tail Power Co,,unresolved
-53bae69b5257a342130b9a72,14232,Otter Tail Power Co,,unresolved
-53baebeb5257a343130b9a70,14232,Otter Tail Power Co,,unresolved
-53baed9f5257a35f160b9a6e,14232,Otter Tail Power Co,,unresolved
-53baf0775257a3bb130b9a70,14232,Otter Tail Power Co,,unresolved
+53baca505257a342130b9a71,14232,Otter Tail Power Co,MN,web_research
+53bace4d5257a33f130b9a6e,14232,Otter Tail Power Co,MN,web_research
+53bad6325257a382130b9a71,14232,Otter Tail Power Co,MN,web_research
+53bae69b5257a342130b9a72,14232,Otter Tail Power Co,MN,web_research
+53baebeb5257a343130b9a70,14232,Otter Tail Power Co,MN,web_research
+53baed9f5257a35f160b9a6e,14232,Otter Tail Power Co,MN,web_research
+53baf0775257a3bb130b9a70,14232,Otter Tail Power Co,MN,web_research
 53bb082cec4f02223e09703e,14232,Otter Tail Power Co (South Dakota),SD,state_in_page_name
 53bd49245257a3674d05bb95,14232,Otter Tail Power Co (North Dakota),ND,state_in_page_name
-5b2d272e5457a3b123e5d862,14232,Otter Tail Power Co,,unresolved
-5b2d289f5457a3b010e5d862,14232,Otter Tail Power Co,,unresolved
-5b2d2a515457a34722e5d863,14232,Otter Tail Power Co,,unresolved
-5b2d2b785457a30b1fe5d862,14232,Otter Tail Power Co,,unresolved
-5b2d2cc05457a3b010e5d864,14232,Otter Tail Power Co,,unresolved
-5b2d2f3a5457a30b1fe5d863,14232,Otter Tail Power Co,,unresolved
-5b2d30c35457a30025e5d862,14232,Otter Tail Power Co,,unresolved
-5b2d31245457a3b224e5d862,14232,Otter Tail Power Co,,unresolved
-5b2d34265457a3fb1de5d862,14232,Otter Tail Power Co,,unresolved
-5b2d38095457a31002e5d862,14232,Otter Tail Power Co,,unresolved
-5b2d386a5457a3a21ce5d864,14232,Otter Tail Power Co,,unresolved
+5b2d272e5457a3b123e5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d289f5457a3b010e5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d2a515457a34722e5d863,14232,Otter Tail Power Co,MN,web_research
+5b2d2b785457a30b1fe5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d2cc05457a3b010e5d864,14232,Otter Tail Power Co,MN,web_research
+5b2d2f3a5457a30b1fe5d863,14232,Otter Tail Power Co,MN,web_research
+5b2d30c35457a30025e5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d31245457a3b224e5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d34265457a3fb1de5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d38095457a31002e5d862,14232,Otter Tail Power Co,MN,web_research
+5b2d386a5457a3a21ce5d864,14232,Otter Tail Power Co,MN,web_research
 5b858ca45457a33134edfe01,14232,Otter Tail Power Co (North Dakota),ND,state_in_page_name
 5b85a0995457a3b030edfe00,14232,Otter Tail Power Co (North Dakota),ND,state_in_page_name
 5b85a1485457a37f2dedfe00,14232,Otter Tail Power Co (North Dakota),ND,state_in_page_name
@@ -6741,12 +6741,12 @@ label,eia_id,utility,state,source
 539fc8e5ec4f024d2f53ebd2,14285,Ozark Border Electric Coop,MO,single_state_utility
 539f6f44ec4f024411eccc95,14288,Ozark Electric Coop Inc,MO,single_state_utility
 539f704eec4f024411ecd86f,14288,Ozark Electric Coop Inc,MO,single_state_utility
-539f6c77ec4f024411eca9bf,14289,Ozarks Electric Coop Corp,,unresolved
-539f737cec4f024411ecfd07,14289,Ozarks Electric Coop Corp,,unresolved
-539fc011ec4f024c27d89883,14289,Ozarks Electric Coop Corp,,unresolved
-539fc137ec4f024c27d8a4d1,14289,Ozarks Electric Coop Corp,,unresolved
-539fc434ec4f024c27d8c43d,14289,Ozarks Electric Coop Corp,,unresolved
-539fc83bec4f024d2f53e42c,14289,Ozarks Electric Coop Corp,,unresolved
+539f6c77ec4f024411eca9bf,14289,Ozarks Electric Coop Corp,AR,web_research
+539f737cec4f024411ecfd07,14289,Ozarks Electric Coop Corp,AR,web_research
+539fc011ec4f024c27d89883,14289,Ozarks Electric Coop Corp,AR,web_research
+539fc137ec4f024c27d8a4d1,14289,Ozarks Electric Coop Corp,AR,web_research
+539fc434ec4f024c27d8c43d,14289,Ozarks Electric Coop Corp,AR,web_research
+539fc83bec4f024d2f53e42c,14289,Ozarks Electric Coop Corp,AR,web_research
 539f7449ec4f024411ed06a7,14324,Public Utility District No 2,WA,single_state_utility
 539fb796ec4f024bc1dc0d97,14324,Public Utility District No 2,WA,single_state_utility
 539fbd91ec4f024c27d87d49,14324,Public Utility District No 2,WA,single_state_utility
@@ -7350,14 +7350,14 @@ label,eia_id,utility,state,source
 5bad320e5457a3193fc4a516,15270,Potomac Electric Power Co (Maryland),MD,state_in_page_name
 5bad34de5457a38c68c4a515,15270,Potomac Electric Power Co (Maryland),MD,state_in_page_name
 5bad36405457a38d68c4a514,15270,Potomac Electric Power Co (Maryland),MD,state_in_page_name
-5d77d7145457a33c1b7db2ea,15270,Potomac Electric Power Co,,unresolved
-5d77fcff5457a3df2e7db2ec,15270,Potomac Electric Power Co,,unresolved
-5d7804df5457a3ca2d7db2ea,15270,Potomac Electric Power Co,,unresolved
-5d78096f5457a346607db2ec,15270,Potomac Electric Power Co,,unresolved
-5d780f015457a346607db2ed,15270,Potomac Electric Power Co,,unresolved
-539f6d2cec4f024411ecb295,15293,Powell Valley Electric Coop,,unresolved
-539fba1fec4f024bc1dc2a25,15293,Powell Valley Electric Coop,,unresolved
-539fc9b2ec4f024d2f53f45a,15293,Powell Valley Electric Coop,,unresolved
+5d77d7145457a33c1b7db2ea,15270,Potomac Electric Power Co,DC,web_research
+5d77fcff5457a3df2e7db2ec,15270,Potomac Electric Power Co,DC,web_research
+5d7804df5457a3ca2d7db2ea,15270,Potomac Electric Power Co,DC,web_research
+5d78096f5457a346607db2ec,15270,Potomac Electric Power Co,DC,web_research
+5d780f015457a346607db2ed,15270,Potomac Electric Power Co,DC,web_research
+539f6d2cec4f024411ecb295,15293,Powell Valley Electric Coop,TN,web_research
+539fba1fec4f024bc1dc2a25,15293,Powell Valley Electric Coop,TN,web_research
+539fc9b2ec4f024d2f53f45a,15293,Powell Valley Electric Coop,TN,web_research
 539f6cc6ec4f024411ecadbf,15294,"City of Powell, Wyoming (Utility Company)",,not_in_tract_map
 59c92a395457a3b446c8c1a8,15296,New York Power Authority,,not_in_tract_map
 59c92b175457a3bd49c8c1a8,15296,New York Power Authority,,not_in_tract_map
@@ -7616,11 +7616,11 @@ label,eia_id,utility,state,source
 539fc782ec4f024d2f53dc9e,15983,Richland Electric Coop,,not_in_tract_map
 539f6d0aec4f024411ecb11f,15991,"Village of Richmondville, New York (Utility Company)",,not_in_tract_map
 539f728eec4f024411ecf261,15991,"Village of Richmondville, New York (Utility Company)",,not_in_tract_map
-539f6fd9ec4f024411ecd313,16057,"Rio Grande Electric Coop, Inc",,unresolved
-539f712aec4f024411ece2e1,16057,"Rio Grande Electric Coop, Inc",,unresolved
+539f6fd9ec4f024411ecd313,16057,"Rio Grande Electric Coop, Inc",TX,web_research
+539f712aec4f024411ece2e1,16057,"Rio Grande Electric Coop, Inc",TX,web_research
 539f73b1ec4f024411ecff6b,16057,"Rio Grande Electric Coop, Inc (New Mexico)",NM,state_in_page_name
-539fb994ec4f024bc1dc2469,16057,"Rio Grande Electric Coop, Inc",,unresolved
-539fbfd8ec4f024c27d895ef,16057,"Rio Grande Electric Coop, Inc",,unresolved
+539fb994ec4f024bc1dc2469,16057,"Rio Grande Electric Coop, Inc",TX,web_research
+539fbfd8ec4f024c27d895ef,16057,"Rio Grande Electric Coop, Inc",TX,web_research
 539fc07eec4f024c27d89ccf,16057,"Rio Grande Electric Coop, Inc (New Mexico)",NM,state_in_page_name
 539fc1caec4f024c27d8aaa3,16057,"Rio Grande Electric Coop, Inc (New Mexico)",NM,state_in_page_name
 539f6cfaec4f024411ecb09d,16063,"Rita Blanca Electric Coop, Inc",TX,single_state_utility
@@ -8203,11 +8203,11 @@ label,eia_id,utility,state,source
 53b177c55257a32453ce10df,17264,"City of Sioux Center, Iowa (Utility Company)",,not_in_tract_map
 539fbd90ec4f024c27d87cc3,17265,"City of Sioux Falls, South Dakota (Utility Company)",,not_in_tract_map
 539fc29bec4f024c27d8b355,17265,"City of Sioux Falls, South Dakota (Utility Company)",,not_in_tract_map
-539f702eec4f024411ecd6fb,17267,Sioux Valley SW Elec Coop,,unresolved
-539f75e5ec4f024411ed18ed,17267,Sioux Valley SW Elec Coop,,unresolved
-539fc14bec4f024c27d8a5b7,17267,Sioux Valley SW Elec Coop,,unresolved
-539fc796ec4f024d2f53ddba,17267,Sioux Valley SW Elec Coop,,unresolved
-539fcbc4ec4f024d2f540948,17267,Sioux Valley SW Elec Coop,,unresolved
+539f702eec4f024411ecd6fb,17267,Sioux Valley SW Elec Coop,SD,web_research
+539f75e5ec4f024411ed18ed,17267,Sioux Valley SW Elec Coop,SD,web_research
+539fc14bec4f024c27d8a5b7,17267,Sioux Valley SW Elec Coop,SD,web_research
+539fc796ec4f024d2f53ddba,17267,Sioux Valley SW Elec Coop,SD,web_research
+539fcbc4ec4f024d2f540948,17267,Sioux Valley SW Elec Coop,SD,web_research
 539fc07fec4f024c27d89d2b,17271,City & Borough of Sitka (Utility Company),,not_in_tract_map
 539f761bec4f024411ed1b4d,17279,PUD No 1 of Skamania Co,,not_in_tract_map
 539fb3ddec4f024bc1dbe349,17279,PUD No 1 of Skamania Co,,not_in_tract_map
@@ -8322,8 +8322,8 @@ label,eia_id,utility,state,source
 539f6cd9ec4f024411ecae95,17562,"City of South Haven, Michigan (Utility Company)",,not_in_tract_map
 539fbe90ec4f024c27d887df,17562,"City of South Haven, Michigan (Utility Company)",,not_in_tract_map
 539fcb20ec4f024d2f540278,17564,South Kentucky Rural Electric Coop Corp (Tennessee),TN,state_in_page_name
-58dd60205457a327093d33cf,17564,South Kentucky Rural Electric Coop Corp,,unresolved
-58dec2d55457a38e343d33cc,17564,South Kentucky Rural Electric Coop Corp,,unresolved
+58dd60205457a327093d33cf,17564,South Kentucky Rural Electric Coop Corp,KY,web_research
+58dec2d55457a38e343d33cc,17564,South Kentucky Rural Electric Coop Corp,KY,web_research
 539f71a4ec4f024411ece88f,17565,South Louisiana Elec Coop Assn,,not_in_tract_map
 539fb742ec4f024bc1dc0a15,17565,South Louisiana Elec Coop Assn,,not_in_tract_map
 539fbdecec4f024c27d880ef,17565,South Louisiana Elec Coop Assn,,not_in_tract_map
@@ -8514,8 +8514,8 @@ label,eia_id,utility,state,source
 539fb65fec4f024bc1dbffad,17681,Southwest Rural Elec Assn Inc (Texas),TX,state_in_page_name
 539fb772ec4f024bc1dc0bd1,17681,Southwest Rural Elec Assn Inc (Texas),TX,state_in_page_name
 539fb89cec4f024bc1dc1965,17681,Southwest Rural Elec Assn Inc (Texas),TX,state_in_page_name
-539fc1b7ec4f024c27d8a9af,17681,Southwest Rural Elec Assn Inc,,unresolved
-539fc1deec4f024c27d8abdb,17681,Southwest Rural Elec Assn Inc,,unresolved
+539fc1b7ec4f024c27d8a9af,17681,Southwest Rural Elec Assn Inc,OK,web_research
+539fc1deec4f024c27d8abdb,17681,Southwest Rural Elec Assn Inc,OK,web_research
 539fc83cec4f024d2f53e43c,17681,Southwest Rural Elec Assn Inc (Texas),TX,state_in_page_name
 53bea6dcec4f021968e2a62f,17692,Southwest Public Power Dist,NE,single_state_utility
 53bea6ddec4f02198b9eb818,17692,Southwest Public Power Dist,NE,single_state_utility
@@ -8528,7 +8528,7 @@ label,eia_id,utility,state,source
 539fb71fec4f024bc1dc082b,17697,Southwestern Electric Coop Inc,IL,single_state_utility
 53dbdf595257a32a1dd75c97,17698,Southwestern Electric Power Co (Texas),TX,state_in_page_name
 53dbe0625257a3101dd75c99,17698,Southwestern Electric Power Co (Texas),TX,state_in_page_name
-53dbf9cb5257a3b319d75c98,17698,Southwestern Electric Power Co,,unresolved
+53dbf9cb5257a3b319d75c98,17698,Southwestern Electric Power Co,TX,web_research
 58daaf1a5457a37d0c3d33ce,17698,Southwestern Electric Power Co (Arkansas),AR,state_in_page_name
 58dabb615457a3672c3d33cd,17698,Southwestern Electric Power Co (Arkansas),AR,state_in_page_name
 5911e2c05457a3972080a116,17698,Southwestern Electric Power Co (Louisiana),LA,state_in_page_name
@@ -9143,14 +9143,14 @@ label,eia_id,utility,state,source
 539fc228ec4f024c27d8aea5,19154,Tri-State Electric Member Corp (Tennessee),TN,state_in_page_name
 539fc2b1ec4f024c27d8b47b,19154,Tri-State Electric Member Corp,,not_in_tract_map
 53cfc50d5257a33611fde0cb,19154,Tri-State Electric Member Corp,,not_in_tract_map
-539f6bebec4f024411eca2b9,19156,Powder River Energy Corporation,,unresolved
-539f6ca7ec4f024411ecac87,19156,Powder River Energy Corporation,,unresolved
-539f7539ec4f024411ed1191,19156,Powder River Energy Corporation,,unresolved
-539fb796ec4f024bc1dc0d83,19156,Powder River Energy Corporation,,unresolved
-539fbcf2ec4f024c27d875d7,19156,Powder River Energy Corporation,,unresolved
-539fca13ec4f024d2f53f7e6,19156,Powder River Energy Corporation,,unresolved
-5b32609d5457a367478367be,19156,Powder River Energy Corporation,,unresolved
-5b32668b5457a3850d8367bf,19156,Powder River Energy Corporation,,unresolved
+539f6bebec4f024411eca2b9,19156,Powder River Energy Corporation,WY,web_research
+539f6ca7ec4f024411ecac87,19156,Powder River Energy Corporation,WY,web_research
+539f7539ec4f024411ed1191,19156,Powder River Energy Corporation,WY,web_research
+539fb796ec4f024bc1dc0d83,19156,Powder River Energy Corporation,WY,web_research
+539fbcf2ec4f024c27d875d7,19156,Powder River Energy Corporation,WY,web_research
+539fca13ec4f024d2f53f7e6,19156,Powder River Energy Corporation,WY,web_research
+5b32609d5457a367478367be,19156,Powder River Energy Corporation,WY,web_research
+5b32668b5457a3850d8367bf,19156,Powder River Energy Corporation,WY,web_research
 539f7438ec4f024411ed05cd,19157,Tri-County Electric Coop,MN,single_state_utility
 539fc30fec4f024c27d8b84b,19157,Tri-County Electric Coop,MN,single_state_utility
 539f6b91ec4f024411ec9e3d,19158,Tri-County Electric Coop Assn,,not_in_tract_map
@@ -9637,8 +9637,8 @@ label,eia_id,utility,state,source
 53a99be85257a3492f2c8968,20153,"Washington Island El Coop, Inc",,not_in_tract_map
 5595682d5457a3180fce826e,20163,Wagoner Public Works Authority,,not_in_tract_map
 55956a125457a3810fce826c,20163,Wagoner Public Works Authority,,not_in_tract_map
-5d1b69bb5457a3b13ba745b6,20169,Avista Corp,,unresolved
-5d1b6dfb5457a37b0da745b6,20169,Avista Corp,,unresolved
+5d1b69bb5457a3b13ba745b6,20169,Avista Corp,WA,web_research
+5d1b6dfb5457a37b0da745b6,20169,Avista Corp,WA,web_research
 539fb785ec4f024bc1dc0ce5,20176,"City of Water Valley, Mississippi (Utility Company)",,not_in_tract_map
 539fc1efec4f024c27d8ac3d,20176,"City of Water Valley, Mississippi (Utility Company)",,not_in_tract_map
 53a1b3815257a3c80807774e,20180,"City of Waterloo, Illinois (Utility Company)",,not_in_tract_map
@@ -10011,12 +10011,12 @@ label,eia_id,utility,state,source
 5bbcd7645457a39930135b4f,20847,Wisconsin Electric Power Co (Michigan),MI,state_in_page_name
 5bbcdb025457a30c42135b4d,20847,Wisconsin Electric Power Co (Michigan),MI,state_in_page_name
 5bbcdc045457a39930135b50,20847,Wisconsin Electric Power Co (Michigan),MI,state_in_page_name
-5e949ec15457a3a80ca1e57e,20847,Wisconsin Electric Power Co,,unresolved
-5e949f135457a35e22a1e57e,20847,Wisconsin Electric Power Co,,unresolved
-5e94a3c05457a3bf34a1e57f,20847,Wisconsin Electric Power Co,,unresolved
-5e94a4615457a35622a1e57e,20847,Wisconsin Electric Power Co,,unresolved
-5e94a4f25457a30622a1e57f,20847,Wisconsin Electric Power Co,,unresolved
-5e94a8925457a3c668a1e57d,20847,Wisconsin Electric Power Co,,unresolved
+5e949ec15457a3a80ca1e57e,20847,Wisconsin Electric Power Co,WI,web_research
+5e949f135457a35e22a1e57e,20847,Wisconsin Electric Power Co,WI,web_research
+5e94a3c05457a3bf34a1e57f,20847,Wisconsin Electric Power Co,WI,web_research
+5e94a4615457a35622a1e57e,20847,Wisconsin Electric Power Co,WI,web_research
+5e94a4f25457a30622a1e57f,20847,Wisconsin Electric Power Co,WI,web_research
+5e94a8925457a3c668a1e57d,20847,Wisconsin Electric Power Co,WI,web_research
 539f6dfdec4f024411ecbd25,20848,"City of Blue Hill, Nebraska (Utility Company)",,not_in_tract_map
 539f6eafec4f024411ecc5b3,20848,"City of Blue Hill, Nebraska (Utility Company)",,not_in_tract_map
 539fb801ec4f024bc1dc127d,20848,"City of Blue Hill, Nebraska (Utility Company)",,not_in_tract_map
@@ -10402,10 +10402,10 @@ label,eia_id,utility,state,source
 539fc4b6ec4f024c27d8c9fd,30518,Electrical Dist No3 Pinal Cnty,AZ,single_state_utility
 539fca3aec4f024d2f53f9be,30856,"City of Winnfield, Louisiana (Utility Company)",,not_in_tract_map
 539fcb82ec4f024d2f5406f4,30856,"City of Winnfield, Louisiana (Utility Company)",,not_in_tract_map
-539f6fcaec4f024411ecd23f,31833,Okefenoke Rural El Member Corp,,unresolved
-539f72a0ec4f024411ecf357,31833,Okefenoke Rural El Member Corp,,unresolved
-539fb6a3ec4f024bc1dc0275,31833,Okefenoke Rural El Member Corp,,unresolved
-539fc1deec4f024c27d8abc1,31833,Okefenoke Rural El Member Corp,,unresolved
+539f6fcaec4f024411ecd23f,31833,Okefenoke Rural El Member Corp,GA,web_research
+539f72a0ec4f024411ecf357,31833,Okefenoke Rural El Member Corp,GA,web_research
+539fb6a3ec4f024bc1dc0275,31833,Okefenoke Rural El Member Corp,GA,web_research
+539fc1deec4f024c27d8abc1,31833,Okefenoke Rural El Member Corp,GA,web_research
 539fb800ec4f024bc1dc124d,36189,"Mid-Ohio Energy Coop, Inc",,not_in_tract_map
 539fc436ec4f024c27d8c4a5,36189,"Mid-Ohio Energy Coop, Inc",,not_in_tract_map
 53adc4a45257a39a03dcddbd,38084,Great Lakes Energy Coop,MI,single_state_utility
