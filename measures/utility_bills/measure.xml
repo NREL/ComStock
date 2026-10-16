@@ -39,7 +39,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>F5C5F760</checksum>
+      <checksum>2A315BA4</checksum>
     </file>
     <file>
       <filename>calc_elec_bill.py</filename>
@@ -51,13 +51,13 @@
       <filename>build_elec_rate_states.py</filename>
       <filetype>py</filetype>
       <usage_type>resource</usage_type>
-      <checksum>37395099</checksum>
+      <checksum>909FEFBE</checksum>
     </file>
     <file>
       <filename>elec_rate_states.csv</filename>
       <filetype>csv</filetype>
       <usage_type>resource</usage_type>
-      <checksum>0C870D86</checksum>
+      <checksum>092C19A2</checksum>
     </file>
     <file>
       <filename>eia_com_elec_avg_yrly_rate_increase.json</filename>
@@ -63885,7 +63885,7 @@
       <filename>utility_bills_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E35FEC1F</checksum>
+      <checksum>601CBA73</checksum>
     </file>
   </files>
 </measure>

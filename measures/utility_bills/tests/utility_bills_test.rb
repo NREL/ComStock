@@ -684,7 +684,7 @@ class UtilityBillsTest < Minitest::Test
     rate_labels = Dir.glob(File.join(resources, 'elec_rates', '*', '*.json')).map { |p| File.basename(p, '.json') }
     rows = CSV.read(File.join(resources, 'elec_rate_states.csv'), headers: true)
     assert_equal(rate_labels.sort, rows.map { |r| r['label'] }.sort)
-    with_state = ['openei_service_territory', 'state_in_page_name', 'single_state_utility']
+    with_state = ['openei_service_territory', 'state_in_page_name', 'web_research', 'single_state_utility']
     without_state = ['unresolved', 'not_in_tract_map']
     rows.each do |r|
       state = r['state'].to_s

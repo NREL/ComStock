@@ -42,20 +42,24 @@ electricity prices; natural gas, propane and fuel oil use EIA state averages.
   |---|---|---|
   | `openei_service_territory` | set | The OpenEI page of the rate's utility lists this one state as its service territory. |
   | `state_in_page_name` | set | The page name ends with the state in parentheses: "Alfalfa Electric Coop, Inc (Kansas)". |
+  | `web_research` | set | A reviewer's decision for a page the records do not place (52 pages, 2026-10-16). Kept when the file is rebuilt, until a record decides the page or its rate files disappear. |
   | `single_state_utility` | set | The utility serves one state only. The filter cannot change its bills; the row records why no other source was needed. |
-  | `unresolved` | blank | A multi-state utility's page with no record of its state. Its rates apply in every state the utility serves, as all rates did before this file. |
+  | `unresolved` | blank | A multi-state utility's page with no record of its state and no review. Its rates apply in every state the utility serves, as all rates did before this file. No rows at present. |
   | `not_in_tract_map` | blank | No tract is served by this utility (the map names one utility per tract), so ComStock never bills it. |
 
-  A state is never inferred. Where a two-state utility names one page and not the other (Alfalfa
-  Electric Coop serves Kansas and Oklahoma and names only its Kansas page), the unnamed page is
-  probably the other state's, but nothing records it, so its rates stay `unresolved` and apply in
-  both states; the generator lists these pages. A state word inside a name is not read either
-  (Washington Electric Coop is in Vermont); the generator lists the names that disagree with the
-  tract map as a check on the map. The build is deterministic for a
-  given set of rate files, tract map and wiki answers; runs use the committed CSV, so the wiki is
-  consulted only when the file is rebuilt (`--no-wiki` skips it). Edit the CSV to settle pages by
-  hand, and commit it. `tests/utility_bills_test.rb` checks the CSV covers exactly the rate files
-  present.
+  The generator never infers a state. Where a two-state utility names one page and not the other
+  (Alfalfa Electric Coop serves Kansas and Oklahoma and names only its Kansas page), the unnamed
+  page is probably the other state's, but nothing records it, so the generator leaves it
+  `unresolved` and lists it for review. A reviewer settles such pages in the CSV with source
+  `web_research` (Alfalfa's unnamed page is now Oklahoma), and the generator carries those rows
+  forward on every rebuild until a record decides the page or its rate files disappear. A state
+  word inside a name is not read either (Washington Electric Coop is in Vermont); the generator
+  lists the names that disagree with the tract map as a check on the map. The build is
+  deterministic for a given set of rate files, tract map, wiki answers and reviewed rows: rebuilding
+  today reproduces the committed file byte for byte. Runs use the committed CSV, so the wiki is
+  consulted only when the file is rebuilt (`--no-wiki` skips it and keeps the committed
+  service-territory rows). `tests/utility_bills_test.rb` checks the CSV covers exactly the rate
+  files present.
 
 Regenerating `measure.xml` with the OpenStudio CLI drops the JSON resource entries from its file
 list; update the changed files' checksums by hand instead.

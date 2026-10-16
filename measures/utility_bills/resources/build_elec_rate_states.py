@@ -14,17 +14,20 @@ Each rate gets a state from the first source that decides it:
                                    with --no-wiki or when the wiki is unreachable)
   2. state_in_page_name            a state in parentheses at the end of the utility page name,
                                    "Alfalfa Electric Coop, Inc (Kansas)"
-  3. single_state_utility          the utility serves tracts in one state only (tract_to_elec_util_v2.csv):
+  3. web_research                  a reviewer's decision for a page the records do not place, kept from
+                                   the committed CSV when the file is rebuilt (a page keeps its reviewed
+                                   state until a reviewer changes it or the page's rate files disappear)
+  4. single_state_utility          the utility serves tracts in one state only (tract_to_elec_util_v2.csv):
                                    its rates are that state's (the filter cannot change its bills; the
                                    row documents it)
   unresolved                       a multi-state utility's page with no record of its state, or a
                                    conflict between 1 and 2: blank, the rate applies in every state the
                                    utility serves, as all rates did before this file
   not_in_tract_map                 no tract is served by the utility, so ComStock never bills it: blank
-A state is never inferred. Where a two-state utility has one named page and one unnamed, the unnamed
-page is probably the other state's (Alfalfa Electric Coop serves Kansas and Oklahoma and names only
-its Kansas page), but nothing records it, so the unnamed rates apply in both states; the report lists
-these pages. A state in a utility's name is not read either (Washington Electric Coop is in Vermont,
+A state is never inferred by the script. Where a two-state utility has one named page and one unnamed,
+the unnamed page is probably the other state's (Alfalfa Electric Coop serves Kansas and Oklahoma and
+names only its Kansas page), but nothing records it, so the script leaves it unresolved and lists it;
+a reviewer settles such pages in the CSV with source web_research, and those rows survive rebuilds. A state in a utility's name is not read either (Washington Electric Coop is in Vermont,
 Howell-Oregon in Missouri); the report lists where such a word disagrees with the tract map.
 A rate with a state applies only in that state; a rate with none applies everywhere; a state left with
 no rate file keeps all of them (the measure logs a warning). Run this after refreshing the rate files
@@ -48,7 +51,9 @@ from collections import Counter, defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'elec_rate_states.csv')
 COLUMNS = ['label', 'eia_id', 'utility', 'state', 'source']
-SOURCES = {'openei_service_territory', 'state_in_page_name', 'single_state_utility', 'unresolved', 'not_in_tract_map'}
+SOURCES = {'openei_service_territory', 'state_in_page_name', 'web_research', 'single_state_utility', 'unresolved',
+           'not_in_tract_map'}
+MANUAL_SOURCE = 'web_research'
 STATES = {'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA', 'Colorado': 'CO',
           'Connecticut': 'CT', 'Delaware': 'DE', 'District of Columbia': 'DC', 'Florida': 'FL', 'Georgia': 'GA',
           'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
@@ -115,9 +120,30 @@ def wiki_territories(eia_ids):
     return territories
 
 
+def committed_decisions(source):
+    """Pages the committed CSV places with the given source: (eia id, utility page) -> state."""
+    if not os.path.exists(OUT):
+        return {}
+    decided = {}
+    with open(OUT, encoding='utf-8', newline='') as f:
+        for row in csv.DictReader(f):
+            if row.get('source') == source and row.get('state'):
+                decided[(int(row['eia_id']), row['utility'])] = row['state']
+    return decided
+
+
+def committed_newline():
+    """The committed CSV's line ending, so a rebuild changes only the rows that change."""
+    if os.path.exists(OUT):
+        with open(OUT, 'rb') as f:
+            return '\r\n' if b'\r\n' in f.read(4096) else '\n'
+    return '\n'
+
+
 def build(use_wiki=True):
     files = rate_files()
     served = served_states()
+    manual = committed_decisions(MANUAL_SOURCE)
     multi_state = {eia for eia, states in served.items() if len(states) >= 2}
     pages = sorted({(eia, utility) for _, eia, utility in files})
     territories = {}
@@ -130,6 +156,14 @@ def build(use_wiki=True):
             print(f'WARNING: OpenEI wiki not consulted ({type(e).__name__}: {e}); using the utility names and the '
                   f'tract map only', file=sys.stderr)
             territories = {}
+    if not territories:
+        # Without the wiki, keep the territories the committed file already recorded
+        kept_wiki = committed_decisions('openei_service_territory')
+        for (eia, utility), state in kept_wiki.items():
+            territories[utility] = [state]
+        if kept_wiki:
+            print(f'OpenEI wiki not consulted; kept {len(kept_wiki)} service-territory states from the committed file',
+                  file=sys.stderr)
 
     # Rules 1 and 2 decide pages; rule 3 decides the pages they left, per utility
     page_state, page_source, conflicts = {}, {}, []
@@ -144,6 +178,11 @@ def build(use_wiki=True):
             page_state[(eia, utility)], page_source[(eia, utility)] = wiki_state, 'openei_service_territory'
         elif named:
             page_state[(eia, utility)], page_source[(eia, utility)] = named, 'state_in_page_name'
+    # Reviewed pages keep their state unless a record (1 or 2) now decides them
+    for page, state in manual.items():
+        if page not in page_state and page in {(e, u) for e, u in pages}:
+            page_state[page], page_source[page] = state, MANUAL_SOURCE
+
     # Pages an elimination rule would place (one unnamed page, one state left): reported, not applied
     by_elimination = []
     for eia in sorted(multi_state):
@@ -167,14 +206,18 @@ def build(use_wiki=True):
              'state': page_state.get((eia, utility), ''), 'source': page_source[(eia, utility)]}
             for label, eia, utility in files]
     rows.sort(key=lambda r: (r['eia_id'], r['label']))
+    newline = committed_newline()
     with open(OUT, 'w', encoding='utf-8', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS, lineterminator='\n')
+        writer = csv.DictWriter(f, fieldnames=COLUMNS, lineterminator=newline)
         writer.writeheader()
         writer.writerows(rows)
 
     # Report, for the reviewer
     by_source = Counter(r['source'] or '(none)' for r in rows)
+    kept = sum(1 for p, src in page_source.items() if src == MANUAL_SOURCE)
+    dropped = [p for p in manual if p not in {(e, u) for e, u in pages}]
     print(f'\nWrote {OUT}: {len(rows):,} rate files, {len(pages):,} utility pages, {len(served):,} utilities in the tract map')
+    print(f'reviewed pages carried forward: {kept}' + (f'; reviewed pages whose rate files are gone: {len(dropped)}' if dropped else ''))
     print('rate files by source: ' + ', '.join(f'{k} {v:,}' for k, v in by_source.most_common()))
     multi_rows = [r for r in rows if r['eia_id'] in multi_state]
     print(f'\nMulti-state utilities (the only ones the filter changes): {len(multi_state)}, {len(multi_rows):,} rate files')
