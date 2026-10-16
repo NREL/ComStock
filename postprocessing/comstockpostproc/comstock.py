@@ -2476,6 +2476,15 @@ class ComStock(NamingMixin, UnitsMixin, GasCorrectionModelMixin, S3UtilitiesMixi
         # Join the utility bills onto each building based on utility ID and state
         alloc_wts = alloc_wts.join(util_bills_by_eia_id, on=bills_join_keys, how='left')
 
+        # Rows without a utility bill (billed at the state average below) got no floor area from
+        # the bills frame; take it from the simulation outputs, so every row carries its building's
+        # area and the bill intensities downstream are defined for state-average rows too
+        bldg_area = sim_outs.select(self.BLDG_ID, pl.col(self.FLR_AREA).alias('_bldg_area'))
+        utility_bills_join.assert_unique_on(bldg_area, [self.BLDG_ID], 'Simulation outputs floor area')
+        alloc_wts = (alloc_wts.join(bldg_area, on=self.BLDG_ID, how='left')
+                     .with_columns(pl.coalesce(pl.col(self.FLR_AREA), pl.col('_bldg_area')).alias(self.FLR_AREA))
+                     .drop('_bldg_area'))
+
         # Loop through each fuel and assign state-level bills to each building
         for col_state_util_result, col_state_util_bill in dict(zip(self.COLS_STATE_UTIL_RESULTS, self.COST_STATE_UTIL_COSTS)).items():
 

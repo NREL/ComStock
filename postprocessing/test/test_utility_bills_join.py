@@ -207,6 +207,10 @@ def test_bills_stage_fills_state_average_where_no_in_state_tariff_applied(tmp_pa
     # tract T2 (WA, utility 100) gets WA's state-average bill, 950; the ID rows keep utility 100's bill
     by_weight = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
     assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 950, 1000, 1000, 1500, 950]
+    # every row carries its building's floor area, the state-average rows included, so the bill
+    # intensities computed downstream are defined for them
+    assert by_weight[N.FLR_AREA].to_list() == [1000.0] * 6
+    assert out[N.FLR_AREA].null_count() == 0
     # and the cache marker records the one (building, utility, state) that took the state average
     marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
     assert marker['upgrades']['0']['n_bldg_utility_states_without_in_state_tariff'] == 1
@@ -297,6 +301,8 @@ def test_bills_stage_preserves_rows_and_weights(tmp_path, monkeypatch):
     # Each row gets its own state's bill: WA's 1100 in tract T2, the WA state average in T6
     by_weight = out.filter(pl.col(N.BLDG_ID) == 1).sort(N.BLDG_WEIGHT)
     assert by_weight[N.UTIL_BILL_ELEC].to_list() == [1000, 1100, 1000, 1000, 1500, 950]
+    # tract T6 has no utility and is billed at the state average; its row still carries the floor area
+    assert out[N.FLR_AREA].null_count() == 0 and out.filter(pl.col(N.BLDG_ID) == 2)[N.FLR_AREA].to_list() == [2000.0] * 4
     marker = json.load(open(f'{root}/{ubj.BILLS_MARKER_FILE_NAME}'))
     assert marker['bills_join_version'] == ubj.BILLS_JOIN_VERSION
     assert marker['upgrades']['0'] == {'bill_state_source': ubj.STATE_FROM_MEASURE_ORDER, 'n_electricity_bills': 4,
