@@ -681,7 +681,13 @@ class UtilityBillsTest < Minitest::Test
   # The state assignments cover exactly the rate files present (rebuild with resources/build_elec_rate_states.py)
   def test_elec_rate_states_match_rate_files
     resources = File.join(__dir__, '..', 'resources')
-    rate_labels = Dir.glob(File.join(resources, 'elec_rates', '*', '*.json')).map { |p| File.basename(p, '.json') }
+    rate_files = Dir.glob(File.join(resources, 'elec_rates', '*', '*.json'))
+    rate_labels = rate_files.map { |p| File.basename(p, '.json') }
+    # Rates whose name identifies industrial-only service (industrial without commercial) were removed in
+    # October 2026; a refresh from URDB must apply the same rule, or this fails
+    industrial_only = /"name"[[:space:]]*:[[:space:]]*"(?=[^"]*(?<![a-z])industrial(?![a-z]))(?![^"]*(?<![a-z])(?:commercial|commerical)(?![a-z]))[^"]*"/i
+    offenders = rate_files.select { |p| File.read(p).match?(industrial_only) }.map { |p| File.basename(p) }
+    assert_empty(offenders, "rate files whose name says industrial but not commercial: #{offenders.first(5)}")
     rows = CSV.read(File.join(resources, 'elec_rate_states.csv'), headers: true)
     assert_equal(rate_labels.sort, rows.map { |r| r['label'] }.sort)
     with_state = ['openei_service_territory', 'state_in_page_name', 'web_research', 'single_state_utility']

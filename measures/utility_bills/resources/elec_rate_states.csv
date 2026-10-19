@@ -858,7 +858,6 @@ label,eia_id,utility,state,source
 5550da2e5457a31c7e8b4567,1736,Blachly-Lane Cnty Coop El Assn,,not_in_tract_map
 5550de8d5457a3107e8b4567,1736,Blachly-Lane Cnty Coop El Assn,,not_in_tract_map
 5550dfa25457a339018b4567,1736,Blachly-Lane Cnty Coop El Assn,,not_in_tract_map
-5550e1e15457a31c7e8b4569,1736,Blachly-Lane Cnty Coop El Assn,,not_in_tract_map
 539fcb80ec4f024d2f54066a,1753,"City of Biwabik, Minnesota (Utility Company)",MN,single_state_utility
 53a355325257a317280add3a,1753,"City of Biwabik, Minnesota (Utility Company)",MN,single_state_utility
 53d2b4445257a3794ce04ef9,1763,"Black River Electric Coop, Inc",SC,single_state_utility
@@ -1008,7 +1007,6 @@ label,eia_id,utility,state,source
 539fc2d4ec4f024c27d8b5d1,2050,"City of Bowie, Texas (Utility Company)",,not_in_tract_map
 539f6accec4f024411ec944f,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
 539f6b15ec4f024411ec97dd,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
-539f6e5cec4f024411ecc159,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
 539f6e9dec4f024411ecc437,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
 539f6fc9ec4f024411ecd221,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
 539f7050ec4f024411ecd917,2054,"City of Bowling Green, Ohio (Utility Company)",OH,single_state_utility
@@ -1102,7 +1100,6 @@ label,eia_id,utility,state,source
 539fc333ec4f024c27d8b9df,2270,"City of Bronson, Kansas (Utility Company)",,not_in_tract_map
 539f6b73ec4f024411ec9cfb,2272,"Village of Brocton, New York (Utility Company)",,not_in_tract_map
 539f6febec4f024411ecd3ff,2272,"Village of Brocton, New York (Utility Company)",,not_in_tract_map
-539f7437ec4f024411ed0579,2272,"Village of Brocton, New York (Utility Company)",,not_in_tract_map
 539f70f6ec4f024411ece081,2273,Brodhead Water & Lighting Comm,WI,single_state_utility
 539f71e9ec4f024411eceb3d,2273,Brodhead Water & Lighting Comm,WI,single_state_utility
 539f74c3ec4f024411ed0be7,2273,Brodhead Water & Lighting Comm,WI,single_state_utility
@@ -1861,7 +1858,6 @@ label,eia_id,utility,state,source
 5d2610285457a37b42dc1324,3989,"City of Colorado Springs, Colorado (Utility Company)",CO,single_state_utility
 5d26107f5457a31715dc1325,3989,"City of Colorado Springs, Colorado (Utility Company)",CO,single_state_utility
 5d2611175457a31715dc1326,3989,"City of Colorado Springs, Colorado (Utility Company)",CO,single_state_utility
-5d2614a25457a3607bdc131d,3989,"City of Colorado Springs, Colorado (Utility Company)",CO,single_state_utility
 539f6b07ec4f024411ec9769,4003,"City of Colton, California (Utility Company)",CA,single_state_utility
 539fba66ec4f024bc1dc2d35,4003,"City of Colton, California (Utility Company)",CA,single_state_utility
 539fc4f0ec4f024c27d8cc5d,4003,"City of Colton, California (Utility Company)",CA,single_state_utility
@@ -2461,7 +2457,6 @@ label,eia_id,utility,state,source
 5e84d5825457a3d037ba48d8,5416,Progress Energy Carolinas Inc,NC,web_research
 5e84d65d5457a3b248ba48da,5416,Progress Energy Carolinas Inc,NC,web_research
 5e84d6d15457a35f14ba48d9,5416,Progress Energy Carolinas Inc,NC,web_research
-6112939e5457a3fb29f802c8,5416,"Duke Energy Carolinas, LLC",NC,web_research
 6112a67b5457a3035af802c8,5416,"Duke Energy Carolinas, LLC",NC,web_research
 6112a77f5457a3035af802c9,5416,"Duke Energy Carolinas, LLC",NC,web_research
 539f6a7fec4f024411ec9069,5429,"City of Duncan, Oklahoma (Utility Company)",,not_in_tract_map
@@ -2739,7 +2734,6 @@ label,eia_id,utility,state,source
 5903a1d05457a3f318cd3b46,5860,Empire District Electric Co (Missouri),MO,state_in_page_name
 539fb526ec4f024bc1dbf17d,5862,"Empire Electric Assn, Inc (Utah)",UT,state_in_page_name
 539fb907ec4f024bc1dc1dfb,5862,"Empire Electric Assn, Inc",CO,web_research
-539fc022ec4f024c27d898e1,5862,"Empire Electric Assn, Inc (Utah)",UT,state_in_page_name
 539fc4efec4f024c27d8cc23,5862,"Empire Electric Assn, Inc",CO,web_research
 59482bfa5457a3953f75d08f,5862,"Empire Electric Assn, Inc",CO,web_research
 539f7181ec4f024411ece6b1,5875,"Village of Endicott, New York (Utility Company)",,not_in_tract_map
@@ -3565,7 +3559,6 @@ label,eia_id,utility,state,source
 539fc864ec4f024d2f53e674,7626,"City of Greenfield, Iowa (Utility Company)",,not_in_tract_map
 539f6d2bec4f024411ecb257,7627,"City of Greenfield, Indiana (Utility Company)",IN,single_state_utility
 539fbe55ec4f024c27d88543,7627,"City of Greenfield, Indiana (Utility Company)",IN,single_state_utility
-539fbfa1ec4f024c27d89397,7627,"City of Greenfield, Indiana (Utility Company)",IN,single_state_utility
 539f6d7cec4f024411ecb64b,7630,"Village of Greenport, New York (Utility Company)",,not_in_tract_map
 539fb6a5ec4f024bc1dc02eb,7630,"Village of Greenport, New York (Utility Company)",,not_in_tract_map
 539fb7abec4f024bc1dc0eb5,7630,"Village of Greenport, New York (Utility Company)",,not_in_tract_map
@@ -3906,7 +3899,6 @@ label,eia_id,utility,state,source
 594972ab5457a3672975d08c,8570,Highline Electric Assn,CO,web_research
 594973005457a3486f75d08c,8570,Highline Electric Assn,CO,web_research
 539f6b64ec4f024411ec9c7d,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
-539f6b82ec4f024411ec9ded,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
 539f6f43ec4f024411eccc49,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
 539f747dec4f024411ed0903,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
 539f74e4ec4f024411ed0d57,8571,"Town of High Point, North Carolina (Utility Company)",,not_in_tract_map
@@ -3949,7 +3941,6 @@ label,eia_id,utility,state,source
 53f4bf865257a3a81be7a2a3,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53f4c3545257a3111ce7a2a3,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53f4c76f5257a3381ce7a2a4,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
-53f4c8e55257a3381ce7a2a5,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53f4c9aa5257a3111ce7a2a4,8700,Hohokam Irr & Drain Dist,,not_in_tract_map
 53a97fd55257a35f2f2c8964,8703,"City of Hoisington, Kansas (Utility Company)",,not_in_tract_map
 53a981425257a3492f2c8963,8703,"City of Hoisington, Kansas (Utility Company)",,not_in_tract_map
@@ -4216,7 +4207,6 @@ label,eia_id,utility,state,source
 5b44f5fd5457a33c0fa907ea,9336,Intermountain Rural Elec Assn,CO,single_state_utility
 5b44f6595457a32c5ea907eb,9336,Intermountain Rural Elec Assn,CO,single_state_utility
 5b44f81a5457a31c4ea907e9,9336,Intermountain Rural Elec Assn,CO,single_state_utility
-5b44f87e5457a37455a907eb,9336,Intermountain Rural Elec Assn,CO,single_state_utility
 5b44fb985457a32c5ea907ed,9336,Intermountain Rural Elec Assn,CO,single_state_utility
 5b44fc455457a31c4ea907ea,9336,Intermountain Rural Elec Assn,CO,single_state_utility
 5b44ffc75457a36716a907eb,9336,Intermountain Rural Elec Assn,CO,single_state_utility
@@ -4791,7 +4781,6 @@ label,eia_id,utility,state,source
 539fc284ec4f024c27d8b26d,10649,Lamar County Elec Coop Assn,TX,single_state_utility
 53b41ded5257a3e20fc6c933,10649,Lamar County Elec Coop Assn,TX,single_state_utility
 539f6afaec4f024411ec96fb,10650,"City of Lamoni, Iowa (Utility Company)",,not_in_tract_map
-539f74e5ec4f024411ed0de7,10650,"City of Lamoni, Iowa (Utility Company)",,not_in_tract_map
 539fb972ec4f024bc1dc22e1,10650,"City of Lamoni, Iowa (Utility Company)",,not_in_tract_map
 539fc36aec4f024c27d8bbf7,10650,"City of Lamoni, Iowa (Utility Company)",,not_in_tract_map
 539fb7dcec4f024bc1dc1053,10656,"City of Lampasas, Texas (Utility Company)",,not_in_tract_map
@@ -5037,13 +5026,11 @@ label,eia_id,utility,state,source
 53b170745257a32153ce10dd,11118,Lockhart Power Co,,not_in_tract_map
 53a9e2195257a357342c8969,11121,Lockwood Water & Light Company,,not_in_tract_map
 539f6e0bec4f024411ecbd8d,11122,"City of Lodgepole, Nebraska (Utility Company)",,not_in_tract_map
-539f74b2ec4f024411ed0b6b,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539fb57cec4f024bc1dbf537,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539fb5b0ec4f024bc1dbf7a5,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539fb5e6ec4f024bc1dbfa35,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539fbe67ec4f024c27d88637,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539fc1baec4f024c27d8aa43,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
-539fc46dec4f024c27d8c6b9,11124,"City of Lodi, California (Utility Company)",CA,single_state_utility
 539f6d6dec4f024411ecb5a7,11125,"City of Lodi, Wisconsin (Utility Company)",WI,single_state_utility
 539f6f98ec4f024411ecd05b,11125,"City of Lodi, Wisconsin (Utility Company)",WI,single_state_utility
 539f6ffcec4f024411ecd49f,11125,"City of Lodi, Wisconsin (Utility Company)",WI,single_state_utility
@@ -5103,7 +5090,6 @@ label,eia_id,utility,state,source
 5cd30aec5457a3447354e9d3,11208,Los Angeles Department of Water & Power,CA,single_state_utility
 539f6bddec4f024411eca2a7,11211,Lost River Electric Coop Inc,,not_in_tract_map
 539fba45ec4f024bc1dc2c45,11211,Lost River Electric Coop Inc,,not_in_tract_map
-539fc851ec4f024d2f53e544,11211,Lost River Electric Coop Inc,,not_in_tract_map
 539f7349ec4f024411ecfb0f,11222,Loudon Utilities Board,TN,single_state_utility
 539f748fec4f024411ed09e1,11222,Loudon Utilities Board,TN,single_state_utility
 539fba7bec4f024bc1dc2ea9,11222,Loudon Utilities Board,TN,single_state_utility
@@ -6157,7 +6143,6 @@ label,eia_id,utility,state,source
 539f6adbec4f024411ec9559,13604,"City of Niles, Michigan (Utility Company)",,not_in_tract_map
 539f6f22ec4f024411eccadb,13604,"City of Niles, Michigan (Utility Company)",,not_in_tract_map
 539f6f87ec4f024411eccf69,13604,"City of Niles, Michigan (Utility Company)",,not_in_tract_map
-539f736aec4f024411ecfc6f,13604,"City of Niles, Michigan (Utility Company)",,not_in_tract_map
 539fc15eec4f024c27d8a64d,13604,"City of Niles, Michigan (Utility Company)",,not_in_tract_map
 5d9b61cc5457a3db65598dcd,13640,Northern Virginia Elec Coop,VA,single_state_utility
 5d9b62265457a3da65598dcd,13640,Northern Virginia Elec Coop,VA,single_state_utility
@@ -6177,8 +6162,6 @@ label,eia_id,utility,state,source
 58e6821e5457a337493d4586,13651,Nolin Rural Electric Coop Corp,KY,single_state_utility
 58e682d55457a316283d4586,13651,Nolin Rural Electric Coop Corp,KY,single_state_utility
 58e683cd5457a31c573d4587,13651,Nolin Rural Electric Coop Corp,KY,single_state_utility
-58e684415457a31c573d4588,13651,Nolin Rural Electric Coop Corp,KY,single_state_utility
-58e6852f5457a308283d4586,13651,Nolin Rural Electric Coop Corp,KY,single_state_utility
 539f6a0aec4f024411ec8afb,13664,Norris Public Power District,NE,single_state_utility
 539f6accec4f024411ec945b,13664,Norris Public Power District,NE,single_state_utility
 539f6cebec4f024411ecafbf,13664,Norris Public Power District,NE,single_state_utility
@@ -6429,7 +6412,6 @@ label,eia_id,utility,state,source
 539fb72fec4f024bc1dc08a7,13838,"Northfork Electric Coop, Inc",,not_in_tract_map
 539fc2c1ec4f024c27d8b4dd,13838,"Northfork Electric Coop, Inc",,not_in_tract_map
 539fc887ec4f024d2f53e7b4,13838,"Northfork Electric Coop, Inc",,not_in_tract_map
-539f6bfbec4f024411eca41b,13839,"City of Norwood, Massachusetts (Utility Company)",MA,single_state_utility
 539fc410ec4f024c27d8c2a5,13839,"City of Norwood, Massachusetts (Utility Company)",MA,single_state_utility
 539fcafeec4f024d2f540198,13839,"City of Norwood, Massachusetts (Utility Company)",MA,single_state_utility
 539f6cfaec4f024411ecb087,13853,Oahe Electric Coop Inc,,not_in_tract_map
@@ -6575,7 +6557,6 @@ label,eia_id,utility,state,source
 539fbf33ec4f024c27d88f01,14146,"City of Opelika, Alabama (Utility Company)",,not_in_tract_map
 539fbfd6ec4f024c27d8958f,14151,"City of Opp, Alabama (Utility Company)",,not_in_tract_map
 539fbfe9ec4f024c27d8967b,14151,"City of Opp, Alabama (Utility Company)",,not_in_tract_map
-539fc4efec4f024c27d8cc17,14151,"City of Opp, Alabama (Utility Company)",,not_in_tract_map
 539fb89bec4f024bc1dc1937,14154,Orange & Rockland Utils Inc,NY,single_state_utility
 539fb9a5ec4f024bc1dc24f3,14154,Orange & Rockland Utils Inc,NY,single_state_utility
 5592df8c5457a3e848ce826d,14154,Orange & Rockland Utils Inc,NY,single_state_utility
@@ -7922,9 +7903,6 @@ label,eia_id,utility,state,source
 5b183e3a5457a3686bce813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
 5b1848145457a3d471ce813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
 5b184ce05457a38f7ece813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
-5b194a545457a3160dce813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
-5b1958e35457a36c71ce813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
-5b1964d85457a36f27ce813b,16655,"City of Santa Clara, California (Utility Company)",CA,single_state_utility
 539f6ae9ec4f024411ec9595,16667,"City of Sargent, Nebraska (Utility Company)",,not_in_tract_map
 539f6e5bec4f024411ecc137,16667,"City of Sargent, Nebraska (Utility Company)",,not_in_tract_map
 539f7081ec4f024411ecdb5b,16667,"City of Sargent, Nebraska (Utility Company)",,not_in_tract_map
@@ -7965,7 +7943,6 @@ label,eia_id,utility,state,source
 539fba1fec4f024bc1dc2a09,16778,"City of Schuyler, Nebraska (Utility Company)",,not_in_tract_map
 539fc4a5ec4f024c27d8c975,16778,"City of Schuyler, Nebraska (Utility Company)",,not_in_tract_map
 539f7091ec4f024411ecdb9f,16780,"Borough of Schuylkill Haven, Pennsylvania (Utility Company)",,not_in_tract_map
-539fbf46ec4f024c27d88feb,16780,"Borough of Schuylkill Haven, Pennsylvania (Utility Company)",,not_in_tract_map
 539f72d2ec4f024411ecf56f,16788,"Town of Scotland Neck, North Carolina (Utility Company)",,not_in_tract_map
 5581decd5457a306796c88a5,16805,SEMO Electric Cooperative,MO,single_state_utility
 5581df225457a3957c6c88ae,16805,SEMO Electric Cooperative,MO,single_state_utility
@@ -8358,7 +8335,6 @@ label,eia_id,utility,state,source
 539f74b2ec4f024411ed0b43,17599,Southeastern Indiana R E M C,IN,single_state_utility
 539fbd15ec4f024c27d877e3,17599,Southeastern Indiana R E M C,IN,single_state_utility
 539fb537ec4f024bc1dbf239,17603,Southeastern Electric Coop Inc,OK,single_state_utility
-53c69fbe5257a3ef42f17bd4,17603,Southeastern Electric Coop Inc,OK,single_state_utility
 53c6a71e5257a34045f17bd2,17603,Southeastern Electric Coop Inc,OK,single_state_utility
 56b299775457a3555cc2db59,17609,Southern California Edison Co,CA,single_state_utility
 56b29a2b5457a3654fc2db59,17609,Southern California Edison Co,CA,single_state_utility
@@ -9251,7 +9227,6 @@ label,eia_id,utility,state,source
 539fb516ec4f024bc1dbf129,19324,Two Rivers Water & Light,,not_in_tract_map
 539fb824ec4f024bc1dc1411,19324,Two Rivers Water & Light,,not_in_tract_map
 539fbd13ec4f024c27d8773b,19324,Two Rivers Water & Light,,not_in_tract_map
-539fcb35ec4f024d2f5403cc,19324,Two Rivers Water & Light,,not_in_tract_map
 539fb4afec4f024bc1dbec89,19325,Umatilla Electric Coop Assn,OR,single_state_utility
 539fb813ec4f024bc1dc136b,19325,Umatilla Electric Coop Assn,OR,single_state_utility
 5b6cb6135457a33c7d571c6c,19325,Umatilla Electric Coop Assn,OR,single_state_utility
@@ -9310,7 +9285,6 @@ label,eia_id,utility,state,source
 539fb458ec4f024bc1dbe889,19445,"Southern Indiana R E C, Inc",IN,single_state_utility
 539fb58eec4f024bc1dbf65b,19445,"Southern Indiana R E C, Inc",IN,single_state_utility
 539fb62cec4f024bc1dbfd85,19445,"Southern Indiana R E C, Inc",IN,single_state_utility
-539fc445ec4f024c27d8c4df,19445,"Southern Indiana R E C, Inc",IN,single_state_utility
 5b05d4cd5457a3d2360b0e3a,19446,"Duke Energy Kentucky, Inc.",KY,single_state_utility
 5b05d9485457a3d2360b0e3b,19446,"Duke Energy Kentucky, Inc.",KY,single_state_utility
 5b05daf85457a331590b0e3b,19446,"Duke Energy Kentucky, Inc.",KY,single_state_utility
@@ -9412,7 +9386,6 @@ label,eia_id,utility,state,source
 539fc0ffec4f024c27d8a1e5,19788,"City of Vermillion, South Dakota (Utility Company)",,not_in_tract_map
 539fc4a3ec4f024c27d8c8e1,19788,"City of Vermillion, South Dakota (Utility Company)",,not_in_tract_map
 539f6d3bec4f024411ecb31f,19790,Verendrye Electric Coop Inc,ND,single_state_utility
-539f723fec4f024411ecef63,19790,Verendrye Electric Coop Inc,ND,single_state_utility
 539fbdfeec4f024c27d8816d,19790,Verendrye Electric Coop Inc,ND,single_state_utility
 539fca38ec4f024d2f53f956,19790,Verendrye Electric Coop Inc,ND,single_state_utility
 575ed60f5457a36823ba0c12,19791,"Vermont Electric Cooperative, Inc.",VT,single_state_utility
@@ -9450,7 +9423,6 @@ label,eia_id,utility,state,source
 539fc7ddec4f024d2f53e064,19820,Victory Electric Coop Assn Inc,KS,single_state_utility
 53a9d4525257a3ba2e2c8969,19820,Victory Electric Coop Assn Inc,KS,single_state_utility
 53a9d4c35257a3bb2e2c896e,19820,Victory Electric Coop Assn Inc,KS,single_state_utility
-53a9d57b5257a318362c8965,19820,Victory Electric Coop Assn Inc,KS,single_state_utility
 53a9d6bc5257a318362c8966,19820,Victory Electric Coop Assn Inc,KS,single_state_utility
 53b2ce745257a35e72050f9a,19828,"Town of Vidalia, Louisiana (Utility Company)",,not_in_tract_map
 539f6bbdec4f024411eca0cd,19840,"Valley Electric Assn, Inc (Nevada)",NV,state_in_page_name
@@ -9683,7 +9655,6 @@ label,eia_id,utility,state,source
 55ba717c5457a3307b995e91,20213,Waupun Utilities,WI,single_state_utility
 55ba7d4a5457a3b94c995e98,20213,Waupun Utilities,WI,single_state_utility
 55ba7f275457a3b94c995e99,20213,Waupun Utilities,WI,single_state_utility
-55ba80c75457a3e449995e98,20213,Waupun Utilities,WI,single_state_utility
 539f6c59ec4f024411eca8e9,20214,Waverly Municipal Elec Utility,,not_in_tract_map
 539f721bec4f024411eceded,20214,Waverly Municipal Elec Utility,,not_in_tract_map
 539f7369ec4f024411ecfc2d,20214,Waverly Municipal Elec Utility,,not_in_tract_map
@@ -9874,7 +9845,6 @@ label,eia_id,utility,state,source
 539fbd47ec4f024c27d87997,20506,"Wheatland Rural Elec Assn, Inc",,not_in_tract_map
 539fc3c4ec4f024c27d8bf87,20506,"Wheatland Rural Elec Assn, Inc",,not_in_tract_map
 539fc514ec4f024c27d8cd71,20506,"Wheatland Rural Elec Assn, Inc",,not_in_tract_map
-539f6aeaec4f024411ec9623,20509,Wheat Belt Public Power Dist,NE,single_state_utility
 539f6f75ec4f024411ecce41,20509,Wheat Belt Public Power Dist,NE,single_state_utility
 539f700dec4f024411ecd55b,20509,Wheat Belt Public Power Dist,NE,single_state_utility
 539f737dec4f024411ecfd47,20509,Wheat Belt Public Power Dist,NE,single_state_utility
@@ -10065,7 +10035,6 @@ label,eia_id,utility,state,source
 539f6bfaec4f024411eca3b5,20924,Wonewoc Electric & Water Util,,not_in_tract_map
 539f6c2aec4f024411eca5d9,20924,Wonewoc Electric & Water Util,,not_in_tract_map
 539fb670ec4f024bc1dc006f,20924,Wonewoc Electric & Water Util,,not_in_tract_map
-539fb503ec4f024bc1dbefbd,20927,"Wood County Electric Coop, Inc",,not_in_tract_map
 539fbd13ec4f024c27d87743,20927,"Wood County Electric Coop, Inc",,not_in_tract_map
 539fbf7cec4f024c27d891c5,20927,"Wood County Electric Coop, Inc",,not_in_tract_map
 53ade1d95257a39205dcddbd,20945,"City of Wood River, Nebraska (Utility Company)",,not_in_tract_map
@@ -10088,7 +10057,6 @@ label,eia_id,utility,state,source
 539fca9aec4f024d2f53fdae,20980,Precinct of Woodsville,,not_in_tract_map
 53aaff545257a3d2481cfe3a,20980,Precinct of Woodsville,,not_in_tract_map
 53aaffcb5257a3de4b1cfe36,20980,Precinct of Woodsville,,not_in_tract_map
-53ab11565257a3dd4b1cfe38,20980,Precinct of Woodsville,,not_in_tract_map
 539f713aec4f024411ece351,20996,Wright-Hennepin Coop Elec Assn,MN,single_state_utility
 539f722dec4f024411ecee7b,20996,Wright-Hennepin Coop Elec Assn,MN,single_state_utility
 539f6d6dec4f024411ecb5b1,20997,Yellowstone Valley Elec Co-op Inc.,MT,single_state_utility
@@ -10200,9 +10168,6 @@ label,eia_id,utility,state,source
 5d40aec35457a3c26adc8c3e,22053,Kentucky Power Co,KY,single_state_utility
 5d40af4c5457a3dc65dc8c3f,22053,Kentucky Power Co,KY,single_state_utility
 5d40afaa5457a3056adc8c40,22053,Kentucky Power Co,KY,single_state_utility
-5d40b4b55457a37263dc8c3e,22053,Kentucky Power Co,KY,single_state_utility
-5d40b5755457a38664dc8c3c,22053,Kentucky Power Co,KY,single_state_utility
-5d40b7755457a33e6bdc8c3f,22053,Kentucky Power Co,KY,single_state_utility
 539fbe0fec4f024c27d8820b,22355,PUD No 1 of Mason County,,not_in_tract_map
 539fc7a8ec4f024d2f53de8a,22355,PUD No 1 of Mason County,,not_in_tract_map
 558044f95457a372516c88a3,22500,Westar Energy Inc,KS,single_state_utility

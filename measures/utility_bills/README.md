@@ -20,7 +20,10 @@ electricity prices; natural gas, propane and fuel oil use EIA state averages.
 ## Resources and how to maintain them
 
 - `elec_rates/<EIA id>/<URDB label>.json`: the URDB commercial tariffs, downloaded from the OpenEI
-  Utility Rate Database (initial set December 2023, non-commercial tariffs removed January 2024).
+  Utility Rate Database (initial set December 2023, non-commercial tariffs removed January 2024, and
+  in October 2026 the 35 tariffs whose names identify industrial-only service, industrial without
+  commercial in the name, such as "I (Industrial Service)"). `tests/utility_bills_test.rb` fails if a
+  refresh brings such a file back, so apply the same rule when refreshing from URDB.
 - `tract_to_elec_util_v2.csv`: the electric utility serving each census tract.
 - `sampling_region_to_tracts.json`, `state_abbrev_to_fips.json`: the tracts of each sampling region
   and the state of each tract. Postprocessing's `comstockpostproc/resources/utility_bill_states_by_sampling_region.csv`
